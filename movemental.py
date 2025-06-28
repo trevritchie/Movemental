@@ -74,6 +74,17 @@ chord_duration = HN  # how long to play each chord
 chord_octave = 5     # which octave to use
 # endregion Global Variables ##################################################
 
+# region Classes ##############################################################
+class Chord():
+    def __init__(self, root, quality, pitches):
+        self.root = root
+        self.quality = quality
+
+        # Normalize pitches (convert to pitch classes 0-11)
+        pitches = [x % 12 for x in pitches]
+        self.pitches = pitches
+# endregion Classes ###########################################################
+
 # region GUI Setup ############################################################
 # Create a display with tesseract diagram image
 display = Display("Movemental", 1000, 514)
@@ -240,16 +251,5 @@ def choose_action(x, y):
         select_transformation(new_x, new_y)
 # endregion Functions #########################################################
 
-# region Classes ##############################################################
-class Chord():
-    def __init__(self, root, quality, pitches):
-        self.root = root
-        self.quality = quality
-
-        # Normalize pitches (convert to pitch classes 0-11)
-        pitches = [x % 12 for x in pitches]
-        self.pitches = pitches
-# endregion Classes ###########################################################
-
-# register callback for playing chords via clicking the mouse
+# Register callback for playing chords by clicking the mouse
 display.onMouseClick(choose_action)
