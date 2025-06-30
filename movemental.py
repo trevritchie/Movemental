@@ -13,40 +13,49 @@ class Chord():
         self.quality = quality
 
         # Normalize pitches (convert to pitch classes 0-11)
-        pitches = [x % 12 for x in pitches]
-        self.pitches = pitches
+        self.pitch_classes = [x % 12 for x in pitches]
 # endregion Classes ###########################################################
 
 # region Constants ############################################################
+# Set the tonal center
+TONAL_CENTER_OFFSET = -2  # 0 = C4, 2 = D4, -2 = Bb3, +10 = Bb4, etc.
+VOICING = "Close"  # Close, Drop 2, Drop 3, Drop 2 and 4
+CHORD_DURATION = QN  # how long to play each chord
+OCTAVE_RANGE = 5     # which octave to use
+
+VOICING_TO_INDICES = {
+    "Close": [],
+    "Drop 2": [1],
+    "Drop 3": [1, 2],
+    "Drop 2 and 4": [1, 3]
+}
+
 # Map points on the display to chords
 # (everything is relative to C, but TRANSPOSE_KEY_SEMITONES will allow for any tonal center)
 COORDINATES_TO_CHORD = {}
 
 # Elemental Diminished Chords
-COORDINATES_TO_CHORD[(111, 176)] = Chord("Earth", [C4, FS4, A4, EF5])
-COORDINATES_TO_CHORD[(736, 166)] = Chord("Wind", [DF4, G4, BF4, E5])
-COORDINATES_TO_CHORD[(409, 631)] = Chord("Fire", [D4, AF4, B4, F5])
+COORDINATES_TO_CHORD[(111, 176)] = Chord("Earth", [C4, EF4, FS4, A4])
+COORDINATES_TO_CHORD[(736, 166)] = Chord("Wind", [DF4, E4, G4, BF4])
+COORDINATES_TO_CHORD[(409, 631)] = Chord("Fire", [D4, F4, AF4, B4])
 
 # Earth-Wind Combinations
-COORDINATES_TO_CHORD[(245, 95)] = Chord("Trunk", [C4, G4, A4, EF5]) # min6
-COORDINATES_TO_CHORD[(406, 36)] = Chord("Branch", [C4, G4, A4, E5]) # maj6
-COORDINATES_TO_CHORD[(418, 156)] = Chord("Sand-Storm", [C4, GF4, BF4, E5]) # dom7 b5
-COORDINATES_TO_CHORD[(565, 96)] = Chord("Leaf", [C4, G4, BF4, E5]) # dom7
+COORDINATES_TO_CHORD[(245, 95)] = Chord("Trunk", [C4, EF4, G4, A4]) # min6
+COORDINATES_TO_CHORD[(406, 36)] = Chord("Branch", [C4, E4, G4, A4]) # maj6
+COORDINATES_TO_CHORD[(418, 156)] = Chord("Sand-Storm", [C4, E4, GF4, BF4]) # dom7 b5
+COORDINATES_TO_CHORD[(565, 96)] = Chord("Leaf", [C4, E4, G4, BF4]) # dom7
 
 # Wind-Fire Combinations
-COORDINATES_TO_CHORD[(736, 275)] = Chord("Smoke", [G4, D5, E5, BF5]) # min6
-COORDINATES_TO_CHORD[(830, 386)] = Chord("Ember", [G4, D5, E5, B5]) # maj6
-COORDINATES_TO_CHORD[(579, 346)] = Chord("Fire-Storm", [G4, DF5, F5, B5]) # dom7 b5
-COORDINATES_TO_CHORD[(623, 533)] = Chord("Flame", [G4, D5, F5, B5]) # dom7
+COORDINATES_TO_CHORD[(736, 275)] = Chord("Smoke", [G4, BF4, D5, E5]) # min6
+COORDINATES_TO_CHORD[(830, 386)] = Chord("Ember", [G4, B4, D5, E5]) # maj6
+COORDINATES_TO_CHORD[(579, 346)] = Chord("Fire-Storm", [G4, B4, DF5, F5]) # dom7 b5
+COORDINATES_TO_CHORD[(623, 533)] = Chord("Flame", [G4, B4, D5, F5]) # dom7
 
 # Fire-Earth Combinations
 COORDINATES_TO_CHORD[(219, 464)] = Chord("Magma", [F4, C5, D5, AF5]) # min6
 COORDINATES_TO_CHORD[(82, 366)] = Chord("Glass", [F4, C5, D5, A5]) # maj6
 COORDINATES_TO_CHORD[(310, 327)] = Chord("Forest-Fire", [F4, CF5, EF4, A5]) # dom7 b5
 COORDINATES_TO_CHORD[(156, 266)] = Chord("Charcoal", [F4, C5, EF4, A5]) # dom7
-
-# Set the tonal center
-TONAL_CENTER_OFFSET = 0  # 0 = C4, 2 = D4, -2 = Bb3, +10 = Bb4, etc.
 
 # Note letter names
 NOTE_NAMES_SHARP = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"]
@@ -101,11 +110,6 @@ DOMINANT_SEVENTH_FLAT_FIVE_CHORD_FROM_THIRD = [0, 2, 6, 8] # same as from sevent
 DIMINISHED_CHORD = [0, 3, 6, 9]
 # endregion Constants #########################################################
 
-# region Global Variables #####################################################
-chord_duration = HN  # how long to play each chord
-chord_octave = 5     # which octave to use
-# endregion Global Variables ##################################################
-
 # region GUI Setup ############################################################
 # Create a display with diagram image
 display = Display("Movemental", 900, 720)
@@ -156,21 +160,30 @@ def find_closest_point(here, points):
     return closest_point
 
 
-def play_chord(pitches):
+def play_chord(pitch_classes):
     """
     Play the provided list of pitches as a chord.
 
     Args:
         pitches (_type_): _description_
     """
-    global chord_duration, chord_octave
+    pitches = []
+    # Place notes in the correct octave range based on the chosen voicing
+    for i in range(len(pitch_classes)):
+        # Place the pitch class into the correct octave range
+        adjusted_pitch = pitch_classes[i] + (OCTAVE * OCTAVE_RANGE) + TONAL_CENTER_OFFSET
 
-    # Place pitches in the correct octave range
-    pitches = [x + (OCTAVE * chord_octave) for x in pitches]
+        # For the chosen voicing, raise the appropriate notes up an octave
+        if i in VOICING_TO_INDICES.get(VOICING):
+            if adjusted_pitch + OCTAVE <= 127:
+                adjusted_pitch += OCTAVE
+
+        # Add corretly placed cpitch
+        pitches.append(adjusted_pitch)
 
     # Create the chord
     phrase = Phrase()
-    phrase.addChord(pitches, chord_duration)
+    phrase.addChord(pitches, CHORD_DURATION)
 
     # Stop any sounding notes
     Play.allNotesOff()
@@ -205,10 +218,10 @@ def select_chord(x, y):
 
     # Get chord info
     chord_quality    = COORDINATES_TO_CHORD[point].quality
-    chord_pitches = COORDINATES_TO_CHORD[point].pitches
+    chord_pitch_classes = COORDINATES_TO_CHORD[point].pitch_classes
 
     # Play the chord
-    play_chord(chord_pitches)
+    play_chord(chord_pitch_classes)
 
     # Place a dot on the selection
     select_chord_visually(point[0], point[1])
@@ -275,7 +288,7 @@ def choose_action(x, y):
 
 def main():
     # Set the instrument
-    Play.setInstrument()
+    Play.setInstrument(SYNTH, 0)
 
     # Register callback for playing chords by clicking the mouse
     display.onMouseClick(choose_action)
