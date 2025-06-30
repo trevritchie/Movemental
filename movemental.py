@@ -57,14 +57,25 @@ COORDINATES_TO_CHORD[(82, 366)] = Chord("Glass", [F4, C5, D5, A5]) # maj6
 COORDINATES_TO_CHORD[(310, 327)] = Chord("Forest-Fire", [F4, CF5, EF4, A5]) # dom7 b5
 COORDINATES_TO_CHORD[(156, 266)] = Chord("Charcoal", [F4, C5, EF4, A5]) # dom7
 
-# Note letter names
-NOTE_NAMES_SHARP = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"]
-NOTE_NAMES_FLAT  = ["C", "Db", "D", "Eb", "E", "F", "Gb", "G", "Ab", "A", "Bb", "B"]
-
 # Intervals in semitones
 MINOR_THIRD = 3
 TRITONE = 6
 OCTAVE = 12
+
+# Map family transformation buttons
+COORDINATES_TO_FAMILY = {}
+# Default
+COORDINATES_TO_FAMILY[(763, 567)] = 0
+# Sister
+COORDINATES_TO_FAMILY[(675, 651)] = -MINOR_THIRD
+# Cousin
+COORDINATES_TO_FAMILY[(675, 651)] = TRITONE
+# Brother
+COORDINATES_TO_FAMILY[(838, 647)] = MINOR_THIRD
+
+# Note letter names
+NOTE_NAMES_SHARP = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"]
+NOTE_NAMES_FLAT  = ["C", "Db", "D", "Eb", "E", "F", "Gb", "G", "Ab", "A", "Bb", "B"]
 
 # Scales of chords by "pitch class". Semitones are assigned to 0-11.
 MAJOR_SIXTH_DIMINISHED_SCALE = [0, 2, 4, 5, 7, 8, 9, 11]
@@ -239,7 +250,7 @@ def select_chord(x, y):
     # print(f"- [{', '.join(chord_notes)}]")
 
 
-def select_transformation(x, y):
+def select_family(x, y):
     """
     Finds the closest tranformation and performs it.
 
@@ -280,10 +291,10 @@ def choose_action(x, y):
         # If a chord, call play chord function
         select_chord(new_x, new_y)
 
-    # If not a chord, its a transformation
+    # If not a chord, its a change in family
     else:
         # Play that transformation
-        select_transformation(new_x, new_y)
+        select_family(new_x, new_y)
 # endregion Functions #########################################################
 
 def main():
