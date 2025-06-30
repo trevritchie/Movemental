@@ -23,27 +23,27 @@ class Chord():
 COORDINATES_TO_CHORD = {}
 
 # Elemental Diminished Chords
-COORDINATES_TO_CHORD[ (111, 176) ] = Chord( "Earth", [C4, FS4, A4, EF5] )
-COORDINATES_TO_CHORD[ (736, 166) ] = Chord( "Wind", [DF4, G4, BF4, E5] )
-COORDINATES_TO_CHORD[ (409, 631) ] = Chord( "Fire", [D4, AF4, B4, F5] )
+COORDINATES_TO_CHORD[(111, 176)] = Chord("Earth", [C4, FS4, A4, EF5])
+COORDINATES_TO_CHORD[(736, 166)] = Chord("Wind", [DF4, G4, BF4, E5])
+COORDINATES_TO_CHORD[(409, 631)] = Chord("Fire", [D4, AF4, B4, F5])
 
 # Earth-Wind Combinations
-COORDINATES_TO_CHORD[ (245, 95) ] = Chord( "Trunk", [C4, G4, A4, EF5] ) # min6
-COORDINATES_TO_CHORD[ (406, 36) ] = Chord( "Branch", [C4, G4, A4, E5] ) # maj6
-COORDINATES_TO_CHORD[ (418, 156) ] = Chord( "Sand-Storm", [C4, GF4, BF4, E5] ) # dom7 b5
-COORDINATES_TO_CHORD[ (565, 96) ] = Chord( "Leaf", [C4, G4, BF4, E5] ) # dom7
+COORDINATES_TO_CHORD[(245, 95)] = Chord("Trunk", [C4, G4, A4, EF5]) # min6
+COORDINATES_TO_CHORD[(406, 36)] = Chord("Branch", [C4, G4, A4, E5]) # maj6
+COORDINATES_TO_CHORD[(418, 156)] = Chord("Sand-Storm", [C4, GF4, BF4, E5]) # dom7 b5
+COORDINATES_TO_CHORD[(565, 96)] = Chord("Leaf", [C4, G4, BF4, E5]) # dom7
 
 # Wind-Fire Combinations
-COORDINATES_TO_CHORD[ (736, 275) ] = Chord( "Smoke", [G4, D5, E5, BF5] ) # min6
-COORDINATES_TO_CHORD[ (830, 386) ] = Chord( "Ember", [G4, D5, E5, B5] ) # maj6
-COORDINATES_TO_CHORD[ (579, 346) ] = Chord( "Fire-Storm", [G4, DF5, F5, B5] ) # dom7 b5
-COORDINATES_TO_CHORD[ (623, 533) ] = Chord( "Flame", [G4, D5, F5, B5] ) # dom7
+COORDINATES_TO_CHORD[(736, 275)] = Chord("Smoke", [G4, D5, E5, BF5]) # min6
+COORDINATES_TO_CHORD[(830, 386)] = Chord("Ember", [G4, D5, E5, B5]) # maj6
+COORDINATES_TO_CHORD[(579, 346)] = Chord("Fire-Storm", [G4, DF5, F5, B5]) # dom7 b5
+COORDINATES_TO_CHORD[(623, 533)] = Chord("Flame", [G4, D5, F5, B5]) # dom7
 
 # Fire-Earth Combinations
-COORDINATES_TO_CHORD[ (219, 464) ] = Chord( "Magma", [F4, C5, D5, AF5] ) # min6
-COORDINATES_TO_CHORD[ (82, 366) ] = Chord( "Glass", [F4, C5, D5, A5] ) # maj6
-COORDINATES_TO_CHORD[ (310, 327) ] = Chord( "Forest-Fire", [F4, CF5, EF4, A5] ) # dom7 b5
-COORDINATES_TO_CHORD[ (156, 266) ] = Chord( "Charcoal", [F4, C5, EF4, A5] ) # dom7
+COORDINATES_TO_CHORD[(219, 464)] = Chord("Magma", [F4, C5, D5, AF5]) # min6
+COORDINATES_TO_CHORD[(82, 366)] = Chord("Glass", [F4, C5, D5, A5]) # maj6
+COORDINATES_TO_CHORD[(310, 327)] = Chord("Forest-Fire", [F4, CF5, EF4, A5]) # dom7 b5
+COORDINATES_TO_CHORD[(156, 266)] = Chord("Charcoal", [F4, C5, EF4, A5]) # dom7
 
 # Set the tonal center
 TONAL_CENTER_OFFSET = 0  # 0 = C4, 2 = D4, -2 = Bb3, +10 = Bb4, etc.
@@ -70,7 +70,7 @@ MINOR_SIXTH_DIMINISHED_SCALE_FROM_SIXTH = [0, 2, 3, 5, 6, 8, 10, 11] # aka minor
 
 DOMINANT_SEVENTH_DIMINISHED_SCALE = [0, 2, 4, 5, 7, 8, 10, 11]
 DOMINANT_SEVENTH_DIMINISHED_SCALE_FROM_THIRD = [0, 1, 3, 4, 6, 7, 8, 10]
-DOMINANT_SEVENTH_DIMINISHED_SCALE_FROM_FIFTH = [0, 1, 3, 4, 5, 7, 9, 10, ]
+DOMINANT_SEVENTH_DIMINISHED_SCALE_FROM_FIFTH = [0, 1, 3, 4, 5, 7, 9, 10,]
 DOMINANT_SEVENTH_DIMINISHED_SCALE_FROM_SEVENTH = [0, 1, 2, 4, 6, 7, 9, 10]
 
 DOMINANT_SEVENTH_FLAT_FIVE_DIMINISHED_SCALE = [0, 2, 4, 5, 6, 8, 10, 11] # same as from flat fifth
@@ -112,13 +112,13 @@ display = Display("Movemental", 900, 720)
 diagram = Icon("./images/diagram.jpg", 900, 720)
 display.add(diagram)
 
-# Create circle that shows active chord
+# Create a circle that marks the active chord
 selected_chord_dot = Circle(0, 0, 8, Color.BLUE, fill=True)
 display.add(selected_chord_dot)
 # endregion GUI Setup #########################################################
 
 # region Functions ############################################################
-def distance( point1, point2 ):
+def distance(point1, point2):
     """
     Calculates the euclidean distance between two points.
 
@@ -131,7 +131,8 @@ def distance( point1, point2 ):
     """
     return hypot(point2[0] - point1[0], point2[1] - point1[1])
 
-def find_closest_point( here, points ):
+
+def find_closest_point(here, points):
     """
     Finds closest among all points to here.
 
@@ -144,7 +145,7 @@ def find_closest_point( here, points ):
 
     # Iterate through all point looking for closest one
     for point in points:
-        thisDistance = distance( here, point )   # calculate distance
+        thisDistance = distance(here, point)   # calculate distance
         if thisDistance < closest_distance_so_far:  # is this closer than ever before?
             # Yes, so update
             closest_distance_so_far = thisDistance
@@ -154,7 +155,8 @@ def find_closest_point( here, points ):
 
     return closest_point
 
-def play_chord( pitches ):
+
+def play_chord(pitches):
     """
     Play the provided list of pitches as a chord.
 
@@ -174,7 +176,8 @@ def play_chord( pitches ):
     Play.allNotesOff()
 
     # Play the chord!
-    Play.midi( phrase )
+    Play.midi(phrase)
+
 
 def select_chord_visually(x, y):
     """
@@ -187,6 +190,7 @@ def select_chord_visually(x, y):
     global display, selected_chord_dot
 
     display.move(selected_chord_dot, x, y)
+
 
 def select_chord(x, y):
     """
@@ -207,7 +211,7 @@ def select_chord(x, y):
     play_chord(chord_pitches)
 
     # Place a dot on the selection
-    select_chord_visually( point[0], point[1] )
+    select_chord_visually(point[0], point[1])
 
     # Print chord info
     print(chord_quality)
@@ -219,7 +223,8 @@ def select_chord(x, y):
     #     chord_notes = [NOTE_NAMES_SHARP[x] for x in chord_pitches]  # put names in a list
 
     # # Join names into a string, and print them
-    # print( f"- [{', '.join(chord_notes)}]" )
+    # print(f"- [{', '.join(chord_notes)}]")
+
 
 def select_transformation(x, y):
     """
@@ -230,17 +235,18 @@ def select_transformation(x, y):
         y (_type_): _description_
     """
     # Select transformation type
-    transformation = COORDINATES_TO_CHORD[ ( x, y ) ]
+    transformation = COORDINATES_TO_CHORD[(x, y)]
 
     # Apply transformation
     x, y = selected_chord_dot.getPosition()
-    new_coordinates = transformation( x, y )
+    new_coordinates = transformation(x, y)
 
     # Split coordinate pair
     new_x, new_y = new_coordinates
 
     # Play next chord
     select_chord(new_x, new_y)
+
 
 def choose_action(x, y):
     """
@@ -256,7 +262,7 @@ def choose_action(x, y):
     new_x, new_y = point
 
     # Test if key holds type is a chord
-    if isinstance( COORDINATES_TO_CHORD[point], Chord ): # test if value is a Chord
+    if isinstance(COORDINATES_TO_CHORD[point], Chord): # test if value is a Chord
 
         # If a chord, call play chord function
         select_chord(new_x, new_y)
