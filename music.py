@@ -23,7 +23,6 @@
 # Python bindings: https://pypi.org/project/tinysoundfont/
 import tinysoundfont  # C++ library for MIDI synthesis
 
-from timer import Timer     # scheduling audio events and playback timing
 import atexit               # registering cleanup functions to run on program exit
 import math                 # mathematical operations like frequency calculations
 import os                   # file path and system operations
