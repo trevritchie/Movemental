@@ -8,19 +8,31 @@ from string import *
 # endregion Imports ############################################################
 
 # region Classes ##############################################################
+# Note letter names
+NOTE_NAMES_SHARP = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"]
+NOTE_NAMES_FLAT  = ["C", "Db", "D", "Eb", "E", "F", "Gb", "G", "Ab", "A", "Bb", "B"]
+
 class Chord():
-    def __init__(self, quality, pitches):
-        self.quality = quality
+    def __init__(self, name, pitches):
+        self.name = name
 
         # Normalize pitches (convert to pitch classes 0-11)
         self.pitch_classes = [x % 12 for x in pitches]
+        self.pitch_classes.sort()
+
+        # String of chord spelling (note letter names)
+        self.spelling = NOTE_NAMES_FLAT[self.pitch_classes[0]] + " " + \
+                        NOTE_NAMES_FLAT[self.pitch_classes[1]] + " " + \
+                        NOTE_NAMES_FLAT[self.pitch_classes[2]] + " " + \
+                        NOTE_NAMES_FLAT[self.pitch_classes[3]]
+
 # endregion Classes ###########################################################
 
 # region Constants ############################################################
 # Set the tonal center
-TONAL_CENTER_OFFSET = -2  # 0 = C4, 2 = D4, -2 = Bb3, +10 = Bb4, etc.
-VOICING = "Close"  # Close, Drop 2, Drop 3, Drop 2 and 4
-CHORD_DURATION = QN  # how long to play each chord
+TONAL_CENTER_OFFSET = -5  # 0 = C4, 2 = D4, -2 = Bb3, +10 = Bb4, etc.
+VOICING = "Drop 2"  # Close, Drop 2, Drop 3, Drop 2 and 4
+CHORD_DURATION = SN  # how long to play each chord
 OCTAVE_RANGE = 5     # which octave to use
 
 VOICING_TO_INDICES = {
@@ -40,22 +52,64 @@ COORDINATES_TO_CHORD[(736, 166)] = Chord("Wind", [DF4, E4, G4, BF4])
 COORDINATES_TO_CHORD[(409, 631)] = Chord("Fire", [D4, F4, AF4, B4])
 
 # Earth-Wind Combinations
-COORDINATES_TO_CHORD[(245, 95)] = Chord("Trunk", [C4, EF4, G4, A4]) # min6
-COORDINATES_TO_CHORD[(406, 36)] = Chord("Branch", [C4, E4, G4, A4]) # maj6
-COORDINATES_TO_CHORD[(418, 156)] = Chord("Sand-Storm", [C4, E4, GF4, BF4]) # dom7 b5
-COORDINATES_TO_CHORD[(565, 96)] = Chord("Leaf", [C4, E4, G4, BF4]) # dom7
+# Trunk (min 6)
+COORDINATES_TO_CHORD[(256, 92)] = Chord("Trunk", [C4, EF4, G4, A4])
+COORDINATES_TO_CHORD[(222, 148)] = Chord("Brother Trunk", [EF4, GF4, BF4, C5])
+COORDINATES_TO_CHORD[(256, 147)] = Chord("Cousin Trunk", [GF4, A4, DF5, EF5])
+COORDINATES_TO_CHORD[(290, 145)] = Chord("Sister Trunk", [A3, C4, E4, FS4])
+# Branch (maj 6)
+COORDINATES_TO_CHORD[(406, 36)] = Chord("Branch", [C4, E4, G4, A4])
+COORDINATES_TO_CHORD[(362, 77)] = Chord("Brother Branch", [EF4, G4, BF4, C5])
+COORDINATES_TO_CHORD[(412, 77)] = Chord("Cousin Branch", [GF4, BF4, DF5, EF5])
+COORDINATES_TO_CHORD[(459, 79)] = Chord("Sister Branch", [A3, CS4, E4, FS4])
+# Sand-Storm (dom 7 b5) (default=cousin and brother=sister)
+COORDINATES_TO_CHORD[(418, 156)] = Chord("Sand-Storm", [C4, E4, GF4, BF4])
+COORDINATES_TO_CHORD[(425, 205)] = Chord("Brother Sand-Storm", [EF4, G4, A4, DF5])
+# Leaf (dom 7)
+COORDINATES_TO_CHORD[(565, 96)] = Chord("Leaf", [C4, E4, G4, BF4])
+COORDINATES_TO_CHORD[(539, 155)] = Chord("Brother Leaf", [EF4, G4, BF4, DF5])
+COORDINATES_TO_CHORD[(572, 151)] = Chord("Cousin Leaf", [GF4, BF4, DF5, E5])
+COORDINATES_TO_CHORD[(610, 148)] = Chord("Sister Leaf", [A3, CS4, E4, G4])
 
 # Wind-Fire Combinations
-COORDINATES_TO_CHORD[(736, 275)] = Chord("Smoke", [G4, BF4, D5, E5]) # min6
-COORDINATES_TO_CHORD[(830, 386)] = Chord("Ember", [G4, B4, D5, E5]) # maj6
-COORDINATES_TO_CHORD[(579, 346)] = Chord("Fire-Storm", [G4, B4, DF5, F5]) # dom7 b5
-COORDINATES_TO_CHORD[(623, 533)] = Chord("Flame", [G4, B4, D5, F5]) # dom7
+# Smoke (min 6)
+COORDINATES_TO_CHORD[(736, 275)] = Chord("Smoke", [G4, BF4, D5, E5])
+COORDINATES_TO_CHORD[(690, 318)] = Chord("Brother Smoke", [BF4, DF5, F5, G5])
+COORDINATES_TO_CHORD[(728, 321)] = Chord("Cousin Smoke", [DF5, E5, AF5, BF5])
+COORDINATES_TO_CHORD[(770, 325)] = Chord("Sister Smoke", [E4, GF4, B4, CS5])
+# Ember (maj 6)
+COORDINATES_TO_CHORD[(830, 386)] = Chord("Ember", [G4, B4, D5, E5])
+COORDINATES_TO_CHORD[(780, 427)] = Chord("Brother Ember", [BF4, D5, F5, G5])
+COORDINATES_TO_CHORD[(821, 426)] = Chord("Cousin Ember", [DF5, F5, AF5, BF5])
+COORDINATES_TO_CHORD[(858, 427)] = Chord("Sister Ember", [E4, GS4, B4, CS5])
+# Fire-Storm (dom 7 b5)
+COORDINATES_TO_CHORD[(579, 346)] = Chord("Fire-Storm", [G4, B4, DF5, F5])
+COORDINATES_TO_CHORD[(558, 382)] = Chord("Brother Fire-Storm", [BF4, D5, E5, AF5])
+# Flame (dom 7)
+COORDINATES_TO_CHORD[(623, 533)] = Chord("Flame", [G4, B4, D5, F5])
+COORDINATES_TO_CHORD[(600, 572)] = Chord("Brother Flame", [BF4, D5, F5, AF5])
+COORDINATES_TO_CHORD[(638, 571)] = Chord("Cousin Flame", [DF5, F5, AF5, B5])
+COORDINATES_TO_CHORD[(676, 573)] = Chord("Sister Flame", [E4, GS4, B4, D5])
 
 # Fire-Earth Combinations
-COORDINATES_TO_CHORD[(219, 464)] = Chord("Magma", [F4, C5, D5, AF5]) # min6
-COORDINATES_TO_CHORD[(82, 366)] = Chord("Glass", [F4, C5, D5, A5]) # maj6
-COORDINATES_TO_CHORD[(310, 327)] = Chord("Forest-Fire", [F4, CF5, EF4, A5]) # dom7 b5
-COORDINATES_TO_CHORD[(156, 266)] = Chord("Charcoal", [F4, C5, EF4, A5]) # dom7
+# Magma (min 6)
+COORDINATES_TO_CHORD[(222, 459)] = Chord("Magma", [D4, F4, A4, B5])
+COORDINATES_TO_CHORD[(183, 520)] = Chord("Brother Magma", [F4, AF4, C5, D5])
+COORDINATES_TO_CHORD[(231, 507)] = Chord("Cousin Magma", [AF4, CF5, EF5, F5])
+COORDINATES_TO_CHORD[(278, 492)] = Chord("Sister Magma", [B3, D4, FS4, GS4])
+# Glass (maj 6)
+COORDINATES_TO_CHORD[(87, 360)] = Chord("Glass", [F4, A4, C5, D5])
+COORDINATES_TO_CHORD[(57, 413)] = Chord("Brother Glass", [AF4, C4, EF5, F5])
+COORDINATES_TO_CHORD[(100, 406)] = Chord("Cousin Glass", [B4, DS5, FS5, GS5])
+COORDINATES_TO_CHORD[(141, 394)] = Chord("Sister Glass", [D4, FS4, A4, B5])
+# Forest-Fire (dom 7 b5)
+COORDINATES_TO_CHORD[(318, 333)] = Chord("Forest-Fire", [F4, A4, CF5, EF5])
+COORDINATES_TO_CHORD[(326, 384)] = Chord("Brother Forest-Fire", [AF4, C5, D5, GF5])
+# Charcoal (dom 7)
+COORDINATES_TO_CHORD[(158, 263)] = Chord("Charcoal", [F4, A4, C5, EF5])
+COORDINATES_TO_CHORD[(131, 306)] = Chord("Brother Charcoal", [AF4, C4, EF5, GF5])
+COORDINATES_TO_CHORD[(166, 299)] = Chord("Cousin Charcoal", [B4, DS5, FS5, A5])
+COORDINATES_TO_CHORD[(206, 297)] = Chord("Sister Charcoal", [D4, FS4, A4, C5])
 
 # Intervals in semitones
 MINOR_THIRD = 3
@@ -72,10 +126,6 @@ COORDINATES_TO_FAMILY[(675, 651)] = -MINOR_THIRD
 COORDINATES_TO_FAMILY[(675, 651)] = TRITONE
 # Brother
 COORDINATES_TO_FAMILY[(838, 647)] = MINOR_THIRD
-
-# Note letter names
-NOTE_NAMES_SHARP = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"]
-NOTE_NAMES_FLAT  = ["C", "Db", "D", "Eb", "E", "F", "Gb", "G", "Ab", "A", "Bb", "B"]
 
 # Scales of chords by "pitch class". Semitones are assigned to 0-11.
 MAJOR_SIXTH_DIMINISHED_SCALE = [0, 2, 4, 5, 7, 8, 9, 11]
@@ -124,7 +174,7 @@ DIMINISHED_CHORD = [0, 3, 6, 9]
 # region GUI Setup ############################################################
 # Create a display with diagram image
 display = Display("Movemental", 900, 720)
-diagram = Icon("./images/diagram.jpg", 900, 720)
+diagram = Icon("./images/diagram_family.jpg", 900, 720)
 display.add(diagram)
 
 # Create a circle that marks the active chord
@@ -228,17 +278,15 @@ def select_chord(x, y):
     point = find_closest_point([x, y], COORDINATES_TO_CHORD.keys())
 
     # Get chord info
-    chord_quality    = COORDINATES_TO_CHORD[point].quality
-    chord_pitch_classes = COORDINATES_TO_CHORD[point].pitch_classes
+    chord = COORDINATES_TO_CHORD[point]
 
     # Play the chord
-    play_chord(chord_pitch_classes)
+    play_chord(chord.pitch_classes)
 
     # Place a dot on the selection
     select_chord_visually(point[0], point[1])
 
-    # Print chord info
-    print(chord_quality)
+    print(chord.name + ": " + chord.spelling)
 
     # # Construct note names
     # if isFlat(chord_root):  # if chord name is flat, use flat note names
@@ -259,17 +307,10 @@ def select_family(x, y):
         y (_type_): _description_
     """
     # Select transformation type
-    transformation = COORDINATES_TO_CHORD[(x, y)]
-
-    # Apply transformation
-    x, y = selected_chord_dot.getPosition()
-    new_coordinates = transformation(x, y)
-
-    # Split coordinate pair
-    new_x, new_y = new_coordinates
+    chord = COORDINATES_TO_FAMILY[(x, y)]
 
     # Play next chord
-    select_chord(new_x, new_y)
+    select_chord(x, y)
 
 
 def choose_action(x, y):
