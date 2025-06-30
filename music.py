@@ -28,7 +28,6 @@ import atexit               # registering cleanup functions to run on program ex
 import math                 # mathematical operations like frequency calculations
 import os                   # file path and system operations
 import random               # generating random numbers and musical elements
-from AudioSample import *   # audio sample playback and manipulation
 import mido                 # midi operations for Read and Write classes
 
 #######################################################################################
