@@ -7,14 +7,46 @@ from math import *
 from string import *
 # endregion Imports ############################################################
 
+# region Classes ##############################################################
+class Chord():
+    def __init__(self, quality, pitches):
+        self.quality = quality
+
+        # Normalize pitches (convert to pitch classes 0-11)
+        pitches = [x % 12 for x in pitches]
+        self.pitches = pitches
+# endregion Classes ###########################################################
+
 # region Constants ############################################################
 # Map points on the display to chords
-COORDINATES_TO_CHORD = {
-    (0,0) = "chord name"
-}
+# (everything is relative to C, but TRANSPOSE_KEY_SEMITONES will allow for any tonal center)
+COORDINATES_TO_CHORD = {}
 
-# For setting the key (where 0 is relative from)
-TRANSPOSE_KEY_SEMITONES = -3  # 0 = C, 2 = D, -2 = Bb, +10 = Bb, etc.
+# Elemental Diminished Chords
+COORDINATES_TO_CHORD[ (111, 176) ] = Chord( "Earth", [C4, FS4, A4, EF5] )
+COORDINATES_TO_CHORD[ (736, 166) ] = Chord( "Wind", [DF4, G4, BF4, E5] )
+COORDINATES_TO_CHORD[ (409, 631) ] = Chord( "Fire", [D4, AF4, B4, F5] )
+
+# Earth-Wind Combinations
+COORDINATES_TO_CHORD[ (245, 95) ] = Chord( "Trunk", [C4, G4, A4, EF5] ) # min6
+COORDINATES_TO_CHORD[ (406, 36) ] = Chord( "Branch", [C4, G4, A4, E5] ) # maj6
+COORDINATES_TO_CHORD[ (418, 156) ] = Chord( "Sand-Storm", [C4, GF4, BF4, E5] ) # dom7 b5
+COORDINATES_TO_CHORD[ (565, 96) ] = Chord( "Leaf", [C4, G4, BF4, E5] ) # dom7
+
+# Wind-Fire Combinations
+COORDINATES_TO_CHORD[ (736, 275) ] = Chord( "Smoke", [G4, D5, E5, BF5] ) # min6
+COORDINATES_TO_CHORD[ (830, 386) ] = Chord( "Ember", [G4, D5, E5, B5] ) # maj6
+COORDINATES_TO_CHORD[ (579, 346) ] = Chord( "Fire-Storm", [G4, DF5, F5, B5] ) # dom7 b5
+COORDINATES_TO_CHORD[ (623, 533) ] = Chord( "Flame", [G4, D5, F5, B5] ) # dom7
+
+# Fire-Earth Combinations
+COORDINATES_TO_CHORD[ (219, 464) ] = Chord( "Magma", [F4, C5, D5, AF5] ) # min6
+COORDINATES_TO_CHORD[ (82, 366) ] = Chord( "Glass", [F4, C5, D5, A5] ) # maj6
+COORDINATES_TO_CHORD[ (310, 327) ] = Chord( "Forest-Fire", [F4, CF5, EF4, A5] ) # dom7 b5
+COORDINATES_TO_CHORD[ (156, 266) ] = Chord( "Charcoal", [F4, C5, EF4, A5] ) # dom7
+
+# Set the tonal center
+TONAL_CENTER_OFFSET = 0  # 0 = C4, 2 = D4, -2 = Bb3, +10 = Bb4, etc.
 
 # Note letter names
 NOTE_NAMES_SHARP = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"]
@@ -74,25 +106,14 @@ chord_duration = HN  # how long to play each chord
 chord_octave = 5     # which octave to use
 # endregion Global Variables ##################################################
 
-# region Classes ##############################################################
-class Chord():
-    def __init__(self, root, quality, pitches):
-        self.root = root
-        self.quality = quality
-
-        # Normalize pitches (convert to pitch classes 0-11)
-        pitches = [x % 12 for x in pitches]
-        self.pitches = pitches
-# endregion Classes ###########################################################
-
 # region GUI Setup ############################################################
-# Create a display with tesseract diagram image
-display = Display("Movemental", 1000, 514)
-# TODO: draw the diagram and take a picture
-display.drawImage("diagram.png", 0, 0)
+# Create a display with diagram image
+display = Display("Movemental", 900, 720)
+diagram = Icon("./images/diagram.jpg", 900, 720)
+display.add(diagram)
 
 # Create circle that shows active chord
-selected_chord_dot = Circle(0, 0, 8, Color.BLACK, True)
+selected_chord_dot = Circle(0, 0, 8, Color.BLUE, fill=True)
 display.add(selected_chord_dot)
 # endregion GUI Setup #########################################################
 
@@ -149,7 +170,10 @@ def play_chord( pitches ):
     phrase = Phrase()
     phrase.addChord(pitches, chord_duration)
 
-    # Play it!
+    # Stop any sounding notes
+    Play.allNotesOff()
+
+    # Play the chord!
     Play.midi( phrase )
 
 def select_chord_visually(x, y):
@@ -172,13 +196,10 @@ def select_chord(x, y):
         x (_type_): _description_
         y (_type_): _description_
     """
-    # TODO: define a COORDINATES_TO_CHORD dictionary mapping coordinates to chords
-
     # Find the closest point
     point = find_closest_point([x, y], COORDINATES_TO_CHORD.keys())
 
     # Get chord info
-    chord_root    = COORDINATES_TO_CHORD[point].root
     chord_quality    = COORDINATES_TO_CHORD[point].quality
     chord_pitches = COORDINATES_TO_CHORD[point].pitches
 
@@ -189,16 +210,16 @@ def select_chord(x, y):
     select_chord_visually( point[0], point[1] )
 
     # Print chord info
-    print(chord_root, chord_quality)
+    print(chord_quality)
 
-    # Construct note names
-    if isFlat(chord_root):  # if chord name is flat, use flat note names
-        chord_notes = [NOTE_NAMES_FLAT[x] for x in chord_pitches]   # put names in a list
-    else:  # otherwise, use sharp names
-        chord_notes = [NOTE_NAMES_SHARP[x] for x in chord_pitches]  # put names in a list
+    # # Construct note names
+    # if isFlat(chord_root):  # if chord name is flat, use flat note names
+    #     chord_notes = [NOTE_NAMES_FLAT[x] for x in chord_pitches]   # put names in a list
+    # else:  # otherwise, use sharp names
+    #     chord_notes = [NOTE_NAMES_SHARP[x] for x in chord_pitches]  # put names in a list
 
-    # Join names into a string, and print them
-    print(f"- [{', '.join(chord_notes)}]")
+    # # Join names into a string, and print them
+    # print( f"- [{', '.join(chord_notes)}]" )
 
 def select_transformation(x, y):
     """
@@ -208,9 +229,6 @@ def select_transformation(x, y):
         x (_type_): _description_
         y (_type_): _description_
     """
-
-    global COORDINATES_TO_CHORD, selected_chord_dot
-
     # Select transformation type
     transformation = COORDINATES_TO_CHORD[ ( x, y ) ]
 
@@ -232,8 +250,6 @@ def choose_action(x, y):
         x (_type_): _description_
         y (_type_): _description_
     """
-    global COORDINATES_TO_CHORD
-
     # Snap clicked coordinates to known centers
     point = find_closest_point([x, y], COORDINATES_TO_CHORD.keys())
 
@@ -251,5 +267,15 @@ def choose_action(x, y):
         select_transformation(new_x, new_y)
 # endregion Functions #########################################################
 
-# Register callback for playing chords by clicking the mouse
-display.onMouseClick(choose_action)
+def main():
+    # Set the instrument
+    Play.setInstrument()
+
+    # Register callback for playing chords by clicking the mouse
+    display.onMouseClick(choose_action)
+
+    # Show mouse coordinates for testing
+    display.showMouseCoordinates()
+
+if __name__ == "__main__":
+    main()
