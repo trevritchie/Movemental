@@ -411,7 +411,5 @@ U|' \\/ '|u   \\/"_ \\/\\ \\   /"/u\\| ___"|/U|' \\/ '|u\\| ___"|/| \\ |"|   |_ 
     print("- These concepts were pioneered by Dr. Barry Harris, so...")
     print("  In his memory, let's play beautiful movements, not static chords, and remember to play with our family!!!\n")
 
-
-
 if __name__ == "__main__":
     main()
