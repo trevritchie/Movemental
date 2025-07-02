@@ -1,11 +1,13 @@
 # movemental.py
+# 2025-07-01
+# Trevor Ritchie
 
 # region Imports ##############################################################
 from gui import *
 from music import *
 from math import *
 from string import *
-# endregion Imports ############################################################
+# endregion Imports ###########################################################
 
 # region Classes ##############################################################
 # Note letter names
@@ -337,6 +339,7 @@ def select_family(x, y):
 def choose_action(x, y):
     """
     _summary_
+    TODO: only need this if I add a different click function
 
     Args:
         x (_type_): _description_
@@ -348,14 +351,13 @@ def choose_action(x, y):
 
     # Test if key holds type is a chord
     if isinstance(COORDINATES_TO_CHORD[point], Chord): # test if value is a Chord
-
         # If a chord, call play chord function
         select_chord(new_x, new_y)
 
-    # If not a chord, its a change in family
-    else:
-        # Play that transformation
-        select_family(new_x, new_y)
+    # # If not a chord, its a change in family
+    # else:
+    #     # Play that transformation
+    #     select_family(new_x, new_y)
 # endregion Functions #########################################################
 
 def main():
@@ -381,8 +383,6 @@ def main():
     # CLI Info
     tonal_center = NOTE_NAMES_FLAT[TONAL_CENTER_OFFSET % 12]
     relative_minor = NOTE_NAMES_FLAT[(TONAL_CENTER_OFFSET - 3) % 12]
-    print(tonal_center + " maj6 is the same as " + relative_minor + " min7")
-    print(tonal_center + " min6 is the same as " + relative_minor + " min7 b5\n")
 
 
     # Print ASCII art
@@ -397,6 +397,21 @@ U|' \\/ '|u   \\/"_ \\/\\ \\   /"/u\\| ___"|/U|' \\/ '|u\\| ___"|/| \\ |"|   |_ 
 
         """)
     print(ascii_art)
+
+
+    print("REMEMBER!")
+    print("- " + tonal_center + " maj6 is the same as " + relative_minor + " min7, and " + tonal_center + " min6 is the same as " + relative_minor + " min7 b5")
+    print("- Each \"child\" chord (in between Earth, Wind, and Fire) contains DNA from two parents (Earth, Wind, Fire).")
+    print("  That is why each child chord has three siblings (who share the same ratio of DNA from each parent).")
+    print("- Any chord may be combined with the element (Earth, Wind, or Fire) opposite from it.")
+    print("  This creates an 8-note \"scale of chords\" which alternates between resolution and tension.")
+    print("  Ex. C maj6 + D dim7 (Branch + Fire) = C maj6 diminished scale")
+    print("- When playing a chord, \"borrowing\" some notes from the opposite element (not one of the parents) can produce beautiful results.")
+    print("  Ex: C maj7, C maj7 #5... Following the thread, maybe these are grandchildren?")
+    print("- These concepts were pioneered by Dr. Barry Harris, so...")
+    print("  In his memory, let's play beautiful movements, not static chords, and remember to play with our family!!!\n")
+
+
 
 if __name__ == "__main__":
     main()
