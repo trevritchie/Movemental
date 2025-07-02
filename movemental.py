@@ -26,13 +26,26 @@ class Chord():
                         NOTE_NAMES_FLAT[self.pitch_classes[2]] + " " + \
                         NOTE_NAMES_FLAT[self.pitch_classes[3]]
 
+        self.quality = ""
+        if name[-4:] in ["arth", "Wind", "Fire"]:
+            self.quality = " dim7"
+        if name[-5:] in ["Trunk", "Smoke", "Magma"]:
+            self.quality = " min6"
+        elif name[-5:] in ["ranch", "Ember", "Glass"]:
+            self.quality = " maj6"
+        elif name[-10:] in ["Sand-Storm", "Fire-Storm", "orest-Fire"]:
+            self.quality = "7 b5"
+        elif name[-4:] in ["Leaf", "lame", "coal"]:
+            self.quality = "7"
+
+        self.traditional_name = NOTE_NAMES_FLAT[pitches[0] % 12] + self.quality
+
 # endregion Classes ###########################################################
 
 # region Constants ############################################################
-# Set the tonal center
-TONAL_CENTER_OFFSET = -5  # 0 = C4, 2 = D4, -2 = Bb3, +10 = Bb4, etc.
+TONAL_CENTER_OFFSET = 0  # 0 = C4, 2 = D4, -2 = Bb3, +10 = Bb4, etc.
 VOICING = "Drop 2"  # Close, Drop 2, Drop 3, Drop 2 and 4
-CHORD_DURATION = SN  # how long to play each chord
+CHORD_DURATION = HN  # how long to play each chord
 OCTAVE_RANGE = 5     # which octave to use
 
 VOICING_TO_INDICES = {
@@ -42,74 +55,82 @@ VOICING_TO_INDICES = {
     "Drop 2 and 4": [1, 3]
 }
 
-# Map points on the display to chords
-# (everything is relative to C, but TRANSPOSE_KEY_SEMITONES will allow for any tonal center)
+# Map points on the display to chords.
+# Everything is relative to C here, but TRANSPOSE_KEY_SEMITONES will allow for any tonal center.
+# Also, theses will be reduced to pitch classes in Chord, but I wrote them as absolute pitches
+# in case that is useful later
 COORDINATES_TO_CHORD = {}
 
 # Elemental Diminished Chords
-COORDINATES_TO_CHORD[(111, 176)] = Chord("Earth", [C4, EF4, FS4, A4])
-COORDINATES_TO_CHORD[(736, 166)] = Chord("Wind", [DF4, E4, G4, BF4])
-COORDINATES_TO_CHORD[(409, 631)] = Chord("Fire", [D4, F4, AF4, B4])
+COORDINATES_TO_CHORD[(109, 114)] = Chord("Earth", [C4, EF4, FS4, A4])
+COORDINATES_TO_CHORD[(1054, 113)] = Chord("Wind", [DF4, E4, G4, BF4])
+COORDINATES_TO_CHORD[(565, 640)] = Chord("Fire", [D4, F4, AF4, B4])
 
 # Earth-Wind Combinations
 # Trunk (min 6)
-COORDINATES_TO_CHORD[(256, 92)] = Chord("Trunk", [C4, EF4, G4, A4])
-COORDINATES_TO_CHORD[(222, 148)] = Chord("Brother Trunk", [EF4, GF4, BF4, C5])
-COORDINATES_TO_CHORD[(256, 147)] = Chord("Cousin Trunk", [GF4, A4, DF5, EF5])
-COORDINATES_TO_CHORD[(290, 145)] = Chord("Sister Trunk", [A3, C4, E4, FS4])
+COORDINATES_TO_CHORD[(332, 73)] = Chord("Trunk", [C4, EF4, G4, A4])
+COORDINATES_TO_CHORD[(285, 119)] = Chord("Brother Trunk", [EF4, GF4, BF4, C5])
+COORDINATES_TO_CHORD[(336, 116)] = Chord("Twin Trunk", [GF4, A4, DF5, EF5])
+COORDINATES_TO_CHORD[(380, 115)] = Chord("Sister Trunk", [A3, C4, E4, FS4])
 # Branch (maj 6)
-COORDINATES_TO_CHORD[(406, 36)] = Chord("Branch", [C4, E4, G4, A4])
-COORDINATES_TO_CHORD[(362, 77)] = Chord("Brother Branch", [EF4, G4, BF4, C5])
-COORDINATES_TO_CHORD[(412, 77)] = Chord("Cousin Branch", [GF4, BF4, DF5, EF5])
-COORDINATES_TO_CHORD[(459, 79)] = Chord("Sister Branch", [A3, CS4, E4, FS4])
-# Sand-Storm (dom 7 b5) (default=cousin and brother=sister)
-COORDINATES_TO_CHORD[(418, 156)] = Chord("Sand-Storm", [C4, E4, GF4, BF4])
-COORDINATES_TO_CHORD[(425, 205)] = Chord("Brother Sand-Storm", [EF4, G4, A4, DF5])
+COORDINATES_TO_CHORD[(591, 30)] = Chord("Branch", [C4, E4, G4, A4])
+COORDINATES_TO_CHORD[(530, 68)] = Chord("Brother Branch", [EF4, G4, BF4, C5])
+COORDINATES_TO_CHORD[(586, 68)] = Chord("Twin Branch", [GF4, BF4, DF5, EF5])
+COORDINATES_TO_CHORD[(639, 68)] = Chord("Sister Branch", [A3, CS4, E4, FS4])
+# Sand-Storm (dom 7 b5) (default=twin and brother=sister)
+COORDINATES_TO_CHORD[(593, 159)] = Chord("Sand-Storm", [C4, E4, GF4, BF4])
+COORDINATES_TO_CHORD[(530, 203)] = Chord("Brother Sand-Storm", [EF4, G4, A4, DF5])
+COORDINATES_TO_CHORD[(599, 204)] = Chord("Twin Sand-Storm", [GF4, BF4, C5, E5])
+COORDINATES_TO_CHORD[(670, 204)] = Chord("Sister Sand-Storm", [A3, DF4, EF4, G4])
 # Leaf (dom 7)
-COORDINATES_TO_CHORD[(565, 96)] = Chord("Leaf", [C4, E4, G4, BF4])
-COORDINATES_TO_CHORD[(539, 155)] = Chord("Brother Leaf", [EF4, G4, BF4, DF5])
-COORDINATES_TO_CHORD[(572, 151)] = Chord("Cousin Leaf", [GF4, BF4, DF5, E5])
-COORDINATES_TO_CHORD[(610, 148)] = Chord("Sister Leaf", [A3, CS4, E4, G4])
+COORDINATES_TO_CHORD[(820, 81)] = Chord("Leaf", [C4, E4, G4, BF4])
+COORDINATES_TO_CHORD[(790, 123)] = Chord("Brother Leaf", [EF4, G4, BF4, DF5])
+COORDINATES_TO_CHORD[(832, 116)] = Chord("Twin Leaf", [GF4, BF4, DF5, E5])
+COORDINATES_TO_CHORD[(871, 119)] = Chord("Sister Leaf", [A3, CS4, E4, G4])
 
 # Wind-Fire Combinations
 # Smoke (min 6)
-COORDINATES_TO_CHORD[(736, 275)] = Chord("Smoke", [G4, BF4, D5, E5])
-COORDINATES_TO_CHORD[(690, 318)] = Chord("Brother Smoke", [BF4, DF5, F5, G5])
-COORDINATES_TO_CHORD[(728, 321)] = Chord("Cousin Smoke", [DF5, E5, AF5, BF5])
-COORDINATES_TO_CHORD[(770, 325)] = Chord("Sister Smoke", [E4, GF4, B4, CS5])
+COORDINATES_TO_CHORD[(1000, 223)] = Chord("Smoke", [G4, BF4, D5, E5])
+COORDINATES_TO_CHORD[(942, 259)] = Chord("Brother Smoke", [BF4, DF5, F5, G5])
+COORDINATES_TO_CHORD[(990, 259)] = Chord("Twin Smoke", [DF5, E5, AF5, BF5])
+COORDINATES_TO_CHORD[(1037, 267)] = Chord("Sister Smoke", [E4, G4, B4, CS5])
 # Ember (maj 6)
-COORDINATES_TO_CHORD[(830, 386)] = Chord("Ember", [G4, B4, D5, E5])
-COORDINATES_TO_CHORD[(780, 427)] = Chord("Brother Ember", [BF4, D5, F5, G5])
-COORDINATES_TO_CHORD[(821, 426)] = Chord("Cousin Ember", [DF5, F5, AF5, BF5])
-COORDINATES_TO_CHORD[(858, 427)] = Chord("Sister Ember", [E4, GS4, B4, CS5])
+COORDINATES_TO_CHORD[(1115, 342)] = Chord("Ember", [G4, B4, D5, E5])
+COORDINATES_TO_CHORD[(1047, 384)] = Chord("Brother Ember", [BF4, D5, F5, G5])
+COORDINATES_TO_CHORD[(1103, 380)] = Chord("Twin Ember", [DF5, F5, AF5, BF5])
+COORDINATES_TO_CHORD[(1154, 383)] = Chord("Sister Ember", [E4, GS4, B4, CS5])
 # Fire-Storm (dom 7 b5)
-COORDINATES_TO_CHORD[(579, 346)] = Chord("Fire-Storm", [G4, B4, DF5, F5])
-COORDINATES_TO_CHORD[(558, 382)] = Chord("Brother Fire-Storm", [BF4, D5, E5, AF5])
+COORDINATES_TO_CHORD[(752, 320)] = Chord("Fire-Storm", [G4, B4, DF5, F5])
+COORDINATES_TO_CHORD[(673, 368)] = Chord("Brother Fire-Storm", [BF4, D5, E5, AF5])
+COORDINATES_TO_CHORD[(756, 361)] = Chord("Twin Fire-Storm", [DF5, F5, G5, B5])
+COORDINATES_TO_CHORD[(823, 363)] = Chord("Sister Fire-Storm", [E4, AF4, BF4, D5])
 # Flame (dom 7)
-COORDINATES_TO_CHORD[(623, 533)] = Chord("Flame", [G4, B4, D5, F5])
-COORDINATES_TO_CHORD[(600, 572)] = Chord("Brother Flame", [BF4, D5, F5, AF5])
-COORDINATES_TO_CHORD[(638, 571)] = Chord("Cousin Flame", [DF5, F5, AF5, B5])
-COORDINATES_TO_CHORD[(676, 573)] = Chord("Sister Flame", [E4, GS4, B4, D5])
+COORDINATES_TO_CHORD[(816, 531)] = Chord("Flame", [G4, B4, D5, F5])
+COORDINATES_TO_CHORD[(747, 572)] = Chord("Brother Flame", [BF4, D5, F5, AF5])
+COORDINATES_TO_CHORD[(810, 570)] = Chord("Twin Flame", [DF5, F5, AF5, B5])
+COORDINATES_TO_CHORD[(873, 573)] = Chord("Sister Flame", [E4, GS4, B4, D5])
 
 # Fire-Earth Combinations
 # Magma (min 6)
-COORDINATES_TO_CHORD[(222, 459)] = Chord("Magma", [D4, F4, A4, B5])
-COORDINATES_TO_CHORD[(183, 520)] = Chord("Brother Magma", [F4, AF4, C5, D5])
-COORDINATES_TO_CHORD[(231, 507)] = Chord("Cousin Magma", [AF4, CF5, EF5, F5])
-COORDINATES_TO_CHORD[(278, 492)] = Chord("Sister Magma", [B3, D4, FS4, GS4])
+COORDINATES_TO_CHORD[(340, 497)] = Chord("Magma", [D4, F4, A4, B5])
+COORDINATES_TO_CHORD[(280, 544)] = Chord("Brother Magma", [F4, AF4, C5, D5])
+COORDINATES_TO_CHORD[(341, 543)] = Chord("Twin Magma", [AF4, CF5, EF5, F5])
+COORDINATES_TO_CHORD[(393, 541)] = Chord("Sister Magma", [B3, D4, FS4, GS4])
 # Glass (maj 6)
-COORDINATES_TO_CHORD[(87, 360)] = Chord("Glass", [F4, A4, C5, D5])
-COORDINATES_TO_CHORD[(57, 413)] = Chord("Brother Glass", [AF4, C4, EF5, F5])
-COORDINATES_TO_CHORD[(100, 406)] = Chord("Cousin Glass", [B4, DS5, FS5, GS5])
-COORDINATES_TO_CHORD[(141, 394)] = Chord("Sister Glass", [D4, FS4, A4, B5])
+COORDINATES_TO_CHORD[(83, 337)] = Chord("Glass", [F4, A4, C5, D5])
+COORDINATES_TO_CHORD[(33, 384)] = Chord("Brother Glass", [AF4, C4, EF5, F5])
+COORDINATES_TO_CHORD[(86, 380)] = Chord("Twin Glass", [B4, DS5, FS5, GS5])
+COORDINATES_TO_CHORD[(131, 378)] = Chord("Sister Glass", [D4, FS4, A4, B5])
 # Forest-Fire (dom 7 b5)
-COORDINATES_TO_CHORD[(318, 333)] = Chord("Forest-Fire", [F4, A4, CF5, EF5])
-COORDINATES_TO_CHORD[(326, 384)] = Chord("Brother Forest-Fire", [AF4, C5, D5, GF5])
+COORDINATES_TO_CHORD[(470, 311)] = Chord("Forest-Fire", [F4, A4, CF5, EF5])
+COORDINATES_TO_CHORD[(417, 355)] = Chord("Brother Forest-Fire", [AF4, C5, D5, GF5])
+COORDINATES_TO_CHORD[(472, 351)] = Chord("Twin Forest-Fire", [CF5, EF5, F5, A5])
+COORDINATES_TO_CHORD[(526, 349)] = Chord("Sister Forest-Fire", [D4, GF4, AF4, C5])
 # Charcoal (dom 7)
-COORDINATES_TO_CHORD[(158, 263)] = Chord("Charcoal", [F4, A4, C5, EF5])
-COORDINATES_TO_CHORD[(131, 306)] = Chord("Brother Charcoal", [AF4, C4, EF5, GF5])
-COORDINATES_TO_CHORD[(166, 299)] = Chord("Cousin Charcoal", [B4, DS5, FS5, A5])
-COORDINATES_TO_CHORD[(206, 297)] = Chord("Sister Charcoal", [D4, FS4, A4, C5])
+COORDINATES_TO_CHORD[(235, 235)] = Chord("Charcoal", [F4, A4, C5, EF5])
+COORDINATES_TO_CHORD[(173, 274)] = Chord("Brother Charcoal", [AF4, C4, EF5, GF5])
+COORDINATES_TO_CHORD[(231, 272)] = Chord("Twin Charcoal", [B4, DS5, FS5, A5])
+COORDINATES_TO_CHORD[(289, 274)] = Chord("Sister Charcoal", [D4, FS4, A4, C5])
 
 # Intervals in semitones
 MINOR_THIRD = 3
@@ -173,8 +194,8 @@ DIMINISHED_CHORD = [0, 3, 6, 9]
 
 # region GUI Setup ############################################################
 # Create a display with diagram image
-display = Display("Movemental", 900, 720)
-diagram = Icon("./images/diagram_family.jpg", 900, 720)
+display = Display("Movemental", 1200, 720)
+diagram = Icon("./images/diagram.jpg", 1200, 720)
 display.add(diagram)
 
 # Create a circle that marks the active chord
@@ -286,7 +307,7 @@ def select_chord(x, y):
     # Place a dot on the selection
     select_chord_visually(point[0], point[1])
 
-    print(chord.name + ": " + chord.spelling)
+    print(chord.name + ": " + chord.traditional_name + " - " + chord.spelling)
 
     # # Construct note names
     # if isFlat(chord_root):  # if chord name is flat, use flat note names
@@ -323,7 +344,6 @@ def choose_action(x, y):
     """
     # Snap clicked coordinates to known centers
     point = find_closest_point([x, y], COORDINATES_TO_CHORD.keys())
-
     new_x, new_y = point
 
     # Test if key holds type is a chord
@@ -339,14 +359,44 @@ def choose_action(x, y):
 # endregion Functions #########################################################
 
 def main():
-    # Set the instrument
-    Play.setInstrument(SYNTH, 0)
+    global TONAL_CENTER_OFFSET, VOICING, CHORD_DURATION, OCTAVE_RANGE
+
+    # User Settings
+    TONAL_CENTER_OFFSET = 0 # 0 = C4, 2 = D4, -2 = Bb3, +10 = Bb4, etc.
+    VOICING = "Drop 2" # Close, Drop 2, Drop 3, Drop 2 and 4
+    CHORD_DURATION = HN # how long to play each chord
+    OCTAVE_RANGE = 5 # which octave to use
+    # Play.setInstrument(SYNTH)
+    # Play.setInstrument(PIANO)
+    # Play.setInstrument(GUITAR)
+    # Play.setInstrument(OCARINA)
+    Play.setInstrument(SHAKUHACHI)
 
     # Register callback for playing chords by clicking the mouse
     display.onMouseClick(choose_action)
 
     # Show mouse coordinates for testing
     display.showMouseCoordinates()
+
+    # CLI Info
+    tonal_center = NOTE_NAMES_FLAT[TONAL_CENTER_OFFSET % 12]
+    relative_minor = NOTE_NAMES_FLAT[(TONAL_CENTER_OFFSET - 3) % 12]
+    print(tonal_center + " maj6 is the same as " + relative_minor + " min7")
+    print(tonal_center + " min6 is the same as " + relative_minor + " min7 b5\n")
+
+
+    # Print ASCII art
+    ascii_art  = ("""\
+  __  __    U  ___ u__     __ U _____ u  __  __  U _____ u _   _     _____      _       _
+U|' \\/ '|u   \\/"_ \\/\\ \\   /"/u\\| ___"|/U|' \\/ '|u\\| ___"|/| \\ |"|   |_ " _| U  /"\\  u  |"|
+\\| |\\/| |/   | | | | \\ \\ / //  |  _|"  \\| |\\/| |/ |  _|" <|  \\| |>    | |    \\/ _ \\/ U | | u
+ | |  | |.-,_| |_| | /\\ V /_,-.| |___   | |  | |  | |___ U| |\\  |u   /| |\\   / ___ \\  \\| |/__
+ |_|  |_| \\_)-\\___/ U  \\_/-(_/ |_____|  |_|  |_|  |_____| |_| \\_|   u |_|U  /_/   \\_\\  |_____|
+<<,-,,-.       \\\\     //       <<   >> <<,-,,-.   <<   >> ||   \\\\,-._// \\\\_  \\\\    >>  //  \\\\
+ (./  \\.)     (__)   (__)     (__) (__) (./  \\.) (__) (__)(_")  (_/(__) (__)(__)  (__)(_")("_)
+
+        """)
+    print(ascii_art)
 
 if __name__ == "__main__":
     main()
