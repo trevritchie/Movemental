@@ -9,6 +9,13 @@ from math import *
 from string import *
 # endregion Imports ###########################################################
 
+# region User Settings ########################################################
+TONAL_CENTER_OFFSET = 7 # 0 = C, 2 = D, -2 = Bb, 10 = Bb etc.
+OCTAVE_RANGE = 4 # which octave to place chords in
+CHORD_DURATION = HN # how long to play each chord
+VOICING = "Drop 2" # Close, Drop 2, Drop 3, Drop 2 and 4
+# endregion User Settings #####################################################
+
 # region Classes ##############################################################
 # Note letter names
 NOTE_NAMES_SHARP = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"]
@@ -18,16 +25,10 @@ class Chord():
     def __init__(self, name, pitches):
         self.name = name
 
-        # Normalize pitches (convert to pitch classes 0-11)
-        self.pitch_classes = [x % 12 for x in pitches]
-        self.pitch_classes.sort()
+        # Convert to pitch classes (0-11) then add tonal center offset
+        self.pitches = [(x % 12) + (TONAL_CENTER_OFFSET % 12) for x in pitches]
 
-        # String of chord spelling (note letter names)
-        self.spelling = NOTE_NAMES_FLAT[self.pitch_classes[0]] + " " + \
-                        NOTE_NAMES_FLAT[self.pitch_classes[1]] + " " + \
-                        NOTE_NAMES_FLAT[self.pitch_classes[2]] + " " + \
-                        NOTE_NAMES_FLAT[self.pitch_classes[3]]
-
+        # Type of 4 note chord
         self.quality = ""
         if name[-4:] in ["arth", "Wind", "Fire"]:
             self.quality = " dim7"
@@ -40,16 +41,20 @@ class Chord():
         elif name[-4:] in ["Leaf", "lame", "coal"]:
             self.quality = "7"
 
-        self.traditional_name = NOTE_NAMES_FLAT[pitches[0] % 12] + self.quality
+        # Traditional music theory name for the chord
+        self.traditional_name = NOTE_NAMES_FLAT[self.pitches[0] % 12] + self.quality
 
+        # Sort the pitches low to high
+        self.pitches.sort()
+
+        # String of chord spelling (note letter names)
+        self.spelling = NOTE_NAMES_FLAT[self.pitches[0] % 12] + " " + \
+                        NOTE_NAMES_FLAT[self.pitches[1] % 12] + " " + \
+                        NOTE_NAMES_FLAT[self.pitches[2] % 12] + " " + \
+                        NOTE_NAMES_FLAT[self.pitches[3] % 12]
 # endregion Classes ###########################################################
 
 # region Constants ############################################################
-TONAL_CENTER_OFFSET = 0  # 0 = C4, 2 = D4, -2 = Bb3, +10 = Bb4, etc.
-VOICING = "Drop 2"  # Close, Drop 2, Drop 3, Drop 2 and 4
-CHORD_DURATION = HN  # how long to play each chord
-OCTAVE_RANGE = 5     # which octave to use
-
 VOICING_TO_INDICES = {
     "Close": [],
     "Drop 2": [1],
@@ -244,18 +249,18 @@ def find_closest_point(here, points):
     return closest_point
 
 
-def play_chord(pitch_classes):
+def play_chord(pitches):
     """
     Play the provided list of pitches as a chord.
 
     Args:
         pitches (_type_): _description_
     """
-    pitches = []
+    adjusted_pitches = []
     # Place notes in the correct octave range based on the chosen voicing
-    for i in range(len(pitch_classes)):
+    for i in range(len(pitches)):
         # Place the pitch class into the correct octave range
-        adjusted_pitch = pitch_classes[i] + (OCTAVE * OCTAVE_RANGE) + TONAL_CENTER_OFFSET
+        adjusted_pitch = pitches[i] + (OCTAVE * OCTAVE_RANGE)
 
         # For the chosen voicing, raise the appropriate notes up an octave
         if i in VOICING_TO_INDICES.get(VOICING):
@@ -263,11 +268,11 @@ def play_chord(pitch_classes):
                 adjusted_pitch += OCTAVE
 
         # Add corretly placed cpitch
-        pitches.append(adjusted_pitch)
+        adjusted_pitches.append(adjusted_pitch)
 
     # Create the chord
     phrase = Phrase()
-    phrase.addChord(pitches, CHORD_DURATION)
+    phrase.addChord(adjusted_pitches, CHORD_DURATION)
 
     # Stop any sounding notes
     Play.allNotesOff()
@@ -304,7 +309,7 @@ def select_chord(x, y):
     chord = COORDINATES_TO_CHORD[point]
 
     # Play the chord
-    play_chord(chord.pitch_classes)
+    play_chord(chord.pitches)
 
     # Place a dot on the selection
     select_chord_visually(point[0], point[1])
@@ -361,19 +366,6 @@ def choose_action(x, y):
 # endregion Functions #########################################################
 
 def main():
-    global TONAL_CENTER_OFFSET, VOICING, CHORD_DURATION, OCTAVE_RANGE
-
-    # User Settings
-    TONAL_CENTER_OFFSET = 0 # 0 = C4, 2 = D4, -2 = Bb3, +10 = Bb4, etc.
-    VOICING = "Drop 2" # Close, Drop 2, Drop 3, Drop 2 and 4
-    CHORD_DURATION = HN # how long to play each chord
-    OCTAVE_RANGE = 5 # which octave to use
-    # Play.setInstrument(SYNTH)
-    # Play.setInstrument(PIANO)
-    # Play.setInstrument(GUITAR)
-    # Play.setInstrument(OCARINA)
-    Play.setInstrument(SHAKUHACHI)
-
     # Register callback for playing chords by clicking the mouse
     display.onMouseClick(choose_action)
 
