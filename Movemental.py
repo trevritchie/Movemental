@@ -369,8 +369,8 @@ def main():
     # Register callback for playing chords by clicking the mouse
     display.onMouseClick(choose_action)
 
-    # Show mouse coordinates for testing
-    display.showMouseCoordinates()
+    # # Show mouse coordinates for testing
+    # display.showMouseCoordinates()
 
     # CLI Info
     tonal_center = NOTE_NAMES_FLAT[TONAL_CENTER_OFFSET % 12]
