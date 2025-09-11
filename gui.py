@@ -34,7 +34,7 @@ from copy import deepcopy
 #  require the user to run scripts with the -i option, which enables this
 #  secondary, hidden event loop, and always makes the interpreter available.
 
-# 
+#
 if "_QTAPP_" not in globals():
    _QTAPP_ = None  # claim global variable for QApplication
 
@@ -60,6 +60,8 @@ def _ensureApp():
                color: black;
             }
             """)
+
+_ensureApp()
 
 
 # def _paint(function, *args, **kwargs):
@@ -194,7 +196,7 @@ VK_BACK_QUOTE                = _QtCore.Qt.Key.Key_QuoteLeft
 class Color:
    """
    Color class for creating and manipulating colors.
-   
+
    This class provides functionality for creating and manipulating RGB colors.
    It mirrors Java's Color class functionality from JythonMusic, including:
    - RGB color creation with optional alpha
@@ -211,7 +213,7 @@ class Color:
       self.alpha = int(alpha)
 
    def __str__(self):
-      return f'Color({self.getRed()}, {self.getGreen()}, {self.getBlue()}, {self.getAlpha()})'
+      return f'Color(red = {self.getRed()}, green = {self.getGreen()}, blue = {self.getBlue()}, alpha = {self.getAlpha()})'
 
    def __repr__(self):
       return str(self)
@@ -245,7 +247,7 @@ class Color:
       Returns the color as a tuple of RGB values.
       """
       return (self.red, self.green, self.blue)
-   
+
    def getRGBA(self):
       """
       Returns the color as a tuple of RGBA values.
@@ -267,7 +269,7 @@ class Color:
       # increase each component by 10% while keeping within 0-255
       return Color(
          min(255, int(self.red * 1.1)),
-         min(255, int(self.green * 1.1)), 
+         min(255, int(self.green * 1.1)),
          min(255, int(self.blue * 1.1)),
          self.alpha
       )
@@ -303,21 +305,21 @@ Color.CLEAR      = Color(  0,   0,   0,   0)
 #######################################################################################
 # Color gradient
 #
-# A color gradient is a smooth color progression from one color to another, 
+# A color gradient is a smooth color progression from one color to another,
 # which creates the illusion of continuity between the two color extremes.
-# 
+#
 # The following auxiliary function may be used used to create a color gradient.
 # This function returns a list of RGB colors (i.e., a list of lists) starting with color1
 # (e.g., [0, 0, 0]) and ending (without including) color2 (e.g., [251, 147, 14], which is orange).
-# The number of steps equals the number of colors in the list returned.  
+# The number of steps equals the number of colors in the list returned.
 #
 # For example, the following creates a gradient list of 12 colors:
 #
-# >>> colorGradient([0, 0, 0], [251, 147, 14], 12)      
-# [[0, 0, 0], [20, 12, 1], [41, 24, 2], [62, 36, 3], [83, 49, 4], [104, 61, 5], [125, 73, 7], 
+# >>> colorGradient([0, 0, 0], [251, 147, 14], 12)
+# [[0, 0, 0], [20, 12, 1], [41, 24, 2], [62, 36, 3], [83, 49, 4], [104, 61, 5], [125, 73, 7],
 # [146, 85, 8], [167, 98, 9], [188, 110, 10], [209, 122, 11], [230, 134, 12]]
 #
-# Notice how the above excludes the final color (i.e.,  [251, 147, 14]).  This allows to 
+# Notice how the above excludes the final color (i.e.,  [251, 147, 14]).  This allows to
 # create composite gradients (without duplication of colors).  For example, the following
 #
 # black = [0, 0, 0]         # RGB values for black
@@ -326,8 +328,8 @@ Color.CLEAR      = Color(  0,   0,   0,   0)
 #
 # cg = colorGradient(black, orange, 12) + colorGradient(orange, white, 12) + [white]
 #
-# creates a list of gradient colors from black to orange, and from orange to white.  
-# Notice how the final color, white, has to be included separately (using list concatenation).  
+# creates a list of gradient colors from black to orange, and from orange to white.
+# Notice how the final color, white, has to be included separately (using list concatenation).
 # Now, gc contains a total of 25 unique gradient colors.
 #
 # For convenience, colorGradient() also works with Color objects, in which case
@@ -336,30 +338,30 @@ Color.CLEAR      = Color(  0,   0,   0,   0)
 #######################################################################################
 def colorGradient(color1, color2, steps):
    """
-   Returns a list of RGB colors creating a "smooth" gradient between 'color1' 
+   Returns a list of RGB colors creating a "smooth" gradient between 'color1'
    and 'color2'.  The amount of smoothness is determined by 'steps', which specifies
    how many intermediate colors to create. The result includes 'color1' but not
-   'color2' to allow for connecting one gradient to another (without duplication 
+   'color2' to allow for connecting one gradient to another (without duplication
    of colors).
    """
    gradientList = []   # holds RGB lists of individual gradient colors
-   
+
    # check if using Color objects
    if isinstance(color1, Color) and isinstance(color2, Color):
       # extract RGB values
       red1, green1, blue1 = color1.getRed(), color1.getGreen(), color1.getBlue()
       red2, green2, blue2 = color2.getRed(), color2.getGreen(), color2.getBlue()
-   
+
    else:  # otherwise, assume RGB list
       # extract RGB values
       red1, green1, blue1 = color1
       red2, green2, blue2 = color2
-   
+
    # find difference between color extremes
    differenceR = red2   - red1     # R component
    differenceG = green2 - green1   # G component
    differenceB = blue2  - blue1    # B component
-   
+
    # interpolate RGB values between extremes
    for i in range(steps):
       gradientR = red1   + i * differenceR / steps
@@ -368,14 +370,14 @@ def colorGradient(color1, color2, steps):
 
       # ensure color values are integers
       gradientList.append([int(gradientR), int(gradientG), int(gradientB)])
-   # now, gradient list contains all the intermediate colors, including color1 
+   # now, gradient list contains all the intermediate colors, including color1
    # but not color2
-   
+
    # if input was Color objects (e.g., Color.RED), return Color objects
    # otherwise, keep as RGB lists (e.g., [255, 0, 0]
    if isinstance(color1, Color):
       gradientList = [Color(rgb[0], rgb[1], rgb[2]) for rgb in gradientList]
-   
+
    return gradientList
 
 
@@ -404,8 +406,8 @@ class Font:
 
 
    def __str__(self):
-      return f'Font("{self.name}", {self.style}, {self.size})'
-   
+      return f'Font("fontName={self.name}", style={self.style}, fontSize={self.size})'
+
    def __repr__(self):
       return str(self)
 
@@ -416,12 +418,13 @@ class Font:
 class Interactable:
    """
    Abstract for interactive objects.
-   
-   This class registers callbacks for keyboard, mouse and display events
+
+   This class stores callbacks for keyboard, mouse and display events
    to match JythonMusic's event handling system. Objects that inherit from Interactable
    can register callback functions for various keyboard, mouse, and display events.
    """
    def __init__(self):
+      self.display = None
       self._callbackFunctions = {}
 
    def __str__( self ):
@@ -430,16 +433,35 @@ class Interactable:
    def __repr__( self ):
       return str(self)
 
-   def _event(self, type="", args=[]):
+   # def _event(self, type="", args=[]):
+   def _receiveEvent(self, event):
       """
       This method is called by the Display when an event occurs.
       It filters events and calls the corresponding callback function,
       if it has been defined.
       """
-      if type in self._callbackFunctions:          # is event defined?
-         callback = self._callbackFunctions[type]  # yes, get callback
-         if callable(callback):                    # is callback callable?
-            callback(*args)                        # yes, call it with args
+      eventHandled = False
+
+      # if type in self._callbackFunctions:          # is event defined?
+      #    callback = self._callbackFunctions[type]  # yes, get callback
+      #    if callable(callback):                    # is callback callable?
+      #       callback(*args)                        # yes, call it with args
+      #       eventHandled = True                    # and report that we handled it
+
+      if event.type in self._callbackFunctions:          # is event defined?
+         callback = self._callbackFunctions[event.type]  # yes, get callback
+         if callable(callback):                          # is callback callable?
+            callback(*event.args)                        # yes, call it with args
+            eventHandled = True                          # and report that we handled it
+
+      return eventHandled
+
+   def _hasCallback(self, type=""):
+      return self._callbackFunctions.get(type) is not None
+
+   def _registerCallback(self):
+      if self.display is not None:            # if this object is already on a display,
+         self.display._eventDispatcher.add(self)  # register the new event with its event filter
 
 
    ### USER METHODS ###
@@ -451,6 +473,7 @@ class Interactable:
       which are the x and y coordinates of the mouse click.
       """
       self._callbackFunctions['mouseClick'] = function
+      self._registerCallback()
 
 
    def onMouseDown(self, function):
@@ -460,6 +483,7 @@ class Interactable:
       which are the x and y coordinates of the mouse press.
       """
       self._callbackFunctions['mouseDown'] = function
+      self._registerCallback()
 
 
    def onMouseUp(self, function):
@@ -469,6 +493,7 @@ class Interactable:
       which are the x and y coordinates of the mouse release.
       """
       self._callbackFunctions['mouseUp'] = function
+      self._registerCallback()
 
 
    def onMouseMove(self, function):
@@ -478,6 +503,7 @@ class Interactable:
       which are the x and y coordinates of the mouse movement.
       """
       self._callbackFunctions['mouseMove'] = function
+      self._registerCallback()
 
 
    def onMouseDrag(self, function):
@@ -487,6 +513,7 @@ class Interactable:
       which are the x and y coordinates of the mouse movement.
       """
       self._callbackFunctions['mouseDrag'] = function
+      self._registerCallback()
 
 
    def onMouseEnter(self, function):
@@ -496,6 +523,7 @@ class Interactable:
       which are the x and y coordinates of where the mouse entered.
       """
       self._callbackFunctions['mouseEnter'] = function
+      self._registerCallback()
 
 
    def onMouseExit(self, function):
@@ -505,6 +533,7 @@ class Interactable:
       which are the x and y coordinates of where the mouse exited.
       """
       self._callbackFunctions['mouseExit'] = function
+      self._registerCallback()
 
 
    def onKeyType(self, function):
@@ -514,6 +543,7 @@ class Interactable:
       which is the character typed.
       """
       self._callbackFunctions['keyType'] = function
+      self._registerCallback()
 
 
    def onKeyDown(self, function):
@@ -523,6 +553,7 @@ class Interactable:
       which is the virtual key code of the key pressed.
       """
       self._callbackFunctions['keyDown'] = function
+      self._registerCallback()
 
 
    def onKeyUp(self, function):
@@ -532,6 +563,468 @@ class Interactable:
       which is the virtual key code of the key released.
       """
       self._callbackFunctions['keyUp'] = function
+      self._registerCallback()
+
+#######################################################################################
+# Event Dispatcher
+#######################################################################################
+class Event():
+   """
+   Generic Event class for storing relevant event data.
+   """
+   def __init__(self, type, *args):
+      self.type    = str(type)
+      self.args    = []
+      self.handled = False
+
+      for a in args:
+         self.args.append(a)  # unnecessary? can we just store *args as self.args?
+
+
+class EventDispatcher(_QtCore.QObject):
+   """
+   EventDispatchers attach to Displays, connecting Qt's events to JythonMusic events.
+      QT EVENTS    -> JYTHONMUSIC EVENTS
+      MousePress   -> onMouseDown
+      MouseRelease -> onMouseUp + onMouseClick (if mouse didn't move)
+      MouseMove    -> onMouseMove or onMouseDrag (if mouse is pressed)
+      MouseEnter   -> onMouseEnter
+      MouseLeave   -> onMouseExit
+      KeyPress     -> onKeyDown + onKeyType
+      KeyRelease   -> onKeyUp
+
+   When an event occurs, the Display always sees the event first.
+   Mouse events deliver to the topmost item at the event's position, that has a corresponding callback.
+   Key events deliver to the most recent, topmost item that a mouseDown event occurred at
+      ("the last item you clicked on").
+   """
+
+   def __init__(self, display):
+      super().__init__()
+      self.display = display
+      self.lastMouseDown = None     # last location mouse down event occured (set to None when mouse is up)
+      self.lastMouseMove = None     # last known mouse movement/position
+      self.moveThreshold = 5        # maximum distance to trigger a mouse click (down/up in the same place)
+      self.draggingItem  = None     # last item clicked on
+      self.itemsUnderMouse = set()  # set of items under last known mouse position
+
+      self.display._view.viewport().installEventFilter(self)  # redirect mouse events
+      self.display._view.installEventFilter(self)             # redirect key events
+      # _QtWidgets.QApplication.instance().installEventFilter(self)  # redirect global events
+
+      # Each EventDispatcher keeps track of the objects in its display that have callbacks registered
+      # for each type of event.  These lists are ordered by z-order and updated whenever an object is
+      # added or removed from the display, or when a new callback is registered to an object.
+      # Maintaining these lists saves us from having to search the entire list of added objects each time an event fires,
+      #   simplifying the work to only searching the list of objects with a relevant callback registered.
+      self.mouseDownListeners  = []
+      self.mouseUpListeners    = []
+      self.mouseClickListeners = []
+      self.mouseMoveListeners  = []
+      self.mouseDragListeners  = []
+      self.mouseEnterListeners = []
+      self.mouseExitListeners  = []
+      self.keyTypeListeners    = []
+      self.keyDownListeners    = []
+      self.keyUpListeners      = []
+
+
+
+   def eventFilter(self, object, qEvent):
+      """
+      eventFilter is a Qt-defined method that implements our custom event handler logic.
+      We filter mouse events through the viewport, and key events through the view.
+         (Mouse events can be delivered through either, but key events are only through view.
+            However, mouse events delivered through view are sometimes missing important positional data.
+         If we did not filter this way, mouse events would be duplicated with missing information.)
+      """
+      isHandled = False
+
+      # there are many other events that will filter through, but we only care about these
+
+      if qEvent.type() == _QtCore.QEvent.Type.MouseButtonPress:
+         if object == self.display._view.viewport():  # only respond to events from viewport()
+            isHandled = self.handleMousePress(qEvent)
+
+      elif qEvent.type() == _QtCore.QEvent.Type.MouseButtonRelease:
+         if object == self.display._view.viewport():  # only respond to events from viewport()
+            isHandled = self.handleMouseRelease(qEvent)
+
+      elif qEvent.type() == _QtCore.QEvent.Type.MouseMove:
+         if object == self.display._view.viewport():  # only respond to events from viewport()
+            isHandled = self.handleMouseMove(qEvent)
+
+      elif qEvent.type() == _QtCore.QEvent.Type.Enter:
+         if object == self.display._view.viewport():  # only respond to events from viewport()
+            isHandled = self.handleEnterEvent(qEvent)
+
+      elif qEvent.type() == _QtCore.QEvent.Type.Leave:
+         if object == self.display._view.viewport():  # only respond to events from viewport()
+            isHandled = self.handleLeaveEvent(qEvent)
+
+      elif qEvent.type() == _QtCore.QEvent.Type.KeyPress:
+         if object == self.display._view:             # only respond to events from view
+            isHandled = self.handleKeyPress(qEvent)
+
+      elif qEvent.type() == _QtCore.QEvent.Type.KeyRelease:
+         if object == self.display._view:             # only respond to events from view
+            isHandled = self.handleKeyRelease(qEvent)
+
+      return isHandled
+
+
+   def handleMousePress(self, qEvent):
+      """
+      Determines which display object(s) to deliver mouse down events to.
+      """
+      # first, we need to find and update some information
+      x, y = self._findMousePosition(qEvent)     # find current mouse position
+      self.lastMouseDown = (x, y)                # store mouse down position
+      self.draggingItem  = self._findListenerAt(self.mouseDragListeners, x, y)
+
+      # second, send mouseDown event to display
+      mouseDownEvent = Event("mouseDown", x, y)
+      self._deliverEvent([self.display], mouseDownEvent)
+
+      # next, send mouseDown event to topmost item with corresponding callback
+      self._deliverMouseEvent(self.mouseDownListeners, mouseDownEvent)
+
+      return mouseDownEvent.handled
+
+
+   def handleMouseRelease(self, qEvent):
+      """
+      Determines which objects(s) to deliver mouse up and mouse click events to.
+      mouseUp    events happen whenever the mouse is released.
+      mouseClick events only happen when the mouse is released close to where it was pressed.
+      """
+      # first, we need to find and update some information
+      x, y = self._findMousePosition(qEvent)      # find current mouse position
+
+      isMouseClick = False                                       # assume this is not a mouseClick
+      if self.lastMouseDown is not None:                         # was there a mouseDown event?
+         dx = abs(x - self.lastMouseDown[0])                     # yes, how far has the mouse moved?
+         dy = abs(y - self.lastMouseDown[1])
+         if dx <= self.moveThreshold and dy <= self.moveThreshold:  # is it under the threshold?
+            isMouseClick = True                                     # yes, this is also a mouseClick
+
+      self.lastMouseDown = None  # clear mouse down position
+      self.draggingItem  = None  # clear dragging item
+
+      # second, send mouseUp (and possibly mouseClick) event to display
+      mouseUpEvent = Event("mouseUp", x, y)
+      self._deliverEvent([self.display], mouseUpEvent)
+      if isMouseClick:
+         mouseClickEvent = Event("mouseClick", x, y)
+         self._deliverEvent([self.display], mouseClickEvent)
+
+      # last, send mouseUp (and possibly mouseClick) event to topmost items with corresponding callback
+      self._deliverMouseEvent(self.mouseUpListeners, mouseUpEvent)
+
+      if isMouseClick:
+         self._deliverMouseEvent(self.mouseClickListeners, mouseClickEvent)
+
+      return mouseUpEvent.handled or (mouseClickEvent.handled if isMouseClick else False)
+
+
+   def handleMouseMove(self, qEvent):
+      """
+      Determines which object(s) to deliver mouse move, drag, enter, and exit events to.
+      mouseMove  events happen whenever the mouse moves, unless the mouse is held down.
+      mouseDrag  events happen whenever the mouse moves while the mouse is held down.
+      mouseEnter events happen whenever the mouse enters the boundaries of an object.
+      mouseExit  events happen whenever the mouse exits the boundaries of an object.
+         * Mouse Enter and Exit events for displays are triggered in mouseEnterEvent and mouseLeaveEvent below.
+      """
+      # first, we need to find and update some information
+      x, y = self._findMousePosition(qEvent)  # find current mouse position
+      self.lastMouseMove = (x, y)             # store current mouse position
+      self._updateCoordinateTooltip(x, y)     # refresh tooltip coordinates (if needed)
+
+      # how we proceed depends on whether this is a move or drag event...
+      if self.lastMouseDown is None:  # mouse is up, so this is a mouseMove event
+         # second, send mouseMove event to display
+         mouseMoveEvent = Event("mouseMove", x, y)
+         self._deliverEvent([self.display], mouseMoveEvent)
+
+         # next, send mouseMove event to topmost item with corresponding callback
+         self._deliverMouseEvent(self.mouseMoveListeners, mouseMoveEvent)
+
+      else:                           # mouse is down, so this is a mouseDrag event
+         # second, send mouseDrag event to display
+         mouseMoveEvent = Event("mouseDrag", x, y)
+         self._deliverEvent([self.display], mouseMoveEvent)
+
+         # next, send mouseDrag event to dragging item (determined in handleMouseDown)
+         if self.draggingItem is not None:
+            self._deliverMouseEvent([self.draggingItem], mouseMoveEvent)
+
+
+      # finally, we need to process mouseEnter and mouseExit events
+      candidateSet = self._findObjectSetAt(x, y)
+      enteredSet   = candidateSet - self.itemsUnderMouse  # items we moved into
+      exitedSet    = self.itemsUnderMouse - candidateSet  # items we moved out of
+
+      self.itemsUnderMouse = candidateSet  # store set of items under we're over
+
+      # sets aren't ordered, so we send enter/exit events to each item, regardless of z-order
+      enterListeners  = set(self.mouseEnterListeners)            # create set of listeners
+      enterReceivers  = enteredSet.intersection(enterListeners)  # find items in both sets
+      mouseEnterEvent = Event("mouseEnter", x, y)                # generate enter event
+      self._deliverEvent(list(enterReceivers), mouseEnterEvent)  # send event to each intersecting item
+
+      exitListeners  = set(self.mouseExitListeners)              # create set of listeners
+      exitReceivers  = exitedSet.intersection(exitListeners)     # find items in both sets
+      mouseExitEvent = Event("mouseExit", x, y)                  # generate exit event
+      self._deliverEvent(list(exitReceivers), mouseExitEvent)    # send event to each intersecting item
+
+      return mouseMoveEvent.handled
+
+
+   def handleEnterEvent(self, qEvent):
+      """
+      Delivers mouseEnter events to the display.
+      mouseEnter events for objects are handled in handleMouseMove()
+      """
+      # first, we need to find and update some information
+      x, y = self._findMousePosition(qEvent)  # find current mouse position
+
+      # next, send mouseEnter event to display
+      mouseEnterEvent = Event("mouseEnter", x, y)
+      self._deliverEvent([self.display], mouseEnterEvent)
+
+      return mouseEnterEvent.handled
+
+
+   def handleLeaveEvent(self, qEvent):
+      """
+      Delivers mouseExit events to the display.
+      mouseExit events for objects are handled in handleMouseMove()
+      """
+      # first, we need to find and update some information
+      x, y = self._findMousePosition(qEvent)  # find current mouse position
+
+      # next, we send event to display
+      mouseExitEvent = Event("mouseExit", x, y)
+      self._deliverEvent([self.display], mouseExitEvent)
+
+      return mouseExitEvent.handled
+
+
+   def handleKeyPress(self, qEvent):
+      """
+      Delivers keyDown and keyType events to the display and each item in the display.
+      keyDown uses the numeric code for the pressed key.
+      keyType uses the typed character for the pressed key (if any).
+      """
+      # first, we need to find some information
+      key  = qEvent.key()                           # find key code
+      char = qEvent.text() if qEvent.text() else ""  # find character
+
+      # second, we send events to display
+      keyDownEvent = Event("keyDown", key)
+      keyTypeEvent = Event("keyType", char)
+      self._deliverEvent([self.display], keyDownEvent)
+      self._deliverEvent([self.display], keyTypeEvent)
+
+      # last, we send events to each item
+      self._deliverEventToAll(self.keyDownListeners, keyDownEvent)
+      self._deliverEventToAll(self.keyTypeListeners, keyTypeEvent)
+
+      return keyDownEvent.handled or keyTypeEvent.handled
+
+
+   def handleKeyRelease(self, qEvent):
+      """
+      Delivers keyUp events to the display and each item in the display.
+      keyUp uses the numeric code for the pressed key.
+      """
+      # first, we need to find some information
+      key  = qEvent.key()                           # find key code
+
+      # second, we send events to display
+      keyUpEvent = Event("keyUp", key)
+      self._deliverEvent([self.display], keyUpEvent)
+
+      # last, we send events to each item
+      self._deliverEventToAll(self.keyDownListeners, keyUpEvent)
+
+      return keyUpEvent.handled
+
+
+   def add(self, item):
+      """
+      Adds the item to each listener list they have a callback for.
+      """
+      callbackList = item._callbackFunctions.keys()
+
+      if ("mouseDown" in callbackList) and (item not in self.mouseDownListeners):
+         self.mouseDownListeners.append(item)
+
+      if ("mouseUp" in callbackList) and (item not in self.mouseUpListeners):
+         self.mouseUpListeners.append(item)
+
+      if ("mouseClick" in callbackList) and (item not in self.mouseClickListeners):
+         self.mouseClickListeners.append(item)
+
+      if ("mouseMove" in callbackList) and (item not in self.mouseMoveListeners):
+         self.mouseMoveListeners.append(item)
+
+      if ("mouseDrag" in callbackList) and (item not in self.mouseDragListeners):
+         self.mouseDragListeners.append(item)
+
+      if ("mouseEnter" in callbackList) and (item not in self.mouseEnterListeners):
+         self.mouseEnterListeners.append(item)
+
+      if ("mouseExit" in callbackList) and (item not in self.mouseExitListeners):
+         self.mouseExitListeners.append(item)
+
+      if ("keyType" in callbackList) and (item not in self.keyTypeListeners):
+         self.keyTypeListeners.append(item)
+
+      if ("keyDown" in callbackList) and (item not in self.keyDownListeners):
+         self.keyDownListeners.append(item)
+
+      if ("keyUp" in callbackList) and (item not in self.keyUpListeners):
+         self.keyUpListeners.append(item)
+
+
+   def remove(self, item):
+      """
+      Removes the item from each listener list they're a part of.
+      """
+      if item in self.mouseDownListeners:
+         self.mouseDownListeners.remove(item)
+
+      if item in self.mouseUpListeners:
+         self.mouseUpListeners.remove(item)
+
+      if item in self.mouseClickListeners:
+         self.mouseClickListeners.remove(item)
+
+      if item in self.mouseMoveListeners:
+         self.mouseMoveListeners.remove(item)
+
+      if item in self.mouseDragListeners:
+         self.mouseDragListeners.remove(item)
+
+      if item in self.mouseEnterListeners:
+         self.mouseEnterListeners.remove(item)
+
+      if item in self.mouseExitListeners:
+         self.mouseExitListeners.remove(item)
+
+      if item in self.keyTypeListeners:
+         self.keyTypeListeners.remove(item)
+
+      if item in self.keyDownListeners:
+         self.keyDownListeners.remove(item)
+
+      if item in self.keyUpListeners:
+         self.keyUpListeners.remove(item)
+
+
+   def _findObjectSetAt(self, x, y):
+      """
+      Find all graphics objects at the given (x,y) position.
+      Returns as a set, for contains/comparison operations.
+      """
+      foundItems = set()
+
+      for item in self.display.items:
+         if item.contains(x, y):
+            foundItems.add(item)
+
+      return foundItems
+
+
+   def _findMousePosition(self, qEvent):
+      """
+      Find the current x,y mouse position at the time of the event.
+      x and y are relative to the display the event happens in. (i.e. not global)
+      """
+      if hasattr(qEvent, "position") and callable(qEvent.position):  # if the Qt event has a position() method, we can just use that
+         x = int(qEvent.position().x())
+         y = int(qEvent.position().y())
+
+      elif self.lastMouseMove is not None:  # if no position available, use last known position
+         x = self.lastMouseMove[0]
+         y = self.lastMouseMove[1]
+
+      else:  # if no last known position available, default to origin
+         x = 0
+         y = 0
+
+      return x, y
+
+
+   def _deliverEvent(self, candidateList, event):
+      """
+      Deliver an event to the topmost graphics object from the given candidateList.
+      """
+      i = 0
+
+      while not event.handled and i < len(candidateList):
+         item = candidateList[i]    # find candidate item
+         item._receiveEvent(event)  # send event - event.handled is updated if item receives it
+         i = i + 1
+
+
+   def _deliverMouseEvent(self, candidateList, event):
+      """
+      Deliver an event to the topmost graphics object at the event's location.
+      """
+      i = 0
+      x, y = event.args
+
+      while not event.handled and i < len(candidateList):
+         item = candidateList[i]       # find candidate item
+         if item.contains(x, y):       # ensure event happens on item
+            item._receiveEvent(event)  # send event - event.handled is updated if item handles it
+         i = i + 1
+
+
+
+   def _deliverEventToAll(self, candidateList, event):
+      """
+      Deliver an event to each graphics object from the given candidateList.
+      """
+      for item in candidateList:
+         item._receiveEvent(event)
+
+
+   def _findListenerAt(self, candidateList, x, y):
+      """
+      Find the topmost graphics object from the given candidateList at the given (x,y) position.
+      Returns the graphics object, if found.
+      """
+      foundItem = None
+      i = 0
+
+      while foundItem is None and i < len(candidateList):
+         item = candidateList[i]
+         if item.contains(x, y):
+            foundItem = item
+         else:
+            i = i + 1
+
+      return foundItem
+
+
+   def _updateCoordinateTooltip(self, x, y):
+      """
+      Implementation of Display's showCoordinates method.
+      Whenever this triggers, manually update the display's tooltip to show the current coordinates.
+      """
+      if self.display.showCoordinates:  # if showing coordinates
+         # override any set tooltips to show mouse coordinates instead
+         # QToolTips have a delay before appearing, and automatically disappear
+         #   after a short time, so we force the tooltip to show immediately,
+         #   and refresh it whenever the mouse moves
+         globalPos   = self.display._view.mapToGlobal(_QtCore.QPoint(x, y))
+         toolTipText = f"({x}, {y})"
+         _QtWidgets.QToolTip.showText(globalPos, toolTipText, self.display._view, self.display._view.rect(), 10000)
+
 
 
 #######################################################################################
@@ -560,7 +1053,7 @@ class Drawable:
       self.toolTipText = None       # the tooltip text for this object, if any
 
    def __str__( self ):
-      return f'Drawable({self.getColor()}, {self.fill}, {self.getThickness()}, {self.getRotation()})'
+      return f'Drawable(color = {self.getColor()}, fill = {self.fill}, thickness = {self.getThickness()}, rotation = {self.getRotation()})'
 
    def __repr__( self ):
       return str(self)
@@ -642,7 +1135,7 @@ class Drawable:
       Returns the width of the shape's bounding box.
       """
       return self.width
-   
+
 
    def getHeight(self):
       """
@@ -783,15 +1276,15 @@ class Drawable:
          TypeError(f'Drawable.intersects(): other must be a Drawable object (it was {type(other)})')
 
       # check if other intersects this object's bounding box
-      x1 = self.getX()
-      y1 = self.getY()
-      x2 = x1 + self.getWidth()
-      y2 = y1 + self.getHeight()
+      x1 = self.cornerX
+      y1 = self.cornerY
+      x2 = x1 + self.width
+      y2 = y1 + self.height
 
-      otherX1 = other.getX()
-      otherY1 = other.getY()
-      otherX2 = otherX1 + other.getWidth()
-      otherY2 = otherY1 + other.getHeight()
+      otherX1 = other.cornerX
+      otherY1 = other.cornerY
+      otherX2 = otherX1 + other.width
+      otherY2 = otherY1 + other.height
 
       xIntersecting = (x1 <= otherX1 <= x2 or
                        x1 <= otherX2 <= x2 or
@@ -811,10 +1304,10 @@ class Drawable:
          raise TypeError(f'Drawable.contains(): x and y must be numbers (they were {type(x)} and {type(y)})')
 
       # check if point is within this object's bounding box
-      x1 = self.getX()
-      y1 = self.getY()
-      x2 = x1 + self.getWidth()
-      y2 = y1 + self.getHeight()
+      x1 = self.cornerX
+      y1 = self.cornerY
+      x2 = x1 + self.width
+      y2 = y1 + self.height
 
       xContains = (x1 <= x <= x2)
       yContains = (y1 <= y <= y2)
@@ -903,33 +1396,19 @@ class Display(Interactable):
       view.setRenderHint(_QtGui.QPainter.RenderHint.TextAntialiasing, True)
       view.setRenderHint(_QtGui.QPainter.RenderHint.SmoothPixmapTransform, True)
 
-      # deliver mouse and keyboard events to display items (via graphics view)
-      window.mousePressEvent   = lambda event: self._qtEvent("QtMousePress",   event)
-      window.mouseReleaseEvent = lambda event: self._qtEvent("QtMouseRelease", event)
-      window.mouseMoveEvent    = lambda event: self._qtEvent("QtMouseMove",    event)
-      window.enterEvent        = lambda event: self._qtEvent("QtMouseEnter",   event)
-      window.leaveEvent        = lambda event: self._qtEvent("QtMouseExit",    event)
-      window.keyPressEvent     = lambda event: self._qtEvent("QtKeyPress",     event)
-      window.keyReleaseEvent   = lambda event: self._qtEvent("QtKeyRelease",   event)
-
-      # view.mousePressEvent   = lambda event: self._qtEvent("QtMousePress",   event)
-      # view.mouseReleaseEvent = lambda event: self._qtEvent("QtMouseRelease", event)
-      # view.mouseMoveEvent    = lambda event: self._qtEvent("QtMouseMove",    event)
-      # view.enterEvent        = lambda event: self._qtEvent("QtMouseEnter",   event)
-      # view.leaveEvent        = lambda event: self._qtEvent("QtMouseExit",    event)
-      # view.keyPressEvent     = lambda event: self._qtEvent("QtKeyPress",     event)
-      # view.keyReleaseEvent   = lambda event: self._qtEvent("QtKeyRelease",   event)
-
       # store window, scene and view objects
       self._window = window
       self._scene  = scene
       self._view   = view
 
+      # create event dispatcher
+      self._eventDispatcher = EventDispatcher(self)
+
       self.setColor(color)  # set display background color
 
 
    def __str__( self ):
-      return f'Display("{self.getTitle()}", {self.getWidth()}, {self.getHeight()}, {self.getPosition()}, {self.getColor()})'
+      return f'Display(title = "{self.getTitle()}", width = {self.getWidth()}, height = {self.getHeight()}, x = {self.getPosition()[0]}, y = {self.getPosition()[1]}, color = {self.getColor()})'
 
    def __repr__( self ):
       return str(self)
@@ -949,173 +1428,6 @@ class Display(Interactable):
             item._qtObject.setZValue(top - i)
          else:
             pass  # only QGraphicsItems have z-order, other widgets are always on top
-
-
-   def _qtEvent(self, type="", event=None):
-      """
-      This method is called by the Display when a  Qt event occurs.
-      It translates Qt events to JythonMusic events,
-      and delivers them to the display, and the appropriate items in the display.
-      """
-
-      # filter events by type
-      if type.startswith("QtMouse"):
-         # mouse events care about the position of the mouse at the time of the event
-         if hasattr(event, "position") and callable(event.position):
-            # some Qt events don't have a position() method, so check if it exists first
-            x = int(event.position().x())  # find x and y coordinates of mouse event, relative to display
-            y = int(event.position().y())
-
-         elif self.lastMousePos is not None:  # if no position available, use last known position
-            x = self.lastMousePos[0]
-            y = self.lastMousePos[1]
-
-         else:  # if no last known position available, default to origin
-            x = 0
-            y = 0
-
-         # print(f"Mouse event: {type} ({x}, {y})")
-
-
-         if type.endswith("Press"):           # press -> mouseDown
-            self.lastMouseDown = (x, y)
-            self._event("mouseDown", [x, y])  # deliver mouseDown to display
-
-            if self.hoverItem is not None:                 # is there a hover item?
-               self.hoverItem._event("mouseDown", [x, y])  # yes, deliver mouseDown to it
-               self.focusItem = self.hoverItem             # then, promote hover item to focus item
-
-            else:
-               self.focusItem = None                       # no hover item, so no focus item
-            # print(f"Mouse pressed at ({x}, {y})")
-
-
-         elif type.endswith("Release"):  # release -> mouseUp, mouseClick
-            isMouseClick = False                                       # assume this is not a mouseClick
-            if self.lastMouseDown is not None:                         # was there a mouseDown event?
-               dx = abs(x - self.lastMouseDown[0])                     # how far has the mouse moved?
-               dy = abs(y - self.lastMouseDown[1])
-               if dx <= self.moveThreshold and dy <= self.moveThreshold:  # is it within threshold?
-                  isMouseClick = True                                  # yes, this is also a mouseClick
-
-            self._event("mouseUp", [x, y])        # deliver mouseUp to display
-            if isMouseClick:                      # and, if this was a click
-               self._event("mouseClick", [x, y])  # also deliver mouseClick to display
-
-            if self.hoverItem is not None:                     # is there a hover item?
-               self.hoverItem._event("mouseUp", [x, y])        # yes, deliver mouseUp to hover item
-               if isMouseClick:                                # and, if this was a click
-                  self.hoverItem._event("mouseClick", [x, y])  # also deliver mouseClick to hover item
-
-            else:  # no hover item when mouse released, so no focus item
-               self.focusItem = None
-
-            self.lastMouseDown = None  # reset last mouse down position
-            # print(f"Mouse released at ({x}, {y})")
-
-
-         elif type.endswith("Move"):   # move -> mouseMove, mouseDrag
-            self.lastMousePos = (x, y)  # store mouse position
-
-            if self.showCoordinates:  # if showing coordinates
-               # override any set tooltips to show mouse coordinates instead
-               # QToolTips have a delay before appearing, and automatically disappear
-               #   after a short time, so we force the tooltip to show immediately,
-               #   and refresh it whenever the mouse moves
-               globalPos   = self._view.mapToGlobal(_QtCore.QPoint(x, y))
-               toolTipText = f"({x}, {y})"
-               _QtWidgets.QToolTip.showText(globalPos, toolTipText, self._view, self._view.rect(), 10000)
-
-            isMouseDrag = False
-            if self.lastMouseDown is not None:                         # was there a mouseDown event?
-               dx = abs(x - self.lastMouseDown[0])                     # how far has the mouse moved?
-               dy = abs(y - self.lastMouseDown[1])
-               if dx > self.moveThreshold or dy > self.moveThreshold:  # is it outside threshold?
-                  isMouseDrag = True                                   # yes, this is a mouseDrag
-
-            hoverItem = None                  # look for a hover item
-            i = 0
-            while hoverItem is None and i < len(self.items):
-               item = self.items[i]
-               if item.contains(x, y):
-                  hoverItem = item
-               i += 1
-
-            if hoverItem != self.hoverItem:                # if hover item has changed,
-               if self.hoverItem is not None:              # was there an old hover item?
-                  self.hoverItem._event("mouseExit", [x, y])  # yes, deliver mouseExit to old hover item
-
-               if hoverItem is not None:                   # is there a new hover item?
-                  hoverItem._event("mouseEnter", [x, y])   # yes, deliver mouseEnter to new hover item
-
-               self.hoverItem = hoverItem                  # either way, set new hover item
-
-            else:  # hover item has not changed
-               pass
-
-
-            if isMouseDrag:                      # if dragging, deliver mouseDrag instead of mouseMove
-               self._event("mouseDrag", [x, y])  # deliver mouseDrag to display
-
-               if self.focusItem is not None:             # is there a focus item?
-                  self.focusItem._event("mouseDrag", [x, y])  # yes, deliver mouseDrag to focus item
-
-               elif self.hoverItem is not None:           # ... or is there a hover item?
-                  self.hoverItem._event("mouseDrag", [x, y])  # yes, deliver mouseDrag to hover item
-
-
-            else:                                # otherwise, deliver mouseMove
-               self._event("mouseMove", [x, y])  # deliver mouseMove to display
-
-               if self.hoverItem is not None:                 # is there a hover item?
-                  self.hoverItem._event("mouseMove", [x, y])  # yes, deliver mouseMove to hover item
-            # print(f"Mouse moved to ({x}, {y})")
-
-
-         elif type.endswith("Enter"):  # enter -> mouseEnter
-            # this type of mouse enter event is only delivered to the display
-            #   mouseEnter events for items are delivered when the mouse moves
-            self._event("mouseEnter", [x, y])  # deliver mouseEnter to display
-            # print(f"Mouse entered at ({x}, {y})")
-
-
-         elif type.endswith("Exit"):  # exit -> mouseExit
-            # this type of mouse exit event is only delivered to the display
-            #   mouseExit events for items are delivered when the mouse moves
-            self._event("mouseExit", [x, y])  # deliver mouseExit to display
-            # print(f"Mouse exited at ({x}, {y})")
-
-
-         else:
-            print(f"Warning: Display._qtEvent(): unknown mouse event type '{type}'")
-
-      elif type.startswith("QtKey"):
-         # key events care about the key code and focus item
-         if type.endswith("Press"):
-            key  = event.key()                           # find key code
-            char = event.text() if event.text() else ""  # find character
-
-            self._event("keyDown", [key])   # deliver keyDown to display
-            self._event("keyType", [char])  # deliver keyType to display
-
-            if self.focusItem is not None:                    # is there a focus item?
-               self.focusItem._event("keyDown", [key])   # yes, deliver keyDown...
-               self.focusItem._event("keyType", [char])  # ... and keyType
-
-
-         elif type.endswith("Release"):
-            key = event.key()  # find key code
-
-            self._event("keyUp", [key])  # deliver keyUp to display
-
-            if self.focusItem is not None:            # is there a focus item?
-               self.focusItem._event("keyUp", [key])  # yes, deliver keyUp to focus item
-
-         else:
-            print(f"Warning: Display._qtEvent(): unknown key event type '{type}'")
-
-      else:
-         print(f"Warning: Display._qtEvent(): unknown event type '{type}'")
 
 
    def show(self):
@@ -1175,6 +1487,8 @@ class Display(Interactable):
       else:
          print(f'Warning: Display.place(): object type {type(object._qtObject)} not supported')
 
+      self._eventDispatcher.add(object)  # register any callbacks on the object
+
 
    def add(self, object, x=None, y=None):
       """
@@ -1205,9 +1519,10 @@ class Display(Interactable):
       # do some basic error checking
       if not isinstance(object, Drawable):
          raise TypeError(f'Display.remove(): object must be a Drawable object (it was {type(object)})')
-      
+
       if object not in self.items:
-         print(f'Display.remove(): object {object} not found in display {self}')
+         # print(f'Display.remove(): object {object} not found in display {self}')
+         pass   # don't print error message, some old JythonMusic programs do this
 
       else:
          # remove object from display
@@ -1220,6 +1535,8 @@ class Display(Interactable):
          self.items.remove(object)  # remove object from display's list of items
          object.display = None      # tell object it is no longer on a display
          self._updateZOrder()       # update z-order of remaining objects on display
+
+         self._eventDispatcher.remove(object)  # unregister object's event callbacks
 
 
    def removeAll(self):
@@ -1267,7 +1584,7 @@ class Display(Interactable):
 
       if object not in self.items:
          print(f'Display.getOrder(): object {object} not found in display {self}')
-         
+
       else:
          # get object index in display list
          order = self.items.index(object)
@@ -1342,8 +1659,13 @@ class Display(Interactable):
       self.width  = int(width)
       self.height = int(height)
 
+      # grab window position
+      pos = self._window.pos()
+
       # update Qt object
-      self._window.setFixedSize(self.width, self.height)
+      self._scene.setSceneRect(0, 0, self.width, self.height)  # adjust scene canvas size
+      self._window.setFixedSize(self.width, self.height)       # adjust window size
+      self._window.move(pos)                                   # ensure window doesn't move
 
 
    def getHeight(self):
@@ -1464,108 +1786,122 @@ class Display(Interactable):
       self._callbackFunctions['onClose'] = function
 
 
-   ### CONVENIENCE METHODS
-
-   def drawLine(self, x1, y1, x2, y2):
+   # drawing functions (for convenience)
+   def drawLine(self, x1, y1, x2, y2, color=Color.BLACK, thickness=1):
       """
-      Draws a basic line from (x1, y1) to (x2, y2).
-      """
-      line = Line(x1, y1, x2, y2)
-      self.add(line)
-      return line
+      Draw a line between the points (x1, y1) and (x2, y2) with given color and thickness.
 
-   def drawCircle(self, x, y, radius):
+      Returns the line object (in case we want to move it or delete it later).
       """
-      Draws a basic circle with the specified radius and center coordinates.
+      line = Line(x1, y1, x2, y2, color, thickness)   # create line
+      self.add(line)                                  # add it
+      return line                                     # and return it
+
+   def drawCircle(self, x, y, radius, color = Color.BLACK, fill = False, thickness=1):
       """
-      circle = Circle(x, y, radius)
-      self.add(circle)
-      return circle
+      Draw a circle at (x, y) with the given radius, color, fill, and thickness.
 
-
-   def drawPoint(self, x, y):
+      Returns the circle object (in case we want to move it or delete it later).
       """
-      Draws a basic point at the specified coordinates.
+      circle = Circle(x, y, radius, color, fill, thickness)   # create circle
+      self.add(circle)   # add it
+      return circle      # and return it
+
+   def drawPoint(self, x, y, color = Color.BLACK, thickness=1):
       """
-      point = Point(x, y)
-      self.add(point)
-      return point
+      Draw a point at (x, y) with the given color and thickness.
 
-
-   def drawOval(self, x1, y1, x2, y2):
+      Returns the point object (in case we want to move it or delete it later).
       """
-      Draws a basic oval with the specified bounding box.
-      The bounding box is defined by the top-left corner (x1, y1)
-      and the bottom-right corner (x2, y2).
+      point = Point(x, y, color, thickness)   # create point
+      self.add(point)   # add it
+      return point      # and return it
+
+   def drawOval(self, x1, y1, x2, y2, color = Color.BLACK, fill = False, thickness = 1):
       """
-      oval = Oval(x1, y1, x2, y2)
-      self.add(oval)
-      return oval
+      Draw an oval using the coordinates of its enclosing rectangle with the given color,
+      fill, and thickness.
 
-
-   def drawRectangle(self, x1, y1, x2, y2):
+      Returns the oval object (in case we want to move it or delete it later).
       """
-      Draws a basic rectangle with the specified bounding box.
-      The bounding box is defined by the top-left corner (x1, y1)
-      and the bottom-right corner (x2, y2).
+      oval = Oval(x1, y1, x2, y2, color, fill, thickness)   # create oval
+      self.add(oval)   # add it
+      return oval      # and return it
+
+   def drawArc(self, x1, y1, x2, y2, startAngle, endAngle, color = Color.BLACK, fill = False, thickness = 1):
       """
-      rectangle = Rectangle(x1, y1, x2, y2)
-      self.add(rectangle)
-      return rectangle
+      Draw an arc using the provided coordinates, arc angles, color, fill, and thickness.
 
-
-   def drawPolyLine(self, xPoints, yPoints):
+      Returns the arc object (in case we want to move it or delete it later).
       """
-      Draws a basic polyline with the specified points.
-      The points are defined by two lists of x and y coordinates.
+      arc = Arc(x1, y1, x2, y2, startAngle, endAngle, color, fill, thickness)   # create arc
+      self.add(arc)   # add it
+      return arc      # and return it
+
+   def drawRectangle(self, x1, y1, x2, y2, color = Color.BLACK, fill = False, thickness = 1):
       """
-      polyline = PolyLine(xPoints, yPoints)
-      self.add(polyline)
-      return polyline
+      Draw a rectangle using the provided coordinates, color, fill, and thickness.
 
-
-   def drawPolygon(self, xPoints, yPoints):
+      Returns the rectangle object (in case we want to move it or delete it later).
       """
-      Draws a basic polygon with the specified points.
-      The points are defined by two lists of x and y coordinates.
+      rec = Rectangle(x1, y1, x2, y2, color, fill, thickness)   # create rectangle
+      self.add(rec)   # add it
+      return rec      # and return it
+
+   def drawPolygon(self, xPoints, yPoints, color = Color.BLACK, fill = False, thickness = 1):
       """
-      polygon = Polygon(xPoints, yPoints)
-      self.add(polygon)
-      return polygon
+      Draw a polygon using the provided coordinates, color, fill, and thickness.
 
-
-   def drawIcon(self, filename, x=0, y=0):
+      Returns the polygon object (in case we want to move it or delete it later).
       """
-      Draws an icon at the specified coordinates.
+      poly = Polygon(xPoints, yPoints, color, fill, thickness)   # create polygon
+      self.add(poly)   # add it
+      return poly      # and return it
+
+   def drawIcon(self, filename, x, y, width = None, height = None):
       """
-      icon = Icon(filename)
-      icon.setPosition(x, y)
-      self.add(icon)
-      return icon
+      Draw an icon (image) from the provided external file (.jpg or .png) at the given coordinates (top-left).
+      Also rescale according to provided width and height (if any).
 
+      Returns the icon object (in case we want to move it or delete it later).
+      """
+      icon = Icon(filename, width, height)   # load image (and rescale, if specified)
+      self.add(icon, x, y)   # add it at given coordinates
+      return icon            # and return it
 
-   def drawImage(self, filename, x=0, y=0):
+   def drawImage(self, filename, x, y, width = None, height = None):
       """
       Same as drawIcon().
+
+      Returns the image object (in case we want to move it or delete it later).
       """
-      return self.drawIcon(filename, x, y)
+      return self.drawIcon(filename, x, y, width, height)
 
-
-   def drawLabel(self, text, x=0, y=0):
+   def drawLabel(self, text, x, y, color = Color.BLACK, font = None):
       """
-      Draws a basic label at the specified coordinates.
+      Draw the text label on the display at the given coordinates (top-left) and with the provided
+      color and font.
+
+      Returns the label object (in case we want to move it or delete it later).
       """
-      label = Label(text)
-      label.setPosition(x, y)
-      self.add(label)
-      return label
 
+      # Font example - Font("Serif", Font.ITALIC, 16)
+      #
+      # see http://docs.oracle.com/javase/tutorial/2d/text/fonts.html#logical-fonts
 
-   def drawText(self, text, x=0, y=0):
+      label = Label(text, LEFT, color)   # create label
+      if font:                     # did they provide a font?
+         label.setFont(font)          # yes, so set it
+      self.add(label, x, y)        # add it at given coordinates
+      return label                 # and return it
+
+   def drawText(self, text, x, y, color = Color.BLACK, font = None):
       """
       Same as drawLabel().
+
+      Returns the label object (in case we want to move it or delete it later).
       """
-      return self.drawLabel(text, x, y)
+      return self.drawLabel(text, x, y, color, font)
 
 
 #######################################################################################
@@ -1596,7 +1932,7 @@ class Oval(Drawable, Interactable):
    def __str__(self):
       x2 = self.cornerX + self.width
       y2 = self.cornerY + self.height
-      return f'Oval({self.getX()}, {self.getY()}, {x2}, {y2}, {self.getColor()}, {self.fill}, {self.getThickness()}, {self.getRotation()})'
+      return f'Oval(x1 = {self.getX()}, y1 = {self.getY()}, x2 = {x2}, y2 = {y2}, color = {self.getColor()}, fill = {self.fill}, thickness = {self.getThickness()}, rotation = {self.getRotation()})'
 
 
 class Circle(Oval):
@@ -1618,7 +1954,7 @@ class Circle(Oval):
       self.setPosition(x, y)  # set position
 
    def __str__(self):
-      return f'Circle({self.getX()}, {self.getY()}, {self.radius}, {self.getColor()}, {self.fill}, {self.getThickness()}, {self.getRotation()})'
+      return f'Circle(x = {self.getX()}, y = {self.getY()}, radius = {self.radius}, color = {self.getColor()}, fill = {self.fill}, thickness = {self.getThickness()}, rotation = {self.getRotation()})'
 
 
    def getPosition(self):
@@ -1639,7 +1975,7 @@ class Circle(Oval):
       # do some basic error checking
       if not isinstance(x, (int, float)) or not isinstance(y, (int, float)):
          raise TypeError(f'Circle.setPosition(): x and y must be numbers (they were {type(x)}, {type(y)})')
-      
+
       # update internal attributes
       self.centerX = x
       self.centerY = y
@@ -1658,7 +1994,7 @@ class Point(Circle):
       Circle.__init__(self, x, y, 1, color, True, 0)
 
    def __str__(self):
-      return f'Point({self.getX()}, {self.getY()}, {self.getColor()})'
+      return f'Point(x = {self.getX()}, y = {self.getY()}, color = {self.getColor()})'
 
 
 # Arc Constants (in degrees)
@@ -1710,11 +2046,10 @@ class Arc(Drawable, Interactable):
       self.setColor(color)              # set color (this also sets fill and thickness)
       self.setRotation(rotation)        # set rotation angle
 
-
    def __str__(self):
       x2 = self.cornerX + self.width
       y2 = self.cornerY + self.height
-      return f'Arc({self.getX()}, {self.getY()}, {x2}, {y2}, {self.startAngle}, {self.endAngle}, {self.style}, {self.getColor()}, {self.fill}, {self.getThickness()}, {self.getRotation()})'
+      return f'Arc(x1 = {self.getX()}, y1 = {self.getY()}, x2 = {x2}, y2 = {y2}, startAngle = {self.startAngle}, endAngle = {self.endAngle}, style = {self.style}, color = {self.getColor()}, fill = {self.fill}, thickness = {self.getThickness()}, rotation = {self.getRotation()})'
 
 
 class ArcCircle(Arc):
@@ -1735,7 +2070,7 @@ class ArcCircle(Arc):
       Arc.__init__(self, x1, y1, x2, y2, startAngle, endAngle, style, color, fill, thickness, rotation)
 
    def __str__(self):
-      return f'ArcCircle({self.getX()}, {self.getY()}, {self.radius}, {self.startAngle}, {self.endAngle}, {self.style}, {self.getColor()}, {self.fill}, {self.getThickness()}, {self.getRotation()})'
+      return f'ArcCircle(x = {self.getX()}, y = {self.getY()}, radius = {self.radius}, startAngle = {self.startAngle}, endAngle = {self.endAngle}, style = {self.style}, color = {self.getColor()}, fill = {self.fill}, thickness = {self.getThickness()}, rotation = {self.getRotation()})'
 
 
    def getPosition(self):
@@ -1807,7 +2142,7 @@ class PolyLine(Drawable, Interactable):
       xPoints = [x + dx for x in self.xPoints]
       yPoints = [y + dy for y in self.yPoints]
 
-      return f'PolyLine({xPoints}, {yPoints}, {self.getColor()}, {self.getThickness()}, {self.getRotation()})'
+      return f'PolyLine(xPoints = {xPoints}, yPoints = {yPoints}, color = {self.getColor()}, thickness = {self.getThickness()}, rotation = {self.getRotation()})'
 
 
 class Line(PolyLine):
@@ -1824,7 +2159,7 @@ class Line(PolyLine):
       x2 = self.cornerX + self.width
       y2 = self.cornerY + self.height
 
-      return f'Line({self.getX()}, {self.getY()}, {x2}, {y2}, {self.getColor()}, {self.getThickness()}, {self.getRotation()})'
+      return f'Line(x1 = {self.getX()}, y1 = {self.getY()}, x2 = {x2}, y2 = {y2}, color = {self.getColor()}, thickness = {self.getThickness()}, rotation = {self.getRotation()})'
 
 
 class Polygon(Drawable, Interactable):
@@ -1865,7 +2200,7 @@ class Polygon(Drawable, Interactable):
       xPoints = [x + dx for x in self.xPoints]
       yPoints = [y + dy for y in self.yPoints]
 
-      return f'Polygon({xPoints}, {yPoints}, {self.getColor()}, {self.getThickness()}, {self.getRotation()})'
+      return f'Polygon(xPoints = {xPoints}, yPoints = {yPoints}, color = {self.getColor()}, thickness = {self.getThickness()}, rotation = {self.getRotation()})'
 
 
 class Rectangle(Drawable, Interactable):
@@ -1893,7 +2228,7 @@ class Rectangle(Drawable, Interactable):
       x2 = self.cornerX + self.width
       y2 = self.cornerY + self.height
 
-      return f'Rectangle({self.getX()}, {self.getY()}, {x2}, {y2}, {self.getColor()}, {self.fill}, {self.getThickness()}, {self.getRotation()})'
+      return f'Rectangle(x1 = {self.getX()}, y1 = {self.getY()}, x2 = {x2}, y2 = {y2}, color = {self.getColor()}, fill = {self.fill}, thickness = {self.getThickness()}, rotation = {self.getRotation()})'
 
 
 class Icon(Drawable, Interactable):
@@ -1910,7 +2245,14 @@ class Icon(Drawable, Interactable):
       self.pixmap   = None
 
       # create Qt object
-      self.pixmap = _QtGui.QPixmap(self.filename)  # create pixmap from file
+      try:     # create pixmap from file
+         self.pixmap = _QtGui.QPixmap(self.filename)
+      except:  # ... or create blank pixmap
+         if width is None:
+            width = 600
+         if height is None:
+            height = 400
+         self.pixmap = _QtGui.QPixmap(width, height)
 
       if self.width is None:
          # use pixmap dimensions
@@ -1930,7 +2272,7 @@ class Icon(Drawable, Interactable):
 
 
    def __str__(self):
-      return f'Icon("{self.filename}", {self.width}, {self.height}, {self.rotation})'
+      return f'Icon(filename = "{self.filename}", width = {self.width}, height = {self.height}, rotation = {self.rotation})'
 
    def setSize(self, width, height=None):
       """Set the icon's size."""
@@ -2084,7 +2426,7 @@ class Label(Drawable, Interactable):
       self._qtObject.addToGroup(textItem)    # add foreground to group
 
    def __str__(self):
-      return f'Label("{self.getText()}", {self.alignment}, {self.getForegroundColor()}, {self.getBackgroundColor()}, {self.getRotation()})'
+      return f'Label(text = "{self.getText()}", alignment = {self.alignment}, foregroundColor = {self.getForegroundColor()}, backgroundColor = {self.getBackgroundColor()}, rotation = {self.getRotation()})'
 
 
    def getText(self):
@@ -2111,7 +2453,7 @@ class Label(Drawable, Interactable):
       Returns the label's foreground color.
       """
       return self.color
-   
+
 
    def setForegroundColor(self, color):
       """
@@ -2172,8 +2514,8 @@ class Label(Drawable, Interactable):
 
 class HFader(Drawable, Interactable):
 
-   def __init__(self, x1, y1, x2, y2, minValue=0, maxValue=999, startValue=None, 
-               updateFunction=None, foreground=Color.RED, background=Color.BLACK, 
+   def __init__(self, x1, y1, x2, y2, minValue=0, maxValue=999, startValue=None,
+               updateFunction=None, foreground=Color.RED, background=Color.BLACK,
                outline=Color.BLACK, thickness=3, rotation=0):
       """Creates a new HFader."""
       Drawable.__init__(self, foreground, True, thickness, rotation)
@@ -2242,7 +2584,7 @@ class HFader(Drawable, Interactable):
       x2 = self.cornerX + self.width
       y2 = self.cornerY + self.height
 
-      return f'Fader({self.getX()}, {self.getY()}, {x2}, {y2}, {self.minValue}, {self.maxValue}, {self.getValue()}, {self.function}, {self.getColor()}, {self.backgroundColor}, {self.outlineColor}, {self.getThickness()}, {self.getRotation()})'
+      return f'Fader(x1 = {self.getX()}, y1 = {self.getY()}, x2 = {x2}, y2 = {y2}, minValue = {self.minValue}, maxValue = {self.maxValue}, startValue = {self.getValue()}, updateFunction = {self.function}, foreground = {self.getColor()}, background = {self.backgroundColor}, outline = {self.outlineColor}, thickness = {self.getThickness()}, rotation = {self.getRotation()})'
 
    def _update(self):
       """
@@ -2262,15 +2604,15 @@ class HFader(Drawable, Interactable):
       foregroundRect.setRect(x, y, width, height)
 
 
-   def _event(self, type="", args=[]):
+   def _receiveEvent(self, event):
       """
       Inject fader-specific events to the event handler.
       """
-      Interactable._event(self, type, args)  # call parent event handler
+      eventHandled = Interactable._receiveEvent(self, event)  # call parent event handler
 
-      if type == "mouseDown" or type == "mouseDrag":
+      if event.type == "mouseDown" or event.type == "mouseDrag":
          # update fader value based on mouse position (args = [x, y])
-         x = args[0] - self.cornerX  # get coordinates relative to fader
+         x = event.args[0] - self.cornerX  # get coordinates relative to fader
          # y = args[1] - self.cornerY
 
          valueRatio = x / self.width  # calculate value ratio (0.0 to 1.0)
@@ -2278,6 +2620,9 @@ class HFader(Drawable, Interactable):
          valueRange = self.maxValue - self.minValue
          value = int(self.minValue + (valueRatio * valueRange))
          self.setValue(value)         # set fader value
+         eventHandled = True
+
+      return eventHandled
 
 
    def getValue(self):
@@ -2302,8 +2647,8 @@ class HFader(Drawable, Interactable):
 
 class VFader(HFader):
 
-   def __init__(self, x1, y1, x2, y2, minValue=0, maxValue=999, startValue=None, 
-               updateFunction=None, foreground=Color.RED, background=Color.BLACK, 
+   def __init__(self, x1, y1, x2, y2, minValue=0, maxValue=999, startValue=None,
+               updateFunction=None, foreground=Color.RED, background=Color.BLACK,
                outline=Color.BLACK, thickness=3, rotation=0):
       """Creates a new VFader."""
       # call parent constructor
@@ -2315,8 +2660,8 @@ class VFader(HFader):
       x2 = self.cornerX + self.width
       y2 = self.cornerY + self.height
 
-      return f'VFader({self.getX()}, {self.getY()}, {x2}, {y2}, {self.minValue}, {self.maxValue}, {self.getValue()}, {self.function}, {self.getColor()}, {self.backgroundColor}, {self.outlineColor}, {self.getThickness()}, {self.getRotation()})'
-   
+      return f'VFader(x1 = {self.getX()}, y1 = {self.getY()}, x2 = {x2}, y2 = {y2}, minValue = {self.minValue}, maxValue = {self.maxValue}, startValue = {self.getValue()}, updateFunction = {self.function}, foreground = {self.getColor()}, background = {self.backgroundColor}, outline = {self.outlineColor}, thickness = {self.getThickness()}, rotation = {self.getRotation()})'
+
    def _update(self):
       """
       Updates the fader's appearance based on its current value.
@@ -2336,28 +2681,31 @@ class VFader(HFader):
 
 
 
-   def _event(self, type="", args=[]):
+   def _receiveEvent(self, event):
       """
       Inject fader-specific events to the event handler.
       """
-      Interactable._event(self, type, args)  # call parent event handler
+      eventHandled = Interactable._receiveEvent(self, event)  # call parent event handler
 
-      if type == "mouseDown" or type == "mouseDrag":
+      if event.type == "mouseDown" or event.type == "mouseDrag":
          # update fader value based on mouse position (args = [x, y])
          # x = args[0] - self.cornerX  # get coordinates relative to fader
-         y = args[1] - self.cornerY
+         y = event.args[1] - self.cornerY
 
          valueRatio = 1 - (y / self.height)  # calculate value ratio (0.0 to 1.0)
          valueRatio = max(0.0, min(1.0, valueRatio))  # clamp value ratio to range [0.0, 1.0]
          valueRange = self.maxValue - self.minValue
          value = int(self.minValue + (valueRatio * valueRange))
          self.setValue(value)         # set fader value
+         eventHandled = True
+
+      return eventHandled
 
 
 class Rotary(Drawable, Interactable):
 
-   def __init__(self, x1, y1, x2, y2, minValue=0, maxValue=999, startValue=None, 
-               updateFunction=None, foreground=Color.RED, background=Color.BLACK, 
+   def __init__(self, x1, y1, x2, y2, minValue=0, maxValue=999, startValue=None,
+               updateFunction=None, foreground=Color.RED, background=Color.BLACK,
                outline=Color.BLUE, thickness=3, arcWidth=300, rotation=0):
       """Creates a new Rotary."""
       Drawable.__init__(self, foreground, True, thickness, rotation)
@@ -2441,7 +2789,7 @@ class Rotary(Drawable, Interactable):
       x2 = self.cornerX + self.width
       y2 = self.cornerY + self.height
 
-      return f'Fader({self.getX()}, {self.getY()}, {x2}, {y2}, {self.minValue}, {self.maxValue}, {self.getValue()}, {self.function}, {self.getColor()}, {self.backgroundColor}, {self.outlineColor}, {self.getThickness()}, {self.getRotation()})'
+      return f'Fader(x1 = {self.getX()}, y1 = {self.getY()}, x2 = {x2}, y2 = {y2}, minValue = {self.minValue}, maxValue = {self.maxValue}, startValue = {self.getValue()}, updateFunction = {self.function}, foreground = {self.getColor()}, background = {self.backgroundColor}, outline = {self.outlineColor}, thickness = {self.getThickness()}, rotation = {self.getRotation()})'
 
    def _update(self):
       """
@@ -2470,16 +2818,16 @@ class Rotary(Drawable, Interactable):
       foregroundArc.setPath(path)                       # set new arc path
 
 
-   def _event(self, type="", args=[]):
+   def _receiveEvent(self, event):
       """
       Inject rotary-specific events to the event handler.
       """
-      Interactable._event(self, type, args)  # call parent event handler
+      eventHandled = Interactable._receiveEvent(self, event)  # call parent event handler
 
-      if type == "mouseDown" or type == "mouseDrag":
+      if event.type == "mouseDown" or event.type == "mouseDrag":
          # update rotary value based on mouse position (args = [x, y])
-         x = args[0] - self.cornerX  # get coordinates relative to rotary
-         y = args[1] - self.cornerY
+         x = event.args[0] - self.cornerX  # get coordinates relative to rotary
+         y = event.args[1] - self.cornerY
 
          dx = x - self.width//2      # get vector from center to mouse
          dy = self.height//2 - y
@@ -2494,6 +2842,9 @@ class Rotary(Drawable, Interactable):
             valueRange = self.maxValue - self.minValue
             value = int(np.round(self.minValue + (valueRatio * valueRange)))
             self.setValue(value)         # set fader value
+            eventHandled = True
+
+      return eventHandled
 
 
    def getValue(self):
@@ -2590,7 +2941,7 @@ class Push(Drawable, Interactable):
       x2 = self.cornerX + self.width
       y2 = self.cornerY + self.height
 
-      return f'Push({self.getX()}, {self.getY()}, {x2}, {y2}, {self.function}, {self.getColor()}, {self.backgroundColor}, {self.outlineColor}, {self.getThickness()}, {self.getRotation()})'
+      return f'Push(x1 = {self.getX()}, y1 = {self.getY()}, x2 = {x2}, y2 = {y2}, updateFunction = {self.function}, foreground = {self.getColor()}, background = {self.backgroundColor}, outline = {self.outlineColor}, thickness = {self.getThickness()}, rotation = {self.getRotation()})'
 
 
    def _update(self):
@@ -2605,17 +2956,21 @@ class Push(Drawable, Interactable):
          foregroundRect.hide()
 
 
-   def _event(self, type="", args=[]):
+   def _receiveEvent(self, event):
       """
       Inject push-specific events to the event handler.
       """
-      Interactable._event(self, type, args)
+      eventHandled = Interactable._receiveEvent(self, event)
 
-      if type == "mouseDown":
+      if event.type == "mouseDown":
          self.setValue(True)
+         eventHandled = True
 
-      elif type == "mouseUp" or type == "mouseExit":
+      elif event.type == "mouseUp" or event.type == "mouseExit":
          self.setValue(False)
+         eventHandled = True
+
+      return eventHandled
 
 
    def getValue(self):
@@ -2651,16 +3006,19 @@ class Toggle(Push):
       x2 = self.cornerX + self.width
       y2 = self.cornerY + self.height
 
-      return f'Toggle({self.getX()}, {self.getY()}, {x2}, {y2}, {self.function}, {self.getColor()}, {self.backgroundColor}, {self.outlineColor}, {self.getThickness()}, {self.getRotation()})'
-   
-   def _event(self, type="", args=[]):
+      return f'Toggle(x1 = {self.getX()}, y1 = {self.getY()}, x2 = {x2}, y2 = {y2}, updateFunction = {self.function}, foreground = {self.getColor()}, background = {self.backgroundColor}, outline = {self.outlineColor}, thickness = {self.getThickness()}, rotation = {self.getRotation()})'
+
+   def _receiveEvent(self, event):
       """
       Inject toggle-specific events to the event handler.
       """
-      Interactable._event(self, type, args)
+      eventHandled = Interactable._receiveEvent(self, event)
 
-      if type == "mouseDown":
+      if event.type == "mouseDown":
          self.setValue(not self.value)
+         eventHandled = True
+
+      return eventHandled
 
 
 class XYPad(Drawable, Interactable):
@@ -2740,8 +3098,8 @@ class XYPad(Drawable, Interactable):
       x2 = self.cornerX + self.width
       y2 = self.cornerY + self.height
 
-      return f'XYPad({self.getX()}, {self.getY()}, {x2}, {y2}, {self.function}, {self.getColor()}, {self.backgroundColor}, {self.outlineColor}, {self.getThickness()}, {self.trackerRadius}, {self.crosshairsThickness}, {self.getRotation()})'
-   
+      return f'XYPad(x1 = {self.getX()}, y1 = {self.getY()}, x2 = {x2}, y2 = {y2}, updateFunction = {self.function}, foreground = {self.getColor()}, background = {self.backgroundColor}, outline = {self.outlineColor}, outlineThickness = {self.getThickness()}, trackerRadius = {self.trackerRadius}, crosshairsThickness = {self.crosshairsThickness}, rotation = {self.getRotation()})'
+
    def _update(self):
       """
       Updates the XYPad's appearance based on its current value.
@@ -2761,17 +3119,20 @@ class XYPad(Drawable, Interactable):
       trackerCircle.setRect(xPos - self.trackerRadius//2, yPos - self.trackerRadius//2, self.trackerRadius, self.trackerRadius)  # circle
 
 
-   def _event(self, type="", args=[]):
+   def _receiveEvent(self, event):
       """
       Inject XYPad-specific events to the event handler.
       """
-      Interactable._event(self, type, args)
+      eventHandled = Interactable._receiveEvent(self, event)
 
-      if type == "mouseDown" or type == "mouseDrag":
+      if event.type == "mouseDown" or event.type == "mouseDrag":
          # update XYPad value based on mouse position (args = [x, y])
-         x = args[0] - self.cornerX  # get coordinates relative to XYPad
-         y = args[1] - self.cornerY
+         x = event.args[0] - self.cornerX  # get coordinates relative to XYPad
+         y = event.args[1] - self.cornerY
          self.setValue(x, y)      # set tracker position
+         eventHandled = True
+
+      return eventHandled
 
 
    def getValue(self):
@@ -2779,7 +3140,7 @@ class XYPad(Drawable, Interactable):
       Returns the current position of the XYPad.
       """
       return self.value
-   
+
    def setValue(self, x, y):
       """
       Sets the current position of the XYPad.
@@ -2832,8 +3193,8 @@ class Button(Drawable, Interactable):
 
 
    def __str__(self):
-      return f'Button("{self.text}", {self.function})'
-   
+      return f'Button(text = "{self.text}", function = {self.function})'
+
    def setColor(self, color):
       """Set the button color."""
       # do some basic error checking
@@ -2888,7 +3249,7 @@ class CheckBox(Drawable, Interactable):
 
 
    def __str__(self):
-      return f'CheckBox("{self.text}", {self.function})'
+      return f'CheckBox(text = "{self.text}", function = {self.function})'
 
 
    def isChecked(self):
@@ -2970,7 +3331,7 @@ class Slider(Drawable, Interactable):
 
 
    def __str__(self):
-      return f'Slider({self.orientation}, {self.lower}, {self.upper}, {self.getValue()}, {self.function})'
+      return f'Slider(orientation = {self.orientation}, lower = {self.lower}, upper = {self.upper}, start = {self.getValue()}, function = {self.function})'
 
 
    def getValue(self):
@@ -3015,7 +3376,7 @@ class DropDownList(Drawable, Interactable):
       # create Qt object
       qtObject = _QtWidgets.QComboBox()
       qtObject.addItems(self.items)
-      qtObject.currentIndexChanged.connect(self._callback)  # connect dropdown to function
+      qtObject.activated.connect(self._callback)    # connect dropdown to function
       qtObject.adjustSize()                         # adjust size to fit text
       qtObject.move(self.x, self.y)                 # set default position
       self.width  = qtObject.width()                # get width
@@ -3027,13 +3388,13 @@ class DropDownList(Drawable, Interactable):
 
 
    def __str__(self):
-      return f'DropDownList({self.items}, {self.function})'
-   
+      return f'DropDownList(items = {self.items}, function = {self.function})'
+
    def _callback(self, index):
       """Calls user function using item at given index."""
       if self.function is not None and callable(self.function):
          self.function(self.items[index])  # call function with selected item
-         
+
    def setColor(self, color):
       """Set the dropdown list color."""
       # do some basic error checking
@@ -3091,8 +3452,8 @@ class TextField(Drawable, Interactable):
       self.setColor(self.color)  # set default color
 
    def __str__(self):
-      return f'TextField("{self.getText()}", {self.columns}, {self.function})'
-   
+      return f'TextField(text = "{self.getText()}", columns = {self.columns}, function = {self.function})'
+
    def _callback(self):
       """Calls user function using text in field."""
       if self.function is not None and callable(self.function):
@@ -3120,7 +3481,7 @@ class TextField(Drawable, Interactable):
    def getText(self):
       """Returns the text in the field."""
       return self._qtObject.text()
-   
+
    def setText(self, text):
       """Sets the text in the field."""
       # update qt object
@@ -3132,7 +3493,7 @@ class TextField(Drawable, Interactable):
       # do some basic error checking
       if not isinstance(font, Font):
          raise TypeError(f'TextField.setFont(): font must be a Font object (it was {type(font)})')
-      
+
       # update internal attributes
       self.font = font
 
@@ -3182,7 +3543,7 @@ class TextArea(Drawable, Interactable):
 
 
    def __str__(self):
-      return f'TextArea("{self.getText()}", {self.columns}, {self.rows})'
+      return f'TextArea(text = "{self.getText()}", columns = {self.columns}, rows = {self.rows})'
 
    def setColor(self, color):
       """Set the text area color."""
@@ -3218,7 +3579,7 @@ class TextArea(Drawable, Interactable):
       # do some basic error checking
       if not isinstance(font, Font):
          raise TypeError(f'TextField.setFont(): font must be a Font object (it was {type(font)})')
-      
+
       # update internal attributes
       self.font = font
 
@@ -3233,7 +3594,7 @@ class TextArea(Drawable, Interactable):
 
 
 class Menu():
-   
+
    def __init__(self, menuName):
       """Create a new menu."""
 
@@ -3245,11 +3606,11 @@ class Menu():
       self._qtObject = _QtWidgets.QMenu(self.name)
 
    def __str__(self):
-      return f'Menu("{self.name}")'
-   
+      return f'Menu(menuName = "{self.name}")'
+
    def __repr__(self):
       return str(self)
-   
+
 
    def addItem(self, item="", functionName=None):
       """Add an item to the menu."""
@@ -3426,7 +3787,7 @@ if __name__ == "__main__":
       circle.setToolTipText("This is a circle tooltip")
       d.add(circle)
 
-   
+
    def testWidgets():
       d = Display()
 
@@ -3493,7 +3854,7 @@ if __name__ == "__main__":
       d.add(rect2)
       d.add(rect3)
 
-      
+
       print(f'Initial Z-Orders:')
       print(f'\tRectangle 1 Z-Order: {rect1.getOrder()}')
       print(f'\tRectangle 2 Z-Order: {rect2.getOrder()}')

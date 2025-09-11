@@ -10,11 +10,90 @@ from string import *
 # endregion Imports ###########################################################
 
 # region User Settings ########################################################
-TONAL_CENTER_OFFSET = 7 # 0 = C, 2 = D, -2 = Bb, 10 = Bb etc.
-OCTAVE_RANGE = 4 # which octave to place chords in
-CHORD_DURATION = HN # how long to play each chord
-VOICING = "Drop 2" # Close, Drop 2, Drop 3, Drop 2 and 4
+TONAL_CENTER_OFFSET = 7  # 0 = C, 2 = D, -2 = Bb, 10 = Bb etc.
+
+OCTAVE_RANGE = 3  # which octave to place chords in
+
+CHORD_DURATION = HN  # how long to play each chord
+
+VOICING = "Drop 2 and 4"  # Close, Drop 2, Drop 3, Drop 2 and 4
+# VOICING = "Drop 3"  # Close, Drop 2, Drop 3, Drop 2 and 4
+
+# Play.setInstrument(PIANO)
+# Play.setInstrument(SYNTH)
+# Play.setInstrument(CELLO)
+Play.setInstrument(RHODES_PIANO)
+# Play.setInstrument(DX_PIANO)
 # endregion User Settings #####################################################
+
+# region Constants ############################################################
+VOICING_TO_INDICES = {
+    "Close": [],
+    "Drop 2": [1],
+    "Drop 3": [1, 2],
+    "Drop 2 and 4": [1, 3]
+}
+
+
+# Intervals in semitones
+MINOR_THIRD = 3
+TRITONE = 6
+OCTAVE = 12
+
+# Map family transformation buttons
+COORDINATES_TO_FAMILY = {}
+# Default
+COORDINATES_TO_FAMILY[(763, 567)] = 0
+# Sister
+COORDINATES_TO_FAMILY[(675, 651)] = -MINOR_THIRD
+# Cousin
+COORDINATES_TO_FAMILY[(675, 651)] = TRITONE
+# Brother
+COORDINATES_TO_FAMILY[(838, 647)] = MINOR_THIRD
+
+# Scales of chords by "pitch class". Semitones are assigned to 0-11.
+MAJOR_SIXTH_DIMINISHED_SCALE = [0, 2, 4, 5, 7, 8, 9, 11]
+MAJOR_SIXTH_DIMINISHED_SCALE_FROM_THIRD = [0, 1, 3, 4, 5, 7, 8, 10]
+MAJOR_SIXTH_DIMINISHED_SCALE_FROM_FIFTH = [0, 1, 2, 4, 5, 7, 9, 10]
+MAJOR_SIXTH_DIMINISHED_SCALE_FROM_SIXTH = [0, 2, 3, 5, 7, 8, 10, 11] # aka minor seventh diminished scale
+
+MINOR_SIXTH_DIMINISHED_SCALE = [0, 2, 3, 5, 7, 8, 9, 11]
+MINOR_SIXTH_DIMINISHED_SCALE_FROM_THIRD = [0, 2, 4, 5, 6, 8, 9, 11]
+MINOR_SIXTH_DIMINISHED_SCALE_FROM_FIFTH = [0, 1, 2, 4, 5, 7, 8, 10]
+MINOR_SIXTH_DIMINISHED_SCALE_FROM_SIXTH = [0, 2, 3, 5, 6, 8, 10, 11] # aka minor seventh flat five diminished scale
+
+DOMINANT_SEVENTH_DIMINISHED_SCALE = [0, 2, 4, 5, 7, 8, 10, 11]
+DOMINANT_SEVENTH_DIMINISHED_SCALE_FROM_THIRD = [0, 1, 3, 4, 6, 7, 8, 10]
+DOMINANT_SEVENTH_DIMINISHED_SCALE_FROM_FIFTH = [0, 1, 3, 4, 5, 7, 9, 10,]
+DOMINANT_SEVENTH_DIMINISHED_SCALE_FROM_SEVENTH = [0, 1, 2, 4, 6, 7, 9, 10]
+
+DOMINANT_SEVENTH_FLAT_FIVE_DIMINISHED_SCALE = [0, 2, 4, 5, 6, 8, 10, 11] # same as from flat fifth
+DOMINANT_SEVENTH_FLAT_FIVE_DIMINISHED_SCALE_FROM_THIRD = [0, 1, 2, 4, 6, 7, 8, 10] # same as from seventh
+
+DOMINANT_ROOTS_AND_THEIR_DIMINISHED = [0, 2, 3, 5, 6, 8, 9, 11] # aka whole-half diminished scale
+DIMINISHED_AND_ITS_DOMINANT_ROOTS = [0, 1, 3, 4, 6, 7, 9, 10] # aka half-whole diminished scale
+
+# Chord qualities
+MAJOR_SIXTH_CHORD = [0, 4, 7, 9]
+MAJOR_SIXTH_CHORD_FROM_THIRD = [0, 3, 5, 8]
+MAJOR_SIXTH_CHORD_FROM_FIFTH = [0, 2, 5, 9]
+MAJOR_SIXTH_CHORD_FROM_SIXTH = [0, 3, 7, 10] # aka minor seventh chord
+
+MINOR_SIXTH_CHORD = [0, 3, 7, 9]
+MINOR_SIXTH_CHORD_FROM_THIRD = [0, 4, 6, 9]
+MINOR_SIXTH_CHORD_FROM_FIFTH = [0, 2, 5, 8]
+MINOR_SIXTH_CHORD_FROM_SIXTH = [0, 3, 6, 10] # aka minor seventh flat five chord
+
+DOMINANT_SEVENTH_CHORD = [0, 4, 7, 10]
+DOMINANT_SEVENTH_CHORD_FROM_THIRD = [0, 3, 6, 8]
+DOMINANT_SEVENTH_CHORD_FROM_FIFTH = [0, 3, 5, 9]
+DOMINANT_SEVENTH_CHORD_FROM_SEVENTH = [0, 2, 6, 9]
+
+DOMINANT_SEVENTH_FLAT_FIVE_CHORD = [0, 4, 6, 10] # same as from flat fifth
+DOMINANT_SEVENTH_FLAT_FIVE_CHORD_FROM_THIRD = [0, 2, 6, 8] # same as from seventh
+
+DIMINISHED_CHORD = [0, 3, 6, 9]
+# endregion Constants #########################################################
 
 # region Classes ##############################################################
 # Note letter names
@@ -47,21 +126,30 @@ class Chord():
         # Sort the pitches low to high
         self.pitches.sort()
 
-        # String of chord spelling (note letter names)
-        self.spelling = NOTE_NAMES_FLAT[self.pitches[0] % 12] + " " + \
-                        NOTE_NAMES_FLAT[self.pitches[1] % 12] + " " + \
-                        NOTE_NAMES_FLAT[self.pitches[2] % 12] + " " + \
-                        NOTE_NAMES_FLAT[self.pitches[3] % 12]
+        # Apply voicing transformations to get the actual note ordering
+        voiced_pitches = []
+        for i in range(len(self.pitches)):
+            # Place the pitch class into the correct octave range
+            adjusted_pitch = self.pitches[i] + (OCTAVE * OCTAVE_RANGE)
+
+            # For the chosen voicing, raise the appropriate notes up an octave
+            if i in VOICING_TO_INDICES.get(VOICING):
+                if adjusted_pitch + OCTAVE <= 127:
+                    adjusted_pitch += OCTAVE
+
+            voiced_pitches.append(adjusted_pitch)
+
+        # Sort the voiced pitches to get the correct display order
+        voiced_pitches.sort()
+
+        # String of chord spelling (note letter names) using voiced pitches
+        self.spelling = f"{NOTE_NAMES_FLAT[voiced_pitches[0] % 12]:<2}  " + \
+                        f"{NOTE_NAMES_FLAT[voiced_pitches[1] % 12]:<2}  " + \
+                        f"{NOTE_NAMES_FLAT[voiced_pitches[2] % 12]:<2}  " + \
+                        f"{NOTE_NAMES_FLAT[voiced_pitches[3] % 12]:<2}"
 # endregion Classes ###########################################################
 
-# region Constants ############################################################
-VOICING_TO_INDICES = {
-    "Close": [],
-    "Drop 2": [1],
-    "Drop 3": [1, 2],
-    "Drop 2 and 4": [1, 3]
-}
-
+# region Coordinates to Chords ################################################
 # Map points on the display to chords.
 # Everything is relative to C here, but TRANSPOSE_KEY_SEMITONES will allow for any tonal center.
 # Also, theses will be reduced to pitch classes in Chord, but I wrote them as absolute pitches
@@ -138,66 +226,7 @@ COORDINATES_TO_CHORD[(235, 235)] = Chord("Charcoal", [F4, A4, C5, EF5])
 COORDINATES_TO_CHORD[(173, 274)] = Chord("Brother Charcoal", [AF4, C4, EF5, GF5])
 COORDINATES_TO_CHORD[(231, 272)] = Chord("Twin Charcoal", [B4, DS5, FS5, A5])
 COORDINATES_TO_CHORD[(289, 274)] = Chord("Sister Charcoal", [D4, FS4, A4, C5])
-
-# Intervals in semitones
-MINOR_THIRD = 3
-TRITONE = 6
-OCTAVE = 12
-
-# Map family transformation buttons
-COORDINATES_TO_FAMILY = {}
-# Default
-COORDINATES_TO_FAMILY[(763, 567)] = 0
-# Sister
-COORDINATES_TO_FAMILY[(675, 651)] = -MINOR_THIRD
-# Cousin
-COORDINATES_TO_FAMILY[(675, 651)] = TRITONE
-# Brother
-COORDINATES_TO_FAMILY[(838, 647)] = MINOR_THIRD
-
-# Scales of chords by "pitch class". Semitones are assigned to 0-11.
-MAJOR_SIXTH_DIMINISHED_SCALE = [0, 2, 4, 5, 7, 8, 9, 11]
-MAJOR_SIXTH_DIMINISHED_SCALE_FROM_THIRD = [0, 1, 3, 4, 5, 7, 8, 10]
-MAJOR_SIXTH_DIMINISHED_SCALE_FROM_FIFTH = [0, 1, 2, 4, 5, 7, 9, 10]
-MAJOR_SIXTH_DIMINISHED_SCALE_FROM_SIXTH = [0, 2, 3, 5, 7, 8, 10, 11] # aka minor seventh diminished scale
-
-MINOR_SIXTH_DIMINISHED_SCALE = [0, 2, 3, 5, 7, 8, 9, 11]
-MINOR_SIXTH_DIMINISHED_SCALE_FROM_THIRD = [0, 2, 4, 5, 6, 8, 9, 11]
-MINOR_SIXTH_DIMINISHED_SCALE_FROM_FIFTH = [0, 1, 2, 4, 5, 7, 8, 10]
-MINOR_SIXTH_DIMINISHED_SCALE_FROM_SIXTH = [0, 2, 3, 5, 6, 8, 10, 11] # aka minor seventh flat five diminished scale
-
-DOMINANT_SEVENTH_DIMINISHED_SCALE = [0, 2, 4, 5, 7, 8, 10, 11]
-DOMINANT_SEVENTH_DIMINISHED_SCALE_FROM_THIRD = [0, 1, 3, 4, 6, 7, 8, 10]
-DOMINANT_SEVENTH_DIMINISHED_SCALE_FROM_FIFTH = [0, 1, 3, 4, 5, 7, 9, 10,]
-DOMINANT_SEVENTH_DIMINISHED_SCALE_FROM_SEVENTH = [0, 1, 2, 4, 6, 7, 9, 10]
-
-DOMINANT_SEVENTH_FLAT_FIVE_DIMINISHED_SCALE = [0, 2, 4, 5, 6, 8, 10, 11] # same as from flat fifth
-DOMINANT_SEVENTH_FLAT_FIVE_DIMINISHED_SCALE_FROM_THIRD = [0, 1, 2, 4, 6, 7, 8, 10] # same as from seventh
-
-DOMINANT_ROOTS_AND_THEIR_DIMINISHED = [0, 2, 3, 5, 6, 8, 9, 11] # aka whole-half diminished scale
-DIMINISHED_AND_ITS_DOMINANT_ROOTS = [0, 1, 3, 4, 6, 7, 9, 10] # aka half-whole diminished scale
-
-# Chord qualities
-MAJOR_SIXTH_CHORD = [0, 4, 7, 9]
-MAJOR_SIXTH_CHORD_FROM_THIRD = [0, 3, 5, 8]
-MAJOR_SIXTH_CHORD_FROM_FIFTH = [0, 2, 5, 9]
-MAJOR_SIXTH_CHORD_FROM_SIXTH = [0, 3, 7, 10] # aka minor seventh chord
-
-MINOR_SIXTH_CHORD = [0, 3, 7, 9]
-MINOR_SIXTH_CHORD_FROM_THIRD = [0, 4, 6, 9]
-MINOR_SIXTH_CHORD_FROM_FIFTH = [0, 2, 5, 8]
-MINOR_SIXTH_CHORD_FROM_SIXTH = [0, 3, 6, 10] # aka minor seventh flat five chord
-
-DOMINANT_SEVENTH_CHORD = [0, 4, 7, 10]
-DOMINANT_SEVENTH_CHORD_FROM_THIRD = [0, 3, 6, 8]
-DOMINANT_SEVENTH_CHORD_FROM_FIFTH = [0, 3, 5, 9]
-DOMINANT_SEVENTH_CHORD_FROM_SEVENTH = [0, 2, 6, 9]
-
-DOMINANT_SEVENTH_FLAT_FIVE_CHORD = [0, 4, 6, 10] # same as from flat fifth
-DOMINANT_SEVENTH_FLAT_FIVE_CHORD_FROM_THIRD = [0, 2, 6, 8] # same as from seventh
-
-DIMINISHED_CHORD = [0, 3, 6, 9]
-# endregion Constants #########################################################
+# endregion Coordinates to Chords #############################################
 
 # region GUI Setup ############################################################
 # Create a display with diagram image
@@ -256,6 +285,10 @@ def play_chord(pitches):
     Args:
         pitches (_type_): _description_
     """
+
+    # Stop any sounding notes
+    Play.allNotesOff()
+
     adjusted_pitches = []
     # Place notes in the correct octave range based on the chosen voicing
     for i in range(len(pitches)):
@@ -264,21 +297,21 @@ def play_chord(pitches):
 
         # For the chosen voicing, raise the appropriate notes up an octave
         if i in VOICING_TO_INDICES.get(VOICING):
-            if adjusted_pitch + OCTAVE <= 127:
+            if adjusted_pitch + OCTAVE <= 120:
                 adjusted_pitch += OCTAVE
 
         # Add corretly placed cpitch
         adjusted_pitches.append(adjusted_pitch)
+        # Play.note(adjusted_pitch, 0, 1000, 120)
 
     # Create the chord
     phrase = Phrase()
-    phrase.addChord(adjusted_pitches, CHORD_DURATION)
-
-    # Stop any sounding notes
-    Play.allNotesOff()
+    phrase.addChord(adjusted_pitches, CHORD_DURATION, 127)
 
     # Play the chord!
     Play.midi(phrase)
+
+
 
 
 def select_chord_visually(x, y):
@@ -293,6 +326,9 @@ def select_chord_visually(x, y):
 
     display.move(selected_chord_dot, x, y)
 
+first_time = True
+# make a bar of dashes with | in the same places as header
+table_seperator = "|" + "-"*22 + "|" + "-"*22 + "|" + "-"*22 + "|"
 
 def select_chord(x, y):
     """
@@ -302,6 +338,16 @@ def select_chord(x, y):
         x (_type_): _description_
         y (_type_): _description_
     """
+    global first_time, table_seperator
+
+    if first_time:
+        first_time = False
+        voicing_header = VOICING + " Voicing"
+        header = f"| {'Elemental Name':^20} | {'Traditional Name':^20} | {voicing_header:^20} |"
+        print("\n" + header)
+
+        print(table_seperator)
+
     # Find the closest point
     point = find_closest_point([x, y], COORDINATES_TO_CHORD.keys())
 
@@ -314,7 +360,8 @@ def select_chord(x, y):
     # Place a dot on the selection
     select_chord_visually(point[0], point[1])
 
-    print(chord.name + ": " + chord.traditional_name + " - " + chord.spelling)
+    print(f"| {chord.name:^20} | {chord.traditional_name:^20} | {chord.spelling:^20} |")
+    print(table_seperator)
 
     # # Construct note names
     # if isFlat(chord_root):  # if chord name is flat, use flat note names
