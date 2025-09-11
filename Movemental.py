@@ -1,13 +1,13 @@
 # movemental.py
-# 2025-07-01
+# 2025-09-11
 # Trevor Ritchie
 
 # region Imports ##############################################################
 from gui import *
 from music import *
-from math import *
-from string import *
+from math import hypot
 # endregion Imports ###########################################################
+
 
 # region User Settings ########################################################
 TONAL_CENTER_OFFSET = 7  # 0 = C, 2 = D, -2 = Bb, 10 = Bb etc.
@@ -26,6 +26,7 @@ Play.setInstrument(RHODES_PIANO)
 # Play.setInstrument(DX_PIANO)
 # endregion User Settings #####################################################
 
+
 # region Constants ############################################################
 VOICING_TO_INDICES = {
     "Close": [],
@@ -33,7 +34,6 @@ VOICING_TO_INDICES = {
     "Drop 3": [1, 2],
     "Drop 2 and 4": [1, 3]
 }
-
 
 # Intervals in semitones
 MINOR_THIRD = 3
@@ -55,57 +55,65 @@ COORDINATES_TO_FAMILY[(838, 647)] = MINOR_THIRD
 MAJOR_SIXTH_DIMINISHED_SCALE = [0, 2, 4, 5, 7, 8, 9, 11]
 MAJOR_SIXTH_DIMINISHED_SCALE_FROM_THIRD = [0, 1, 3, 4, 5, 7, 8, 10]
 MAJOR_SIXTH_DIMINISHED_SCALE_FROM_FIFTH = [0, 1, 2, 4, 5, 7, 9, 10]
-MAJOR_SIXTH_DIMINISHED_SCALE_FROM_SIXTH = [0, 2, 3, 5, 7, 8, 10, 11] # aka minor seventh diminished scale
+MAJOR_SIXTH_DIMINISHED_SCALE_FROM_SIXTH = [0, 2, 3, 5, 7, 8, 10, 11]  # aka minor seventh diminished scale
 
 MINOR_SIXTH_DIMINISHED_SCALE = [0, 2, 3, 5, 7, 8, 9, 11]
 MINOR_SIXTH_DIMINISHED_SCALE_FROM_THIRD = [0, 2, 4, 5, 6, 8, 9, 11]
 MINOR_SIXTH_DIMINISHED_SCALE_FROM_FIFTH = [0, 1, 2, 4, 5, 7, 8, 10]
-MINOR_SIXTH_DIMINISHED_SCALE_FROM_SIXTH = [0, 2, 3, 5, 6, 8, 10, 11] # aka minor seventh flat five diminished scale
+MINOR_SIXTH_DIMINISHED_SCALE_FROM_SIXTH = [0, 2, 3, 5, 6, 8, 10, 11]  # aka minor seventh flat five diminished scale
 
 DOMINANT_SEVENTH_DIMINISHED_SCALE = [0, 2, 4, 5, 7, 8, 10, 11]
 DOMINANT_SEVENTH_DIMINISHED_SCALE_FROM_THIRD = [0, 1, 3, 4, 6, 7, 8, 10]
-DOMINANT_SEVENTH_DIMINISHED_SCALE_FROM_FIFTH = [0, 1, 3, 4, 5, 7, 9, 10,]
+DOMINANT_SEVENTH_DIMINISHED_SCALE_FROM_FIFTH = [0, 1, 3, 4, 5, 7, 9, 10]
 DOMINANT_SEVENTH_DIMINISHED_SCALE_FROM_SEVENTH = [0, 1, 2, 4, 6, 7, 9, 10]
 
-DOMINANT_SEVENTH_FLAT_FIVE_DIMINISHED_SCALE = [0, 2, 4, 5, 6, 8, 10, 11] # same as from flat fifth
-DOMINANT_SEVENTH_FLAT_FIVE_DIMINISHED_SCALE_FROM_THIRD = [0, 1, 2, 4, 6, 7, 8, 10] # same as from seventh
+DOMINANT_SEVENTH_FLAT_FIVE_DIMINISHED_SCALE = [0, 2, 4, 5, 6, 8, 10, 11]  # same as from flat fifth
+DOMINANT_SEVENTH_FLAT_FIVE_DIMINISHED_SCALE_FROM_THIRD = [0, 1, 2, 4, 6, 7, 8, 10]  # same as from seventh
 
-DOMINANT_ROOTS_AND_THEIR_DIMINISHED = [0, 2, 3, 5, 6, 8, 9, 11] # aka whole-half diminished scale
-DIMINISHED_AND_ITS_DOMINANT_ROOTS = [0, 1, 3, 4, 6, 7, 9, 10] # aka half-whole diminished scale
+DOMINANT_ROOTS_AND_THEIR_DIMINISHED = [0, 2, 3, 5, 6, 8, 9, 11]  # aka whole-half diminished scale
+DIMINISHED_AND_ITS_DOMINANT_ROOTS = [0, 1, 3, 4, 6, 7, 9, 10]  # aka half-whole diminished scale
 
 # Chord qualities
 MAJOR_SIXTH_CHORD = [0, 4, 7, 9]
 MAJOR_SIXTH_CHORD_FROM_THIRD = [0, 3, 5, 8]
 MAJOR_SIXTH_CHORD_FROM_FIFTH = [0, 2, 5, 9]
-MAJOR_SIXTH_CHORD_FROM_SIXTH = [0, 3, 7, 10] # aka minor seventh chord
+MAJOR_SIXTH_CHORD_FROM_SIXTH = [0, 3, 7, 10]  # aka minor seventh chord
 
 MINOR_SIXTH_CHORD = [0, 3, 7, 9]
 MINOR_SIXTH_CHORD_FROM_THIRD = [0, 4, 6, 9]
 MINOR_SIXTH_CHORD_FROM_FIFTH = [0, 2, 5, 8]
-MINOR_SIXTH_CHORD_FROM_SIXTH = [0, 3, 6, 10] # aka minor seventh flat five chord
+MINOR_SIXTH_CHORD_FROM_SIXTH = [0, 3, 6, 10]  # aka minor seventh flat five chord
 
 DOMINANT_SEVENTH_CHORD = [0, 4, 7, 10]
 DOMINANT_SEVENTH_CHORD_FROM_THIRD = [0, 3, 6, 8]
 DOMINANT_SEVENTH_CHORD_FROM_FIFTH = [0, 3, 5, 9]
 DOMINANT_SEVENTH_CHORD_FROM_SEVENTH = [0, 2, 6, 9]
 
-DOMINANT_SEVENTH_FLAT_FIVE_CHORD = [0, 4, 6, 10] # same as from flat fifth
-DOMINANT_SEVENTH_FLAT_FIVE_CHORD_FROM_THIRD = [0, 2, 6, 8] # same as from seventh
+DOMINANT_SEVENTH_FLAT_FIVE_CHORD = [0, 4, 6, 10]  # same as from flat fifth
+DOMINANT_SEVENTH_FLAT_FIVE_CHORD_FROM_THIRD = [0, 2, 6, 8]  # same as from seventh
 
 DIMINISHED_CHORD = [0, 3, 6, 9]
 # endregion Constants #########################################################
 
+
 # region Classes ##############################################################
 # Note letter names
 NOTE_NAMES_SHARP = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"]
-NOTE_NAMES_FLAT  = ["C", "Db", "D", "Eb", "E", "F", "Gb", "G", "Ab", "A", "Bb", "B"]
+NOTE_NAMES_FLAT = ["C", "Db", "D", "Eb", "E", "F", "Gb", "G", "Ab", "A", "Bb", "B"]
 
-class Chord():
+class Chord:
     def __init__(self, name, pitches):
+        """Initialize a Chord with name and pitches.
+
+        Args:
+            name (str): The elemental name of the chord
+            pitches (list): List of pitch values for the chord
+        """
         self.name = name
 
         # Convert to pitch classes (0-11) then add tonal center offset
-        self.pitches = [(x % 12) + (TONAL_CENTER_OFFSET % 12) for x in pitches]
+        self.pitches = [(x % 12) + (TONAL_CENTER_OFFSET % 12)
+                       for x in pitches]
 
         # Type of 4 note chord
         self.quality = ""
@@ -121,7 +129,8 @@ class Chord():
             self.quality = "7"
 
         # Traditional music theory name for the chord
-        self.traditional_name = NOTE_NAMES_FLAT[self.pitches[0] % 12] + self.quality
+        self.traditional_name = (NOTE_NAMES_FLAT[self.pitches[0] % 12]
+                                + self.quality)
 
         # Sort the pitches low to high
         self.pitches.sort()
@@ -143,11 +152,12 @@ class Chord():
         voiced_pitches.sort()
 
         # String of chord spelling (note letter names) using voiced pitches
-        self.spelling = f"{NOTE_NAMES_FLAT[voiced_pitches[0] % 12]:<2}  " + \
-                        f"{NOTE_NAMES_FLAT[voiced_pitches[1] % 12]:<2}  " + \
-                        f"{NOTE_NAMES_FLAT[voiced_pitches[2] % 12]:<2}  " + \
-                        f"{NOTE_NAMES_FLAT[voiced_pitches[3] % 12]:<2}"
+        self.spelling = (f"{NOTE_NAMES_FLAT[voiced_pitches[0] % 12]:<2}  "
+                        f"{NOTE_NAMES_FLAT[voiced_pitches[1] % 12]:<2}  "
+                        f"{NOTE_NAMES_FLAT[voiced_pitches[2] % 12]:<2}  "
+                        f"{NOTE_NAMES_FLAT[voiced_pitches[3] % 12]:<2}")
 # endregion Classes ###########################################################
+
 
 # region Coordinates to Chords ################################################
 # Map points on the display to chords.
@@ -228,6 +238,7 @@ COORDINATES_TO_CHORD[(231, 272)] = Chord("Twin Charcoal", [B4, DS5, FS5, A5])
 COORDINATES_TO_CHORD[(289, 274)] = Chord("Sister Charcoal", [D4, FS4, A4, C5])
 # endregion Coordinates to Chords #############################################
 
+
 # region GUI Setup ############################################################
 # Create a display with diagram image
 display = Display("Movemental", 1200, 720)
@@ -239,53 +250,52 @@ selected_chord_dot = Circle(0, 0, 8, Color.BLUE, fill=True)
 display.add(selected_chord_dot)
 # endregion GUI Setup #########################################################
 
+
 # region Functions ############################################################
 def distance(point1, point2):
-    """
-    Calculates the euclidean distance between two points.
+    """Calculate the euclidean distance between two points.
 
     Args:
-        point1 (_type_): _description_
-        point2 (_type_): _description_
+        point1 (tuple): First point as (x, y) coordinates
+        point2 (tuple): Second point as (x, y) coordinates
 
     Returns:
-        _type_: _description_
+        float: The euclidean distance between the points
     """
     return hypot(point2[0] - point1[0], point2[1] - point1[1])
 
-
 def find_closest_point(here, points):
-    """
-    Finds closest among all points to here.
+    """Find the closest point among all points to the given location.
+
+    Args:
+        here (tuple): The reference point as (x, y) coordinates
+        points (list): List of points to search through
 
     Returns:
-        _type_: _description_
+        tuple: The closest point as (x, y) coordinates
     """
     # Keep track of the closest distance and point so far
     closest_distance_so_far = 1000000
-    closest_point_so_far    = None
+    closest_point_so_far = None
 
-    # Iterate through all point looking for closest one
+    # Iterate through all points looking for closest one
     for point in points:
-        thisDistance = distance(here, point)   # calculate distance
-        if thisDistance < closest_distance_so_far:  # is this closer than ever before?
+        this_distance = distance(here, point)  # calculate distance
+        if this_distance < closest_distance_so_far:  # is this closer?
             # Yes, so update
-            closest_distance_so_far = thisDistance
-            closest_point_so_far    = point
-    # Now, closestPointSoFar contains the closest point overall.
+            closest_distance_so_far = this_distance
+            closest_point_so_far = point
+    # Now, closest_point_so_far contains the closest point overall.
     closest_point = closest_point_so_far
 
     return closest_point
 
-
 def play_chord(pitches):
-    """
-    Play the provided list of pitches as a chord.
+    """Play the provided list of pitches as a chord.
 
     Args:
-        pitches (_type_): _description_
+        pitches (list): List of pitch values to play as a chord
     """
-
     # Stop any sounding notes
     Play.allNotesOff()
 
@@ -300,7 +310,7 @@ def play_chord(pitches):
             if adjusted_pitch + OCTAVE <= 120:
                 adjusted_pitch += OCTAVE
 
-        # Add corretly placed cpitch
+        # Add correctly placed pitch
         adjusted_pitches.append(adjusted_pitch)
         # Play.note(adjusted_pitch, 0, 1000, 120)
 
@@ -311,16 +321,12 @@ def play_chord(pitches):
     # Play the chord!
     Play.midi(phrase)
 
-
-
-
 def select_chord_visually(x, y):
-    """
-    Create and place a circle at the coordinates.
+    """Create and place a circle at the coordinates.
 
     Args:
-        x (_type_): _description_
-        y (_type_): _description_
+        x (int): X coordinate for the visual indicator
+        y (int): Y coordinate for the visual indicator
     """
     global display, selected_chord_dot
 
@@ -328,25 +334,25 @@ def select_chord_visually(x, y):
 
 first_time = True
 # make a bar of dashes with | in the same places as header
-table_seperator = "|" + "-"*22 + "|" + "-"*22 + "|" + "-"*22 + "|"
+TABLE_SEPARATOR = "|" + "-"*22 + "|" + "-"*22 + "|" + "-"*22 + "|"
 
 def select_chord(x, y):
-    """
-    Finds the closest chord and plays it.
+    """Find the closest chord and play it.
 
     Args:
-        x (_type_): _description_
-        y (_type_): _description_
+        x (int): X coordinate of the click
+        y (int): Y coordinate of the click
     """
-    global first_time, table_seperator
+    global first_time, TABLE_SEPERATOR
 
     if first_time:
         first_time = False
         voicing_header = VOICING + " Voicing"
-        header = f"| {'Elemental Name':^20} | {'Traditional Name':^20} | {voicing_header:^20} |"
+        header = (f"| {'Elemental Name':^20} | {'Traditional Name':^20} | "
+                f"{voicing_header:^20} |")
         print("\n" + header)
 
-        print(table_seperator)
+        print(TABLE_SEPARATOR)
 
     # Find the closest point
     point = find_closest_point([x, y], COORDINATES_TO_CHORD.keys())
@@ -360,8 +366,9 @@ def select_chord(x, y):
     # Place a dot on the selection
     select_chord_visually(point[0], point[1])
 
-    print(f"| {chord.name:^20} | {chord.traditional_name:^20} | {chord.spelling:^20} |")
-    print(table_seperator)
+    print(f"| {chord.name:^20} | {chord.traditional_name:^20} | "
+          f"{chord.spelling:^20} |")
+    print(TABLE_SEPARATOR)
 
     # # Construct note names
     # if isFlat(chord_root):  # if chord name is flat, use flat note names
@@ -372,14 +379,12 @@ def select_chord(x, y):
     # # Join names into a string, and print them
     # print(f"- [{', '.join(chord_notes)}]")
 
-
 def select_family(x, y):
-    """
-    Finds the closest tranformation and performs it.
+    """Find the closest transformation and perform it.
 
     Args:
-        x (_type_): _description_
-        y (_type_): _description_
+        x (int): X coordinate of the click
+        y (int): Y coordinate of the click
     """
     # Select transformation type
     chord = COORDINATES_TO_FAMILY[(x, y)]
@@ -387,22 +392,21 @@ def select_family(x, y):
     # Play next chord
     select_chord(x, y)
 
-
 def choose_action(x, y):
-    """
-    _summary_
+    """Handle mouse click actions.
+
     TODO: only need this if I add a different click function
 
     Args:
-        x (_type_): _description_
-        y (_type_): _description_
+        x (int): X coordinate of the click
+        y (int): Y coordinate of the click
     """
     # Snap clicked coordinates to known centers
     point = find_closest_point([x, y], COORDINATES_TO_CHORD.keys())
     new_x, new_y = point
 
     # Test if key holds type is a chord
-    if isinstance(COORDINATES_TO_CHORD[point], Chord): # test if value is a Chord
+    if isinstance(COORDINATES_TO_CHORD[point], Chord):  # test if value is a Chord
         # If a chord, call play chord function
         select_chord(new_x, new_y)
 
@@ -412,6 +416,8 @@ def choose_action(x, y):
     #     select_family(new_x, new_y)
 # endregion Functions #########################################################
 
+
+# region Main #################################################################
 def main():
     # Register callback for playing chords by clicking the mouse
     display.onMouseClick(choose_action)
@@ -439,16 +445,25 @@ U|' \\/ '|u   \\/"_ \\/\\ \\   /"/u\\| ___"|/U|' \\/ '|u\\| ___"|/| \\ |"|   |_ 
 
 
     print("REMEMBER!")
-    print("- " + tonal_center + " maj6 is the same as " + relative_minor + " min7, and " + tonal_center + " min6 is the same as " + relative_minor + " min7 b5")
-    print("- Each \"child\" chord (in between Earth, Wind, and Fire) contains DNA from two parents (Earth, Wind, Fire).")
-    print("  That is why each child chord has three siblings (who share the same ratio of DNA from each parent).")
-    print("- Any chord may be combined with the element (Earth, Wind, or Fire) opposite from it.")
-    print("  This creates an 8-note \"scale of chords\" which alternates between resolution and tension.")
+    print(f"- {tonal_center} maj6 is the same as {relative_minor} min7, and "
+          f"{tonal_center} min6 is the same as {relative_minor} min7 b5")
+    print("- Each \"child\" chord (in between Earth, Wind, and Fire) contains "
+          "DNA from two parents (Earth, Wind, Fire).")
+    print("  That is why each child chord has three siblings (who share the "
+          "same ratio of DNA from each parent).")
+    print("- Any chord may be combined with the element (Earth, Wind, or Fire) "
+          "opposite from it.")
+    print("  This creates an 8-note \"scale of chords\" which alternates "
+          "between resolution and tension.")
     print("  Ex. C maj6 + D dim7 (Branch + Fire) = C maj6 diminished scale")
-    print("- When playing a chord, \"borrowing\" some notes from the opposite element (not one of the parents) can produce beautiful results.")
-    print("  Ex: C maj7, C maj7 #5... Following the thread, maybe these are grandchildren?")
+    print("- When playing a chord, \"borrowing\" some notes from the opposite "
+          "element (not one of the parents) can produce beautiful results.")
+    print("  Ex: C maj7, C maj7 #5... Following the thread, maybe these are "
+          "grandchildren?")
     print("- These concepts were pioneered by Dr. Barry Harris, so...")
-    print("  In his memory, let's play beautiful movements, not static chords, and remember to play with our family!!!\n")
+    print("  In his memory, let's play beautiful movements, not static chords, "
+          "and remember to play with our family!!!\n")
 
 if __name__ == "__main__":
     main()
+# endregion Main ##############################################################
