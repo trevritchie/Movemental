@@ -300,28 +300,40 @@ def pitch_to_angle(pitch):
     # Get pitch class (0-11)
     pitch_class = pitch % 12
 
+    # Adjust so tonal center appears at 12 o'clock
+    tonal_center = TONAL_CENTER_OFFSET % 12
+    adjusted_pitch_class = (pitch_class - tonal_center) % 12
+
     # Convert to angle (12 semitones = 2π radians)
-    angle = (pitch_class / 12.0) * PI_TIMES_2
+    angle = (adjusted_pitch_class / 12.0) * PI_TIMES_2
 
     return angle
 
 def create_tetrachord_color_gradient():
     """Create a 24-color gradient for the tetrachord display.
 
+    Uses a harmonious color scheme based on color theory principles:
+    - Blue at 12 o'clock as requested
+    - Analogous color progression for smooth transitions
+    - Consistent saturation and brightness for visual harmony
+    - Colors inspired by natural light spectrum
+
     Returns:
         list: List of Color objects
     """
-    # Define base colors
-    green = Color(42, 230, 67)
-    blue = Color.BLUE
-    red = Color.RED
-    gold = Color(255, 208, 51)
+    # Define cardinal direction colors with harmonious color theory-based palette
+    # 12 o'clock (G): Deep Blue, 3 o'clock (C): Teal, 6 o'clock (F): Warm Orange, 9 o'clock (Bb): Deep Purple
+    blue = Color(70, 130, 200)          # 12 o'clock (G) - deep, rich blue
+    teal = Color(50, 180, 160)          # 3 o'clock (C) - vibrant teal
+    orange = Color(220, 120, 60)        # 6 o'clock (F) - warm, earthy orange
+    purple = Color(140, 80, 180)        # 9 o'clock (Bb) - deep, royal purple
 
-    # Create gradient (24 colors total)
-    gradient = (colorGradient(green, blue, 6) +
-                colorGradient(blue, red, 6) +
-                colorGradient(red, gold, 6) +
-                colorGradient(gold, green, 6))
+    # Create smooth gradients between the cardinal colors
+    # Each quarter gets 6 colors for smooth 24-color total
+    gradient = (colorGradient(blue, teal, 6) +           # 12 o'clock to 3 o'clock (G to C)
+                colorGradient(teal, orange, 6) +         # 3 o'clock to 6 o'clock (C to F)
+                colorGradient(orange, purple, 6) +       # 6 o'clock to 9 o'clock (F to Bb)
+                colorGradient(purple, blue, 6))          # 9 o'clock to 12 o'clock (Bb to G)
 
     return gradient
 # endregion Tetrachord Functions ##############################################
@@ -344,42 +356,34 @@ tetrachord_display = Display("Tetrachord View", 400, 400, 1500, 500, Color.BLACK
 def create_tetrachord_display():
     """Create the tetrachord visualization display."""
     global tetrachord_display, tetrachord_color_gradient
-    global tetrachord_path, tetrachord_nodes, tetrachord_lines
+    global tetrachord_path, tetrachord_nodes, tetrachord_lines, note_labels
 
     # Create color gradient
     tetrachord_color_gradient = create_tetrachord_color_gradient()
 
     # Create the circular path
     tetrachord_path = Circle(TETRACHORD_X, TETRACHORD_Y, TETRACHORD_RADIUS,
-                           Color(179, 177, 179), False, 2)
+                           Color(120, 120, 130), False, 2)  # Sophisticated dark gray
     tetrachord_display.add(tetrachord_path)
 
     # Calculate tick mark coordinates
     big_tick_coords = []
-    small_tick_coords = []
     for i in range(12):  # 12 semitones
         angle = (i / 12.0) * PI_TIMES_2
         # Big ticks on the circle
         x, y = get_position_on_tetrachord_circle(angle)
         big_tick_coords.append((x, y))
 
-        # Small ticks between big ticks (offset by half a semitone)
-        # Position them slightly closer to center for visual hierarchy
-        small_angle = ((i + 0.5) / 12.0) * PI_TIMES_2
-        small_adjusted_angle = small_angle - PI_OVER_2
-        small_x = int((TETRACHORD_RADIUS * SMALL_TICK_RATIO) * cos(small_adjusted_angle) + TETRACHORD_X)
-        small_y = int((TETRACHORD_RADIUS * SMALL_TICK_RATIO) * sin(small_adjusted_angle) + TETRACHORD_Y)
-        small_tick_coords.append((small_x, small_y))
-
     # Draw background lines connecting all big ticks (like TetrachordTuner)
-    trans_gray = Color(179, 177, 179, 50)  # Transparent gray
+    trans_gray = Color(180, 180, 190, 80)  # More visible light gray
     for i, (x1, y1) in enumerate(big_tick_coords):
         for j, (x2, y2) in enumerate(big_tick_coords):
             if i != j:  # Don't draw line to itself
                 tetrachord_display.drawLine(x1, y1, x2, y2, trans_gray, 1)
 
     # Create tick marks around the circle
-    # Note positions: i=0 is C at 12 o'clock, increasing clockwise
+    # Note positions: tonal center at 12 o'clock, increasing clockwise
+    tonal_center = TONAL_CENTER_OFFSET % 12
     for i in range(12):  # 12 semitones
         angle = (i / 12.0) * PI_TIMES_2  # 0 to 2π radians
         x, y = get_position_on_tetrachord_circle(angle)
@@ -390,32 +394,28 @@ def create_tetrachord_display():
         tetrachord_display.add(tick)
 
         # Add note names positioned outside the circle
-        note_name = NOTE_NAMES_FLAT[i]
+        # Adjust note index so tonal center appears at 12 o'clock
+        note_index = (i + tonal_center) % 12
+        note_name = NOTE_NAMES_FLAT[note_index]
 
         # Position labels at a consistent distance outside the circle
         label_radius = TETRACHORD_RADIUS + 25  # Fixed distance outside circle
         label_angle = angle - PI_OVER_2  # Convert to standard coordinate system
 
-        # Calculate position
+        # Calculate position for label center
         label_x = int(TETRACHORD_X + label_radius * cos(label_angle))
         label_y = int(TETRACHORD_Y + label_radius * sin(label_angle))
 
-        # Center the text properly around the circle
-        # Fine-tuned based on actual screenshot measurements
-        text_width = 6 if len(note_name) == 1 else 10  # Adjusted for better centering
-        text_height = 8  # Adjusted font height
+        # Adjust y position based on vertical position to compensate for text bottom-alignment
+        # Labels at the top need to be pushed further away, labels at bottom pulled closer
+        y_adjustment = int(sin(label_angle) * 3)  # Ranges from -3 to +3
+        adjusted_label_y = label_y - 7 + y_adjustment
 
-        centered_x = label_x - text_width // 2
-        centered_y = label_y - text_height // 2
+        # Create a properly centered label
+        note_label = Label(note_name, CENTER, Color.WHITE)
+        tetrachord_display.add(note_label, label_x - 10, adjusted_label_y - 5)
+        note_labels.append(note_label)
 
-        tetrachord_display.drawText(note_name, centered_x, centered_y, Color.WHITE)
-
-    # Add small tick marks between major ticks
-    for i in range(12):
-        x, y = small_tick_coords[i]
-        color = tetrachord_color_gradient[i * 2 + 1]  # Use alternate colors
-        small_tick = Circle(x, y, SMALL_TICK_RADIUS, color, True)
-        tetrachord_display.add(small_tick)
 
     # Initialize four nodes (will be positioned when chords are played)
     tetrachord_nodes = []
@@ -434,11 +434,22 @@ def create_tetrachord_display():
         tetrachord_display.add(line)
         tetrachord_lines.append(line)
 
+    # Add chord information display at the top
+    global chord_info_text
+    chord_info_text = {
+        'elemental': None,
+        'traditional': None
+    }
+
+    # Labels and values will be updated in update_chord_info_display()
+
 # Global variables for tetrachord display
 tetrachord_color_gradient = None
 tetrachord_path = None
 tetrachord_nodes = []
 tetrachord_lines = []
+chord_info_text = None
+note_labels = []
 
 # Create the tetrachord display
 create_tetrachord_display()
@@ -484,20 +495,20 @@ def find_closest_point(here, points):
 
     return closest_point
 
-def play_chord(pitches):
-    """Play the provided list of pitches as a chord.
+def play_chord(chord):
+    """Play the provided chord.
 
     Args:
-        pitches (list): List of pitch values to play as a chord
+        chord (Chord): The chord object to play
     """
     # Stop any sounding notes
     Play.allNotesOff()
 
     adjusted_pitches = []
     # Place notes in the correct octave range based on the chosen voicing
-    for i in range(len(pitches)):
+    for i in range(len(chord.pitches)):
         # Place the pitch class into the correct octave range
-        adjusted_pitch = pitches[i] + (OCTAVE * OCTAVE_RANGE)
+        adjusted_pitch = chord.pitches[i] + (OCTAVE * OCTAVE_RANGE)
 
         # For the chosen voicing, raise the appropriate notes up an octave
         if i in VOICING_TO_INDICES.get(VOICING):
@@ -515,8 +526,9 @@ def play_chord(pitches):
     # Play the chord!
     Play.midi(phrase)
 
-    # Update tetrachord display with the chord pitches
+    # Update tetrachord display with the chord pitches and info
     update_tetrachord_display(adjusted_pitches)
+    update_chord_info_display(chord)
 
 def select_chord_visually(x, y):
     """Create and place a circle at the coordinates.
@@ -528,6 +540,79 @@ def select_chord_visually(x, y):
     global display, selected_chord_dot
 
     display.move(selected_chord_dot, x, y)
+
+def update_chord_info_display(chord):
+    """Update the chord information text at the top of the tetrachord display.
+
+    Args:
+        chord (Chord): The chord object containing name and info
+    """
+    global chord_info_text, tetrachord_display
+
+    # Remove old labels if they exist
+    if chord_info_text['elemental']:
+        tetrachord_display.remove(chord_info_text['elemental'])
+    if chord_info_text['traditional']:
+        tetrachord_display.remove(chord_info_text['traditional'])
+
+    # Add chord information vertically - elemental at top, traditional at bottom
+    # Dynamically center based on string length and position equidistant from circle
+
+    # Font sizes - consistent for both labels
+    elemental_font_size = 16
+    traditional_font_size = 16
+
+    # Center horizontally in the 400px window
+    horizontal_center = 200
+
+    # Calculate vertical positions with more generous spacing from circle
+    # Circle center is at y=200, with radius=120, so circle spans y=80 to y=320
+    circle_top = TETRACHORD_Y - TETRACHORD_RADIUS    # 200 - 120 = 80
+    circle_bottom = TETRACHORD_Y + TETRACHORD_RADIUS # 200 + 120 = 320
+
+    label_distance = 50  # Increased distance from circle edge to text (was 35)
+    font_height = 20     # More generous font height estimate
+
+    # Top label: position so text appears 'label_distance' above circle
+    # Since text aligns to bottom of label, we need to account for font height
+    top_y = circle_top - label_distance - font_height
+
+    # Bottom label: position so text appears 'label_distance' below circle
+    # Text aligns to bottom of label, so this is simpler
+    bottom_y = circle_bottom + label_distance
+
+    # Calculate precise centering for any text length
+    def get_precise_label_position(text, font_size, window_center):
+        """Calculate the exact x position to center a label in the window."""
+        # Fine-tuned character width estimation based on actual screenshots
+        char_width = 8.4   # Based on text width calculator measurements for font size 16
+
+        # Estimate text width
+        estimated_text_width = len(text) * char_width
+
+        # Calculate label position to center the text in the window
+        # Label should start at: window_center - (text_width / 2)
+        label_x = int(window_center - (estimated_text_width / 2) - 12)  # -5 shifts left by 5 pixels
+
+        return label_x
+
+    # Elemental name (top center, perfectly centered for any length)
+    elemental_label = Label(chord.name, CENTER, Color.WHITE)
+    elemental_label.setFont(Font("Arial", Font.BOLD, elemental_font_size))
+    chord_info_text['elemental'] = elemental_label
+
+    # Calculate precise position for perfect centering
+    elemental_x = get_precise_label_position(chord.name, elemental_font_size, horizontal_center)
+    tetrachord_display.add(elemental_label, elemental_x, top_y)
+
+    # Traditional name (bottom center, perfectly centered for any length)
+    traditional_label = Label(chord.traditional_name, CENTER, Color.WHITE)
+    traditional_label.setFont(Font("Arial", Font.BOLD, traditional_font_size))
+    chord_info_text['traditional'] = traditional_label
+
+    # Calculate precise position for perfect centering
+    traditional_x = get_precise_label_position(chord.traditional_name, traditional_font_size, horizontal_center)
+    tetrachord_display.add(traditional_label, traditional_x, bottom_y - 5)
 
 def update_tetrachord_display(pitches):
     """Update the tetrachord display with the four notes of a chord.
@@ -548,9 +633,9 @@ def update_tetrachord_display(pitches):
         x, y = get_position_on_tetrachord_circle(angle)
         positions.append((x, y))
 
-        # Get color based on pitch class
-        pitch_class = pitch % 12
-        color_index = int((pitch_class / 12.0) * 24) % 24
+        # Get color based on visual position on circle (not pitch class)
+        # This ensures red is always at bottom, etc.
+        color_index = int((angle / PI_TIMES_2) * 24) % 24
         colors.append(tetrachord_color_gradient[color_index])
 
     # Update node positions and colors
@@ -610,7 +695,7 @@ def select_chord(x, y):
     chord = COORDINATES_TO_CHORD[point]
 
     # Play the chord (this will also update the tetrachord display)
-    play_chord(chord.pitches)
+    play_chord(chord)
 
     # Place a dot on the selection
     select_chord_visually(point[0], point[1])
