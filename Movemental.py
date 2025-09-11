@@ -1,11 +1,19 @@
+###############################################################################
 # movemental.py
 # 2025-09-11
 # Trevor Ritchie
+#
+# Interface inspired by tonnetz by _____ and Bill Manaris
+#
+# Chord visualization inspired by TetrachordTuner
+# by Pangur Brougham-Cook and Bill Manaris
+###############################################################################
+
 
 # region Imports ##############################################################
-from gui import *
 from music import *
-from math import hypot
+from gui import *
+from math import hypot, pi, cos, sin
 # endregion Imports ###########################################################
 
 
@@ -19,10 +27,11 @@ CHORD_DURATION = HN  # how long to play each chord
 VOICING = "Drop 2 and 4"  # Close, Drop 2, Drop 3, Drop 2 and 4
 # VOICING = "Drop 3"  # Close, Drop 2, Drop 3, Drop 2 and 4
 
+# For all instrument constants, see https://jythonmusic.me/api/midi-constants/instrument/
+Play.setInstrument(RHODES_PIANO)
 # Play.setInstrument(PIANO)
 # Play.setInstrument(SYNTH)
 # Play.setInstrument(CELLO)
-Play.setInstrument(RHODES_PIANO)
 # Play.setInstrument(DX_PIANO)
 # endregion User Settings #####################################################
 
@@ -93,6 +102,26 @@ DOMINANT_SEVENTH_FLAT_FIVE_CHORD = [0, 4, 6, 10]  # same as from flat fifth
 DOMINANT_SEVENTH_FLAT_FIVE_CHORD_FROM_THIRD = [0, 2, 6, 8]  # same as from seventh
 
 DIMINISHED_CHORD = [0, 3, 6, 9]
+
+# Tetrachord display constants
+TETRACHORD_X = 200          # X position of tetrachord center (centered in 400px window)
+TETRACHORD_Y = 200          # Y position of tetrachord center (centered in 400px window)
+TETRACHORD_RADIUS = 120     # Radius of tetrachord circle (larger for dedicated window)
+NODE_RADIUS = 12            # Size of note nodes (larger like TetrachordTuner)
+BIG_TICK_RADIUS = 5         # Size of major tick marks
+SMALL_TICK_RADIUS = 2       # Size of minor tick marks
+LABEL_DISTANCE = 18         # Distance from node edge to label (consistent spacing)
+
+# Relative positioning constants (as ratios of radius)
+LABEL_DISTANCE_RATIO = 1.2  # How far outside circle to place note labels
+SMALL_TICK_RATIO = 0.95     # How close to center to place small ticks
+TITLE_DISTANCE_RATIO = 1.4  # How far above circle to place title
+
+# Math constants for faster calculations
+PI_OVER_6 = pi/6
+PI_OVER_3 = pi/3
+PI_OVER_2 = pi/2
+PI_TIMES_2 = 2*pi
 # endregion Constants #########################################################
 
 
@@ -239,8 +268,67 @@ COORDINATES_TO_CHORD[(289, 274)] = Chord("Sister Charcoal", [D4, FS4, A4, C5])
 # endregion Coordinates to Chords #############################################
 
 
+# region Tetrachord Functions #################################################
+def get_position_on_tetrachord_circle(angle):
+    """Returns x,y coordinates on the tetrachord circle for a given angle.
+
+    Args:
+        angle (float): Angle in radians (0 = 12 o'clock, increases clockwise)
+
+    Returns:
+        tuple: (x, y) coordinates on the circle
+    """
+    # Adjust angle so 0 is at 12 o'clock and increases clockwise
+    # In standard coordinates: 0° = 3 o'clock, -90° = 12 o'clock
+    adjusted_angle = angle - PI_OVER_2
+
+    # Calculate coordinates relative to center
+    new_x = TETRACHORD_RADIUS * cos(adjusted_angle) + TETRACHORD_X
+    new_y = TETRACHORD_RADIUS * sin(adjusted_angle) + TETRACHORD_Y
+
+    return (int(new_x), int(new_y))
+
+def pitch_to_angle(pitch):
+    """Convert MIDI pitch to angle on the circle.
+
+    Args:
+        pitch (int): MIDI pitch value
+
+    Returns:
+        float: Angle in radians (0-2π)
+    """
+    # Get pitch class (0-11)
+    pitch_class = pitch % 12
+
+    # Convert to angle (12 semitones = 2π radians)
+    angle = (pitch_class / 12.0) * PI_TIMES_2
+
+    return angle
+
+def create_tetrachord_color_gradient():
+    """Create a 24-color gradient for the tetrachord display.
+
+    Returns:
+        list: List of Color objects
+    """
+    # Define base colors
+    green = Color(42, 230, 67)
+    blue = Color.BLUE
+    red = Color.RED
+    gold = Color(255, 208, 51)
+
+    # Create gradient (24 colors total)
+    gradient = (colorGradient(green, blue, 6) +
+                colorGradient(blue, red, 6) +
+                colorGradient(red, gold, 6) +
+                colorGradient(gold, green, 6))
+
+    return gradient
+# endregion Tetrachord Functions ##############################################
+
+
 # region GUI Setup ############################################################
-# Create a display with diagram image
+# Create main display with diagram image
 display = Display("Movemental", 1200, 720)
 diagram = Icon("./images/diagram.jpg", 1200, 720)
 display.add(diagram)
@@ -248,6 +336,112 @@ display.add(diagram)
 # Create a circle that marks the active chord
 selected_chord_dot = Circle(0, 0, 8, Color.BLUE, fill=True)
 display.add(selected_chord_dot)
+
+# Create separate display for tetrachord visualization
+tetrachord_display = Display("Tetrachord View", 400, 400, 1500, 500, Color.BLACK)
+
+# Initialize tetrachord display
+def create_tetrachord_display():
+    """Create the tetrachord visualization display."""
+    global tetrachord_display, tetrachord_color_gradient
+    global tetrachord_path, tetrachord_nodes, tetrachord_lines
+
+    # Create color gradient
+    tetrachord_color_gradient = create_tetrachord_color_gradient()
+
+    # Create the circular path
+    tetrachord_path = Circle(TETRACHORD_X, TETRACHORD_Y, TETRACHORD_RADIUS,
+                           Color(179, 177, 179), False, 2)
+    tetrachord_display.add(tetrachord_path)
+
+    # Calculate tick mark coordinates
+    big_tick_coords = []
+    small_tick_coords = []
+    for i in range(12):  # 12 semitones
+        angle = (i / 12.0) * PI_TIMES_2
+        # Big ticks on the circle
+        x, y = get_position_on_tetrachord_circle(angle)
+        big_tick_coords.append((x, y))
+
+        # Small ticks between big ticks (offset by half a semitone)
+        # Position them slightly closer to center for visual hierarchy
+        small_angle = ((i + 0.5) / 12.0) * PI_TIMES_2
+        small_adjusted_angle = small_angle - PI_OVER_2
+        small_x = int((TETRACHORD_RADIUS * SMALL_TICK_RATIO) * cos(small_adjusted_angle) + TETRACHORD_X)
+        small_y = int((TETRACHORD_RADIUS * SMALL_TICK_RATIO) * sin(small_adjusted_angle) + TETRACHORD_Y)
+        small_tick_coords.append((small_x, small_y))
+
+    # Draw background lines connecting all big ticks (like TetrachordTuner)
+    trans_gray = Color(179, 177, 179, 50)  # Transparent gray
+    for i, (x1, y1) in enumerate(big_tick_coords):
+        for j, (x2, y2) in enumerate(big_tick_coords):
+            if i != j:  # Don't draw line to itself
+                tetrachord_display.drawLine(x1, y1, x2, y2, trans_gray, 1)
+
+    # Create tick marks around the circle
+    # Note positions: i=0 is C at 12 o'clock, increasing clockwise
+    for i in range(12):  # 12 semitones
+        angle = (i / 12.0) * PI_TIMES_2  # 0 to 2π radians
+        x, y = get_position_on_tetrachord_circle(angle)
+
+        # Major tick marks (every semitone)
+        color = tetrachord_color_gradient[i * 2]  # Use every other color
+        tick = Circle(x, y, BIG_TICK_RADIUS, color, True)
+        tetrachord_display.add(tick)
+
+        # Add note names positioned outside the circle
+        note_name = NOTE_NAMES_FLAT[i]
+
+        # Position labels at a consistent distance outside the circle
+        label_radius = TETRACHORD_RADIUS + 25  # Fixed distance outside circle
+        label_angle = angle - PI_OVER_2  # Convert to standard coordinate system
+
+        # Calculate position
+        label_x = int(TETRACHORD_X + label_radius * cos(label_angle))
+        label_y = int(TETRACHORD_Y + label_radius * sin(label_angle))
+
+        # Center the text properly around the circle
+        # Fine-tuned based on actual screenshot measurements
+        text_width = 6 if len(note_name) == 1 else 10  # Adjusted for better centering
+        text_height = 8  # Adjusted font height
+
+        centered_x = label_x - text_width // 2
+        centered_y = label_y - text_height // 2
+
+        tetrachord_display.drawText(note_name, centered_x, centered_y, Color.WHITE)
+
+    # Add small tick marks between major ticks
+    for i in range(12):
+        x, y = small_tick_coords[i]
+        color = tetrachord_color_gradient[i * 2 + 1]  # Use alternate colors
+        small_tick = Circle(x, y, SMALL_TICK_RADIUS, color, True)
+        tetrachord_display.add(small_tick)
+
+    # Initialize four nodes (will be positioned when chords are played)
+    tetrachord_nodes = []
+    for i in range(4):
+        # Create node
+        node = Circle(TETRACHORD_X, TETRACHORD_Y, NODE_RADIUS, Color.WHITE, True)
+        tetrachord_display.add(node)
+        tetrachord_nodes.append(node)
+
+    # No center labels - only the clock face labels around the circle
+
+    # Initialize connecting lines (6 lines needed to connect all pairs of 4 nodes)
+    tetrachord_lines = []
+    for i in range(6):  # 6 lines needed to connect all pairs of 4 nodes
+        line = Line(TETRACHORD_X, TETRACHORD_Y, TETRACHORD_X, TETRACHORD_Y, Color.WHITE, 2)
+        tetrachord_display.add(line)
+        tetrachord_lines.append(line)
+
+# Global variables for tetrachord display
+tetrachord_color_gradient = None
+tetrachord_path = None
+tetrachord_nodes = []
+tetrachord_lines = []
+
+# Create the tetrachord display
+create_tetrachord_display()
 # endregion GUI Setup #########################################################
 
 
@@ -321,6 +515,9 @@ def play_chord(pitches):
     # Play the chord!
     Play.midi(phrase)
 
+    # Update tetrachord display with the chord pitches
+    update_tetrachord_display(adjusted_pitches)
+
 def select_chord_visually(x, y):
     """Create and place a circle at the coordinates.
 
@@ -331,6 +528,58 @@ def select_chord_visually(x, y):
     global display, selected_chord_dot
 
     display.move(selected_chord_dot, x, y)
+
+def update_tetrachord_display(pitches):
+    """Update the tetrachord display with the four notes of a chord.
+
+    Args:
+        pitches (list): List of four MIDI pitch values
+    """
+    global tetrachord_nodes, tetrachord_lines, tetrachord_color_gradient
+
+    # Sort pitches to ensure consistent ordering
+    sorted_pitches = sorted(pitches)
+
+    # Calculate positions and colors for each note
+    positions = []
+    colors = []
+    for i, pitch in enumerate(sorted_pitches):
+        angle = pitch_to_angle(pitch)
+        x, y = get_position_on_tetrachord_circle(angle)
+        positions.append((x, y))
+
+        # Get color based on pitch class
+        pitch_class = pitch % 12
+        color_index = int((pitch_class / 12.0) * 24) % 24
+        colors.append(tetrachord_color_gradient[color_index])
+
+    # Update node positions and colors
+    for i in range(4):
+        if i < len(positions):
+            x, y = positions[i]
+            tetrachord_nodes[i].setColor(colors[i])
+            tetrachord_display.move(tetrachord_nodes[i], x, y)
+        else:
+            # Hide unused nodes
+            tetrachord_display.move(tetrachord_nodes[i], TETRACHORD_X, TETRACHORD_Y)
+
+    # Update connecting lines to connect all nodes to each other
+    if len(positions) >= 4:
+        # Connect every node to every other node (complete graph)
+        line_connections = [(0, 1), (0, 2), (0, 3), (1, 2), (1, 3), (2, 3)]
+
+        for i, (start_idx, end_idx) in enumerate(line_connections):
+            start_x, start_y = positions[start_idx]
+            end_x, end_y = positions[end_idx]
+
+            # Remove old line and add new one
+            tetrachord_display.remove(tetrachord_lines[i])
+            tetrachord_lines[i] = Line(start_x, start_y, end_x, end_y, Color.WHITE, 2)
+            tetrachord_display.add(tetrachord_lines[i])
+    else:
+        # Hide lines if not enough notes
+        for line in tetrachord_lines:
+            tetrachord_display.remove(line)
 
 first_time = True
 # make a bar of dashes with | in the same places as header
@@ -360,7 +609,7 @@ def select_chord(x, y):
     # Get chord info
     chord = COORDINATES_TO_CHORD[point]
 
-    # Play the chord
+    # Play the chord (this will also update the tetrachord display)
     play_chord(chord.pitches)
 
     # Place a dot on the selection
