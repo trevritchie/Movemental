@@ -14,41 +14,53 @@
 from music import *
 from gui import *
 from math import hypot, pi, cos, sin
+import time
 # endregion Imports ###########################################################
 
 
-# region User Settings ########################################################
-TONAL_CENTER_OFFSET = A0  # 0 = C, 2 = D, -2 = Bb, 10 = Bb etc.
+# region Default Settings #####################################################
+# If the user clicks no drop down menus, these will be used
 
-OCTAVE_RANGE = 3  # which octave to place chords in
+DEFAULT_TONAL_CENTER_OFFSET = G0  # 0 = C, 2 = D, -2 = Bb, 10 = Bb etc.
 
-VOICING = "Drop 2 and 4"  # Close, Drop 2, Drop 3, Drop 2 and 4
-# VOICING = "Drop 3"  # Close, Drop 2, Drop 3, Drop 2 and 4
-# VOICING = "Drop 2"  # Close, Drop 2, Drop 3, Drop 2 and 4
-# VOICING = "Close"  # Close, Drop 2, Drop 3, Drop 2 and 4
+DEFAULT_OCTAVE_RANGE = 3  # which octave to place chords in
 
-CHORD_DURATION = HN  # how long to play each chord
+DEFAULT_VOICING = "Drop 2 and 4"  # Close, Drop 2, Drop 3, Drop 2 and 4
+# DEFAULT_VOICING = "Drop 3"  # Close, Drop 2, Drop 3, Drop 2 and 4
+# DEFAULT_VOICING = "Drop 2"  # Close, Drop 2, Drop 3, Drop 2 and 4
+# DEFAULT_VOICING = "Close"  # Close, Drop 2, Drop 3, Drop 2 and 4
+
+DEFAULT_CHORD_DURATION = HN  # how long to play each chord
 
 # For all instrument constants, see:
 # https://jythonmusic.me/api/midi-constants/instrument/
-Play.setInstrument(RHODES_PIANO)
-# Play.setInstrument(PIANO)
-# Play.setInstrument(SYNTH)
-# Play.setInstrument(CELLO)
-# Play.setInstrument(DX_PIANO)
+DEFAULT_INSTRUMENT = RHODES_PIANO
+Play.setInstrument(DEFAULT_INSTRUMENT)
 
 # Screen dimensions
-
 # Laptop screen
-SCREEN_WIDTH = 1920  # pixels
-SCREEN_HEIGHT = 1200  # pixels
-DISPLAY_SCALE = 1.5  # Ex. Windows 150% scaling = 1.5 (check display settings)
+DEFAULT_SCREEN_WIDTH = 1920  # pixels
+DEFAULT_SCREEN_HEIGHT = 1200  # pixels
+DEFAULT_DISPLAY_SCALE = 1.5  # Ex. Windows 150% scaling = 1.5 (check display settings)
 
 # Lab monitor
-SCREEN_WIDTH = 3440  # pixels
-SCREEN_HEIGHT = 1440  # pixels
-DISPLAY_SCALE = 1.0  # Ex. Windows 150% scaling = 1.5 (check display settings)
-# endregion User Settings #####################################################
+# DEFAULT_SCREEN_WIDTH = 3440  # pixels
+# DEFAULT_SCREEN_HEIGHT = 1440  # pixels
+# DEFAULT_DISPLAY_SCALE = 1.0  # Ex. Windows 150% scaling = 1.5 (check display settings)
+# endregion Default Settings ##################################################
+
+
+# region Runtime Variables ####################################################
+# These will be updated by user settings
+TONAL_CENTER_OFFSET = DEFAULT_TONAL_CENTER_OFFSET
+OCTAVE_RANGE = DEFAULT_OCTAVE_RANGE
+VOICING = DEFAULT_VOICING
+CHORD_DURATION = DEFAULT_CHORD_DURATION
+INSTRUMENT = DEFAULT_INSTRUMENT
+SCREEN_WIDTH = DEFAULT_SCREEN_WIDTH
+SCREEN_HEIGHT = DEFAULT_SCREEN_HEIGHT
+DISPLAY_SCALE = DEFAULT_DISPLAY_SCALE
+# endregion Runtime Variables #################################################
 
 
 # region Constants ############################################################
@@ -176,6 +188,398 @@ NOTE_NAMES_FLAT = [
     "B"]
 
 
+class UserSettingsGUI:
+    """GUI class for user settings configuration before main application."""
+
+    def __init__(self):
+        """Initialize the settings GUI with default values from global variables."""
+        # Convert global variables to GUI-friendly strings
+        tonal_center_name = NOTE_NAMES_FLAT[DEFAULT_TONAL_CENTER_OFFSET % 12]
+
+        # Convert duration constant to string
+        duration_map = {WN: "Whole Note", HN: "Half Note", QN: "Quarter Note",
+                       EN: "Eighth Note", SN: "Sixteenth Note"}
+        chord_duration_name = duration_map.get(DEFAULT_CHORD_DURATION, "Half Note")
+
+        # Convert instrument constant to string
+        instrument_map = {RHODES_PIANO: "Rhodes Keyboard", PIANO: "Piano", SYNTH: "Synth",
+                         CELLO: "Cello", DX_PIANO: "DX Keyboard"}
+        instrument_name = instrument_map.get(DEFAULT_INSTRUMENT, "Rhodes Keyboard")
+
+        # Convert display scale to string
+        scale_name = f"{DEFAULT_DISPLAY_SCALE}x ({int(DEFAULT_DISPLAY_SCALE * 100)}%)"
+
+        # Convert resolution to string
+        resolution_name = f"{DEFAULT_SCREEN_WIDTH}x{DEFAULT_SCREEN_HEIGHT}"
+
+        self.settings = {
+            'tonal_center': tonal_center_name,
+            'octave_range': DEFAULT_OCTAVE_RANGE,
+            'voicing': DEFAULT_VOICING,
+            'chord_duration': chord_duration_name,
+            'instrument': instrument_name,
+            'screen_resolution': resolution_name,
+            'display_scale': scale_name
+        }
+
+        self.display = None
+        self.dropdowns = {}
+        self.done_button = None
+
+    def show_settings_gui(self):
+        """Create and show the settings configuration window."""
+        # Create settings display window - smaller size to fit on any display
+        # Center on smallest common display (1366x768)
+        window_width = 600
+        window_height = 450
+        center_x = 1366 // 2 - window_width // 2
+        center_y = 768 // 2 - window_height // 2
+
+        self.display = Display("Movemental - User Settings", window_width, window_height,
+                              center_x, center_y, Color(40, 40, 50))
+
+        # Create dropdowns in grid layout
+        self._create_dropdowns()
+
+        # Create Done button with callback to start main application
+        self.done_button = Button("Done", self._on_done_clicked)
+        self.display.add(self.done_button, window_width // 2 - 50, window_height - 60)
+
+    def _create_dropdowns(self):
+        """Create all dropdown lists with proper positioning."""
+        # Compact 2-column layout with smaller spacing
+        # Row 1: Tonal Center | Octave Range
+        self._create_tonal_center_dropdown()
+        self._create_octave_range_dropdown()
+
+        # Row 2: Voicing | Chord Duration
+        self._create_voicing_dropdown()
+        self._create_chord_duration_dropdown()
+
+        # Row 3: Instrument | Screen Resolution
+        self._create_instrument_dropdown()
+        self._create_resolution_dropdown()
+
+        # Row 4: Display Scale (centered)
+        self._create_display_scale_dropdown()
+
+    def _create_tonal_center_dropdown(self):
+        """Create tonal center dropdown."""
+        label = Label("Tonal Center:", LEFT, Color.WHITE)
+        self.display.add(label, 30, 80)
+
+        # Get current selection and put it first if not already first
+        current_selection = self.settings['tonal_center']
+        all_notes = ["C", "Db", "D", "Eb", "E", "F", "Gb", "G", "Ab", "A", "Bb", "B"]
+
+        if current_selection == all_notes[0]:
+            tonal_center_options = all_notes
+        else:
+            tonal_center_options = [current_selection] + all_notes
+
+        self.dropdowns['tonal_center'] = DropDownList(
+            tonal_center_options,
+            self._on_tonal_center_selected
+        )
+        self.display.add(self.dropdowns['tonal_center'], 150, 80)
+
+    def _create_octave_range_dropdown(self):
+        """Create octave range dropdown."""
+        label = Label("Octave Range:", LEFT, Color.WHITE)
+        self.display.add(label, 320, 80)
+
+        # Get current octave range and put it first if not already first
+        current_octave = str(self.settings['octave_range'])
+        all_octaves = ["2", "3", "4", "5", "6"]
+
+        if current_octave == all_octaves[0]:
+            octave_options = all_octaves
+        else:
+            octave_options = [current_octave] + all_octaves
+
+        self.dropdowns['octave_range'] = DropDownList(
+            octave_options,
+            self._on_octave_range_selected
+        )
+        self.display.add(self.dropdowns['octave_range'], 440, 80)
+
+    def _create_voicing_dropdown(self):
+        """Create voicing dropdown."""
+        label = Label("Voicing:", LEFT, Color.WHITE)
+        self.display.add(label, 30, 130)
+
+        # Get current voicing and put it first if not already first
+        current_voicing = self.settings['voicing']
+        all_voicings = ["Close", "Drop 2", "Drop 3", "Drop 2 and 4"]
+
+        if current_voicing == all_voicings[0]:
+            voicing_options = all_voicings
+        else:
+            voicing_options = [current_voicing] + all_voicings
+
+        self.dropdowns['voicing'] = DropDownList(
+            voicing_options,
+            self._on_voicing_selected
+        )
+        self.display.add(self.dropdowns['voicing'], 150, 130)
+
+    def _create_chord_duration_dropdown(self):
+        """Create chord duration dropdown."""
+        label = Label("Chord Duration:", LEFT, Color.WHITE)
+        self.display.add(label, 320, 130)
+
+        # Get current chord duration and put it first if not already first
+        current_duration = self.settings['chord_duration']
+        all_durations = ["Whole Note", "Half Note", "Quarter Note", "Eighth Note", "Sixteenth Note"]
+
+        if current_duration == all_durations[0]:
+            duration_options = all_durations
+        else:
+            duration_options = [current_duration] + all_durations
+
+        self.dropdowns['chord_duration'] = DropDownList(
+            duration_options,
+            self._on_chord_duration_selected
+        )
+        self.display.add(self.dropdowns['chord_duration'], 440, 130)
+
+    def _create_instrument_dropdown(self):
+        """Create instrument dropdown."""
+        label = Label("Instrument:", LEFT, Color.WHITE)
+        self.display.add(label, 30, 180)
+
+        # Get current instrument and put it first if not already first
+        current_instrument = self.settings['instrument']
+        all_instruments = ["Rhodes Keyboard", "Piano", "Synth", "Cello", "DX Keyboard"]
+
+        if current_instrument == all_instruments[0]:
+            instrument_options = all_instruments
+        else:
+            instrument_options = [current_instrument] + all_instruments
+
+        self.dropdowns['instrument'] = DropDownList(
+            instrument_options,
+            self._on_instrument_selected
+        )
+        self.display.add(self.dropdowns['instrument'], 150, 180)
+
+    def _create_resolution_dropdown(self):
+        """Create screen resolution dropdown."""
+        label = Label("Screen Resolution:", LEFT, Color.WHITE)
+        self.display.add(label, 320, 180)
+
+        # Get current resolution and put it first if not already first
+        current_resolution = self.settings['screen_resolution']
+        all_resolutions = ["1920x1200", "3440x1440", "1920x1080", "2560x1440",
+                          "3840x2160", "1366x768", "2560x1600"]
+
+        if current_resolution == all_resolutions[0]:
+            resolution_options = all_resolutions
+        else:
+            resolution_options = [current_resolution] + all_resolutions
+
+        self.dropdowns['screen_resolution'] = DropDownList(
+            resolution_options,
+            self._on_resolution_selected
+        )
+        self.display.add(self.dropdowns['screen_resolution'], 440, 180)
+
+    def _create_display_scale_dropdown(self):
+        """Create display scale dropdown."""
+        label = Label("Display Scale:", LEFT, Color.WHITE)
+        self.display.add(label, 200, 230)
+
+        # Get current display scale and put it first if not already first
+        current_scale = self.settings['display_scale']
+        all_scales = ["1.0x (100%)", "1.25x (125%)", "1.5x (150%)", "1.75x (175%)", "2.0x (200%)"]
+
+        if current_scale == all_scales[0]:
+            scale_options = all_scales
+        else:
+            scale_options = [current_scale] + all_scales
+
+        self.dropdowns['display_scale'] = DropDownList(
+            scale_options,
+            self._on_display_scale_selected
+        )
+        self.display.add(self.dropdowns['display_scale'], 320, 230)
+
+    # Dropdown callback functions:
+    def _on_tonal_center_selected(self, selection):
+        """Handle tonal center selection."""
+        self.settings['tonal_center'] = selection
+
+    def _on_octave_range_selected(self, selection):
+        """Handle octave range selection."""
+        self.settings['octave_range'] = int(selection)
+
+    def _on_voicing_selected(self, selection):
+        """Handle voicing selection."""
+        self.settings['voicing'] = selection
+
+    def _on_chord_duration_selected(self, selection):
+        """Handle chord duration selection."""
+        self.settings['chord_duration'] = selection
+
+    def _on_instrument_selected(self, selection):
+        """Handle instrument selection."""
+        self.settings['instrument'] = selection
+
+    def _on_resolution_selected(self, selection):
+        """Handle screen resolution selection."""
+        self.settings['screen_resolution'] = selection
+
+    def _on_display_scale_selected(self, selection):
+        """Handle display scale selection."""
+        self.settings['display_scale'] = selection
+
+    def _on_done_clicked(self):
+        """Handle Done button click - apply settings and start main application."""
+        if self.display:
+            print("Applying user settings...")
+            apply_user_settings(self.settings)
+
+            print("Initializing main application...")
+            initialize_application()
+
+            # Register callback for playing chords by clicking the mouse
+            diagram_display.onMouseClick(choose_action)
+
+            # Show CLI info
+            show_cli_info()
+
+            # Close settings window
+            self.display.close()
+
+
+# region Settings Conversion Functions ########################################
+def string_to_tonal_center_offset(note_name):
+    """Convert note name string to tonal center offset value."""
+    # Match the original system where C = 0
+    note_map = {"C": 0, "Db": 1, "D": 2, "Eb": 3, "E": 4, "F": 5,
+                "Gb": 6, "G": 7, "Ab": 8, "A": 9, "Bb": 10, "B": 11}
+    return note_map.get(note_name, G0)  # Default is G
+
+
+def string_to_duration(duration_name):
+    """Convert duration name string to MIDI duration constant."""
+    duration_map = {
+        "Whole Note": WN, "Half Note": HN, "Quarter Note": QN,
+        "Eighth Note": EN, "Sixteenth Note": SN
+    }
+    return duration_map.get(duration_name, HN)
+
+
+def string_to_instrument(instrument_name):
+    """Convert instrument name string to MIDI instrument constant."""
+    instrument_map = {
+        "Rhodes Keyboard": RHODES_PIANO,
+        "Piano": PIANO,
+        "Synth": SYNTH,
+        "Cello": CELLO,
+        "DX Keyboard": DX_PIANO
+    }
+    return instrument_map.get(instrument_name, RHODES_PIANO)
+
+
+def parse_resolution(resolution_string):
+    """Parse '1920x1200' into (width, height) tuple."""
+    try:
+        width, height = resolution_string.split('x')
+        return int(width), int(height)
+    except:
+        return 1920, 1200  # Default fallback
+
+
+def parse_display_scale(scale_string):
+    """Parse '1.5x (150%)' into float value."""
+    try:
+        # Extract the numeric part before 'x'
+        scale_part = scale_string.split('x')[0]
+        return float(scale_part)
+    except:
+        return 1.5  # Default fallback
+
+
+def apply_user_settings(settings_dict):
+    """Apply user settings to runtime variables and recalculate constants."""
+    global TONAL_CENTER_OFFSET, OCTAVE_RANGE, VOICING, CHORD_DURATION
+    global SCREEN_WIDTH, SCREEN_HEIGHT, DISPLAY_SCALE, INSTRUMENT
+    global TONAL_CENTER_PITCH_CLASS, OCTAVE_OFFSET
+
+    # Apply basic settings
+    TONAL_CENTER_OFFSET = string_to_tonal_center_offset(settings_dict['tonal_center'])
+    OCTAVE_RANGE = settings_dict['octave_range']
+    VOICING = settings_dict['voicing']
+    CHORD_DURATION = string_to_duration(settings_dict['chord_duration'])
+
+    # Apply screen settings
+    SCREEN_WIDTH, SCREEN_HEIGHT = parse_resolution(settings_dict['screen_resolution'])
+    DISPLAY_SCALE = parse_display_scale(settings_dict['display_scale'])
+
+    # Recalculate derived constants
+    TONAL_CENTER_PITCH_CLASS = TONAL_CENTER_OFFSET % 12
+    OCTAVE_OFFSET = OCTAVE * OCTAVE_RANGE
+
+    # Set instrument
+    INSTRUMENT = string_to_instrument(settings_dict['instrument'])
+    Play.setInstrument(INSTRUMENT)
+
+    # Initialize chord dictionary with the new tonal center
+    initialize_chord_dictionary()
+
+
+def show_user_settings_gui():
+    """Show the user settings GUI."""
+    settings_gui = UserSettingsGUI()
+    settings_gui.show_settings_gui()
+    # The GUI will handle everything through callbacks
+    # No need to return anything or wait
+
+
+def show_cli_info():
+    """Display CLI information and ASCII art."""
+    # CLI Info
+    tonal_center = NOTE_NAMES_FLAT[TONAL_CENTER_PITCH_CLASS]
+    relative_minor = NOTE_NAMES_FLAT[(TONAL_CENTER_PITCH_CLASS - 3) % 12]
+
+    # Print ASCII art
+    ascii_art = ("""\
+  __  __    U  ___ u__     __ U _____ u  __  __  U _____ u _   _     _____      _       _
+U|' \\/ '|u   \\/"_ \\/\\ \\   /"/u\\| ___"|/U|' \\/ '|u\\| ___"|/| \\ |"|   |_ " _| U  /"\\  u  |"|
+\\| |\\/| |/   | | | | \\ \\ / //  |  _|"  \\| |\\/| |/ |  _|" <|  \\| |>    | |    \\/ _ \\/ U | | u
+ | |  | |.-,_| |_| | /\\ V /_,-.| |___   | |  | |  | |___ U| |\\  |u   /| |\\   / ___ \\  \\| |/__
+ |_|  |_| \\_)-\\___/ U  \\_/-(_/ |_____|  |_|  |_|  |_____| |_| \\_|   u |_|U  /_/   \\_\\  |_____|
+<<,-,,-.       \\\\     //       <<   >> <<,-,,-.   <<   >> ||   \\\\,-._// \\\\_  \\\\    >>  //  \\\\
+ (./  \\.)     (__)   (__)     (__) (__) (./  \\.) (__) (__)(_")  (_/(__) (__)(__)  (__)(_")("_)
+
+        """)
+    print(ascii_art)
+
+    print("REMEMBER!")
+    print(f"- {tonal_center} maj6 is the same as {relative_minor} min7, and "
+          f"{tonal_center} min6 is the same as {relative_minor} min7 b5")
+    print("- Each \"child\" chord (in between Earth, Wind, and Fire) contains "
+          "DNA from two parents (Earth, Wind, Fire).")
+    print("  That is why each child chord has three siblings (who share the "
+          "same ratio of DNA from each parent).")
+    print(
+        "- Any chord may be combined with the element (Earth, Wind, or Fire) "
+        "opposite from it.")
+    print("  This creates an 8-note \"scale of chords\" which alternates "
+          "between resolution and tension.")
+    print("  Ex. C maj6 + D dim7 (Branch + Fire) = C maj6 diminished scale")
+    print("- When playing a chord, \"borrowing\" some notes from the opposite "
+          "element (not one of the parents) can produce beautiful results.")
+    print("  Ex: C maj7, C maj7 #5... Following the thread, maybe these are "
+          "grandchildren?")
+    print("- These concepts were pioneered by Dr. Barry Harris, so...")
+    print(
+        "  In his memory, let's play beautiful movements, not static chords, "
+        "and remember to play with our family!!!\n")
+# endregion Settings Conversion Functions ####################################
+
+
 class Chord:
     def __init__(self, name, pitches):
         """Initialize a Chord with name and pitches.
@@ -249,112 +653,124 @@ class Chord:
 # is useful later.
 COORDINATES_TO_CHORD = {}
 
-# Elemental Diminished Chords
-COORDINATES_TO_CHORD[(0.091, 0.158)] = Chord("Earth", [C4, EF4, FS4, A4])
-COORDINATES_TO_CHORD[(0.878, 0.157)] = Chord("Wind", [DF4, E4, G4, BF4])
-COORDINATES_TO_CHORD[(0.471, 0.889)] = Chord("Fire", [D4, F4, AF4, B4])
 
-# Earth-Wind Combinations
-# Trunk (min 6)
-COORDINATES_TO_CHORD[(0.277, 0.101)] = Chord("Trunk", [C4, EF4, G4, A4])
-COORDINATES_TO_CHORD[(0.238, 0.165)] = Chord("Brother Trunk",
-                                             [EF4, GF4, BF4, C5])
-COORDINATES_TO_CHORD[(0.280, 0.161)] = Chord("Twin Trunk",
-                                             [GF4, A4, DF5, EF5])
-COORDINATES_TO_CHORD[(0.317, 0.160)] = Chord("Sister Trunk",
-                                             [A3, C4, E4, FS4])
-# Branch (maj 6)
-COORDINATES_TO_CHORD[(0.493, 0.042)] = Chord("Branch", [C4, E4, G4, A4])
-COORDINATES_TO_CHORD[(0.442, 0.094)] = Chord("Brother Branch",
-                                             [EF4, G4, BF4, C5])
-COORDINATES_TO_CHORD[(0.488, 0.094)] = Chord("Twin Branch",
-                                             [GF4, BF4, DF5, EF5])
-COORDINATES_TO_CHORD[(0.533, 0.094)] = Chord("Sister Branch",
-                                             [A3, CS4, E4, FS4])
-# Sand-Storm (dom 7 b5) (default=twin and brother=sister)
-COORDINATES_TO_CHORD[(0.494, 0.221)] = Chord("Sand-Storm", [C4, E4, GF4, BF4])
-COORDINATES_TO_CHORD[(0.442, 0.282)] = Chord("Brother Sand-Storm",
-                                             [EF4, G4, A4, DF5])
-COORDINATES_TO_CHORD[(0.499, 0.283)] = Chord("Twin Sand-Storm",
-                                             [GF4, BF4, C5, E5])
-COORDINATES_TO_CHORD[(0.558, 0.283)] = Chord("Sister Sand-Storm",
-                                             [A3, DF4, EF4, G4])
-# Leaf (dom 7)
-COORDINATES_TO_CHORD[(0.683, 0.113)] = Chord("Leaf", [C4, E4, G4, BF4])
-COORDINATES_TO_CHORD[(0.658, 0.171)] = Chord("Brother Leaf",
-                                             [EF4, G4, BF4, DF5])
-COORDINATES_TO_CHORD[(0.693, 0.161)] = Chord("Twin Leaf",
-                                             [GF4, BF4, DF5, E5])
-COORDINATES_TO_CHORD[(0.726, 0.165)] = Chord("Sister Leaf",
-                                             [A3, CS4, E4, G4])
+def initialize_chord_dictionary():
+    """Initialize the COORDINATES_TO_CHORD dictionary with all chord definitions.
 
-# Wind-Fire Combinations
-# Smoke (min 6)
-COORDINATES_TO_CHORD[(0.833, 0.310)] = Chord("Smoke", [G4, BF4, D5, E5])
-COORDINATES_TO_CHORD[(0.785, 0.360)] = Chord("Brother Smoke",
-                                             [BF4, DF5, F5, G5])
-COORDINATES_TO_CHORD[(0.825, 0.360)] = Chord("Twin Smoke",
-                                             [DF5, E5, AF5, BF5])
-COORDINATES_TO_CHORD[(0.864, 0.371)] = Chord("Sister Smoke",
-                                             [E4, G4, B4, CS5])
-# Ember (maj 6)
-COORDINATES_TO_CHORD[(0.929, 0.475)] = Chord("Ember", [G4, B4, D5, E5])
-COORDINATES_TO_CHORD[(0.873, 0.533)] = Chord("Brother Ember",
-                                             [BF4, D5, F5, G5])
-COORDINATES_TO_CHORD[(0.919, 0.528)] = Chord("Twin Ember",
-                                             [DF5, F5, AF5, BF5])
-COORDINATES_TO_CHORD[(0.962, 0.532)] = Chord("Sister Ember",
-                                             [E4, GS4, B4, CS5])
-# Fire-Storm (dom 7 b5)
-COORDINATES_TO_CHORD[(0.627, 0.444)] = Chord("Fire-Storm", [G4, B4, DF5, F5])
-COORDINATES_TO_CHORD[(0.561, 0.511)] = Chord("Brother Fire-Storm",
-                                             [BF4, D5, E5, AF5])
-COORDINATES_TO_CHORD[(0.630, 0.501)] = Chord("Twin Fire-Storm",
-                                             [DF5, F5, G5, B5])
-COORDINATES_TO_CHORD[(0.686, 0.504)] = Chord("Sister Fire-Storm",
-                                             [E4, AF4, BF4, D5])
-# Flame (dom 7)
-COORDINATES_TO_CHORD[(0.680, 0.738)] = Chord("Flame", [G4, B4, D5, F5])
-COORDINATES_TO_CHORD[(0.623, 0.794)] = Chord("Brother Flame",
-                                             [BF4, D5, F5, AF5])
-COORDINATES_TO_CHORD[(0.675, 0.792)] = Chord("Twin Flame",
-                                             [DF5, F5, AF5, B5])
-COORDINATES_TO_CHORD[(0.728, 0.796)] = Chord("Sister Flame",
-                                             [E4, GS4, B4, D5])
+    This function must be called after user settings are applied so that
+    the correct tonal center is used when creating Chord objects.
+    """
+    global COORDINATES_TO_CHORD
 
-# Fire-Earth Combinations
-# Magma (min 6)
-COORDINATES_TO_CHORD[(0.283, 0.690)] = Chord("Magma", [D4, F4, A4, B5])
-COORDINATES_TO_CHORD[(0.233, 0.756)] = Chord("Brother Magma",
-                                             [F4, AF4, C5, D5])
-COORDINATES_TO_CHORD[(0.284, 0.754)] = Chord("Twin Magma",
-                                             [AF4, CF5, EF5, F5])
-COORDINATES_TO_CHORD[(0.328, 0.751)] = Chord("Sister Magma",
-                                             [B3, D4, FS4, GS4])
-# Glass (maj 6)
-COORDINATES_TO_CHORD[(0.069, 0.468)] = Chord("Glass", [F4, A4, C5, D5])
-COORDINATES_TO_CHORD[(0.028, 0.533)] = Chord("Brother Glass",
-                                             [AF4, C4, EF5, F5])
-COORDINATES_TO_CHORD[(0.072, 0.528)] = Chord("Twin Glass",
-                                             [B4, DS5, FS5, GS5])
-COORDINATES_TO_CHORD[(0.109, 0.525)] = Chord("Sister Glass",
-                                             [D4, FS4, A4, B5])
-# Forest-Fire (dom 7 b5)
-COORDINATES_TO_CHORD[(0.392, 0.432)] = Chord("Forest-Fire", [F4, A4, CF5, EF5])
-COORDINATES_TO_CHORD[(0.348, 0.493)] = Chord("Brother Forest-Fire",
-                                             [AF4, C5, D5, GF5])
-COORDINATES_TO_CHORD[(0.393, 0.487)] = Chord("Twin Forest-Fire",
-                                             [CF5, EF5, F5, A5])
-COORDINATES_TO_CHORD[(0.438, 0.485)] = Chord("Sister Forest-Fire",
-                                             [D4, GF4, AF4, C5])
-# Charcoal (dom 7)
-COORDINATES_TO_CHORD[(0.196, 0.326)] = Chord("Charcoal", [F4, A4, C5, EF5])
-COORDINATES_TO_CHORD[(0.144, 0.381)] = Chord("Brother Charcoal",
-                                             [AF4, C4, EF5, GF5])
-COORDINATES_TO_CHORD[(0.193, 0.378)] = Chord("Twin Charcoal",
-                                             [B4, DS5, FS5, A5])
-COORDINATES_TO_CHORD[(0.241, 0.381)] = Chord("Sister Charcoal",
-                                             [D4, FS4, A4, C5])
+    # Clear any existing chords
+    COORDINATES_TO_CHORD = {}
+
+    # Elemental Diminished Chords
+    COORDINATES_TO_CHORD[(0.091, 0.158)] = Chord("Earth", [C4, EF4, FS4, A4])
+    COORDINATES_TO_CHORD[(0.878, 0.157)] = Chord("Wind", [DF4, E4, G4, BF4])
+    COORDINATES_TO_CHORD[(0.471, 0.889)] = Chord("Fire", [D4, F4, AF4, B4])
+
+    # Earth-Wind Combinations
+    # Trunk (min 6)
+    COORDINATES_TO_CHORD[(0.277, 0.101)] = Chord("Trunk", [C4, EF4, G4, A4])
+    COORDINATES_TO_CHORD[(0.238, 0.165)] = Chord("Brother Trunk",
+                                                 [EF4, GF4, BF4, C5])
+    COORDINATES_TO_CHORD[(0.280, 0.161)] = Chord("Twin Trunk",
+                                                 [GF4, A4, DF5, EF5])
+    COORDINATES_TO_CHORD[(0.317, 0.160)] = Chord("Sister Trunk",
+                                                 [A3, C4, E4, FS4])
+    # Branch (maj 6)
+    COORDINATES_TO_CHORD[(0.493, 0.042)] = Chord("Branch", [C4, E4, G4, A4])
+    COORDINATES_TO_CHORD[(0.442, 0.094)] = Chord("Brother Branch",
+                                                 [EF4, G4, BF4, C5])
+    COORDINATES_TO_CHORD[(0.488, 0.094)] = Chord("Twin Branch",
+                                                 [GF4, BF4, DF5, EF5])
+    COORDINATES_TO_CHORD[(0.533, 0.094)] = Chord("Sister Branch",
+                                                 [A3, CS4, E4, FS4])
+    # Sand-Storm (dom 7 b5) (default=twin and brother=sister)
+    COORDINATES_TO_CHORD[(0.494, 0.221)] = Chord("Sand-Storm", [C4, E4, GF4, BF4])
+    COORDINATES_TO_CHORD[(0.442, 0.282)] = Chord("Brother Sand-Storm",
+                                                 [EF4, G4, A4, DF5])
+    COORDINATES_TO_CHORD[(0.499, 0.283)] = Chord("Twin Sand-Storm",
+                                                 [GF4, BF4, C5, E5])
+    COORDINATES_TO_CHORD[(0.558, 0.283)] = Chord("Sister Sand-Storm",
+                                                 [A3, DF4, EF4, G4])
+    # Leaf (dom 7)
+    COORDINATES_TO_CHORD[(0.683, 0.113)] = Chord("Leaf", [C4, E4, G4, BF4])
+    COORDINATES_TO_CHORD[(0.658, 0.171)] = Chord("Brother Leaf",
+                                                 [EF4, G4, BF4, DF5])
+    COORDINATES_TO_CHORD[(0.693, 0.161)] = Chord("Twin Leaf",
+                                                 [GF4, BF4, DF5, E5])
+    COORDINATES_TO_CHORD[(0.726, 0.165)] = Chord("Sister Leaf",
+                                                 [A3, CS4, E4, G4])
+
+    # Wind-Fire Combinations
+    # Smoke (min 6)
+    COORDINATES_TO_CHORD[(0.833, 0.310)] = Chord("Smoke", [G4, BF4, D5, E5])
+    COORDINATES_TO_CHORD[(0.785, 0.360)] = Chord("Brother Smoke",
+                                                 [BF4, DF5, F5, G5])
+    COORDINATES_TO_CHORD[(0.825, 0.360)] = Chord("Twin Smoke",
+                                                 [DF5, E5, AF5, BF5])
+    COORDINATES_TO_CHORD[(0.864, 0.371)] = Chord("Sister Smoke",
+                                                 [E4, G4, B4, CS5])
+    # Ember (maj 6)
+    COORDINATES_TO_CHORD[(0.929, 0.475)] = Chord("Ember", [G4, B4, D5, E5])
+    COORDINATES_TO_CHORD[(0.873, 0.533)] = Chord("Brother Ember",
+                                                 [BF4, D5, F5, G5])
+    COORDINATES_TO_CHORD[(0.919, 0.528)] = Chord("Twin Ember",
+                                                 [DF5, F5, AF5, BF5])
+    COORDINATES_TO_CHORD[(0.962, 0.532)] = Chord("Sister Ember",
+                                                 [E4, GS4, B4, CS5])
+    # Fire-Storm (dom 7 b5)
+    COORDINATES_TO_CHORD[(0.627, 0.444)] = Chord("Fire-Storm", [G4, B4, DF5, F5])
+    COORDINATES_TO_CHORD[(0.561, 0.511)] = Chord("Brother Fire-Storm",
+                                                 [BF4, D5, E5, AF5])
+    COORDINATES_TO_CHORD[(0.630, 0.501)] = Chord("Twin Fire-Storm",
+                                                 [DF5, F5, G5, B5])
+    COORDINATES_TO_CHORD[(0.686, 0.504)] = Chord("Sister Fire-Storm",
+                                                 [E4, AF4, BF4, D5])
+    # Flame (dom 7)
+    COORDINATES_TO_CHORD[(0.680, 0.738)] = Chord("Flame", [G4, B4, D5, F5])
+    COORDINATES_TO_CHORD[(0.623, 0.794)] = Chord("Brother Flame",
+                                                 [BF4, D5, F5, AF5])
+    COORDINATES_TO_CHORD[(0.675, 0.792)] = Chord("Twin Flame",
+                                                 [DF5, F5, AF5, B5])
+    COORDINATES_TO_CHORD[(0.728, 0.796)] = Chord("Sister Flame",
+                                                 [E4, GS4, B4, D5])
+
+    # Fire-Earth Combinations
+    # Magma (min 6)
+    COORDINATES_TO_CHORD[(0.283, 0.690)] = Chord("Magma", [D4, F4, A4, B5])
+    COORDINATES_TO_CHORD[(0.233, 0.756)] = Chord("Brother Magma",
+                                                 [F4, AF4, C5, D5])
+    COORDINATES_TO_CHORD[(0.284, 0.754)] = Chord("Twin Magma",
+                                                 [AF4, CF5, EF5, F5])
+    COORDINATES_TO_CHORD[(0.328, 0.751)] = Chord("Sister Magma",
+                                                 [B3, D4, FS4, GS4])
+    # Glass (maj 6)
+    COORDINATES_TO_CHORD[(0.069, 0.468)] = Chord("Glass", [F4, A4, C5, D5])
+    COORDINATES_TO_CHORD[(0.028, 0.533)] = Chord("Brother Glass",
+                                                 [AF4, C4, EF5, F5])
+    COORDINATES_TO_CHORD[(0.072, 0.528)] = Chord("Twin Glass",
+                                                 [B4, DS5, FS5, GS5])
+    COORDINATES_TO_CHORD[(0.109, 0.525)] = Chord("Sister Glass",
+                                                 [D4, FS4, A4, B5])
+    # Forest-Fire (dom 7 b5)
+    COORDINATES_TO_CHORD[(0.392, 0.432)] = Chord("Forest-Fire", [F4, A4, CF5, EF5])
+    COORDINATES_TO_CHORD[(0.348, 0.493)] = Chord("Brother Forest-Fire",
+                                                 [AF4, C5, D5, GF5])
+    COORDINATES_TO_CHORD[(0.393, 0.487)] = Chord("Twin Forest-Fire",
+                                                 [CF5, EF5, F5, A5])
+    COORDINATES_TO_CHORD[(0.438, 0.485)] = Chord("Sister Forest-Fire",
+                                                 [D4, GF4, AF4, C5])
+    # Charcoal (dom 7)
+    COORDINATES_TO_CHORD[(0.196, 0.326)] = Chord("Charcoal", [F4, A4, C5, EF5])
+    COORDINATES_TO_CHORD[(0.144, 0.381)] = Chord("Brother Charcoal",
+                                                 [AF4, C4, EF5, GF5])
+    COORDINATES_TO_CHORD[(0.193, 0.378)] = Chord("Twin Charcoal",
+                                                 [B4, DS5, FS5, A5])
+    COORDINATES_TO_CHORD[(0.241, 0.381)] = Chord("Sister Charcoal",
+                                                 [D4, FS4, A4, C5])
 # endregion Coordinates to Chords #############################################
 
 
@@ -429,59 +845,11 @@ def create_chord_color_gradient():
 # endregion chord Functions ###################################################
 
 
-# region GUI Setup ############################################################
-# Calculate effective screen dimensions (accounting for scaling)
-EFFECTIVE_WIDTH = SCREEN_WIDTH / DISPLAY_SCALE  # 1280
-EFFECTIVE_HEIGHT = SCREEN_HEIGHT / DISPLAY_SCALE  # 800
-
-# Layout: Diagram takes 2/3 width, Clock takes 1/3 width, both take 3/4 height
-# Use 95% of screen width to leave margins on sides
-TOTAL_WIDTH = int(EFFECTIVE_WIDTH * 0.95)  # 95% of effective width
-DIAGRAM_WIDTH = int(TOTAL_WIDTH * 2 / 3)  # 2/3 of the 95% width
-CLOCK_WIDTH = int(TOTAL_WIDTH * 1 / 3)    # 1/3 of the 95% width
-# ~720 pixels (increased from 533)
-DISPLAY_HEIGHT = int(EFFECTIVE_HEIGHT * 3 / 4)
-
-# Center vertically on screen
-VERTICAL_CENTER = (EFFECTIVE_HEIGHT - DISPLAY_HEIGHT) / \
-    2  # ~133 pixels from top
-
-# Center horizontally on screen with 95% width
-HORIZONTAL_CENTER = (EFFECTIVE_WIDTH - TOTAL_WIDTH) / 2  # Center the 95% width
-DIAGRAM_X = HORIZONTAL_CENTER
-CLOCK_X = HORIZONTAL_CENTER + DIAGRAM_WIDTH
-
-# Create main display with diagram image
-diagram_display = Display("Movemental", DIAGRAM_WIDTH, DISPLAY_HEIGHT,
-                          DIAGRAM_X, VERTICAL_CENTER)
-diagram = Icon("./images/diagram.jpg", DIAGRAM_WIDTH, DISPLAY_HEIGHT)
-diagram_display.add(diagram)
-
-# Create a circle that marks the active chord
-selected_chord_dot = Circle(0, 0, 8, Color.BLUE, fill=True)
-diagram_display.add(selected_chord_dot)
-
-# Create separate display for chord visualization
-chord_display = Display("Chord Visualization", CLOCK_WIDTH, DISPLAY_HEIGHT,
-                        CLOCK_X, VERTICAL_CENTER, Color.BLACK)
-
-# Calculate chord positioning based on clock display dimensions
-# Use relative positioning to maximize space usage and ensure
-# proper scaling.
-# X position of chord center (centered in clock window)
-CLOCK_X = CLOCK_WIDTH // 2
-# Y position of chord center (centered in clock window)
-CLOCK_Y = DISPLAY_HEIGHT // 2
-
-
-# Calculate radius to ensure adequate space for both note labels
-# and chord info labels. Need space for: note labels +
-# chord info labels + padding between them. Calculate maximum
-# safe radius based on available space.
-def calculate_safe_radius():
+# region GUI Setup Functions ##################################################
+def calculate_safe_radius(clock_width, display_height):
     """Calculate the maximum safe radius that leaves room for all labels."""
     # Available space is the smaller dimension of the clock display
-    available_space = min(CLOCK_WIDTH, DISPLAY_HEIGHT)
+    available_space = min(clock_width, display_height)
 
     # Estimate space needed for labels
     # Note labels extend beyond circle by LABEL_DISTANCE (15% of radius)
@@ -508,20 +876,6 @@ def calculate_safe_radius():
                          (1 + 0.15 + 0.15 * 2.5))
 
     return max(MIN_RADIUS, max_radius)  # Minimum radius
-
-
-CLOCK_RADIUS = calculate_safe_radius()
-
-# This ensures consistent visual relationships
-# regardless of display size.
-NODE_RADIUS = max(MIN_NODE_RADIUS, int(
-    CLOCK_RADIUS * 0.1))  # 10% of radius, minimum
-BIG_TICK_RADIUS = max(MIN_TICK_RADIUS, int(
-    CLOCK_RADIUS * 0.04))  # 4% of radius, minimum
-SMALL_TICK_RADIUS = max(MIN_SMALL_TICK_RADIUS, int(
-    CLOCK_RADIUS * 0.02))  # 2% of radius, minimum
-LABEL_DISTANCE = max(MIN_LABEL_DISTANCE, int(
-    CLOCK_RADIUS * 0.15))  # 15% of radius, minimum
 
 
 def create_background_lines():
@@ -601,7 +955,6 @@ def create_chord_nodes_and_lines():
         note_connection_lines.append(line)
 
 
-# Initialize chord display
 def create_chord_display():
     """Create the chord visualization display."""
     global chord_display, clock_color_gradient, chord_info_text
@@ -628,17 +981,19 @@ def create_chord_display():
     }
 
 
-# Global variables for chord display
+# Global variables for chord display (will be initialized in main)
 clock_color_gradient = None
 clock_path = None
 note_nodes = []
 note_connection_lines = []
 chord_info_text = None
 note_labels = []
-
-# Create the clock-like chord display
-create_chord_display()
-# endregion GUI Setup #########################################################
+diagram_display = None
+chord_display = None
+selected_chord_dot = None
+DISPLAY_HEIGHT = None
+CLOCK_WIDTH = None
+# endregion GUI Setup Functions ###############################################
 
 
 # region Functions ############################################################
@@ -698,6 +1053,8 @@ def play_chord(chord):
     Args:
         chord (Chord): The chord object to play
     """
+    global DISPLAY_HEIGHT, CLOCK_WIDTH
+
     # Stop any sounding notes
     Play.allNotesOff()
 
@@ -980,51 +1337,65 @@ def choose_action(x, y):
 
 
 # region Main #################################################################
+def initialize_application():
+    """Initialize the main application displays and setup."""
+    global diagram_display, chord_display, CLOCK_X, CLOCK_Y, CLOCK_RADIUS
+    global NODE_RADIUS, BIG_TICK_RADIUS, SMALL_TICK_RADIUS, LABEL_DISTANCE
+    global DISPLAY_HEIGHT, CLOCK_WIDTH, selected_chord_dot
+
+    # Calculate effective screen dimensions (accounting for scaling)
+    EFFECTIVE_WIDTH = SCREEN_WIDTH / DISPLAY_SCALE
+    EFFECTIVE_HEIGHT = SCREEN_HEIGHT / DISPLAY_SCALE
+
+    # Layout: Diagram takes 2/3 width, Clock takes 1/3 width, both take 3/4 height
+    # Use 95% of screen width to leave margins on sides
+    TOTAL_WIDTH = int(EFFECTIVE_WIDTH * 0.95)  # 95% of effective width
+    DIAGRAM_WIDTH = int(TOTAL_WIDTH * 2 / 3)  # 2/3 of the 95% width
+    CLOCK_WIDTH = int(TOTAL_WIDTH * 1 / 3)    # 1/3 of the 95% width
+    DISPLAY_HEIGHT = int(EFFECTIVE_HEIGHT * 3 / 4)
+
+    # Center vertically on screen
+    VERTICAL_CENTER = (EFFECTIVE_HEIGHT - DISPLAY_HEIGHT) / 2
+
+    # Center horizontally on screen with 95% width
+    HORIZONTAL_CENTER = (EFFECTIVE_WIDTH - TOTAL_WIDTH) / 2
+    DIAGRAM_X = HORIZONTAL_CENTER
+    CLOCK_X = HORIZONTAL_CENTER + DIAGRAM_WIDTH
+
+    # Create main display with diagram image
+    diagram_display = Display("Movemental", DIAGRAM_WIDTH, DISPLAY_HEIGHT,
+                              DIAGRAM_X, VERTICAL_CENTER)
+    diagram = Icon("./images/diagram.jpg", DIAGRAM_WIDTH, DISPLAY_HEIGHT)
+    diagram_display.add(diagram)
+
+    # Create a circle that marks the active chord
+    selected_chord_dot = Circle(DIAGRAM_WIDTH // 2, DISPLAY_HEIGHT // 2, 8, Color.BLUE, fill=True)
+    diagram_display.add(selected_chord_dot)
+
+    # Create separate display for chord visualization
+    chord_display = Display("Chord Visualization", CLOCK_WIDTH, DISPLAY_HEIGHT,
+                            CLOCK_X, VERTICAL_CENTER, Color.BLACK)
+
+    # Recalculate chord positioning based on new dimensions
+    CLOCK_X = CLOCK_WIDTH // 2
+    CLOCK_Y = DISPLAY_HEIGHT // 2
+
+    # Recalculate radius and other constants
+    CLOCK_RADIUS = calculate_safe_radius(CLOCK_WIDTH, DISPLAY_HEIGHT)
+    NODE_RADIUS = max(MIN_NODE_RADIUS, int(CLOCK_RADIUS * 0.1))
+    BIG_TICK_RADIUS = max(MIN_TICK_RADIUS, int(CLOCK_RADIUS * 0.04))
+    SMALL_TICK_RADIUS = max(MIN_SMALL_TICK_RADIUS, int(CLOCK_RADIUS * 0.02))
+    LABEL_DISTANCE = max(MIN_LABEL_DISTANCE, int(CLOCK_RADIUS * 0.15))
+
+    # Create the clock-like chord display
+    create_chord_display()
+
+
 def main():
-    # Register callback for playing chords by clicking the mouse
-    diagram_display.onMouseClick(choose_action)
-
-    # # Show mouse coordinates for testing
-    # display.showMouseCoordinates()
-
-    # CLI Info
-    tonal_center = NOTE_NAMES_FLAT[TONAL_CENTER_PITCH_CLASS]
-    relative_minor = NOTE_NAMES_FLAT[(TONAL_CENTER_PITCH_CLASS - 3) % 12]
-
-    # Print ASCII art
-    ascii_art = ("""\
-  __  __    U  ___ u__     __ U _____ u  __  __  U _____ u _   _     _____      _       _
-U|' \\/ '|u   \\/"_ \\/\\ \\   /"/u\\| ___"|/U|' \\/ '|u\\| ___"|/| \\ |"|   |_ " _| U  /"\\  u  |"|
-\\| |\\/| |/   | | | | \\ \\ / //  |  _|"  \\| |\\/| |/ |  _|" <|  \\| |>    | |    \\/ _ \\/ U | | u
- | |  | |.-,_| |_| | /\\ V /_,-.| |___   | |  | |  | |___ U| |\\  |u   /| |\\   / ___ \\  \\| |/__
- |_|  |_| \\_)-\\___/ U  \\_/-(_/ |_____|  |_|  |_|  |_____| |_| \\_|   u |_|U  /_/   \\_\\  |_____|
-<<,-,,-.       \\\\     //       <<   >> <<,-,,-.   <<   >> ||   \\\\,-._// \\\\_  \\\\    >>  //  \\\\
- (./  \\.)     (__)   (__)     (__) (__) (./  \\.) (__) (__)(_")  (_/(__) (__)(__)  (__)(_")("_)
-
-        """)
-    print(ascii_art)
-
-    print("REMEMBER!")
-    print(f"- {tonal_center} maj6 is the same as {relative_minor} min7, and "
-          f"{tonal_center} min6 is the same as {relative_minor} min7 b5")
-    print("- Each \"child\" chord (in between Earth, Wind, and Fire) contains "
-          "DNA from two parents (Earth, Wind, Fire).")
-    print("  That is why each child chord has three siblings (who share the "
-          "same ratio of DNA from each parent).")
-    print(
-        "- Any chord may be combined with the element (Earth, Wind, or Fire) "
-        "opposite from it.")
-    print("  This creates an 8-note \"scale of chords\" which alternates "
-          "between resolution and tension.")
-    print("  Ex. C maj6 + D dim7 (Branch + Fire) = C maj6 diminished scale")
-    print("- When playing a chord, \"borrowing\" some notes from the opposite "
-          "element (not one of the parents) can produce beautiful results.")
-    print("  Ex: C maj7, C maj7 #5... Following the thread, maybe these are "
-          "grandchildren?")
-    print("- These concepts were pioneered by Dr. Barry Harris, so...")
-    print(
-        "  In his memory, let's play beautiful movements, not static chords, "
-        "and remember to play with our family!!!\n")
+    """Main application entry point with settings GUI."""
+    # Show user settings GUI - everything else happens via callback
+    # print("Loading Movemental User Settings...")
+    show_user_settings_gui()
 
 
 if __name__ == "__main__":
