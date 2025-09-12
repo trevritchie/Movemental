@@ -1,5 +1,5 @@
 ###############################################################################
-# movemental.py
+# Movemental.py
 # 2025-09-11
 # Trevor Ritchie
 #
@@ -52,13 +52,13 @@ OCTAVE = 12
 # Map family transformation buttons
 COORDINATES_TO_FAMILY = {}
 # Default
-COORDINATES_TO_FAMILY[(763, 567)] = 0
+COORDINATES_TO_FAMILY[(0.636, 0.787)] = 0
 # Sister
-COORDINATES_TO_FAMILY[(675, 651)] = -MINOR_THIRD
+COORDINATES_TO_FAMILY[(0.563, 0.904)] = -MINOR_THIRD
 # Cousin
-COORDINATES_TO_FAMILY[(675, 651)] = TRITONE
+COORDINATES_TO_FAMILY[(0.563, 0.904)] = TRITONE
 # Brother
-COORDINATES_TO_FAMILY[(838, 647)] = MINOR_THIRD
+COORDINATES_TO_FAMILY[(0.698, 0.899)] = MINOR_THIRD
 
 # Scales of chords by "pitch class". Semitones are assigned to 0-11.
 MAJOR_SIXTH_DIMINISHED_SCALE = [0, 2, 4, 5, 7, 8, 9, 11]
@@ -196,75 +196,75 @@ class Chord:
 COORDINATES_TO_CHORD = {}
 
 # Elemental Diminished Chords
-COORDINATES_TO_CHORD[(109, 114)] = Chord("Earth", [C4, EF4, FS4, A4])
-COORDINATES_TO_CHORD[(1054, 113)] = Chord("Wind", [DF4, E4, G4, BF4])
-COORDINATES_TO_CHORD[(565, 640)] = Chord("Fire", [D4, F4, AF4, B4])
+COORDINATES_TO_CHORD[(0.091, 0.158)] = Chord("Earth", [C4, EF4, FS4, A4])
+COORDINATES_TO_CHORD[(0.878, 0.157)] = Chord("Wind", [DF4, E4, G4, BF4])
+COORDINATES_TO_CHORD[(0.471, 0.889)] = Chord("Fire", [D4, F4, AF4, B4])
 
 # Earth-Wind Combinations
 # Trunk (min 6)
-COORDINATES_TO_CHORD[(332, 73)] = Chord("Trunk", [C4, EF4, G4, A4])
-COORDINATES_TO_CHORD[(285, 119)] = Chord("Brother Trunk", [EF4, GF4, BF4, C5])
-COORDINATES_TO_CHORD[(336, 116)] = Chord("Twin Trunk", [GF4, A4, DF5, EF5])
-COORDINATES_TO_CHORD[(380, 115)] = Chord("Sister Trunk", [A3, C4, E4, FS4])
+COORDINATES_TO_CHORD[(0.277, 0.101)] = Chord("Trunk", [C4, EF4, G4, A4])
+COORDINATES_TO_CHORD[(0.238, 0.165)] = Chord("Brother Trunk", [EF4, GF4, BF4, C5])
+COORDINATES_TO_CHORD[(0.280, 0.161)] = Chord("Twin Trunk", [GF4, A4, DF5, EF5])
+COORDINATES_TO_CHORD[(0.317, 0.160)] = Chord("Sister Trunk", [A3, C4, E4, FS4])
 # Branch (maj 6)
-COORDINATES_TO_CHORD[(591, 30)] = Chord("Branch", [C4, E4, G4, A4])
-COORDINATES_TO_CHORD[(530, 68)] = Chord("Brother Branch", [EF4, G4, BF4, C5])
-COORDINATES_TO_CHORD[(586, 68)] = Chord("Twin Branch", [GF4, BF4, DF5, EF5])
-COORDINATES_TO_CHORD[(639, 68)] = Chord("Sister Branch", [A3, CS4, E4, FS4])
+COORDINATES_TO_CHORD[(0.493, 0.042)] = Chord("Branch", [C4, E4, G4, A4])
+COORDINATES_TO_CHORD[(0.442, 0.094)] = Chord("Brother Branch", [EF4, G4, BF4, C5])
+COORDINATES_TO_CHORD[(0.488, 0.094)] = Chord("Twin Branch", [GF4, BF4, DF5, EF5])
+COORDINATES_TO_CHORD[(0.533, 0.094)] = Chord("Sister Branch", [A3, CS4, E4, FS4])
 # Sand-Storm (dom 7 b5) (default=twin and brother=sister)
-COORDINATES_TO_CHORD[(593, 159)] = Chord("Sand-Storm", [C4, E4, GF4, BF4])
-COORDINATES_TO_CHORD[(530, 203)] = Chord("Brother Sand-Storm", [EF4, G4, A4, DF5])
-COORDINATES_TO_CHORD[(599, 204)] = Chord("Twin Sand-Storm", [GF4, BF4, C5, E5])
-COORDINATES_TO_CHORD[(670, 204)] = Chord("Sister Sand-Storm", [A3, DF4, EF4, G4])
+COORDINATES_TO_CHORD[(0.494, 0.221)] = Chord("Sand-Storm", [C4, E4, GF4, BF4])
+COORDINATES_TO_CHORD[(0.442, 0.282)] = Chord("Brother Sand-Storm", [EF4, G4, A4, DF5])
+COORDINATES_TO_CHORD[(0.499, 0.283)] = Chord("Twin Sand-Storm", [GF4, BF4, C5, E5])
+COORDINATES_TO_CHORD[(0.558, 0.283)] = Chord("Sister Sand-Storm", [A3, DF4, EF4, G4])
 # Leaf (dom 7)
-COORDINATES_TO_CHORD[(820, 81)] = Chord("Leaf", [C4, E4, G4, BF4])
-COORDINATES_TO_CHORD[(790, 123)] = Chord("Brother Leaf", [EF4, G4, BF4, DF5])
-COORDINATES_TO_CHORD[(832, 116)] = Chord("Twin Leaf", [GF4, BF4, DF5, E5])
-COORDINATES_TO_CHORD[(871, 119)] = Chord("Sister Leaf", [A3, CS4, E4, G4])
+COORDINATES_TO_CHORD[(0.683, 0.113)] = Chord("Leaf", [C4, E4, G4, BF4])
+COORDINATES_TO_CHORD[(0.658, 0.171)] = Chord("Brother Leaf", [EF4, G4, BF4, DF5])
+COORDINATES_TO_CHORD[(0.693, 0.161)] = Chord("Twin Leaf", [GF4, BF4, DF5, E5])
+COORDINATES_TO_CHORD[(0.726, 0.165)] = Chord("Sister Leaf", [A3, CS4, E4, G4])
 
 # Wind-Fire Combinations
 # Smoke (min 6)
-COORDINATES_TO_CHORD[(1000, 223)] = Chord("Smoke", [G4, BF4, D5, E5])
-COORDINATES_TO_CHORD[(942, 259)] = Chord("Brother Smoke", [BF4, DF5, F5, G5])
-COORDINATES_TO_CHORD[(990, 259)] = Chord("Twin Smoke", [DF5, E5, AF5, BF5])
-COORDINATES_TO_CHORD[(1037, 267)] = Chord("Sister Smoke", [E4, G4, B4, CS5])
+COORDINATES_TO_CHORD[(0.833, 0.310)] = Chord("Smoke", [G4, BF4, D5, E5])
+COORDINATES_TO_CHORD[(0.785, 0.360)] = Chord("Brother Smoke", [BF4, DF5, F5, G5])
+COORDINATES_TO_CHORD[(0.825, 0.360)] = Chord("Twin Smoke", [DF5, E5, AF5, BF5])
+COORDINATES_TO_CHORD[(0.864, 0.371)] = Chord("Sister Smoke", [E4, G4, B4, CS5])
 # Ember (maj 6)
-COORDINATES_TO_CHORD[(1115, 342)] = Chord("Ember", [G4, B4, D5, E5])
-COORDINATES_TO_CHORD[(1047, 384)] = Chord("Brother Ember", [BF4, D5, F5, G5])
-COORDINATES_TO_CHORD[(1103, 380)] = Chord("Twin Ember", [DF5, F5, AF5, BF5])
-COORDINATES_TO_CHORD[(1154, 383)] = Chord("Sister Ember", [E4, GS4, B4, CS5])
+COORDINATES_TO_CHORD[(0.929, 0.475)] = Chord("Ember", [G4, B4, D5, E5])
+COORDINATES_TO_CHORD[(0.873, 0.533)] = Chord("Brother Ember", [BF4, D5, F5, G5])
+COORDINATES_TO_CHORD[(0.919, 0.528)] = Chord("Twin Ember", [DF5, F5, AF5, BF5])
+COORDINATES_TO_CHORD[(0.962, 0.532)] = Chord("Sister Ember", [E4, GS4, B4, CS5])
 # Fire-Storm (dom 7 b5)
-COORDINATES_TO_CHORD[(752, 320)] = Chord("Fire-Storm", [G4, B4, DF5, F5])
-COORDINATES_TO_CHORD[(673, 368)] = Chord("Brother Fire-Storm", [BF4, D5, E5, AF5])
-COORDINATES_TO_CHORD[(756, 361)] = Chord("Twin Fire-Storm", [DF5, F5, G5, B5])
-COORDINATES_TO_CHORD[(823, 363)] = Chord("Sister Fire-Storm", [E4, AF4, BF4, D5])
+COORDINATES_TO_CHORD[(0.627, 0.444)] = Chord("Fire-Storm", [G4, B4, DF5, F5])
+COORDINATES_TO_CHORD[(0.561, 0.511)] = Chord("Brother Fire-Storm", [BF4, D5, E5, AF5])
+COORDINATES_TO_CHORD[(0.630, 0.501)] = Chord("Twin Fire-Storm", [DF5, F5, G5, B5])
+COORDINATES_TO_CHORD[(0.686, 0.504)] = Chord("Sister Fire-Storm", [E4, AF4, BF4, D5])
 # Flame (dom 7)
-COORDINATES_TO_CHORD[(816, 531)] = Chord("Flame", [G4, B4, D5, F5])
-COORDINATES_TO_CHORD[(747, 572)] = Chord("Brother Flame", [BF4, D5, F5, AF5])
-COORDINATES_TO_CHORD[(810, 570)] = Chord("Twin Flame", [DF5, F5, AF5, B5])
-COORDINATES_TO_CHORD[(873, 573)] = Chord("Sister Flame", [E4, GS4, B4, D5])
+COORDINATES_TO_CHORD[(0.680, 0.738)] = Chord("Flame", [G4, B4, D5, F5])
+COORDINATES_TO_CHORD[(0.623, 0.794)] = Chord("Brother Flame", [BF4, D5, F5, AF5])
+COORDINATES_TO_CHORD[(0.675, 0.792)] = Chord("Twin Flame", [DF5, F5, AF5, B5])
+COORDINATES_TO_CHORD[(0.728, 0.796)] = Chord("Sister Flame", [E4, GS4, B4, D5])
 
 # Fire-Earth Combinations
 # Magma (min 6)
-COORDINATES_TO_CHORD[(340, 497)] = Chord("Magma", [D4, F4, A4, B5])
-COORDINATES_TO_CHORD[(280, 544)] = Chord("Brother Magma", [F4, AF4, C5, D5])
-COORDINATES_TO_CHORD[(341, 543)] = Chord("Twin Magma", [AF4, CF5, EF5, F5])
-COORDINATES_TO_CHORD[(393, 541)] = Chord("Sister Magma", [B3, D4, FS4, GS4])
+COORDINATES_TO_CHORD[(0.283, 0.690)] = Chord("Magma", [D4, F4, A4, B5])
+COORDINATES_TO_CHORD[(0.233, 0.756)] = Chord("Brother Magma", [F4, AF4, C5, D5])
+COORDINATES_TO_CHORD[(0.284, 0.754)] = Chord("Twin Magma", [AF4, CF5, EF5, F5])
+COORDINATES_TO_CHORD[(0.328, 0.751)] = Chord("Sister Magma", [B3, D4, FS4, GS4])
 # Glass (maj 6)
-COORDINATES_TO_CHORD[(83, 337)] = Chord("Glass", [F4, A4, C5, D5])
-COORDINATES_TO_CHORD[(33, 384)] = Chord("Brother Glass", [AF4, C4, EF5, F5])
-COORDINATES_TO_CHORD[(86, 380)] = Chord("Twin Glass", [B4, DS5, FS5, GS5])
-COORDINATES_TO_CHORD[(131, 378)] = Chord("Sister Glass", [D4, FS4, A4, B5])
+COORDINATES_TO_CHORD[(0.069, 0.468)] = Chord("Glass", [F4, A4, C5, D5])
+COORDINATES_TO_CHORD[(0.028, 0.533)] = Chord("Brother Glass", [AF4, C4, EF5, F5])
+COORDINATES_TO_CHORD[(0.072, 0.528)] = Chord("Twin Glass", [B4, DS5, FS5, GS5])
+COORDINATES_TO_CHORD[(0.109, 0.525)] = Chord("Sister Glass", [D4, FS4, A4, B5])
 # Forest-Fire (dom 7 b5)
-COORDINATES_TO_CHORD[(470, 311)] = Chord("Forest-Fire", [F4, A4, CF5, EF5])
-COORDINATES_TO_CHORD[(417, 355)] = Chord("Brother Forest-Fire", [AF4, C5, D5, GF5])
-COORDINATES_TO_CHORD[(472, 351)] = Chord("Twin Forest-Fire", [CF5, EF5, F5, A5])
-COORDINATES_TO_CHORD[(526, 349)] = Chord("Sister Forest-Fire", [D4, GF4, AF4, C5])
+COORDINATES_TO_CHORD[(0.392, 0.432)] = Chord("Forest-Fire", [F4, A4, CF5, EF5])
+COORDINATES_TO_CHORD[(0.348, 0.493)] = Chord("Brother Forest-Fire", [AF4, C5, D5, GF5])
+COORDINATES_TO_CHORD[(0.393, 0.487)] = Chord("Twin Forest-Fire", [CF5, EF5, F5, A5])
+COORDINATES_TO_CHORD[(0.438, 0.485)] = Chord("Sister Forest-Fire", [D4, GF4, AF4, C5])
 # Charcoal (dom 7)
-COORDINATES_TO_CHORD[(235, 235)] = Chord("Charcoal", [F4, A4, C5, EF5])
-COORDINATES_TO_CHORD[(173, 274)] = Chord("Brother Charcoal", [AF4, C4, EF5, GF5])
-COORDINATES_TO_CHORD[(231, 272)] = Chord("Twin Charcoal", [B4, DS5, FS5, A5])
-COORDINATES_TO_CHORD[(289, 274)] = Chord("Sister Charcoal", [D4, FS4, A4, C5])
+COORDINATES_TO_CHORD[(0.196, 0.326)] = Chord("Charcoal", [F4, A4, C5, EF5])
+COORDINATES_TO_CHORD[(0.144, 0.381)] = Chord("Brother Charcoal", [AF4, C4, EF5, GF5])
+COORDINATES_TO_CHORD[(0.193, 0.378)] = Chord("Twin Charcoal", [B4, DS5, FS5, A5])
+COORDINATES_TO_CHORD[(0.241, 0.381)] = Chord("Sister Charcoal", [D4, FS4, A4, C5])
 # endregion Coordinates to Chords #############################################
 
 
@@ -310,30 +310,29 @@ def pitch_to_angle(pitch):
     return angle
 
 def create_tetrachord_color_gradient():
-    """Create a 24-color gradient for the tetrachord display.
+    """Create a 24-color array for the tetrachord display.
 
-    Uses a harmonious color scheme based on color theory principles:
-    - Blue at 12 o'clock as requested
-    - Analogous color progression for smooth transitions
-    - Consistent saturation and brightness for visual harmony
-    - Colors inspired by natural light spectrum
+    Uses a repeating pattern of elemental colors around the clock face:
+    - Brown, Light Blue, Red, Brown, Light Blue, Red, etc.
 
     Returns:
         list: List of Color objects
     """
-    # Define cardinal direction colors with harmonious color theory-based palette
-    # 12 o'clock (G): Deep Blue, 3 o'clock (C): Teal, 6 o'clock (F): Warm Orange, 9 o'clock (Bb): Deep Purple
-    blue = Color(70, 130, 200)          # 12 o'clock (G) - deep, rich blue
-    teal = Color(50, 180, 160)          # 3 o'clock (C) - vibrant teal
-    orange = Color(220, 120, 60)        # 6 o'clock (F) - warm, earthy orange
-    purple = Color(140, 80, 180)        # 9 o'clock (Bb) - deep, royal purple
+    # Define the three elemental colors
+    brown = Color(139, 90, 60)        # Rich brown - like fertile soil
+    light_blue = Color(135, 206, 235) # Light blue - like clear sky
+    red = Color(220, 50, 50)          # Deep red - like burning embers
 
-    # Create smooth gradients between the cardinal colors
-    # Each quarter gets 6 colors for smooth 24-color total
-    gradient = (colorGradient(blue, teal, 6) +           # 12 o'clock to 3 o'clock (G to C)
-                colorGradient(teal, orange, 6) +         # 3 o'clock to 6 o'clock (C to F)
-                colorGradient(orange, purple, 6) +       # 6 o'clock to 9 o'clock (F to Bb)
-                colorGradient(purple, blue, 6))          # 9 o'clock to 12 o'clock (Bb to G)
+    # Create 24 colors with repeating pattern: Brown, Light Blue, Red
+    gradient = []
+
+    for i in range(24):
+        if i % 3 == 0:      # Positions 0, 3, 6, 9, 12, 15, 18, 21
+            gradient.append(brown)
+        elif i % 3 == 1:    # Positions 1, 4, 7, 10, 13, 16, 19, 22
+            gradient.append(red)
+        else:               # Positions 2, 5, 8, 11, 14, 17, 20, 23
+            gradient.append(light_blue)
 
     return gradient
 # endregion Tetrachord Functions ##############################################
@@ -350,7 +349,7 @@ selected_chord_dot = Circle(0, 0, 8, Color.BLUE, fill=True)
 display.add(selected_chord_dot)
 
 # Create separate display for tetrachord visualization
-tetrachord_display = Display("Tetrachord View", 400, 400, 1500, 500, Color.BLACK)
+tetrachord_display = Display("Tetrachord View", 400, 400, 1000, 500, Color.BLACK)
 
 # Initialize tetrachord display
 def create_tetrachord_display():
@@ -474,22 +473,32 @@ def find_closest_point(here, points):
 
     Args:
         here (tuple): The reference point as (x, y) coordinates
-        points (list): List of points to search through
+        points (list): List of points to search through (relative coordinates)
 
     Returns:
-        tuple: The closest point as (x, y) coordinates
+        tuple: The closest point as (x, y) coordinates (relative)
     """
+    # Get display dimensions
+    display_width = display.getWidth()
+    display_height = display.getHeight()
+
+    # Convert relative coordinates to absolute for comparison
+    here_abs = here  # here is already in absolute coordinates
+
     # Keep track of the closest distance and point so far
     closest_distance_so_far = 1000000
     closest_point_so_far = None
 
     # Iterate through all points looking for closest one
     for point in points:
-        this_distance = distance(here, point)  # calculate distance
+        # Convert relative point to absolute coordinates
+        point_abs = (point[0] * display_width, point[1] * display_height)
+
+        this_distance = distance(here_abs, point_abs)  # calculate distance
         if this_distance < closest_distance_so_far:  # is this closer?
             # Yes, so update
             closest_distance_so_far = this_distance
-            closest_point_so_far = point
+            closest_point_so_far = point  # Keep the relative coordinates
     # Now, closest_point_so_far contains the closest point overall.
     closest_point = closest_point_so_far
 
@@ -534,12 +543,18 @@ def select_chord_visually(x, y):
     """Create and place a circle at the coordinates.
 
     Args:
-        x (int): X coordinate for the visual indicator
-        y (int): Y coordinate for the visual indicator
+        x (float): X coordinate for the visual indicator (relative 0-1)
+        y (float): Y coordinate for the visual indicator (relative 0-1)
     """
     global display, selected_chord_dot
 
-    display.move(selected_chord_dot, x, y)
+    # Convert relative coordinates to absolute
+    display_width = display.getWidth()
+    display_height = display.getHeight()
+    abs_x = int(x * display_width)
+    abs_y = int(y * display_height)
+
+    display.move(selected_chord_dot, abs_x, abs_y)
 
 def update_chord_info_display(chord):
     """Update the chord information text at the top of the tetrachord display.
@@ -674,8 +689,8 @@ def select_chord(x, y):
     """Find the closest chord and play it.
 
     Args:
-        x (int): X coordinate of the click
-        y (int): Y coordinate of the click
+        x (int): X coordinate of the click (absolute)
+        y (int): Y coordinate of the click (absolute)
     """
     global first_time, TABLE_SEPERATOR
 
@@ -688,7 +703,7 @@ def select_chord(x, y):
 
         print(TABLE_SEPARATOR)
 
-    # Find the closest point
+    # Find the closest point (returns relative coordinates)
     point = find_closest_point([x, y], COORDINATES_TO_CHORD.keys())
 
     # Get chord info
@@ -697,7 +712,7 @@ def select_chord(x, y):
     # Play the chord (this will also update the tetrachord display)
     play_chord(chord)
 
-    # Place a dot on the selection
+    # Place a dot on the selection (point is already relative)
     select_chord_visually(point[0], point[1])
 
     print(f"| {chord.name:^20} | {chord.traditional_name:^20} | "
@@ -732,17 +747,17 @@ def choose_action(x, y):
     TODO: only need this if I add a different click function
 
     Args:
-        x (int): X coordinate of the click
-        y (int): Y coordinate of the click
+        x (int): X coordinate of the click (absolute)
+        y (int): Y coordinate of the click (absolute)
     """
-    # Snap clicked coordinates to known centers
+    # Snap clicked coordinates to known centers (returns relative coordinates)
     point = find_closest_point([x, y], COORDINATES_TO_CHORD.keys())
     new_x, new_y = point
 
     # Test if key holds type is a chord
     if isinstance(COORDINATES_TO_CHORD[point], Chord):  # test if value is a Chord
-        # If a chord, call play chord function
-        select_chord(new_x, new_y)
+        # If a chord, call play chord function (pass original absolute coordinates)
+        select_chord(x, y)
 
     # # If not a chord, its a change in family
     # else:
@@ -798,6 +813,33 @@ U|' \\/ '|u   \\/"_ \\/\\ \\   /"/u\\| ___"|/U|' \\/ '|u\\| ___"|/| \\ |"|   |_ 
     print("  In his memory, let's play beautiful movements, not static chords, "
           "and remember to play with our family!!!\n")
 
+# region Testing ##############################################################
+def test_coordinate_conversion():
+    """Test function to verify coordinate conversion works for different display sizes."""
+    print("Testing coordinate conversion for different display sizes:")
+    print("=" * 60)
+
+    # Test with different display sizes
+    test_sizes = [(1200, 720), (800, 600), (1600, 900), (1920, 1080)]
+
+    for width, height in test_sizes:
+        print(f"\nDisplay size: {width}x{height}")
+        print("-" * 30)
+
+        # Test a few key coordinates
+        test_coords = [(0.091, 0.158), (0.878, 0.157), (0.471, 0.889)]
+        coord_names = ["Earth", "Wind", "Fire"]
+
+        for (rel_x, rel_y), name in zip(test_coords, coord_names):
+            abs_x = int(rel_x * width)
+            abs_y = int(rel_y * height)
+            print(f"{name:8}: ({rel_x:.3f}, {rel_y:.3f}) -> ({abs_x:4d}, {abs_y:3d})")
+
+# Uncomment the line below to run the test
+# test_coordinate_conversion()
+# endregion Testing ###########################################################
+
+# endregion Main ##############################################################
+
 if __name__ == "__main__":
     main()
-# endregion Main ##############################################################
