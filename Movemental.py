@@ -5,7 +5,7 @@
 #
 # Interface inspired by tonnetz by _____ and Bill Manaris
 #
-# Chord visualization inspired by TetrachordTuner
+# Chord visualization inspired by chordTuner
 # by Pangur Brougham-Cook and Bill Manaris
 ###############################################################################
 
@@ -18,14 +18,16 @@ from math import hypot, pi, cos, sin
 
 
 # region User Settings ########################################################
-TONAL_CENTER_OFFSET = 7  # 0 = C, 2 = D, -2 = Bb, 10 = Bb etc.
+TONAL_CENTER_OFFSET = A0  # 0 = C, 2 = D, -2 = Bb, 10 = Bb etc.
 
 OCTAVE_RANGE = 3  # which octave to place chords in
 
-CHORD_DURATION = HN  # how long to play each chord
-
 VOICING = "Drop 2 and 4"  # Close, Drop 2, Drop 3, Drop 2 and 4
 # VOICING = "Drop 3"  # Close, Drop 2, Drop 3, Drop 2 and 4
+# VOICING = "Drop 2"  # Close, Drop 2, Drop 3, Drop 2 and 4
+# VOICING = "Close"  # Close, Drop 2, Drop 3, Drop 2 and 4
+
+CHORD_DURATION = HN  # how long to play each chord
 
 # For all instrument constants, see https://jythonmusic.me/api/midi-constants/instrument/
 Play.setInstrument(RHODES_PIANO)
@@ -33,6 +35,18 @@ Play.setInstrument(RHODES_PIANO)
 # Play.setInstrument(SYNTH)
 # Play.setInstrument(CELLO)
 # Play.setInstrument(DX_PIANO)
+
+# Screen dimensions
+
+# Laptop screen
+SCREEN_WIDTH = 1920  # pixels
+SCREEN_HEIGHT = 1200  # pixels
+DISPLAY_SCALE = 1.5  # Ex. Windows 150% scaling = 1.5 (check display settings)
+
+# Lab monitor
+SCREEN_WIDTH = 3440  # pixels
+SCREEN_HEIGHT = 1440  # pixels
+DISPLAY_SCALE = 1.0  # Ex. Windows 150% scaling = 1.5 (check display settings)
 # endregion User Settings #####################################################
 
 
@@ -103,14 +117,8 @@ DOMINANT_SEVENTH_FLAT_FIVE_CHORD_FROM_THIRD = [0, 2, 6, 8]  # same as from seven
 
 DIMINISHED_CHORD = [0, 3, 6, 9]
 
-# Tetrachord display constants
-TETRACHORD_X = 200          # X position of tetrachord center (centered in 400px window)
-TETRACHORD_Y = 200          # Y position of tetrachord center (centered in 400px window)
-TETRACHORD_RADIUS = 120     # Radius of tetrachord circle (larger for dedicated window)
-NODE_RADIUS = 12            # Size of note nodes (larger like TetrachordTuner)
-BIG_TICK_RADIUS = 5         # Size of major tick marks
-SMALL_TICK_RADIUS = 2       # Size of minor tick marks
-LABEL_DISTANCE = 18         # Distance from node edge to label (consistent spacing)
+# chord display constants (calculated dynamically after display dimensions)
+# These are now calculated based on the actual display size for optimal scaling
 
 # Relative positioning constants (as ratios of radius)
 LABEL_DISTANCE_RATIO = 1.2  # How far outside circle to place note labels
@@ -268,9 +276,9 @@ COORDINATES_TO_CHORD[(0.241, 0.381)] = Chord("Sister Charcoal", [D4, FS4, A4, C5
 # endregion Coordinates to Chords #############################################
 
 
-# region Tetrachord Functions #################################################
-def get_position_on_tetrachord_circle(angle):
-    """Returns x,y coordinates on the tetrachord circle for a given angle.
+# region chord Functions #################################################
+def get_position_on_chord_circle(angle):
+    """Returns x,y coordinates on the chord circle for a given angle.
 
     Args:
         angle (float): Angle in radians (0 = 12 o'clock, increases clockwise)
@@ -283,8 +291,8 @@ def get_position_on_tetrachord_circle(angle):
     adjusted_angle = angle - PI_OVER_2
 
     # Calculate coordinates relative to center
-    new_x = TETRACHORD_RADIUS * cos(adjusted_angle) + TETRACHORD_X
-    new_y = TETRACHORD_RADIUS * sin(adjusted_angle) + TETRACHORD_Y
+    new_x = CLOCK_RADIUS * cos(adjusted_angle) + CLOCK_X
+    new_y = CLOCK_RADIUS * sin(adjusted_angle) + CLOCK_Y
 
     return (int(new_x), int(new_y))
 
@@ -309,8 +317,8 @@ def pitch_to_angle(pitch):
 
     return angle
 
-def create_tetrachord_color_gradient():
-    """Create a 24-color array for the tetrachord display.
+def create_chord_color_gradient():
+    """Create a 24-color array for the chord display.
 
     Uses a repeating pattern of elemental colors around the clock face:
     - Brown, Light Blue, Red, Brown, Light Blue, Red, etc.
@@ -335,62 +343,124 @@ def create_tetrachord_color_gradient():
             gradient.append(light_blue)
 
     return gradient
-# endregion Tetrachord Functions ##############################################
+# endregion chord Functions ##############################################
 
 
 # region GUI Setup ############################################################
+# Calculate effective screen dimensions (accounting for scaling)
+EFFECTIVE_WIDTH = SCREEN_WIDTH / DISPLAY_SCALE  # 1280
+EFFECTIVE_HEIGHT = SCREEN_HEIGHT / DISPLAY_SCALE  # 800
+
+# Layout: Diagram takes 2/3 width, Clock takes 1/3 width, both take 3/4 height
+# Use 95% of screen width to leave margins on sides
+TOTAL_WIDTH = int(EFFECTIVE_WIDTH * 0.95)  # 95% of effective width
+DIAGRAM_WIDTH = int(TOTAL_WIDTH * 2/3)  # 2/3 of the 95% width
+CLOCK_WIDTH = int(TOTAL_WIDTH * 1/3)    # 1/3 of the 95% width
+DISPLAY_HEIGHT = int(EFFECTIVE_HEIGHT * 3/4)  # ~720 pixels (increased from 533)
+
+# Center vertically on screen
+VERTICAL_CENTER = (EFFECTIVE_HEIGHT - DISPLAY_HEIGHT) / 2  # ~133 pixels from top
+
+# Center horizontally on screen with 95% width
+HORIZONTAL_CENTER = (EFFECTIVE_WIDTH - TOTAL_WIDTH) / 2  # Center the 95% width
+DIAGRAM_X = HORIZONTAL_CENTER
+CLOCK_X = HORIZONTAL_CENTER + DIAGRAM_WIDTH
+
 # Create main display with diagram image
-display = Display("Movemental", 1200, 720)
-diagram = Icon("./images/diagram.jpg", 1200, 720)
-display.add(diagram)
+diagram_display = Display("Movemental", DIAGRAM_WIDTH, DISPLAY_HEIGHT, DIAGRAM_X, VERTICAL_CENTER)
+diagram = Icon("./images/diagram.jpg", DIAGRAM_WIDTH, DISPLAY_HEIGHT)
+diagram_display.add(diagram)
 
 # Create a circle that marks the active chord
 selected_chord_dot = Circle(0, 0, 8, Color.BLUE, fill=True)
-display.add(selected_chord_dot)
+diagram_display.add(selected_chord_dot)
 
-# Create separate display for tetrachord visualization
-tetrachord_display = Display("Tetrachord View", 400, 400, 1000, 500, Color.BLACK)
+# Create separate display for chord visualization
+chord_display = Display("Chord Visualization", CLOCK_WIDTH, DISPLAY_HEIGHT, CLOCK_X, VERTICAL_CENTER, Color.BLACK)
 
-# Initialize tetrachord display
-def create_tetrachord_display():
-    """Create the tetrachord visualization display."""
-    global tetrachord_display, tetrachord_color_gradient
-    global tetrachord_path, tetrachord_nodes, tetrachord_lines, note_labels
+# Calculate chord positioning based on clock display dimensions
+# Use relative positioning to maximize space usage and ensure proper scaling
+CLOCK_X = CLOCK_WIDTH // 2   # X position of chord center (centered in clock window)
+CLOCK_Y = DISPLAY_HEIGHT // 2  # Y position of chord center (centered in clock window)
+
+# Calculate radius to ensure adequate space for both note labels and chord info labels
+# Need space for: note labels + chord info labels + padding between them
+# Calculate maximum safe radius based on available space
+def calculate_safe_radius():
+    """Calculate the maximum safe radius that leaves room for all labels."""
+    # Available space is the smaller dimension of the clock display
+    available_space = min(CLOCK_WIDTH, DISPLAY_HEIGHT)
+
+    # Estimate space needed for labels
+    # Note labels extend beyond circle by LABEL_DISTANCE (15% of radius)
+    # Chord info labels need 2.5x that space to avoid overlap
+    # So total space needed = radius + note_label_space + chord_info_space + padding
+
+    # Start with a conservative estimate and refine
+    max_radius = int(available_space * 0.3)  # Start with 30% of available space
+
+    # Calculate required space for this radius
+    note_label_space = int(max_radius * 0.15)  # 15% of radius
+    chord_info_space = int(note_label_space * 2.5)  # 2.5x note label space
+    padding = 40  # Minimum padding
+
+    total_required_space = max_radius + note_label_space + chord_info_space + padding
+
+    # If we need more space than available, reduce the radius
+    if total_required_space > available_space:
+        # Calculate maximum radius that fits
+        max_radius = int((available_space - padding) / (1 + 0.15 + 0.15 * 2.5))
+
+    return max(50, max_radius)  # Minimum radius of 50 pixels
+
+CLOCK_RADIUS = calculate_safe_radius()
+
+# This ensures consistent visual relationships regardless of display size
+NODE_RADIUS = max(8, int(CLOCK_RADIUS * 0.1))  # 10% of radius, minimum 8
+BIG_TICK_RADIUS = max(3, int(CLOCK_RADIUS * 0.04))  # 4% of radius, minimum 3
+SMALL_TICK_RADIUS = max(2, int(CLOCK_RADIUS * 0.02))  # 2% of radius, minimum 2
+LABEL_DISTANCE = max(15, int(CLOCK_RADIUS * 0.15))  # 15% of radius, minimum 15
+
+# Initialize chord display
+def create_chord_display():
+    """Create the chord visualization display."""
+    global chord_display, clock_color_gradient
+    global clock_path, note_nodes, note_connection_lines, note_labels
 
     # Create color gradient
-    tetrachord_color_gradient = create_tetrachord_color_gradient()
+    clock_color_gradient = create_chord_color_gradient()
 
     # Create the circular path
-    tetrachord_path = Circle(TETRACHORD_X, TETRACHORD_Y, TETRACHORD_RADIUS,
+    clock_path = Circle(CLOCK_X, CLOCK_Y, CLOCK_RADIUS,
                            Color(120, 120, 130), False, 2)  # Sophisticated dark gray
-    tetrachord_display.add(tetrachord_path)
+    chord_display.add(clock_path)
 
     # Calculate tick mark coordinates
     big_tick_coords = []
     for i in range(12):  # 12 semitones
         angle = (i / 12.0) * PI_TIMES_2
         # Big ticks on the circle
-        x, y = get_position_on_tetrachord_circle(angle)
+        x, y = get_position_on_chord_circle(angle)
         big_tick_coords.append((x, y))
 
-    # Draw background lines connecting all big ticks (like TetrachordTuner)
+    # Draw background lines connecting all big ticks (like chordTuner)
     trans_gray = Color(180, 180, 190, 80)  # More visible light gray
     for i, (x1, y1) in enumerate(big_tick_coords):
         for j, (x2, y2) in enumerate(big_tick_coords):
             if i != j:  # Don't draw line to itself
-                tetrachord_display.drawLine(x1, y1, x2, y2, trans_gray, 1)
+                chord_display.drawLine(x1, y1, x2, y2, trans_gray, 1)
 
     # Create tick marks around the circle
     # Note positions: tonal center at 12 o'clock, increasing clockwise
     tonal_center = TONAL_CENTER_OFFSET % 12
     for i in range(12):  # 12 semitones
         angle = (i / 12.0) * PI_TIMES_2  # 0 to 2π radians
-        x, y = get_position_on_tetrachord_circle(angle)
+        x, y = get_position_on_chord_circle(angle)
 
         # Major tick marks (every semitone)
-        color = tetrachord_color_gradient[i * 2]  # Use every other color
+        color = clock_color_gradient[i * 2]  # Use every other color
         tick = Circle(x, y, BIG_TICK_RADIUS, color, True)
-        tetrachord_display.add(tick)
+        chord_display.add(tick)
 
         # Add note names positioned outside the circle
         # Adjust note index so tonal center appears at 12 o'clock
@@ -398,12 +468,13 @@ def create_tetrachord_display():
         note_name = NOTE_NAMES_FLAT[note_index]
 
         # Position labels at a consistent distance outside the circle
-        label_radius = TETRACHORD_RADIUS + 25  # Fixed distance outside circle
+        # Use relative positioning based on radius for better scaling
+        label_radius = CLOCK_RADIUS + LABEL_DISTANCE
         label_angle = angle - PI_OVER_2  # Convert to standard coordinate system
 
         # Calculate position for label center
-        label_x = int(TETRACHORD_X + label_radius * cos(label_angle))
-        label_y = int(TETRACHORD_Y + label_radius * sin(label_angle))
+        label_x = int(CLOCK_X + label_radius * cos(label_angle))
+        label_y = int(CLOCK_Y + label_radius * sin(label_angle))
 
         # Adjust y position based on vertical position to compensate for text bottom-alignment
         # Labels at the top need to be pushed further away, labels at bottom pulled closer
@@ -412,26 +483,26 @@ def create_tetrachord_display():
 
         # Create a properly centered label
         note_label = Label(note_name, CENTER, Color.WHITE)
-        tetrachord_display.add(note_label, label_x - 10, adjusted_label_y - 5)
+        chord_display.add(note_label, label_x - 10, adjusted_label_y - 5)
         note_labels.append(note_label)
 
 
     # Initialize four nodes (will be positioned when chords are played)
-    tetrachord_nodes = []
+    note_nodes = []
     for i in range(4):
         # Create node
-        node = Circle(TETRACHORD_X, TETRACHORD_Y, NODE_RADIUS, Color.WHITE, True)
-        tetrachord_display.add(node)
-        tetrachord_nodes.append(node)
+        node = Circle(CLOCK_X, CLOCK_Y, NODE_RADIUS, Color.WHITE, True)
+        chord_display.add(node)
+        note_nodes.append(node)
 
     # No center labels - only the clock face labels around the circle
 
     # Initialize connecting lines (6 lines needed to connect all pairs of 4 nodes)
-    tetrachord_lines = []
+    note_connection_lines = []
     for i in range(6):  # 6 lines needed to connect all pairs of 4 nodes
-        line = Line(TETRACHORD_X, TETRACHORD_Y, TETRACHORD_X, TETRACHORD_Y, Color.WHITE, 2)
-        tetrachord_display.add(line)
-        tetrachord_lines.append(line)
+        line = Line(CLOCK_X, CLOCK_Y, CLOCK_X, CLOCK_Y, Color.WHITE, 2)
+        chord_display.add(line)
+        note_connection_lines.append(line)
 
     # Add chord information display at the top
     global chord_info_text
@@ -442,16 +513,16 @@ def create_tetrachord_display():
 
     # Labels and values will be updated in update_chord_info_display()
 
-# Global variables for tetrachord display
-tetrachord_color_gradient = None
-tetrachord_path = None
-tetrachord_nodes = []
-tetrachord_lines = []
+# Global variables for chord display
+clock_color_gradient = None
+clock_path = None
+note_nodes = []
+note_connection_lines = []
 chord_info_text = None
 note_labels = []
 
-# Create the tetrachord display
-create_tetrachord_display()
+# Create the clock-like chord display
+create_chord_display()
 # endregion GUI Setup #########################################################
 
 
@@ -479,8 +550,8 @@ def find_closest_point(here, points):
         tuple: The closest point as (x, y) coordinates (relative)
     """
     # Get display dimensions
-    display_width = display.getWidth()
-    display_height = display.getHeight()
+    display_width = diagram_display.getWidth()
+    display_height = diagram_display.getHeight()
 
     # Convert relative coordinates to absolute for comparison
     here_abs = here  # here is already in absolute coordinates
@@ -535,8 +606,8 @@ def play_chord(chord):
     # Play the chord!
     Play.midi(phrase)
 
-    # Update tetrachord display with the chord pitches and info
-    update_tetrachord_display(adjusted_pitches)
+    # Update choed display with the chord pitches and info
+    update_chord_display(adjusted_pitches)
     update_chord_info_display(chord)
 
 def select_chord_visually(x, y):
@@ -546,68 +617,78 @@ def select_chord_visually(x, y):
         x (float): X coordinate for the visual indicator (relative 0-1)
         y (float): Y coordinate for the visual indicator (relative 0-1)
     """
-    global display, selected_chord_dot
+    global diagram_display, selected_chord_dot
 
     # Convert relative coordinates to absolute
-    display_width = display.getWidth()
-    display_height = display.getHeight()
+    display_width = diagram_display.getWidth()
+    display_height = diagram_display.getHeight()
     abs_x = int(x * display_width)
     abs_y = int(y * display_height)
 
-    display.move(selected_chord_dot, abs_x, abs_y)
+    diagram_display.move(selected_chord_dot, abs_x, abs_y)
 
 def update_chord_info_display(chord):
-    """Update the chord information text at the top of the tetrachord display.
+    """Update the chord information text at the top of the chord display.
 
     Args:
         chord (Chord): The chord object containing name and info
     """
-    global chord_info_text, tetrachord_display
+    global chord_info_text, chord_display
 
     # Remove old labels if they exist
     if chord_info_text['elemental']:
-        tetrachord_display.remove(chord_info_text['elemental'])
+        chord_display.remove(chord_info_text['elemental'])
     if chord_info_text['traditional']:
-        tetrachord_display.remove(chord_info_text['traditional'])
+        chord_display.remove(chord_info_text['traditional'])
 
     # Add chord information vertically - elemental at top, traditional at bottom
     # Dynamically center based on string length and position equidistant from circle
 
-    # Font sizes - consistent for both labels
-    elemental_font_size = 16
-    traditional_font_size = 16
+    # Font sizes - scale with display size for better readability
+    base_font_size = max(12, int(DISPLAY_HEIGHT * 0.03))  # 3% of display height, minimum 12
+    elemental_font_size = base_font_size
+    traditional_font_size = base_font_size
 
-    # Center horizontally in the 400px window
-    horizontal_center = 200
+    # Center horizontally in the clock window
+    horizontal_center = CLOCK_WIDTH // 2
 
     # Calculate vertical positions with more generous spacing from circle
-    # Circle center is at y=200, with radius=120, so circle spans y=80 to y=320
-    circle_top = TETRACHORD_Y - TETRACHORD_RADIUS    # 200 - 120 = 80
-    circle_bottom = TETRACHORD_Y + TETRACHORD_RADIUS # 200 + 120 = 320
+    # Circle center and radius are now dynamic based on display size
+    circle_top = CLOCK_Y - CLOCK_RADIUS
+    circle_bottom = CLOCK_Y + CLOCK_RADIUS
 
-    label_distance = 50  # Increased distance from circle edge to text (was 35)
-    font_height = 20     # More generous font height estimate
+    # Calculate spacing to ensure chord info labels don't overlap with note labels
+    # Note labels extend LABEL_DISTANCE beyond the circle
+    note_label_extension = LABEL_DISTANCE
+    chord_info_spacing = max(60, int(note_label_extension * 2.5))  # 2.5x note label extension, minimum 60px
+    font_height = max(16, int(DISPLAY_HEIGHT * 0.025))    # 2.5% of display height, minimum 16
 
-    # Top label: position so text appears 'label_distance' above circle
+    # Top label: position so text appears well above circle and note labels
     # Since text aligns to bottom of label, we need to account for font height
-    top_y = circle_top - label_distance - font_height
+    top_y = circle_top - chord_info_spacing - font_height
 
-    # Bottom label: position so text appears 'label_distance' below circle
+    # Bottom label: position so text appears well below circle and note labels
     # Text aligns to bottom of label, so this is simpler
-    bottom_y = circle_bottom + label_distance
+    bottom_y = circle_bottom + chord_info_spacing
+
+    # Ensure labels stay within display bounds
+    top_y = max(10, top_y)  # At least 10px from top of display
+    bottom_y = min(DISPLAY_HEIGHT - 30, bottom_y)  # At least 30px from bottom of display
 
     # Calculate precise centering for any text length
     def get_precise_label_position(text, font_size, window_center):
         """Calculate the exact x position to center a label in the window."""
-        # Fine-tuned character width estimation based on actual screenshots
-        char_width = 8.4   # Based on text width calculator measurements for font size 16
+        # Scale character width with font size for better accuracy
+        char_width = font_size * 0.525  # Proportional to font size (was 8.4 for size 16)
 
         # Estimate text width
         estimated_text_width = len(text) * char_width
 
         # Calculate label position to center the text in the window
         # Label should start at: window_center - (text_width / 2)
-        label_x = int(window_center - (estimated_text_width / 2) - 12)  # -5 shifts left by 5 pixels
+        # Adjust offset based on font size for better centering
+        offset = max(8, int(font_size * 0.75))  # Scale offset with font size
+        label_x = int(window_center - (estimated_text_width / 2) - offset)
 
         return label_x
 
@@ -617,8 +698,14 @@ def update_chord_info_display(chord):
     chord_info_text['elemental'] = elemental_label
 
     # Calculate precise position for perfect centering
+    nudge = 0
+    if chord.name[-6:] == "Branch": nudge = -6
+    elif chord.name == "Fire": nudge = 12
+    elif chord.name[-5:] == "Magma": nudge = -12
+    # elif chord.name == "Ember": nudge = -12
+
     elemental_x = get_precise_label_position(chord.name, elemental_font_size, horizontal_center)
-    tetrachord_display.add(elemental_label, elemental_x, top_y)
+    chord_display.add(elemental_label, elemental_x + nudge, top_y)
 
     # Traditional name (bottom center, perfectly centered for any length)
     traditional_label = Label(chord.traditional_name, CENTER, Color.WHITE)
@@ -627,15 +714,15 @@ def update_chord_info_display(chord):
 
     # Calculate precise position for perfect centering
     traditional_x = get_precise_label_position(chord.traditional_name, traditional_font_size, horizontal_center)
-    tetrachord_display.add(traditional_label, traditional_x, bottom_y - 5)
+    chord_display.add(traditional_label, traditional_x, bottom_y - 5)
 
-def update_tetrachord_display(pitches):
-    """Update the tetrachord display with the four notes of a chord.
+def update_chord_display(pitches):
+    """Update the chord display with the four notes of a chord.
 
     Args:
         pitches (list): List of four MIDI pitch values
     """
-    global tetrachord_nodes, tetrachord_lines, tetrachord_color_gradient
+    global note_nodes, note_connection_lines, clock_color_gradient
 
     # Sort pitches to ensure consistent ordering
     sorted_pitches = sorted(pitches)
@@ -645,23 +732,23 @@ def update_tetrachord_display(pitches):
     colors = []
     for i, pitch in enumerate(sorted_pitches):
         angle = pitch_to_angle(pitch)
-        x, y = get_position_on_tetrachord_circle(angle)
+        x, y = get_position_on_chord_circle(angle)
         positions.append((x, y))
 
         # Get color based on visual position on circle (not pitch class)
         # This ensures red is always at bottom, etc.
         color_index = int((angle / PI_TIMES_2) * 24) % 24
-        colors.append(tetrachord_color_gradient[color_index])
+        colors.append(clock_color_gradient[color_index])
 
     # Update node positions and colors
     for i in range(4):
         if i < len(positions):
             x, y = positions[i]
-            tetrachord_nodes[i].setColor(colors[i])
-            tetrachord_display.move(tetrachord_nodes[i], x, y)
+            note_nodes[i].setColor(colors[i])
+            chord_display.move(note_nodes[i], x, y)
         else:
             # Hide unused nodes
-            tetrachord_display.move(tetrachord_nodes[i], TETRACHORD_X, TETRACHORD_Y)
+            chord_display.move(note_nodes[i], CLOCK_X, CLOCK_Y)
 
     # Update connecting lines to connect all nodes to each other
     if len(positions) >= 4:
@@ -673,13 +760,13 @@ def update_tetrachord_display(pitches):
             end_x, end_y = positions[end_idx]
 
             # Remove old line and add new one
-            tetrachord_display.remove(tetrachord_lines[i])
-            tetrachord_lines[i] = Line(start_x, start_y, end_x, end_y, Color.WHITE, 2)
-            tetrachord_display.add(tetrachord_lines[i])
+            chord_display.remove(note_connection_lines[i])
+            note_connection_lines[i] = Line(start_x, start_y, end_x, end_y, Color.WHITE, 2)
+            chord_display.add(note_connection_lines[i])
     else:
         # Hide lines if not enough notes
-        for line in tetrachord_lines:
-            tetrachord_display.remove(line)
+        for line in note_connection_lines:
+            chord_display.remove(line)
 
 first_time = True
 # make a bar of dashes with | in the same places as header
@@ -709,7 +796,7 @@ def select_chord(x, y):
     # Get chord info
     chord = COORDINATES_TO_CHORD[point]
 
-    # Play the chord (this will also update the tetrachord display)
+    # Play the chord (this will also update the chord display)
     play_chord(chord)
 
     # Place a dot on the selection (point is already relative)
@@ -769,7 +856,7 @@ def choose_action(x, y):
 # region Main #################################################################
 def main():
     # Register callback for playing chords by clicking the mouse
-    display.onMouseClick(choose_action)
+    diagram_display.onMouseClick(choose_action)
 
     # # Show mouse coordinates for testing
     # display.showMouseCoordinates()
@@ -813,33 +900,6 @@ U|' \\/ '|u   \\/"_ \\/\\ \\   /"/u\\| ___"|/U|' \\/ '|u\\| ___"|/| \\ |"|   |_ 
     print("  In his memory, let's play beautiful movements, not static chords, "
           "and remember to play with our family!!!\n")
 
-# region Testing ##############################################################
-def test_coordinate_conversion():
-    """Test function to verify coordinate conversion works for different display sizes."""
-    print("Testing coordinate conversion for different display sizes:")
-    print("=" * 60)
-
-    # Test with different display sizes
-    test_sizes = [(1200, 720), (800, 600), (1600, 900), (1920, 1080)]
-
-    for width, height in test_sizes:
-        print(f"\nDisplay size: {width}x{height}")
-        print("-" * 30)
-
-        # Test a few key coordinates
-        test_coords = [(0.091, 0.158), (0.878, 0.157), (0.471, 0.889)]
-        coord_names = ["Earth", "Wind", "Fire"]
-
-        for (rel_x, rel_y), name in zip(test_coords, coord_names):
-            abs_x = int(rel_x * width)
-            abs_y = int(rel_y * height)
-            print(f"{name:8}: ({rel_x:.3f}, {rel_y:.3f}) -> ({abs_x:4d}, {abs_y:3d})")
-
-# Uncomment the line below to run the test
-# test_coordinate_conversion()
-# endregion Testing ###########################################################
-
-# endregion Main ##############################################################
-
 if __name__ == "__main__":
     main()
+# endregion Main ##############################################################
