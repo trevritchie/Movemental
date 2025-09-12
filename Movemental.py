@@ -5,7 +5,7 @@
 #
 # Interface inspired by tonnetz by _____ and Bill Manaris
 #
-# Chord visualization inspired by chordTuner
+# Chord visualization inspired by TetrachordTuner
 # by Pangur Brougham-Cook and Bill Manaris
 ###############################################################################
 
