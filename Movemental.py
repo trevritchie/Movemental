@@ -87,23 +87,29 @@ MIN_BOTTOM_MARGIN = 30
 MAJOR_SIXTH_DIMINISHED_SCALE = [0, 2, 4, 5, 7, 8, 9, 11]
 MAJOR_SIXTH_DIMINISHED_SCALE_FROM_THIRD = [0, 1, 3, 4, 5, 7, 8, 10]
 MAJOR_SIXTH_DIMINISHED_SCALE_FROM_FIFTH = [0, 1, 2, 4, 5, 7, 9, 10]
-MAJOR_SIXTH_DIMINISHED_SCALE_FROM_SIXTH = [0, 2, 3, 5, 7, 8, 10, 11]  # aka minor seventh diminished
+MAJOR_SIXTH_DIMINISHED_SCALE_FROM_SIXTH = [
+    0, 2, 3, 5, 7, 8, 10, 11]  # aka minor seventh diminished
 
 MINOR_SIXTH_DIMINISHED_SCALE = [0, 2, 3, 5, 7, 8, 9, 11]
 MINOR_SIXTH_DIMINISHED_SCALE_FROM_THIRD = [0, 2, 4, 5, 6, 8, 9, 11]
 MINOR_SIXTH_DIMINISHED_SCALE_FROM_FIFTH = [0, 1, 2, 4, 5, 7, 8, 10]
-MINOR_SIXTH_DIMINISHED_SCALE_FROM_SIXTH = [0, 2, 3, 5, 6, 8, 10, 11]  # aka minor seventh flat five diminished
+# aka minor seventh flat five diminished
+MINOR_SIXTH_DIMINISHED_SCALE_FROM_SIXTH = [0, 2, 3, 5, 6, 8, 10, 11]
 
 DOMINANT_SEVENTH_DIMINISHED_SCALE = [0, 2, 4, 5, 7, 8, 10, 11]
 DOMINANT_SEVENTH_DIMINISHED_SCALE_FROM_THIRD = [0, 1, 3, 4, 6, 7, 8, 10]
 DOMINANT_SEVENTH_DIMINISHED_SCALE_FROM_FIFTH = [0, 1, 3, 4, 5, 7, 9, 10]
 DOMINANT_SEVENTH_DIMINISHED_SCALE_FROM_SEVENTH = [0, 1, 2, 4, 6, 7, 9, 10]
 
-DOMINANT_SEVENTH_FLAT_FIVE_DIMINISHED_SCALE = [0, 2, 4, 5, 6, 8, 10, 11]  # same as from flat fifth
-DOMINANT_SEVENTH_FLAT_FIVE_DIMINISHED_SCALE_FROM_THIRD = [0, 1, 2, 4, 6, 7, 8, 10]  # same as from seventh
+DOMINANT_SEVENTH_FLAT_FIVE_DIMINISHED_SCALE = [
+    0, 2, 4, 5, 6, 8, 10, 11]  # same as from flat fifth
+DOMINANT_SEVENTH_FLAT_FIVE_DIMINISHED_SCALE_FROM_THIRD = [
+    0, 1, 2, 4, 6, 7, 8, 10]  # same as from seventh
 
-DOMINANT_ROOTS_AND_THEIR_DIMINISHED = [0, 2, 3, 5, 6, 8, 9, 11]  # aka whole-half diminished
-DIMINISHED_AND_ITS_DOMINANT_ROOTS = [0, 1, 3, 4, 6, 7, 9, 10]  # aka half-whole diminished
+DOMINANT_ROOTS_AND_THEIR_DIMINISHED = [
+    0, 2, 3, 5, 6, 8, 9, 11]  # aka whole-half diminished
+DIMINISHED_AND_ITS_DOMINANT_ROOTS = [
+    0, 1, 3, 4, 6, 7, 9, 10]  # aka half-whole diminished
 
 # Chord qualities
 MAJOR_SIXTH_CHORD = [0, 4, 7, 9]
@@ -122,12 +128,10 @@ DOMINANT_SEVENTH_CHORD_FROM_FIFTH = [0, 3, 5, 9]
 DOMINANT_SEVENTH_CHORD_FROM_SEVENTH = [0, 2, 6, 9]
 
 DOMINANT_SEVENTH_FLAT_FIVE_CHORD = [0, 4, 6, 10]  # same as from flat fifth
-DOMINANT_SEVENTH_FLAT_FIVE_CHORD_FROM_THIRD = [0, 2, 6, 8]  # same as from seventh
+DOMINANT_SEVENTH_FLAT_FIVE_CHORD_FROM_THIRD = [
+    0, 2, 6, 8]  # same as from seventh
 
 DIMINISHED_CHORD = [0, 3, 6, 9]
-
-# chord display constants (calculated dynamically after display dimensions)
-# These are now calculated based on the actual display size for optimal scaling
 
 # Relative positioning constants (as ratios of radius)
 LABEL_DISTANCE_RATIO = 1.2  # How far outside circle to place note labels
@@ -135,17 +139,42 @@ SMALL_TICK_RATIO = 0.95     # How close to center to place small ticks
 TITLE_DISTANCE_RATIO = 1.4  # How far above circle to place title
 
 # Math constants for faster calculations
-PI_OVER_6 = pi/6
-PI_OVER_3 = pi/3
-PI_OVER_2 = pi/2
-PI_TIMES_2 = 2*pi
+PI_OVER_6 = pi / 6
+PI_OVER_3 = pi / 3
+PI_OVER_2 = pi / 2
+PI_TIMES_2 = 2 * pi
 # endregion Constants #########################################################
 
 
 # region Classes ##############################################################
 # Note letter names
-NOTE_NAMES_SHARP = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"]
-NOTE_NAMES_FLAT = ["C", "Db", "D", "Eb", "E", "F", "Gb", "G", "Ab", "A", "Bb", "B"]
+NOTE_NAMES_SHARP = [
+    "C",
+    "C#",
+    "D",
+    "D#",
+    "E",
+    "F",
+    "F#",
+    "G",
+    "G#",
+    "A",
+    "A#",
+    "B"]
+NOTE_NAMES_FLAT = [
+    "C",
+    "Db",
+    "D",
+    "Eb",
+    "E",
+    "F",
+    "Gb",
+    "G",
+    "Ab",
+    "A",
+    "Bb",
+    "B"]
+
 
 class Chord:
     def __init__(self, name, pitches):
@@ -159,7 +188,7 @@ class Chord:
 
         # Convert to pitch classes (0-11) then add tonal center offset
         self.pitches = [(x % 12) + TONAL_CENTER_PITCH_CLASS
-                       for x in pitches]
+                        for x in pitches]
 
         # Type of 4 note chord - simplified with dictionary lookup
         chord_quality_map = {
@@ -205,7 +234,7 @@ class Chord:
         # String of chord spelling (note letter names) using voiced pitches
         if len(voiced_pitches) >= 4:
             note_names = [NOTE_NAMES_FLAT[pitch % 12]
-                         for pitch in voiced_pitches]
+                          for pitch in voiced_pitches]
             self.spelling = "  ".join(f"{name:<2}" for name in note_names)
         else:
             self.spelling = "Incomplete"
@@ -214,9 +243,10 @@ class Chord:
 
 # region Coordinates to Chords ################################################
 # Map points on the display to chords.
-# Everything is relative to C here, but TRANSPOSE_KEY_SEMITONES will allow for any tonal center.
-# Also, these will be reduced to pitch classes in Chord, but I wrote them as absolute pitches
-# in case that is useful later
+# Everything is relative to C here, but TRANSPOSE_KEY_SEMITONES
+# will allow for any tonal center. Also, these will be reduced to pitch
+# classes in Chord, but I wrote them as absolute pitches in case that
+# is useful later.
 COORDINATES_TO_CHORD = {}
 
 # Elemental Diminished Chords
@@ -228,107 +258,107 @@ COORDINATES_TO_CHORD[(0.471, 0.889)] = Chord("Fire", [D4, F4, AF4, B4])
 # Trunk (min 6)
 COORDINATES_TO_CHORD[(0.277, 0.101)] = Chord("Trunk", [C4, EF4, G4, A4])
 COORDINATES_TO_CHORD[(0.238, 0.165)] = Chord("Brother Trunk",
-                                               [EF4, GF4, BF4, C5])
+                                             [EF4, GF4, BF4, C5])
 COORDINATES_TO_CHORD[(0.280, 0.161)] = Chord("Twin Trunk",
-                                               [GF4, A4, DF5, EF5])
+                                             [GF4, A4, DF5, EF5])
 COORDINATES_TO_CHORD[(0.317, 0.160)] = Chord("Sister Trunk",
-                                               [A3, C4, E4, FS4])
+                                             [A3, C4, E4, FS4])
 # Branch (maj 6)
 COORDINATES_TO_CHORD[(0.493, 0.042)] = Chord("Branch", [C4, E4, G4, A4])
 COORDINATES_TO_CHORD[(0.442, 0.094)] = Chord("Brother Branch",
-                                               [EF4, G4, BF4, C5])
+                                             [EF4, G4, BF4, C5])
 COORDINATES_TO_CHORD[(0.488, 0.094)] = Chord("Twin Branch",
-                                               [GF4, BF4, DF5, EF5])
+                                             [GF4, BF4, DF5, EF5])
 COORDINATES_TO_CHORD[(0.533, 0.094)] = Chord("Sister Branch",
-                                               [A3, CS4, E4, FS4])
+                                             [A3, CS4, E4, FS4])
 # Sand-Storm (dom 7 b5) (default=twin and brother=sister)
 COORDINATES_TO_CHORD[(0.494, 0.221)] = Chord("Sand-Storm", [C4, E4, GF4, BF4])
 COORDINATES_TO_CHORD[(0.442, 0.282)] = Chord("Brother Sand-Storm",
-                                               [EF4, G4, A4, DF5])
+                                             [EF4, G4, A4, DF5])
 COORDINATES_TO_CHORD[(0.499, 0.283)] = Chord("Twin Sand-Storm",
-                                               [GF4, BF4, C5, E5])
+                                             [GF4, BF4, C5, E5])
 COORDINATES_TO_CHORD[(0.558, 0.283)] = Chord("Sister Sand-Storm",
-                                               [A3, DF4, EF4, G4])
+                                             [A3, DF4, EF4, G4])
 # Leaf (dom 7)
 COORDINATES_TO_CHORD[(0.683, 0.113)] = Chord("Leaf", [C4, E4, G4, BF4])
 COORDINATES_TO_CHORD[(0.658, 0.171)] = Chord("Brother Leaf",
-                                               [EF4, G4, BF4, DF5])
+                                             [EF4, G4, BF4, DF5])
 COORDINATES_TO_CHORD[(0.693, 0.161)] = Chord("Twin Leaf",
-                                               [GF4, BF4, DF5, E5])
+                                             [GF4, BF4, DF5, E5])
 COORDINATES_TO_CHORD[(0.726, 0.165)] = Chord("Sister Leaf",
-                                               [A3, CS4, E4, G4])
+                                             [A3, CS4, E4, G4])
 
 # Wind-Fire Combinations
 # Smoke (min 6)
 COORDINATES_TO_CHORD[(0.833, 0.310)] = Chord("Smoke", [G4, BF4, D5, E5])
 COORDINATES_TO_CHORD[(0.785, 0.360)] = Chord("Brother Smoke",
-                                               [BF4, DF5, F5, G5])
+                                             [BF4, DF5, F5, G5])
 COORDINATES_TO_CHORD[(0.825, 0.360)] = Chord("Twin Smoke",
-                                               [DF5, E5, AF5, BF5])
+                                             [DF5, E5, AF5, BF5])
 COORDINATES_TO_CHORD[(0.864, 0.371)] = Chord("Sister Smoke",
-                                               [E4, G4, B4, CS5])
+                                             [E4, G4, B4, CS5])
 # Ember (maj 6)
 COORDINATES_TO_CHORD[(0.929, 0.475)] = Chord("Ember", [G4, B4, D5, E5])
 COORDINATES_TO_CHORD[(0.873, 0.533)] = Chord("Brother Ember",
-                                               [BF4, D5, F5, G5])
+                                             [BF4, D5, F5, G5])
 COORDINATES_TO_CHORD[(0.919, 0.528)] = Chord("Twin Ember",
-                                               [DF5, F5, AF5, BF5])
+                                             [DF5, F5, AF5, BF5])
 COORDINATES_TO_CHORD[(0.962, 0.532)] = Chord("Sister Ember",
-                                               [E4, GS4, B4, CS5])
+                                             [E4, GS4, B4, CS5])
 # Fire-Storm (dom 7 b5)
 COORDINATES_TO_CHORD[(0.627, 0.444)] = Chord("Fire-Storm", [G4, B4, DF5, F5])
 COORDINATES_TO_CHORD[(0.561, 0.511)] = Chord("Brother Fire-Storm",
-                                               [BF4, D5, E5, AF5])
+                                             [BF4, D5, E5, AF5])
 COORDINATES_TO_CHORD[(0.630, 0.501)] = Chord("Twin Fire-Storm",
-                                               [DF5, F5, G5, B5])
+                                             [DF5, F5, G5, B5])
 COORDINATES_TO_CHORD[(0.686, 0.504)] = Chord("Sister Fire-Storm",
-                                               [E4, AF4, BF4, D5])
+                                             [E4, AF4, BF4, D5])
 # Flame (dom 7)
 COORDINATES_TO_CHORD[(0.680, 0.738)] = Chord("Flame", [G4, B4, D5, F5])
 COORDINATES_TO_CHORD[(0.623, 0.794)] = Chord("Brother Flame",
-                                               [BF4, D5, F5, AF5])
+                                             [BF4, D5, F5, AF5])
 COORDINATES_TO_CHORD[(0.675, 0.792)] = Chord("Twin Flame",
-                                               [DF5, F5, AF5, B5])
+                                             [DF5, F5, AF5, B5])
 COORDINATES_TO_CHORD[(0.728, 0.796)] = Chord("Sister Flame",
-                                               [E4, GS4, B4, D5])
+                                             [E4, GS4, B4, D5])
 
 # Fire-Earth Combinations
 # Magma (min 6)
 COORDINATES_TO_CHORD[(0.283, 0.690)] = Chord("Magma", [D4, F4, A4, B5])
 COORDINATES_TO_CHORD[(0.233, 0.756)] = Chord("Brother Magma",
-                                               [F4, AF4, C5, D5])
+                                             [F4, AF4, C5, D5])
 COORDINATES_TO_CHORD[(0.284, 0.754)] = Chord("Twin Magma",
-                                               [AF4, CF5, EF5, F5])
+                                             [AF4, CF5, EF5, F5])
 COORDINATES_TO_CHORD[(0.328, 0.751)] = Chord("Sister Magma",
-                                               [B3, D4, FS4, GS4])
+                                             [B3, D4, FS4, GS4])
 # Glass (maj 6)
 COORDINATES_TO_CHORD[(0.069, 0.468)] = Chord("Glass", [F4, A4, C5, D5])
 COORDINATES_TO_CHORD[(0.028, 0.533)] = Chord("Brother Glass",
-                                               [AF4, C4, EF5, F5])
+                                             [AF4, C4, EF5, F5])
 COORDINATES_TO_CHORD[(0.072, 0.528)] = Chord("Twin Glass",
-                                               [B4, DS5, FS5, GS5])
+                                             [B4, DS5, FS5, GS5])
 COORDINATES_TO_CHORD[(0.109, 0.525)] = Chord("Sister Glass",
-                                               [D4, FS4, A4, B5])
+                                             [D4, FS4, A4, B5])
 # Forest-Fire (dom 7 b5)
 COORDINATES_TO_CHORD[(0.392, 0.432)] = Chord("Forest-Fire", [F4, A4, CF5, EF5])
 COORDINATES_TO_CHORD[(0.348, 0.493)] = Chord("Brother Forest-Fire",
-                                               [AF4, C5, D5, GF5])
+                                             [AF4, C5, D5, GF5])
 COORDINATES_TO_CHORD[(0.393, 0.487)] = Chord("Twin Forest-Fire",
-                                               [CF5, EF5, F5, A5])
+                                             [CF5, EF5, F5, A5])
 COORDINATES_TO_CHORD[(0.438, 0.485)] = Chord("Sister Forest-Fire",
-                                               [D4, GF4, AF4, C5])
+                                             [D4, GF4, AF4, C5])
 # Charcoal (dom 7)
 COORDINATES_TO_CHORD[(0.196, 0.326)] = Chord("Charcoal", [F4, A4, C5, EF5])
 COORDINATES_TO_CHORD[(0.144, 0.381)] = Chord("Brother Charcoal",
-                                               [AF4, C4, EF5, GF5])
+                                             [AF4, C4, EF5, GF5])
 COORDINATES_TO_CHORD[(0.193, 0.378)] = Chord("Twin Charcoal",
-                                               [B4, DS5, FS5, A5])
+                                             [B4, DS5, FS5, A5])
 COORDINATES_TO_CHORD[(0.241, 0.381)] = Chord("Sister Charcoal",
-                                               [D4, FS4, A4, C5])
+                                             [D4, FS4, A4, C5])
 # endregion Coordinates to Chords #############################################
 
 
-# region chord Functions #################################################
+# region chord Functions ######################################################
 def get_position_on_chord_circle(angle):
     """Returns x,y coordinates on the chord circle for a given angle.
 
@@ -381,7 +411,7 @@ def create_chord_color_gradient():
     """
     # Define the three elemental colors
     brown = Color(139, 90, 60)        # Rich brown - like fertile soil
-    light_blue = Color(135, 206, 235) # Light blue - like clear sky
+    light_blue = Color(135, 206, 235)  # Light blue - like clear sky
     red = Color(220, 50, 50)          # Deep red - like burning embers
 
     # Create 24 colors with repeating pattern: Brown, Light Blue, Red
@@ -396,7 +426,7 @@ def create_chord_color_gradient():
             gradient.append(light_blue)
 
     return gradient
-# endregion chord Functions ##############################################
+# endregion chord Functions ###################################################
 
 
 # region GUI Setup ############################################################
@@ -407,12 +437,14 @@ EFFECTIVE_HEIGHT = SCREEN_HEIGHT / DISPLAY_SCALE  # 800
 # Layout: Diagram takes 2/3 width, Clock takes 1/3 width, both take 3/4 height
 # Use 95% of screen width to leave margins on sides
 TOTAL_WIDTH = int(EFFECTIVE_WIDTH * 0.95)  # 95% of effective width
-DIAGRAM_WIDTH = int(TOTAL_WIDTH * 2/3)  # 2/3 of the 95% width
-CLOCK_WIDTH = int(TOTAL_WIDTH * 1/3)    # 1/3 of the 95% width
-DISPLAY_HEIGHT = int(EFFECTIVE_HEIGHT * 3/4)  # ~720 pixels (increased from 533)
+DIAGRAM_WIDTH = int(TOTAL_WIDTH * 2 / 3)  # 2/3 of the 95% width
+CLOCK_WIDTH = int(TOTAL_WIDTH * 1 / 3)    # 1/3 of the 95% width
+# ~720 pixels (increased from 533)
+DISPLAY_HEIGHT = int(EFFECTIVE_HEIGHT * 3 / 4)
 
 # Center vertically on screen
-VERTICAL_CENTER = (EFFECTIVE_HEIGHT - DISPLAY_HEIGHT) / 2  # ~133 pixels from top
+VERTICAL_CENTER = (EFFECTIVE_HEIGHT - DISPLAY_HEIGHT) / \
+    2  # ~133 pixels from top
 
 # Center horizontally on screen with 95% width
 HORIZONTAL_CENTER = (EFFECTIVE_WIDTH - TOTAL_WIDTH) / 2  # Center the 95% width
@@ -421,7 +453,7 @@ CLOCK_X = HORIZONTAL_CENTER + DIAGRAM_WIDTH
 
 # Create main display with diagram image
 diagram_display = Display("Movemental", DIAGRAM_WIDTH, DISPLAY_HEIGHT,
-                        DIAGRAM_X, VERTICAL_CENTER)
+                          DIAGRAM_X, VERTICAL_CENTER)
 diagram = Icon("./images/diagram.jpg", DIAGRAM_WIDTH, DISPLAY_HEIGHT)
 diagram_display.add(diagram)
 
@@ -431,17 +463,21 @@ diagram_display.add(selected_chord_dot)
 
 # Create separate display for chord visualization
 chord_display = Display("Chord Visualization", CLOCK_WIDTH, DISPLAY_HEIGHT,
-                       CLOCK_X, VERTICAL_CENTER, Color.BLACK)
+                        CLOCK_X, VERTICAL_CENTER, Color.BLACK)
 
 # Calculate chord positioning based on clock display dimensions
-# Use relative positioning to maximize space usage and ensure proper scaling
-CLOCK_X = CLOCK_WIDTH // 2   # X position of chord center (centered in clock window)
-CLOCK_Y = DISPLAY_HEIGHT // 2  # Y position of chord center (centered in clock window)
+# Use relative positioning to maximize space usage and ensure
+# proper scaling.
+# X position of chord center (centered in clock window)
+CLOCK_X = CLOCK_WIDTH // 2
+# Y position of chord center (centered in clock window)
+CLOCK_Y = DISPLAY_HEIGHT // 2
 
 
-# Calculate radius to ensure adequate space for both note labels and chord info labels
-# Need space for: note labels + chord info labels + padding between them
-# Calculate maximum safe radius based on available space
+# Calculate radius to ensure adequate space for both note labels
+# and chord info labels. Need space for: note labels +
+# chord info labels + padding between them. Calculate maximum
+# safe radius based on available space.
 def calculate_safe_radius():
     """Calculate the maximum safe radius that leaves room for all labels."""
     # Available space is the smaller dimension of the clock display
@@ -450,10 +486,12 @@ def calculate_safe_radius():
     # Estimate space needed for labels
     # Note labels extend beyond circle by LABEL_DISTANCE (15% of radius)
     # Chord info labels need 2.5x that space to avoid overlap
-    # So total space needed = radius + note_label_space + chord_info_space + padding
+    # So total space needed = radius + note_label_space +
+    # chord_info_space + padding
 
     # Start with a conservative estimate and refine
-    max_radius = int(available_space * 0.3)  # Start with 30% of available space
+    # Start with 30% of available space
+    max_radius = int(available_space * 0.3)
 
     # Calculate required space for this radius
     note_label_space = int(max_radius * 0.15)  # 15% of radius
@@ -461,23 +499,29 @@ def calculate_safe_radius():
     padding = MIN_PADDING  # Minimum padding
 
     total_required_space = (max_radius + note_label_space +
-                           chord_info_space + padding)
+                            chord_info_space + padding)
 
     # If we need more space than available, reduce the radius
     if total_required_space > available_space:
         # Calculate maximum radius that fits
         max_radius = int((available_space - padding) /
-                        (1 + 0.15 + 0.15 * 2.5))
+                         (1 + 0.15 + 0.15 * 2.5))
 
     return max(MIN_RADIUS, max_radius)  # Minimum radius
 
+
 CLOCK_RADIUS = calculate_safe_radius()
 
-# This ensures consistent visual relationships regardless of display size
-NODE_RADIUS = max(MIN_NODE_RADIUS, int(CLOCK_RADIUS * 0.1))  # 10% of radius, minimum
-BIG_TICK_RADIUS = max(MIN_TICK_RADIUS, int(CLOCK_RADIUS * 0.04))  # 4% of radius, minimum
-SMALL_TICK_RADIUS = max(MIN_SMALL_TICK_RADIUS, int(CLOCK_RADIUS * 0.02))  # 2% of radius, minimum
-LABEL_DISTANCE = max(MIN_LABEL_DISTANCE, int(CLOCK_RADIUS * 0.15))  # 15% of radius, minimum
+# This ensures consistent visual relationships
+# regardless of display size.
+NODE_RADIUS = max(MIN_NODE_RADIUS, int(
+    CLOCK_RADIUS * 0.1))  # 10% of radius, minimum
+BIG_TICK_RADIUS = max(MIN_TICK_RADIUS, int(
+    CLOCK_RADIUS * 0.04))  # 4% of radius, minimum
+SMALL_TICK_RADIUS = max(MIN_SMALL_TICK_RADIUS, int(
+    CLOCK_RADIUS * 0.02))  # 2% of radius, minimum
+LABEL_DISTANCE = max(MIN_LABEL_DISTANCE, int(
+    CLOCK_RADIUS * 0.15))  # 15% of radius, minimum
 
 
 def create_background_lines():
@@ -518,14 +562,15 @@ def create_tick_marks_and_labels():
         # Position labels at a consistent distance outside the circle
         # Use relative positioning based on radius for better scaling
         label_radius = CLOCK_RADIUS + LABEL_DISTANCE
-        label_angle = angle - PI_OVER_2  # Convert to standard coordinate system
+        label_angle = angle - PI_OVER_2  # Convert to standard coordinates
 
         # Calculate position for label center
         label_x = int(CLOCK_X + label_radius * cos(label_angle))
         label_y = int(CLOCK_Y + label_radius * sin(label_angle))
 
-        # Adjust y position based on vertical position to compensate for text bottom-alignment
-        # Labels at the top need to be pushed further away, labels at bottom pulled closer
+        # Adjust y position based on vertical position to compensate
+        # for text bottom-alignment. Labels at the top need to be
+        # pushed further away, and labels at bottom pulled closer.
         y_adjustment = int(sin(label_angle) * 3)  # Ranges from -3 to +3
         adjusted_label_y = label_y - 7 + y_adjustment
 
@@ -547,7 +592,8 @@ def create_chord_nodes_and_lines():
         chord_display.add(node)
         note_nodes.append(node)
 
-    # Initialize connecting lines (6 lines needed to connect all pairs of 4 nodes)
+    # Initialize connecting lines
+    # (6 lines needed to connect all pairs of 4 nodes)
     note_connection_lines = []
     for i in range(6):  # 6 lines needed to connect all pairs of 4 nodes
         line = Line(CLOCK_X, CLOCK_Y, CLOCK_X, CLOCK_Y, Color.WHITE, 2)
@@ -566,7 +612,8 @@ def create_chord_display():
 
     # Create the circular path
     clock_path = Circle(CLOCK_X, CLOCK_Y, CLOCK_RADIUS,
-                           Color(120, 120, 130), False, 2)  # Sophisticated dark gray
+                        # Sophisticated dark gray
+                        Color(120, 120, 130), False, 2)
     chord_display.add(clock_path)
 
     # Create background elements
@@ -579,6 +626,7 @@ def create_chord_display():
         'elemental': None,
         'traditional': None
     }
+
 
 # Global variables for chord display
 clock_color_gradient = None
@@ -701,7 +749,8 @@ def select_chord_visually(x, y):
 def get_precise_label_position(text, font_size, window_center):
     """Calculate the exact x position to center a label in the window."""
     # Scale character width with font size for better accuracy
-    char_width = font_size * 0.525  # Proportional to font size (was 8.4 for size 16)
+    # Proportional to font size (was 8.4 for size 16)
+    char_width = font_size * 0.525
 
     # Estimate text width
     estimated_text_width = len(text) * char_width
@@ -718,33 +767,40 @@ def get_precise_label_position(text, font_size, window_center):
 def calculate_label_positions():
     """Calculate vertical positions for chord info labels."""
     # Font sizes - scale with display size for better readability
-    base_font_size = max(MIN_FONT_SIZE, int(DISPLAY_HEIGHT * 0.03))  # 3% of display height, minimum
-    font_height = max(MIN_FONT_HEIGHT, int(DISPLAY_HEIGHT * 0.025))    # 2.5% of display height, minimum
+    # 3% of display height, minimum
+    base_font_size = max(MIN_FONT_SIZE, int(DISPLAY_HEIGHT * 0.03))
+    # 2.5% of display height, minimum
+    font_height = max(MIN_FONT_HEIGHT, int(DISPLAY_HEIGHT * 0.025))
 
     # Center horizontally in the clock window
     horizontal_center = CLOCK_WIDTH // 2
 
-    # Calculate vertical positions with more generous spacing from circle
-    # Circle center and radius are now dynamic based on display size
+    # Calculate vertical positions with more generous spacing from
+    # circle. Circle center and radius are dynamic based on
+    # display size.
     circle_top = CLOCK_Y - CLOCK_RADIUS
     circle_bottom = CLOCK_Y + CLOCK_RADIUS
 
-    # Calculate spacing to ensure chord info labels don't overlap with note labels
-    # Note labels extend LABEL_DISTANCE beyond the circle
+    # Calculate spacing to ensure chord info labels don't overlap with
+    # note labels. Note labels extend LABEL_DISTANCE beyond the circle.
     note_label_extension = LABEL_DISTANCE
-    chord_info_spacing = max(60, int(note_label_extension * 2.5))  # 2.5x note label extension, minimum 60px
+    # 2.5x note label extension, minimum 60px
+    chord_info_spacing = max(60, int(note_label_extension * 2.5))
 
-    # Top label: position so text appears well above circle and note labels
-    # Since text aligns to bottom of label, we need to account for font height
+    # Top label: position so text appears well above circle and note
+    # labels. Since text aligns to bottom of label, we need to
+    # account for font height.
     top_y = circle_top - chord_info_spacing - font_height
 
-    # Bottom label: position so text appears well below circle and note labels
-    # Text aligns to bottom of label, so this is simpler
+    # Bottom label: position so text appears well below circle and
+    # note labels. Text aligns to bottom of label, so this is simpler.
     bottom_y = circle_bottom + chord_info_spacing
 
     # Ensure labels stay within display bounds
-    top_y = max(MIN_TOP_MARGIN, top_y)  # At least minimum margin from top of display
-    bottom_y = min(DISPLAY_HEIGHT - MIN_BOTTOM_MARGIN, bottom_y)  # At least minimum margin from bottom of display
+    # At least minimum margin from top of display
+    top_y = max(MIN_TOP_MARGIN, top_y)
+    # At least minimum margin from bottom of display
+    bottom_y = min(DISPLAY_HEIGHT - MIN_BOTTOM_MARGIN, bottom_y)
 
     return base_font_size, horizontal_center, top_y, bottom_y
 
@@ -760,11 +816,15 @@ def create_chord_labels(chord, font_size, horizontal_center, top_y, bottom_y):
 
     # Calculate precise position for perfect centering
     nudge = 0
-    if chord.name[-6:] == "Branch": nudge = -6
-    elif chord.name == "Fire": nudge = 12
-    elif chord.name[-5:] == "Magma": nudge = -12
+    if chord.name[-6:] == "Branch":
+        nudge = -6
+    elif chord.name == "Fire":
+        nudge = 12
+    elif chord.name[-5:] == "Magma":
+        nudge = -12
 
-    elemental_x = get_precise_label_position(chord.name, font_size, horizontal_center)
+    elemental_x = get_precise_label_position(
+        chord.name, font_size, horizontal_center)
     chord_display.add(elemental_label, elemental_x + nudge, top_y)
 
     # Traditional name (bottom center, perfectly centered for any length)
@@ -773,7 +833,8 @@ def create_chord_labels(chord, font_size, horizontal_center, top_y, bottom_y):
     chord_info_text['traditional'] = traditional_label
 
     # Calculate precise position for perfect centering
-    traditional_x = get_precise_label_position(chord.traditional_name, font_size, horizontal_center)
+    traditional_x = get_precise_label_position(
+        chord.traditional_name, font_size, horizontal_center)
     chord_display.add(traditional_label, traditional_x, bottom_y - 5)
 
 
@@ -841,18 +902,25 @@ def update_chord_display(pitches):
 
             # Update line position instead of recreating
             line = note_connection_lines[i]
-            line.setStartPoint(start_x, start_y)
-            line.setEndPoint(end_x, end_y)
+            # Create new line with updated coordinates
+            new_line = Line(start_x, start_y, end_x, end_y, Color.WHITE, 2)
+            chord_display.remove(line)
+            chord_display.add(new_line)
+            note_connection_lines[i] = new_line
     else:
         # Hide lines if not enough notes by moving them off-screen
-        for line in note_connection_lines:
-            line.setStartPoint(CLOCK_X, CLOCK_Y)
-            line.setEndPoint(CLOCK_X, CLOCK_Y)
+        for i, line in enumerate(note_connection_lines):
+            # Create new line at center position to hide it
+            new_line = Line(CLOCK_X, CLOCK_Y, CLOCK_X, CLOCK_Y, Color.WHITE, 2)
+            chord_display.remove(line)
+            chord_display.add(new_line)
+            note_connection_lines[i] = new_line
 
 
 first_time = True
 # make a bar of dashes with | in the same places as header
-TABLE_SEPARATOR = "|" + "-"*22 + "|" + "-"*22 + "|" + "-"*22 + "|"
+TABLE_SEPARATOR = "|" + "-" * 22 + "|" + "-" * 22 + "|" + "-" * 22 + "|"
+
 
 def select_chord(x, y):
     """Find the closest chord and play it.
@@ -867,7 +935,7 @@ def select_chord(x, y):
         first_time = False
         voicing_header = VOICING + " Voicing"
         header = (f"| {'Elemental Name':^20} | {'Traditional Name':^20} | "
-                f"{voicing_header:^20} |")
+                  f"{voicing_header:^20} |")
         print("\n" + header)
 
         print(TABLE_SEPARATOR)
@@ -888,15 +956,6 @@ def select_chord(x, y):
           f"{chord.spelling:^20} |")
     print(TABLE_SEPARATOR)
 
-    # # Construct note names
-    # if isFlat(chord_root):  # if chord name is flat, use flat note names
-    #     chord_notes = [NOTE_NAMES_FLAT[x] for x in chord_pitches]   # put names in a list
-    # else:  # otherwise, use sharp names
-    #     chord_notes = [NOTE_NAMES_SHARP[x] for x in chord_pitches]  # put names in a list
-
-    # # Join names into a string, and print them
-    # print(f"- [{', '.join(chord_notes)}]")
-
 
 def choose_action(x, y):
     """Handle mouse click actions.
@@ -912,8 +971,10 @@ def choose_action(x, y):
     new_x, new_y = point
 
     # Test if key holds type is a chord
-    if isinstance(COORDINATES_TO_CHORD[point], Chord):  # test if value is a Chord
-        # If a chord, call play chord function (pass original absolute coordinates)
+    if isinstance(COORDINATES_TO_CHORD[point],
+                  Chord):  # test if value is a Chord
+        # If a chord, call play chord function (pass original absolute
+        # coordinates)
         select_chord(x, y)
 # endregion Functions #########################################################
 
@@ -930,9 +991,8 @@ def main():
     tonal_center = NOTE_NAMES_FLAT[TONAL_CENTER_PITCH_CLASS]
     relative_minor = NOTE_NAMES_FLAT[(TONAL_CENTER_PITCH_CLASS - 3) % 12]
 
-
     # Print ASCII art
-    ascii_art  = ("""\
+    ascii_art = ("""\
   __  __    U  ___ u__     __ U _____ u  __  __  U _____ u _   _     _____      _       _
 U|' \\/ '|u   \\/"_ \\/\\ \\   /"/u\\| ___"|/U|' \\/ '|u\\| ___"|/| \\ |"|   |_ " _| U  /"\\  u  |"|
 \\| |\\/| |/   | | | | \\ \\ / //  |  _|"  \\| |\\/| |/ |  _|" <|  \\| |>    | |    \\/ _ \\/ U | | u
@@ -944,7 +1004,6 @@ U|' \\/ '|u   \\/"_ \\/\\ \\   /"/u\\| ___"|/U|' \\/ '|u\\| ___"|/| \\ |"|   |_ 
         """)
     print(ascii_art)
 
-
     print("REMEMBER!")
     print(f"- {tonal_center} maj6 is the same as {relative_minor} min7, and "
           f"{tonal_center} min6 is the same as {relative_minor} min7 b5")
@@ -952,8 +1011,9 @@ U|' \\/ '|u   \\/"_ \\/\\ \\   /"/u\\| ___"|/U|' \\/ '|u\\| ___"|/| \\ |"|   |_ 
           "DNA from two parents (Earth, Wind, Fire).")
     print("  That is why each child chord has three siblings (who share the "
           "same ratio of DNA from each parent).")
-    print("- Any chord may be combined with the element (Earth, Wind, or Fire) "
-          "opposite from it.")
+    print(
+        "- Any chord may be combined with the element (Earth, Wind, or Fire) "
+        "opposite from it.")
     print("  This creates an 8-note \"scale of chords\" which alternates "
           "between resolution and tension.")
     print("  Ex. C maj6 + D dim7 (Branch + Fire) = C maj6 diminished scale")
@@ -962,8 +1022,9 @@ U|' \\/ '|u   \\/"_ \\/\\ \\   /"/u\\| ___"|/U|' \\/ '|u\\| ___"|/| \\ |"|   |_ 
     print("  Ex: C maj7, C maj7 #5... Following the thread, maybe these are "
           "grandchildren?")
     print("- These concepts were pioneered by Dr. Barry Harris, so...")
-    print("  In his memory, let's play beautiful movements, not static chords, "
-          "and remember to play with our family!!!\n")
+    print(
+        "  In his memory, let's play beautiful movements, not static chords, "
+        "and remember to play with our family!!!\n")
 
 
 if __name__ == "__main__":
