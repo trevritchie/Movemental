@@ -21,7 +21,7 @@ import time
 # region Default Settings #####################################################
 # If the user clicks no drop down menus, these will be used
 
-DEFAULT_TONAL_CENTER_OFFSET = G0  # 0 = C, 2 = D, -2 = Bb, 10 = Bb etc.
+DEFAULT_TONAL_CENTER_OFFSET = BF0  # 0 = C, 2 = D, -2 = Bb, 10 = Bb etc.
 
 DEFAULT_OCTAVE_RANGE = 3  # which octave to place chords in
 
@@ -34,7 +34,7 @@ DEFAULT_CHORD_DURATION = HN  # how long to play each chord
 
 # For all instrument constants, see:
 # https://jythonmusic.me/api/midi-constants/instrument/
-DEFAULT_INSTRUMENT = RHODES_PIANO
+DEFAULT_INSTRUMENT = PIANO
 Play.setInstrument(DEFAULT_INSTRUMENT)
 
 # Screen dimensions
@@ -60,6 +60,16 @@ INSTRUMENT = DEFAULT_INSTRUMENT
 SCREEN_WIDTH = DEFAULT_SCREEN_WIDTH
 SCREEN_HEIGHT = DEFAULT_SCREEN_HEIGHT
 DISPLAY_SCALE = DEFAULT_DISPLAY_SCALE
+
+# Borrowing state management
+BORROWING_STATE = {
+    'active': False,
+    'chord_name': None,
+    'borrowed_notes': [],
+    'original_notes': [],
+    'circle_positions': {1: 'line', 2: 'line', 3: 'line', 4: 'line'},  # Where each circle is positioned
+    'borrowing_directions': {1: None, 2: None, 3: None, 4: None}       # Direction for each line
+}
 # endregion Runtime Variables #################################################
 
 
@@ -155,6 +165,80 @@ PI_OVER_6 = pi / 6
 PI_OVER_3 = pi / 3
 PI_OVER_2 = pi / 2
 PI_TIMES_2 = 2 * pi
+
+# Borrowing system constants
+ELEMENTAL_RELATIONSHIPS = {
+    "Earth": ["Wind", "Fire"],
+    "Wind": ["Earth", "Fire"],
+    "Fire": ["Earth", "Wind"],
+    "Trunk": ["Fire"],      # Earth+Wind → opposite is Fire
+    "Branch": ["Fire"],     # Earth+Wind → opposite is Fire
+    "Sand-Storm": ["Fire"], # Earth+Wind → opposite is Fire
+    "Leaf": ["Fire"],       # Earth+Wind → opposite is Fire
+    "Smoke": ["Earth"],     # Wind+Fire → opposite is Earth
+    "Ember": ["Earth"],     # Wind+Fire → opposite is Earth
+    "Fire-Storm": ["Earth"], # Wind+Fire → opposite is Earth
+    "Flame": ["Earth"],     # Wind+Fire → opposite is Earth
+    "Magma": ["Wind"],      # Fire+Earth → opposite is Wind
+    "Glass": ["Wind"],      # Fire+Earth → opposite is Wind
+    "Forest-Fire": ["Wind"], # Fire+Earth → opposite is Wind
+    "Charcoal": ["Wind"]    # Fire+Earth → opposite is Wind
+}
+
+# Map line positions to chord note indices (sorted from low to high)
+NOTE_POSITION_MAPPING = {
+    1: 0,  # Line 1 → Lowest note (index 0)
+    2: 1,  # Line 2 → Second lowest note (index 1)
+    3: 2,  # Line 3 → Third lowest note (index 2)
+    4: 3   # Line 4 → Highest note (index 3)
+}
+
+# Borrowing control UI constants
+BORROWING_CONTROLS = {
+    'circle_radius': 8,  # Same as selected_chord_dot
+    'arrow_size': 6      # Size of arrow indicators
+}
+
+# Borrowing control coordinates (relative coordinates for scaling)
+# Base line positions for each note (where circles start)
+# Original coordinates captured on 1200x720 diagram image
+# Converted to relative (0-1) coordinates: x/1200, y/720
+BORROWING_LINE_COORDINATES = {
+    1: (0.022, 0.679),  # Line 1 - affects lowest note (29/1200, 543/720)
+    2: (0.074, 0.756),  # Line 2 - affects second lowest note (89/1200, 544/720)
+    3: (0.128, 0.758),  # Line 3 - affects third lowest note (153/1200, 546/720)
+    4: (0.182, 0.754),  # Line 4 - affects highest note (218/1200, 543/720)
+}
+
+# Arrow positions for each line (up and down)
+# Original coordinates captured on 1200x720 diagram image
+# Converted to relative (0-1) coordinates: x/1200, y/720
+BORROWING_ARROW_COORDINATES = {
+    1: {'up': (0.022, 0.692), 'down': (0.027, 0.808)},    # Line 1 arrows (26/1200, 498/720), (32/1200, 582/720)
+    2: {'up': (0.074, 0.685), 'down': (0.077, 0.811)},    # Line 2 arrows (89/1200, 493/720), (92/1200, 584/720)
+    3: {'up': (0.127, 0.688), 'down': (0.123, 0.811)},    # Line 3 arrows (152/1200, 495/720), (148/1200, 584/720)
+    4: {'up': (0.179, 0.689), 'down': (0.180, 0.810)},    # Line 4 arrows (215/1200, 496/720), (216/1200, 583/720)
+}
+
+# Click coordinates for borrowing controls - similar to COORDINATES_TO_CHORD
+# 12 total coordinates: 4 lines + 8 arrows (2 per line)
+COORDINATES_TO_BORROWING = {
+    # Line positions (where circles start)
+    (0.05, 0.90): {'type': 'line', 'line': 1},  # Line 1 - affects lowest note
+    (0.05, 0.85): {'type': 'line', 'line': 2},  # Line 2 - affects second lowest note
+    (0.05, 0.80): {'type': 'line', 'line': 3},  # Line 3 - affects third lowest note
+    (0.05, 0.75): {'type': 'line', 'line': 4},  # Line 4 - affects highest note
+
+    # Arrow positions (where circles move to when clicked)
+    (0.05, 0.88): {'type': 'arrow', 'line': 1, 'direction': 'up'},    # Line 1 up arrow
+    (0.05, 0.92): {'type': 'arrow', 'line': 1, 'direction': 'down'},  # Line 1 down arrow
+    (0.05, 0.83): {'type': 'arrow', 'line': 2, 'direction': 'up'},    # Line 2 up arrow
+    (0.05, 0.87): {'type': 'arrow', 'line': 2, 'direction': 'down'},  # Line 2 down arrow
+    (0.05, 0.78): {'type': 'arrow', 'line': 3, 'direction': 'up'},    # Line 3 up arrow
+    (0.05, 0.82): {'type': 'arrow', 'line': 3, 'direction': 'down'},  # Line 3 down arrow
+    (0.05, 0.73): {'type': 'arrow', 'line': 4, 'direction': 'up'},    # Line 4 up arrow
+    (0.05, 0.77): {'type': 'arrow', 'line': 4, 'direction': 'down'},  # Line 4 down arrow
+}
 # endregion Constants #########################################################
 
 
@@ -203,7 +287,8 @@ class UserSettingsGUI:
 
         # Convert instrument constant to string
         instrument_map = {RHODES_PIANO: "Rhodes Keyboard", PIANO: "Piano", SYNTH: "Synth",
-                         CELLO: "Cello", DX_PIANO: "DX Keyboard"}
+                         CELLO: "Cello", DX_PIANO: "DX Keyboard", SHAKUHACHI: "Shakuhachi",
+                         MUSIC_BOX: "Music Box"}
         instrument_name = instrument_map.get(DEFAULT_INSTRUMENT, "Rhodes Keyboard")
 
         # Convert display scale to string
@@ -242,7 +327,7 @@ class UserSettingsGUI:
         self._create_dropdowns()
 
         # Create Done button with callback to start main application
-        self.done_button = Button("Done", self._on_done_clicked)
+        self.done_button = Button("Start", self._on_done_clicked)
         self.display.add(self.done_button, window_width // 2 - 50, window_height - 60)
 
     def _create_dropdowns(self):
@@ -350,7 +435,8 @@ class UserSettingsGUI:
 
         # Get current instrument and put it first if not already first
         current_instrument = self.settings['instrument']
-        all_instruments = ["Rhodes Keyboard", "Piano", "Synth", "Cello", "DX Keyboard"]
+        all_instruments = ["Rhodes Keyboard", "Shakuhachi", "Piano", "Synth",
+                           "Cello", "DX Keyboard", "Music Box"]
 
         if current_instrument == all_instruments[0]:
             instrument_options = all_instruments
@@ -474,12 +560,14 @@ def string_to_instrument(instrument_name):
     """Convert instrument name string to MIDI instrument constant."""
     instrument_map = {
         "Rhodes Keyboard": RHODES_PIANO,
+        "Shakuhachi": SHAKUHACHI,
         "Piano": PIANO,
         "Synth": SYNTH,
         "Cello": CELLO,
-        "DX Keyboard": DX_PIANO
+        "DX Keyboard": DX_PIANO,
+        "Music Box": MUSIC_BOX
     }
-    return instrument_map.get(instrument_name, RHODES_PIANO)
+    return instrument_map.get(instrument_name, SHAKUHACHI)
 
 
 def parse_resolution(resolution_string):
@@ -993,6 +1081,10 @@ chord_display = None
 selected_chord_dot = None
 DISPLAY_HEIGHT = None
 CLOCK_WIDTH = None
+
+# Global variables for borrowing controls
+borrowing_circles = {}  # Dictionary to store circles by coordinate
+current_selected_chord = None
 # endregion GUI Setup Functions ###############################################
 
 
@@ -1075,7 +1167,7 @@ def play_chord(chord):
 
     # Create the chord
     phrase = Phrase()
-    phrase.addChord(adjusted_pitches, CHORD_DURATION, 127)
+    phrase.addChord(adjusted_pitches, CHORD_DURATION, 120)
 
     # Play the chord!
     Play.midi(phrase)
@@ -1286,7 +1378,7 @@ def select_chord(x, y):
         x (int): X coordinate of the click (absolute)
         y (int): Y coordinate of the click (absolute)
     """
-    global first_time, TABLE_SEPERATOR
+    global first_time, TABLE_SEPERATOR, current_selected_chord
 
     if first_time:
         first_time = False
@@ -1302,6 +1394,9 @@ def select_chord(x, y):
 
     # Get chord info
     chord = COORDINATES_TO_CHORD[point]
+
+    # Update current selected chord for borrowing
+    current_selected_chord = chord
 
     # Play the chord (this will also update the chord display)
     play_chord(chord)
@@ -1323,16 +1418,378 @@ def choose_action(x, y):
         x (int): X coordinate of the click (absolute)
         y (int): Y coordinate of the click (absolute)
     """
-    # Snap clicked coordinates to known centers (returns relative coordinates)
+    print(f'{x/(SCREEN_WIDTH/DISPLAY_SCALE):.4f}, {y/(SCREEN_HEIGHT/DISPLAY_SCALE):.4f}')
+    # First check for borrowing control clicks
+    if handle_borrowing_click(x, y):
+        return
+
+    # Original chord selection logic
     point = find_closest_point([x, y], COORDINATES_TO_CHORD.keys())
     new_x, new_y = point
 
     # Test if key holds type is a chord
     if isinstance(COORDINATES_TO_CHORD[point],
                   Chord):  # test if value is a Chord
+        # Reset borrowing circles to lines when selecting new chord
+        reset_borrowing_circles()
         # If a chord, call play chord function (pass original absolute
         # coordinates)
         select_chord(x, y)
+
+
+# region Borrowing Functions ##################################################
+def get_chord_by_name(chord_name):
+    """Find chord by name in COORDINATES_TO_CHORD."""
+    for chord in COORDINATES_TO_CHORD.values():
+        if chord.name == chord_name:
+            return chord
+    return None
+
+
+def get_elemental_chord(element_name):
+    """Get one of the three primary elemental chords."""
+    elemental_chords = ["Earth", "Wind", "Fire"]
+    if element_name in elemental_chords:
+        return get_chord_by_name(element_name)
+    return None
+
+
+def find_next_higher_note(reference_pitch, available_pitches):
+    """Find the next higher note from available pitches."""
+    # Convert to pitch classes for comparison
+    reference_pc = reference_pitch % 12
+    available_pcs = [pitch % 12 for pitch in available_pitches]
+
+    # Find pitches higher than reference
+    higher_pitches = [pc for pc in available_pcs if pc > reference_pc]
+
+    if higher_pitches:
+        # Return the lowest higher pitch
+        return min(higher_pitches)
+    else:
+        # Wrap around to the lowest available pitch
+        return min(available_pcs)
+
+
+def find_next_lower_note(reference_pitch, available_pitches):
+    """Find the next lower note from available pitches."""
+    # Convert to pitch classes for comparison
+    reference_pc = reference_pitch % 12
+    available_pcs = [pitch % 12 for pitch in available_pitches]
+
+    # Find pitches lower than reference
+    lower_pitches = [pc for pc in available_pcs if pc < reference_pc]
+
+    if lower_pitches:
+        # Return the highest lower pitch
+        return max(lower_pitches)
+    else:
+        # Wrap around to the highest available pitch
+        return max(available_pcs)
+
+
+def get_borrowed_chord(chord_name, target_note_index, direction, opposite_element):
+    """
+    Generate a borrowed version of a chord by replacing a specific note.
+
+    Args:
+        chord_name (str): Name of the chord to borrow from
+        target_note_index (int): Index of note to replace (0=lowest, 3=highest)
+        direction (str): 'above' or 'below'
+        opposite_element (str): Element to borrow from ('Earth', 'Wind', 'Fire')
+
+    Returns:
+        list: New chord pitches with borrowed note
+    """
+    # Get original chord
+    original_chord = get_chord_by_name(chord_name)
+    if not original_chord:
+        return []
+
+    original_pitches = sorted(original_chord.pitches)  # Ensure sorted order
+
+    # Get opposite element chord
+    opposite_chord = get_elemental_chord(opposite_element)
+    if not opposite_chord:
+        return []
+
+    opposite_pitches = opposite_chord.pitches
+
+    # Get the target note to replace
+    if target_note_index >= len(original_pitches):
+        return original_pitches
+
+    target_pitch = original_pitches[target_note_index]
+
+    # Find replacement note from opposite element
+    if direction == 'above':
+        # Find next higher note from opposite element
+        replacement = find_next_higher_note(target_pitch, opposite_pitches)
+    else:  # below
+        # Find next lower note from opposite element
+        replacement = find_next_lower_note(target_pitch, opposite_pitches)
+
+    # Create new chord with replacement
+    new_pitches = original_pitches.copy()
+    new_pitches[target_note_index] = replacement
+
+    return new_pitches
+
+
+def get_borrowed_chord_from_ui_click(chord_name, line_position, direction, opposite_element):
+    """
+    Wrapper function that maps UI line position to note index.
+
+    Args:
+        chord_name (str): Name of the chord to borrow from
+        line_position (int): UI line position (1-4)
+        direction (str): 'above' or 'below'
+        opposite_element (str): Element to borrow from
+
+    Returns:
+        list: New chord pitches with borrowed note
+    """
+    # Map line position to note index
+    target_note_index = NOTE_POSITION_MAPPING[line_position]
+
+    return get_borrowed_chord(chord_name, target_note_index, direction, opposite_element)
+
+
+def play_borrowed_chord(borrowed_pitches):
+    """Play a borrowed chord with the given pitches."""
+    global DISPLAY_HEIGHT, CLOCK_WIDTH
+
+    # Stop any sounding notes
+    Play.allNotesOff()
+
+    adjusted_pitches = []
+    # Place notes in the correct octave range based on the chosen voicing
+    for i in range(len(borrowed_pitches)):
+        # Place the pitch class into the correct octave range
+        adjusted_pitch = borrowed_pitches[i] + OCTAVE_OFFSET
+
+        # For the chosen voicing, raise the appropriate notes up an octave
+        if i in VOICING_TO_INDICES.get(VOICING):
+            if adjusted_pitch + OCTAVE <= MAX_VOICING_PITCH:
+                adjusted_pitch += OCTAVE
+
+        # Add correctly placed pitch
+        adjusted_pitches.append(adjusted_pitch)
+
+    # Create the chord
+    phrase = Phrase()
+    phrase.addChord(adjusted_pitches, CHORD_DURATION, 120)
+
+    # Play the chord!
+    Play.midi(phrase)
+
+    # Update chord display with the borrowed chord pitches
+    update_chord_display(adjusted_pitches)
+
+
+def create_borrowing_controls():
+    """Create the borrowing control UI elements - 4 blue circles that can move."""
+    global borrowing_circles
+
+    borrowing_circles = {}
+
+    # Create 4 blue circles, one for each note position
+    for line_num in range(1, 5):
+        # Start each circle on its line
+        coord = BORROWING_LINE_COORDINATES[line_num]
+        abs_x, abs_y = relative_to_absolute(coord)
+
+        # Create blue circle
+        circle = Circle(abs_x, abs_y, BORROWING_CONTROLS['circle_radius'], Color.BLUE, True)
+        diagram_display.add(circle)
+        borrowing_circles[line_num] = circle
+
+
+def relative_to_absolute(coord):
+    """Convert relative coordinates to absolute coordinates."""
+    display_width = diagram_display.getWidth()
+    display_height = diagram_display.getHeight()
+    return int(coord[0] * display_width), int(coord[1] * display_height)
+
+
+def is_borrowing_click(x, y):
+    """Check if click is within borrowing control area."""
+    # Check if click is near any arrow position
+    for line_num in range(1, 5):
+        # Check up arrow
+        up_coord = BORROWING_ARROW_COORDINATES[line_num]['up']
+        up_x, up_y = relative_to_absolute(up_coord)
+        if distance((x, y), (up_x, up_y)) < BORROWING_CONTROLS['circle_radius'] * 2:
+            return True
+
+        # Check down arrow
+        down_coord = BORROWING_ARROW_COORDINATES[line_num]['down']
+        down_x, down_y = relative_to_absolute(down_coord)
+        if distance((x, y), (down_x, down_y)) < BORROWING_CONTROLS['circle_radius'] * 2:
+            return True
+
+    return False
+
+
+def get_clicked_borrowing_control(x, y):
+    """Determine which borrowing control was clicked."""
+    closest_line = None
+    closest_direction = None
+    min_distance = float('inf')
+
+    for line_num in range(1, 5):
+        # Check up arrow
+        up_coord = BORROWING_ARROW_COORDINATES[line_num]['up']
+        up_x, up_y = relative_to_absolute(up_coord)
+        up_distance = distance((x, y), (up_x, up_y))
+        if up_distance < min_distance and up_distance < BORROWING_CONTROLS['circle_radius'] * 2:
+            min_distance = up_distance
+            closest_line = line_num
+            closest_direction = 'up'
+
+        # Check down arrow
+        down_coord = BORROWING_ARROW_COORDINATES[line_num]['down']
+        down_x, down_y = relative_to_absolute(down_coord)
+        down_distance = distance((x, y), (down_x, down_y))
+        if down_distance < min_distance and down_distance < BORROWING_CONTROLS['circle_radius'] * 2:
+            min_distance = down_distance
+            closest_line = line_num
+            closest_direction = 'down'
+
+    if closest_line:
+        return closest_line, closest_direction
+
+    return None, None
+
+
+def activate_borrowing(line_position, direction):
+    """Activate borrowing for the specified line and direction."""
+    global current_selected_chord, BORROWING_STATE
+
+    # Get current selected chord
+    if not current_selected_chord:
+        return
+
+    # Determine opposite element
+    opposite_element = ELEMENTAL_RELATIONSHIPS.get(current_selected_chord.name, [None])[0]
+    if not opposite_element:
+        return
+
+    # Update borrowing state for this line
+    BORROWING_STATE['circle_positions'][line_position] = direction
+    BORROWING_STATE['borrowing_directions'][line_position] = direction
+
+    # Move the circle to the arrow position
+    move_circle_to_arrow(line_position, direction)
+
+    # Generate and play borrowed chord
+    generate_and_play_borrowed_chord()
+
+
+def move_circle_to_arrow(line_position, direction):
+    """Move a circle to the specified arrow position."""
+    global borrowing_circles
+
+    if line_position in borrowing_circles:
+        # Get the arrow coordinates
+        arrow_coord = BORROWING_ARROW_COORDINATES[line_position][direction]
+        abs_x, abs_y = relative_to_absolute(arrow_coord)
+
+        # Move the circle
+        diagram_display.move(borrowing_circles[line_position], abs_x, abs_y)
+
+
+def move_circle_to_line(line_position):
+    """Move a circle back to its line position."""
+    global borrowing_circles
+
+    if line_position in borrowing_circles:
+        # Get the line coordinates
+        line_coord = BORROWING_LINE_COORDINATES[line_position]
+        abs_x, abs_y = relative_to_absolute(line_coord)
+
+        # Move the circle
+        diagram_display.move(borrowing_circles[line_position], abs_x, abs_y)
+
+
+def generate_and_play_borrowed_chord():
+    """Generate and play the current borrowed chord based on all active borrowings."""
+    global current_selected_chord, BORROWING_STATE
+
+    if not current_selected_chord:
+        return
+
+    # Start with original chord
+    original_pitches = sorted(current_selected_chord.pitches)
+    borrowed_pitches = original_pitches.copy()
+
+    # Apply all active borrowings
+    opposite_element = ELEMENTAL_RELATIONSHIPS.get(current_selected_chord.name, [None])[0]
+    if opposite_element:
+        opposite_chord = get_elemental_chord(opposite_element)
+        if opposite_chord:
+            opposite_pitches = opposite_chord.pitches
+
+            for line_position in range(1, 5):
+                if BORROWING_STATE['circle_positions'][line_position] != 'line':
+                    direction = BORROWING_STATE['borrowing_directions'][line_position]
+                    target_note_index = NOTE_POSITION_MAPPING[line_position]
+
+                    if target_note_index < len(borrowed_pitches):
+                        target_pitch = borrowed_pitches[target_note_index]
+
+                        if direction == 'up':
+                            replacement = find_next_higher_note(target_pitch, opposite_pitches)
+                        else:  # down
+                            replacement = find_next_lower_note(target_pitch, opposite_pitches)
+
+                        borrowed_pitches[target_note_index] = replacement
+
+    # Play the borrowed chord
+    play_borrowed_chord(borrowed_pitches)
+
+    # Update state
+    BORROWING_STATE['active'] = any(pos != 'line' for pos in BORROWING_STATE['circle_positions'].values())
+    BORROWING_STATE['chord_name'] = current_selected_chord.name
+    BORROWING_STATE['borrowed_notes'] = borrowed_pitches
+    BORROWING_STATE['original_notes'] = original_pitches
+
+
+def handle_borrowing_click(x, y):
+    """Handle clicks on borrowing controls."""
+    # Check if click is within borrowing control area
+    if is_borrowing_click(x, y):
+        line_position, direction = get_clicked_borrowing_control(x, y)
+        if line_position is not None:
+            activate_borrowing(line_position, direction)
+            return True
+    return False
+
+
+def reset_borrowing_circles():
+    """Reset all circles to their line positions."""
+    global BORROWING_STATE
+
+    # Reset state
+    BORROWING_STATE['circle_positions'] = {1: 'line', 2: 'line', 3: 'line', 4: 'line'}
+    BORROWING_STATE['borrowing_directions'] = {1: None, 2: None, 3: None, 4: None}
+    BORROWING_STATE['active'] = False
+
+    # Move all circles back to lines
+    for line_position in range(1, 5):
+        move_circle_to_line(line_position)
+
+
+def update_borrowing_display():
+    """Update visual indicators for borrowing state."""
+    global borrowing_circles
+
+    # All circles stay blue - they just move to show borrowing state
+    for circle in borrowing_circles.values():
+        circle.setColor(Color.BLUE)
+
+
+# endregion Borrowing Functions ###############################################
 # endregion Functions #########################################################
 
 
@@ -1367,6 +1824,7 @@ def initialize_application():
                               DIAGRAM_X, VERTICAL_CENTER)
     diagram = Icon("./images/diagram.jpg", DIAGRAM_WIDTH, DISPLAY_HEIGHT)
     diagram_display.add(diagram)
+    # diagram_display.showMouseCoordinates()
 
     # Create a circle that marks the active chord
     selected_chord_dot = Circle(DIAGRAM_WIDTH // 2, DISPLAY_HEIGHT // 2, 8, Color.BLUE, fill=True)
@@ -1389,6 +1847,9 @@ def initialize_application():
 
     # Create the clock-like chord display
     create_chord_display()
+
+    # Create borrowing controls
+    create_borrowing_controls()
 
 
 def main():
