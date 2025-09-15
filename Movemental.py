@@ -268,14 +268,14 @@ def get_root_position_mapping(chord):
 
 def create_borrowing_name(original_chord_name, borrowing_state):
     """
-    Create a chemistry-style borrowing name with superscripts.
+    Create a chemistry-style borrowing name with subscripts.
 
     Args:
         original_chord_name (str): Name of the original chord
         borrowing_state (dict): Current borrowing state
 
     Returns:
-        str: Borrowing name like "Branch³Fire¹" or "Branch²Fire²"
+        str: Borrowing name like "Branch₃Fire₁" or "Branch₂Fire₂"
     """
     # Count how many notes are borrowed from each element
     borrowing_counts = {}
@@ -294,9 +294,9 @@ def create_borrowing_name(original_chord_name, borrowing_state):
     if borrowed_count == 0:
         return original_chord_name
 
-    # Create superscript numbers
-    superscript_map = {
-        0: '⁰', 1: '¹', 2: '²', 3: '³', 4: '⁴'
+    # Create subscript numbers
+    subscript_map = {
+        0: '₀', 1: '₁', 2: '₂', 3: '₃', 4: '₄'
     }
 
     # Calculate counts
@@ -304,10 +304,10 @@ def create_borrowing_name(original_chord_name, borrowing_state):
     opposite_count = borrowed_count
 
     # Build the name
-    original_superscript = superscript_map.get(original_count, str(original_count))
-    opposite_superscript = superscript_map.get(opposite_count, str(opposite_count))
+    original_subscript = subscript_map.get(original_count, str(original_count))
+    opposite_subscript = subscript_map.get(opposite_count, str(opposite_count))
 
-    return f"{original_chord_name}{original_superscript}{opposite_element}{opposite_superscript}"
+    return f"{original_chord_name}{original_subscript}{opposite_element}{opposite_subscript}"
 
 # Borrowing control UI constants
 BORROWING_CONTROLS = {
