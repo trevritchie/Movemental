@@ -68,7 +68,8 @@ BORROWING_STATE = {
     'borrowed_notes': [],
     'original_notes': [],
     'circle_positions': {1: 'line', 2: 'line', 3: 'line', 4: 'line'},  # Where each circle is positioned
-    'borrowing_directions': {1: None, 2: None, 3: None, 4: None}       # Direction for each line
+    'borrowing_directions': {1: None, 2: None, 3: None, 4: None},      # Direction for each line
+    'borrowing_history': {}  # Store borrowing state per chord: {chord_name: {line: direction}}
 }
 # endregion Runtime Variables #################################################
 
@@ -171,18 +172,60 @@ ELEMENTAL_RELATIONSHIPS = {
     "Earth": ["Wind", "Fire"],
     "Wind": ["Earth", "Fire"],
     "Fire": ["Earth", "Wind"],
-    "Trunk": ["Fire"],      # Earth+Wind → opposite is Fire
-    "Branch": ["Fire"],     # Earth+Wind → opposite is Fire
-    "Sand-Storm": ["Fire"], # Earth+Wind → opposite is Fire
-    "Leaf": ["Fire"],       # Earth+Wind → opposite is Fire
-    "Smoke": ["Earth"],     # Wind+Fire → opposite is Earth
-    "Ember": ["Earth"],     # Wind+Fire → opposite is Earth
-    "Fire-Storm": ["Earth"], # Wind+Fire → opposite is Earth
-    "Flame": ["Earth"],     # Wind+Fire → opposite is Earth
-    "Magma": ["Wind"],      # Fire+Earth → opposite is Wind
-    "Glass": ["Wind"],      # Fire+Earth → opposite is Wind
-    "Forest-Fire": ["Wind"], # Fire+Earth → opposite is Wind
-    "Charcoal": ["Wind"]    # Fire+Earth → opposite is Wind
+
+    # Earth+Wind chords → opposite is Fire
+    "Trunk": ["Fire"],
+    "Brother Trunk": ["Fire"],
+    "Twin Trunk": ["Fire"],
+    "Sister Trunk": ["Fire"],
+    "Branch": ["Fire"],
+    "Brother Branch": ["Fire"],
+    "Twin Branch": ["Fire"],
+    "Sister Branch": ["Fire"],
+    "Sand-Storm": ["Fire"],
+    "Brother Sand-Storm": ["Fire"],
+    "Twin Sand-Storm": ["Fire"],
+    "Sister Sand-Storm": ["Fire"],
+    "Leaf": ["Fire"],
+    "Brother Leaf": ["Fire"],
+    "Twin Leaf": ["Fire"],
+    "Sister Leaf": ["Fire"],
+
+    # Wind+Fire chords → opposite is Earth
+    "Smoke": ["Earth"],
+    "Brother Smoke": ["Earth"],
+    "Twin Smoke": ["Earth"],
+    "Sister Smoke": ["Earth"],
+    "Ember": ["Earth"],
+    "Brother Ember": ["Earth"],
+    "Twin Ember": ["Earth"],
+    "Sister Ember": ["Earth"],
+    "Fire-Storm": ["Earth"],
+    "Brother Fire-Storm": ["Earth"],
+    "Twin Fire-Storm": ["Earth"],
+    "Sister Fire-Storm": ["Earth"],
+    "Flame": ["Earth"],
+    "Brother Flame": ["Earth"],
+    "Twin Flame": ["Earth"],
+    "Sister Flame": ["Earth"],
+
+    # Fire+Earth chords → opposite is Wind
+    "Magma": ["Wind"],
+    "Brother Magma": ["Wind"],
+    "Twin Magma": ["Wind"],
+    "Sister Magma": ["Wind"],
+    "Glass": ["Wind"],
+    "Brother Glass": ["Wind"],
+    "Twin Glass": ["Wind"],
+    "Sister Glass": ["Wind"],
+    "Forest-Fire": ["Wind"],
+    "Brother Forest-Fire": ["Wind"],
+    "Twin Forest-Fire": ["Wind"],
+    "Sister Forest-Fire": ["Wind"],
+    "Charcoal": ["Wind"],
+    "Brother Charcoal": ["Wind"],
+    "Twin Charcoal": ["Wind"],
+    "Sister Charcoal": ["Wind"]
 }
 
 # Map line positions to chord note indices (sorted from low to high)
@@ -204,40 +247,20 @@ BORROWING_CONTROLS = {
 # Original coordinates captured on 1200x720 diagram image
 # Converted to relative (0-1) coordinates: x/1200, y/720
 BORROWING_LINE_COORDINATES = {
-    1: (0.022, 0.679),  # Line 1 - affects lowest note (29/1200, 543/720)
-    2: (0.074, 0.756),  # Line 2 - affects second lowest note (89/1200, 544/720)
-    3: (0.128, 0.758),  # Line 3 - affects third lowest note (153/1200, 546/720)
-    4: (0.182, 0.754),  # Line 4 - affects highest note (218/1200, 543/720)
+    1: (0.036, 0.902),  # Line 1 - affects lowest note (bass)
+    2: (0.110, 0.903),  # Line 2 - affects second lowest note (tenor)
+    3: (0.188, 0.905),  # Line 3 - affects second highest note (alto)
+    4: (0.267, 0.908),  # Line 4 - affects highest note (soprano)
 }
 
 # Arrow positions for each line (up and down)
 # Original coordinates captured on 1200x720 diagram image
 # Converted to relative (0-1) coordinates: x/1200, y/720
 BORROWING_ARROW_COORDINATES = {
-    1: {'up': (0.022, 0.692), 'down': (0.027, 0.808)},    # Line 1 arrows (26/1200, 498/720), (32/1200, 582/720)
-    2: {'up': (0.074, 0.685), 'down': (0.077, 0.811)},    # Line 2 arrows (89/1200, 493/720), (92/1200, 584/720)
-    3: {'up': (0.127, 0.688), 'down': (0.123, 0.811)},    # Line 3 arrows (152/1200, 495/720), (148/1200, 584/720)
-    4: {'up': (0.179, 0.689), 'down': (0.180, 0.810)},    # Line 4 arrows (215/1200, 496/720), (216/1200, 583/720)
-}
-
-# Click coordinates for borrowing controls - similar to COORDINATES_TO_CHORD
-# 12 total coordinates: 4 lines + 8 arrows (2 per line)
-COORDINATES_TO_BORROWING = {
-    # Line positions (where circles start)
-    (0.05, 0.90): {'type': 'line', 'line': 1},  # Line 1 - affects lowest note
-    (0.05, 0.85): {'type': 'line', 'line': 2},  # Line 2 - affects second lowest note
-    (0.05, 0.80): {'type': 'line', 'line': 3},  # Line 3 - affects third lowest note
-    (0.05, 0.75): {'type': 'line', 'line': 4},  # Line 4 - affects highest note
-
-    # Arrow positions (where circles move to when clicked)
-    (0.05, 0.88): {'type': 'arrow', 'line': 1, 'direction': 'up'},    # Line 1 up arrow
-    (0.05, 0.92): {'type': 'arrow', 'line': 1, 'direction': 'down'},  # Line 1 down arrow
-    (0.05, 0.83): {'type': 'arrow', 'line': 2, 'direction': 'up'},    # Line 2 up arrow
-    (0.05, 0.87): {'type': 'arrow', 'line': 2, 'direction': 'down'},  # Line 2 down arrow
-    (0.05, 0.78): {'type': 'arrow', 'line': 3, 'direction': 'up'},    # Line 3 up arrow
-    (0.05, 0.82): {'type': 'arrow', 'line': 3, 'direction': 'down'},  # Line 3 down arrow
-    (0.05, 0.73): {'type': 'arrow', 'line': 4, 'direction': 'up'},    # Line 4 up arrow
-    (0.05, 0.77): {'type': 'arrow', 'line': 4, 'direction': 'down'},  # Line 4 down arrow
+    1: {'up': (0.035, 0.828), 'down': (0.038, 0.977)},    # Line 1 arrows (26/1200, 498/720), (32/1200, 582/720)
+    2: {'up': (0.109, 0.828), 'down': (0.111, 0.980)},    # Line 2 arrows (89/1200, 493/720), (92/1200, 584/720)
+    3: {'up': (0.189, 0.833), 'down': (0.185, 0.970)},    # Line 3 arrows (152/1200, 495/720), (148/1200, 584/720)
+    4: {'up': (0.268, 0.835), 'down': (0.268, 0.975)},    # Line 4 arrows (215/1200, 496/720), (216/1200, 583/720)
 }
 # endregion Constants #########################################################
 
@@ -522,10 +545,10 @@ class UserSettingsGUI:
     def _on_done_clicked(self):
         """Handle Done button click - apply settings and start main application."""
         if self.display:
-            print("Applying user settings...")
+            # print("Applying user settings...")
             apply_user_settings(self.settings)
 
-            print("Initializing main application...")
+            # print("Initializing main application...")
             initialize_application()
 
             # Register callback for playing chords by clicking the mouse
@@ -829,7 +852,7 @@ def initialize_chord_dictionary():
     # Fire-Earth Combinations
     # Magma (min 6)
     COORDINATES_TO_CHORD[(0.283, 0.690)] = Chord("Magma", [D4, F4, A4, B5])
-    COORDINATES_TO_CHORD[(0.233, 0.756)] = Chord("Brother Magma",
+    COORDINATES_TO_CHORD[(0.233, 0.754)] = Chord("Brother Magma",
                                                  [F4, AF4, C5, D5])
     COORDINATES_TO_CHORD[(0.284, 0.754)] = Chord("Twin Magma",
                                                  [AF4, CF5, EF5, F5])
@@ -1083,7 +1106,7 @@ DISPLAY_HEIGHT = None
 CLOCK_WIDTH = None
 
 # Global variables for borrowing controls
-borrowing_circles = {}  # Dictionary to store circles by coordinate
+borrowing_circles = {}  # Dictionary to store circles by line number
 current_selected_chord = None
 # endregion GUI Setup Functions ###############################################
 
@@ -1404,6 +1427,15 @@ def select_chord(x, y):
     # Place a dot on the selection (point is already relative)
     select_chord_visually(point[0], point[1])
 
+    # Handle borrowing state for this chord
+    if chord.name in ["Earth", "Wind", "Fire"]:
+        # Fundamental chords - reset borrowing and make circles gray
+        reset_borrowing_circles()
+        update_borrowing_display()
+    else:
+        # Regular chords - restore borrowing state
+        restore_borrowing_state(chord.name)
+
     print(f"| {chord.name:^20} | {chord.traditional_name:^20} | "
           f"{chord.spelling:^20} |")
     print(TABLE_SEPARATOR)
@@ -1418,7 +1450,8 @@ def choose_action(x, y):
         x (int): X coordinate of the click (absolute)
         y (int): Y coordinate of the click (absolute)
     """
-    print(f'{x/(SCREEN_WIDTH/DISPLAY_SCALE):.4f}, {y/(SCREEN_HEIGHT/DISPLAY_SCALE):.4f}')
+    # print(f'{x/(SCREEN_WIDTH/DISPLAY_SCALE):.4f}, {y/(SCREEN_HEIGHT/DISPLAY_SCALE):.4f}')
+    print(f'{x/diagram_display.getWidth():.3f}, {y/diagram_display.getHeight():.3f}')
     # First check for borrowing control clicks
     if handle_borrowing_click(x, y):
         return
@@ -1430,8 +1463,6 @@ def choose_action(x, y):
     # Test if key holds type is a chord
     if isinstance(COORDINATES_TO_CHORD[point],
                   Chord):  # test if value is a Chord
-        # Reset borrowing circles to lines when selecting new chord
-        reset_borrowing_circles()
         # If a chord, call play chord function (pass original absolute
         # coordinates)
         select_chord(x, y)
@@ -1588,19 +1619,20 @@ def play_borrowed_chord(borrowed_pitches):
 
 
 def create_borrowing_controls():
-    """Create the borrowing control UI elements - 4 blue circles that can move."""
+    """Create the borrowing control UI elements - just the blue circles."""
     global borrowing_circles
 
+    # Initialize global variables
     borrowing_circles = {}
 
     # Create 4 blue circles, one for each note position
     for line_num in range(1, 5):
-        # Start each circle on its line
-        coord = BORROWING_LINE_COORDINATES[line_num]
-        abs_x, abs_y = relative_to_absolute(coord)
+        # Get line coordinates
+        line_coord = BORROWING_LINE_COORDINATES[line_num]
+        line_x, line_y = relative_to_absolute(line_coord)
 
-        # Create blue circle
-        circle = Circle(abs_x, abs_y, BORROWING_CONTROLS['circle_radius'], Color.BLUE, True)
+        # Create blue circle (starts on line)
+        circle = Circle(line_x, line_y, BORROWING_CONTROLS['circle_radius'], Color.BLUE, True)
         diagram_display.add(circle)
         borrowing_circles[line_num] = circle
 
@@ -1614,18 +1646,35 @@ def relative_to_absolute(coord):
 
 def is_borrowing_click(x, y):
     """Check if click is within borrowing control area."""
-    # Check if click is near any arrow position
+    # Only check if we have borrowing controls initialized
+    if not borrowing_circles:
+        return False
+
+    # Don't allow borrowing clicks for fundamental chords
+    if current_selected_chord and current_selected_chord.name in ["Earth", "Wind", "Fire"]:
+        return False
+
+    # Check if click is near any arrow position with larger detection radius
     for line_num in range(1, 5):
         # Check up arrow
         up_coord = BORROWING_ARROW_COORDINATES[line_num]['up']
         up_x, up_y = relative_to_absolute(up_coord)
-        if distance((x, y), (up_x, up_y)) < BORROWING_CONTROLS['circle_radius'] * 2:
+        up_distance = distance((x, y), (up_x, up_y))
+        if up_distance < 25:  # Larger detection radius
             return True
 
         # Check down arrow
         down_coord = BORROWING_ARROW_COORDINATES[line_num]['down']
         down_x, down_y = relative_to_absolute(down_coord)
-        if distance((x, y), (down_x, down_y)) < BORROWING_CONTROLS['circle_radius'] * 2:
+        down_distance = distance((x, y), (down_x, down_y))
+        if down_distance < 25:  # Larger detection radius
+            return True
+
+        # Check line position (to reset borrowing)
+        line_coord = BORROWING_LINE_COORDINATES[line_num]
+        line_x, line_y = relative_to_absolute(line_coord)
+        line_distance = distance((x, y), (line_x, line_y))
+        if line_distance < 25:  # Larger detection radius
             return True
 
     return False
@@ -1642,7 +1691,7 @@ def get_clicked_borrowing_control(x, y):
         up_coord = BORROWING_ARROW_COORDINATES[line_num]['up']
         up_x, up_y = relative_to_absolute(up_coord)
         up_distance = distance((x, y), (up_x, up_y))
-        if up_distance < min_distance and up_distance < BORROWING_CONTROLS['circle_radius'] * 2:
+        if up_distance < min_distance and up_distance < 25:  # Larger detection radius
             min_distance = up_distance
             closest_line = line_num
             closest_direction = 'up'
@@ -1651,10 +1700,19 @@ def get_clicked_borrowing_control(x, y):
         down_coord = BORROWING_ARROW_COORDINATES[line_num]['down']
         down_x, down_y = relative_to_absolute(down_coord)
         down_distance = distance((x, y), (down_x, down_y))
-        if down_distance < min_distance and down_distance < BORROWING_CONTROLS['circle_radius'] * 2:
+        if down_distance < min_distance and down_distance < 25:  # Larger detection radius
             min_distance = down_distance
             closest_line = line_num
             closest_direction = 'down'
+
+        # Check line position (to reset borrowing)
+        line_coord = BORROWING_LINE_COORDINATES[line_num]
+        line_x, line_y = relative_to_absolute(line_coord)
+        line_distance = distance((x, y), (line_x, line_y))
+        if line_distance < min_distance and line_distance < 25:  # Larger detection radius
+            min_distance = line_distance
+            closest_line = line_num
+            closest_direction = 'line'
 
     if closest_line:
         return closest_line, closest_direction
@@ -1670,6 +1728,32 @@ def activate_borrowing(line_position, direction):
     if not current_selected_chord:
         return
 
+    # Check if this is a fundamental chord (Earth, Wind, Fire) - no borrowing allowed
+    if current_selected_chord.name in ["Earth", "Wind", "Fire"]:
+        return
+
+    # Handle line click (reset borrowing for this line)
+    if direction == 'line':
+        # Reset this line to no borrowing
+        BORROWING_STATE['circle_positions'][line_position] = 'line'
+        BORROWING_STATE['borrowing_directions'][line_position] = None
+
+        # Update history for this chord
+        chord_name = current_selected_chord.name
+        if chord_name not in BORROWING_STATE['borrowing_history']:
+            BORROWING_STATE['borrowing_history'][chord_name] = {}
+        BORROWING_STATE['borrowing_history'][chord_name][line_position] = 'line'
+
+        # Move circle back to line
+        move_circle_to_line(line_position)
+
+        # Generate and play borrowed chord
+        generate_and_play_borrowed_chord()
+
+        # Update visual display
+        update_borrowing_display()
+        return
+
     # Determine opposite element
     opposite_element = ELEMENTAL_RELATIONSHIPS.get(current_selected_chord.name, [None])[0]
     if not opposite_element:
@@ -1679,11 +1763,20 @@ def activate_borrowing(line_position, direction):
     BORROWING_STATE['circle_positions'][line_position] = direction
     BORROWING_STATE['borrowing_directions'][line_position] = direction
 
+    # Store borrowing state in history for this chord
+    chord_name = current_selected_chord.name
+    if chord_name not in BORROWING_STATE['borrowing_history']:
+        BORROWING_STATE['borrowing_history'][chord_name] = {}
+    BORROWING_STATE['borrowing_history'][chord_name][line_position] = direction
+
     # Move the circle to the arrow position
     move_circle_to_arrow(line_position, direction)
 
     # Generate and play borrowed chord
     generate_and_play_borrowed_chord()
+
+    # Update visual display
+    update_borrowing_display()
 
 
 def move_circle_to_arrow(line_position, direction):
@@ -1780,13 +1873,57 @@ def reset_borrowing_circles():
         move_circle_to_line(line_position)
 
 
+def restore_borrowing_state(chord_name):
+    """Restore borrowing state for a specific chord from history."""
+    global BORROWING_STATE
+
+    # Reset to default state first
+    reset_borrowing_circles()
+
+    # Check if this chord has borrowing history
+    if chord_name in BORROWING_STATE['borrowing_history']:
+        chord_borrowing = BORROWING_STATE['borrowing_history'][chord_name]
+
+        # Apply each borrowing state
+        for line_position, direction in chord_borrowing.items():
+            if direction in ['up', 'down']:
+                BORROWING_STATE['circle_positions'][line_position] = direction
+                BORROWING_STATE['borrowing_directions'][line_position] = direction
+                move_circle_to_arrow(line_position, direction)
+            elif direction == 'line':
+                # Keep line position (already set by reset_borrowing_circles)
+                BORROWING_STATE['circle_positions'][line_position] = 'line'
+                BORROWING_STATE['borrowing_directions'][line_position] = None
+
+        # Update active state
+        BORROWING_STATE['active'] = any(pos != 'line' for pos in BORROWING_STATE['circle_positions'].values())
+
+        # Generate and play the borrowed chord
+        if BORROWING_STATE['active']:
+            generate_and_play_borrowed_chord()
+
+    # Update visual display (always call this)
+    update_borrowing_display()
+
+
 def update_borrowing_display():
     """Update visual indicators for borrowing state."""
-    global borrowing_circles
+    global borrowing_circles, current_selected_chord
 
-    # All circles stay blue - they just move to show borrowing state
-    for circle in borrowing_circles.values():
-        circle.setColor(Color.BLUE)
+    # Check if this is a fundamental chord (Earth, Wind, Fire) - make circles gray
+    if current_selected_chord and current_selected_chord.name in ["Earth", "Wind", "Fire"]:
+        for line_num, circle in borrowing_circles.items():
+            circle.setColor(Color.GRAY)
+        return
+
+    # Update circle colors based on borrowing state
+    for line_num, circle in borrowing_circles.items():
+        if BORROWING_STATE['circle_positions'][line_num] != 'line':
+            # Active borrowing - make circle green
+            circle.setColor(Color.GREEN)
+        else:
+            # No borrowing - keep blue
+            circle.setColor(Color.BLUE)
 
 
 # endregion Borrowing Functions ###############################################
@@ -1824,7 +1961,7 @@ def initialize_application():
                               DIAGRAM_X, VERTICAL_CENTER)
     diagram = Icon("./images/diagram.jpg", DIAGRAM_WIDTH, DISPLAY_HEIGHT)
     diagram_display.add(diagram)
-    # diagram_display.showMouseCoordinates()
+    diagram_display.showMouseCoordinates()
 
     # Create a circle that marks the active chord
     selected_chord_dot = Circle(DIAGRAM_WIDTH // 2, DISPLAY_HEIGHT // 2, 8, Color.BLUE, fill=True)
