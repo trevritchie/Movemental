@@ -236,6 +236,79 @@ NOTE_POSITION_MAPPING = {
     4: 3   # Line 4 → Highest note (index 3)
 }
 
+
+def get_root_position_mapping(chord):
+    """
+    Generate mapping from borrowing lines to chord notes in root position order.
+
+    Args:
+        chord (Chord): The chord object with root_position_index
+
+    Returns:
+        dict: Mapping from line number (1-4) to sorted pitch index
+    """
+    if not hasattr(chord, 'root_position_index'):
+        # Fallback to original mapping if root position not available
+        return NOTE_POSITION_MAPPING
+
+    # Create root position order: root, 3rd, 5th, 7th
+    # Root is at root_position_index in sorted pitches
+    root_idx = chord.root_position_index
+    third_idx = (root_idx + 1) % 4
+    fifth_idx = (root_idx + 2) % 4
+    seventh_idx = (root_idx + 3) % 4
+
+    return {
+        1: root_idx,     # Line 1 → Root note
+        2: third_idx,    # Line 2 → Third note
+        3: fifth_idx,    # Line 3 → Fifth note
+        4: seventh_idx   # Line 4 → Seventh note
+    }
+
+
+def create_borrowing_name(original_chord_name, borrowing_state):
+    """
+    Create a chemistry-style borrowing name with superscripts.
+
+    Args:
+        original_chord_name (str): Name of the original chord
+        borrowing_state (dict): Current borrowing state
+
+    Returns:
+        str: Borrowing name like "Branch³Fire¹" or "Branch²Fire²"
+    """
+    # Count how many notes are borrowed from each element
+    borrowing_counts = {}
+
+    # Get the opposite element for this chord
+    opposite_element = ELEMENTAL_RELATIONSHIPS.get(original_chord_name, [None])[0]
+    if not opposite_element:
+        return original_chord_name
+
+    # Count borrowed notes
+    borrowed_count = 0
+    for line_position in range(1, 5):
+        if borrowing_state['circle_positions'][line_position] != 'line':
+            borrowed_count += 1
+
+    if borrowed_count == 0:
+        return original_chord_name
+
+    # Create superscript numbers
+    superscript_map = {
+        0: '⁰', 1: '¹', 2: '²', 3: '³', 4: '⁴'
+    }
+
+    # Calculate counts
+    original_count = 4 - borrowed_count
+    opposite_count = borrowed_count
+
+    # Build the name
+    original_superscript = superscript_map.get(original_count, str(original_count))
+    opposite_superscript = superscript_map.get(opposite_count, str(opposite_count))
+
+    return f"{original_chord_name}{original_superscript}{opposite_element}{opposite_superscript}"
+
 # Borrowing control UI constants
 BORROWING_CONTROLS = {
     'circle_radius': 8,  # Same as selected_chord_dot
@@ -701,17 +774,21 @@ class Chord:
         """
         self.name = name
 
+        # Store root pitch class from original chord definition (before tonal center offset)
+        root_pitch_class = pitches[0] % 12
+
         # Convert to pitch classes (0-11) then add tonal center offset
         self.pitches = [(x % 12) + TONAL_CENTER_PITCH_CLASS
                         for x in pitches]
 
         # Type of 4 note chord - simplified with dictionary lookup
         chord_quality_map = {
-            "arth": " dim7", "Wind": " dim7", "Fire": " dim7",
+            "Earth": " dim7", "Wind": " dim7",
+            "-Fire": "7 b5", "Fire": " dim7",  # -Fire must come before Fire
             "Trunk": " min6", "Smoke": " min6", "Magma": " min6",
-            "ranch": " maj6", "Ember": " maj6", "Glass": " maj6",
-            "Sand-Storm": "7 b5", "Fire-Storm": "7 b5", "orest-Fire": "7 b5",
-            "Leaf": "7", "lame": "7", "coal": "7"
+            "Branch": " maj6", "Ember": " maj6", "Glass": " maj6",
+            "Sand-Storm": "7 b5", "Fire-Storm": "7 b5",
+            "Leaf": "7", "Flame": "7", "Charcoal": "7"
         }
 
         self.quality = ""
@@ -729,6 +806,15 @@ class Chord:
 
         # Sort the pitches low to high
         self.pitches.sort()
+
+        # Find where the root note ended up after sorting
+        # The root pitch class after tonal center offset
+        transposed_root_pitch_class = (root_pitch_class + TONAL_CENTER_PITCH_CLASS) % 12
+        self.root_position_index = 0  # Default to first position
+        for i, pitch in enumerate(self.pitches):
+            if pitch % 12 == transposed_root_pitch_class:
+                self.root_position_index = i
+                break
 
         # Apply voicing transformations to get the actual note ordering
         voiced_pitches = []
@@ -1041,7 +1127,7 @@ def create_tick_marks_and_labels():
 
         # Create a properly centered label
         note_label = Label(note_name, CENTER, Color.WHITE)
-        chord_display.add(note_label, label_x - 10, adjusted_label_y - 5)
+        chord_display.add(note_label, label_x - 8, adjusted_label_y - 5)
         note_labels.append(note_label)
 
 
@@ -1162,22 +1248,32 @@ def find_closest_point(here, points):
     return closest_point
 
 
-def play_chord(chord):
-    """Play the provided chord.
+def play_chord(chord_or_pitches):
+    """Play the provided chord or list of pitch classes.
 
     Args:
-        chord (Chord): The chord object to play
+        chord_or_pitches: Either a Chord object or a list of pitch classes (0-11)
     """
     global DISPLAY_HEIGHT, CLOCK_WIDTH
 
     # Stop any sounding notes
     Play.allNotesOff()
 
+    # Handle both Chord objects and pitch class lists
+    if isinstance(chord_or_pitches, Chord):
+        chord = chord_or_pitches
+        pitches = chord.pitches
+        chord_info = chord
+    else:
+        # Assume it's a list of pitch classes
+        pitches = chord_or_pitches
+        chord_info = None
+
     adjusted_pitches = []
     # Place notes in the correct octave range based on the chosen voicing
-    for i in range(len(chord.pitches)):
+    for i in range(len(pitches)):
         # Place the pitch class into the correct octave range
-        adjusted_pitch = chord.pitches[i] + OCTAVE_OFFSET
+        adjusted_pitch = pitches[i] + OCTAVE_OFFSET
 
         # For the chosen voicing, raise the appropriate notes up an octave
         if i in VOICING_TO_INDICES.get(VOICING):
@@ -1195,9 +1291,10 @@ def play_chord(chord):
     # Play the chord!
     Play.midi(phrase)
 
-    # Update choed display with the chord pitches and info
+    # Update chord display with the chord pitches and info
     update_chord_display(adjusted_pitches)
-    update_chord_info_display(chord)
+    if chord_info:
+        update_chord_info_display(chord_info)
 
 
 def select_chord_visually(x, y):
@@ -1310,6 +1407,31 @@ def create_chord_labels(chord, font_size, horizontal_center, top_y, bottom_y):
     chord_display.add(traditional_label, traditional_x, bottom_y - 5)
 
 
+def create_custom_chord_labels(elemental_name, traditional_name, font_size, horizontal_center, top_y, bottom_y):
+    """Create and position custom chord name labels."""
+    global chord_info_text, chord_display
+
+    # Elemental name (top center, perfectly centered for any length)
+    elemental_label = Label(elemental_name, CENTER, Color.WHITE)
+    elemental_label.setFont(Font("Arial", Font.BOLD, font_size))
+    chord_info_text['elemental'] = elemental_label
+
+    # Calculate precise position for perfect centering
+    elemental_x = get_precise_label_position(
+        elemental_name, font_size, horizontal_center)
+    chord_display.add(elemental_label, elemental_x, top_y)
+
+    # Traditional name (bottom center, perfectly centered for any length)
+    traditional_label = Label(traditional_name, CENTER, Color.WHITE)
+    traditional_label.setFont(Font("Arial", Font.BOLD, font_size))
+    chord_info_text['traditional'] = traditional_label
+
+    # Calculate precise position for perfect centering
+    traditional_x = get_precise_label_position(
+        traditional_name, font_size, horizontal_center)
+    chord_display.add(traditional_label, traditional_x, bottom_y - 5)
+
+
 def update_chord_info_display(chord):
     """Update the chord information text at the top of the chord display.
 
@@ -1327,6 +1449,28 @@ def update_chord_info_display(chord):
     # Calculate positions and create labels
     font_size, horizontal_center, top_y, bottom_y = calculate_label_positions()
     create_chord_labels(chord, font_size, horizontal_center, top_y, bottom_y)
+
+
+def update_chord_info_display_with_name(elemental_name, traditional_name):
+    """Update the chord information text with custom names.
+
+    Args:
+        elemental_name (str): The elemental name to display
+        traditional_name (str): The traditional name to display
+    """
+    global chord_info_text, chord_display
+
+    # Remove old labels if they exist
+    if chord_info_text['elemental']:
+        chord_display.remove(chord_info_text['elemental'])
+    if chord_info_text['traditional']:
+        chord_display.remove(chord_info_text['traditional'])
+
+    # Calculate positions and create labels
+    font_size, horizontal_center, top_y, bottom_y = calculate_label_positions()
+
+    # Create custom labels
+    create_custom_chord_labels(elemental_name, traditional_name, font_size, horizontal_center, top_y, bottom_y)
 
 
 def update_chord_display(pitches):
@@ -1391,7 +1535,7 @@ def update_chord_display(pitches):
 
 first_time = True
 # make a bar of dashes with | in the same places as header
-TABLE_SEPARATOR = "|" + "-" * 22 + "|" + "-" * 22 + "|" + "-" * 22 + "|"
+TABLE_SEPARATOR = "|" + "-" * 32 + "|" + "-" * 22 + "|" + "-" * 22 + "|"
 
 
 def select_chord(x, y):
@@ -1406,7 +1550,7 @@ def select_chord(x, y):
     if first_time:
         first_time = False
         voicing_header = VOICING + " Voicing"
-        header = (f"| {'Elemental Name':^20} | {'Traditional Name':^20} | "
+        header = (f"| {'Elemental Name':^30} | {'Traditional Name':^20} | "
                   f"{voicing_header:^20} |")
         print("\n" + header)
 
@@ -1432,11 +1576,14 @@ def select_chord(x, y):
         # Fundamental chords - reset borrowing and make circles gray
         reset_borrowing_circles()
         update_borrowing_display()
+        display_name = chord.name
     else:
         # Regular chords - restore borrowing state
         restore_borrowing_state(chord.name)
+        # Create borrowing name for display
+        display_name = create_borrowing_name(chord.name, BORROWING_STATE)
 
-    print(f"| {chord.name:^20} | {chord.traditional_name:^20} | "
+    print(f"| {display_name:^30} | {chord.traditional_name:^20} | "
           f"{chord.spelling:^20} |")
     print(TABLE_SEPARATOR)
 
@@ -1450,8 +1597,8 @@ def choose_action(x, y):
         x (int): X coordinate of the click (absolute)
         y (int): Y coordinate of the click (absolute)
     """
-    # print(f'{x/(SCREEN_WIDTH/DISPLAY_SCALE):.4f}, {y/(SCREEN_HEIGHT/DISPLAY_SCALE):.4f}')
-    print(f'{x/diagram_display.getWidth():.3f}, {y/diagram_display.getHeight():.3f}')
+    # print(f'{x/diagram_display.getWidth():.3f}, {y/diagram_display.getHeight():.3f}')
+
     # First check for borrowing control clicks
     if handle_borrowing_click(x, y):
         return
@@ -1580,42 +1727,18 @@ def get_borrowed_chord_from_ui_click(chord_name, line_position, direction, oppos
     Returns:
         list: New chord pitches with borrowed note
     """
-    # Map line position to note index
-    target_note_index = NOTE_POSITION_MAPPING[line_position]
+    # Get the chord object to determine root position mapping
+    chord = get_chord_by_name(chord_name)
+    if not chord:
+        return []
+
+    # Map line position to note index using root position order
+    root_position_mapping = get_root_position_mapping(chord)
+    target_note_index = root_position_mapping[line_position]
 
     return get_borrowed_chord(chord_name, target_note_index, direction, opposite_element)
 
 
-def play_borrowed_chord(borrowed_pitches):
-    """Play a borrowed chord with the given pitches."""
-    global DISPLAY_HEIGHT, CLOCK_WIDTH
-
-    # Stop any sounding notes
-    Play.allNotesOff()
-
-    adjusted_pitches = []
-    # Place notes in the correct octave range based on the chosen voicing
-    for i in range(len(borrowed_pitches)):
-        # Place the pitch class into the correct octave range
-        adjusted_pitch = borrowed_pitches[i] + OCTAVE_OFFSET
-
-        # For the chosen voicing, raise the appropriate notes up an octave
-        if i in VOICING_TO_INDICES.get(VOICING):
-            if adjusted_pitch + OCTAVE <= MAX_VOICING_PITCH:
-                adjusted_pitch += OCTAVE
-
-        # Add correctly placed pitch
-        adjusted_pitches.append(adjusted_pitch)
-
-    # Create the chord
-    phrase = Phrase()
-    phrase.addChord(adjusted_pitches, CHORD_DURATION, 120)
-
-    # Play the chord!
-    Play.midi(phrase)
-
-    # Update chord display with the borrowed chord pitches
-    update_chord_display(adjusted_pitches)
 
 
 def create_borrowing_controls():
@@ -1823,10 +1946,13 @@ def generate_and_play_borrowed_chord():
         if opposite_chord:
             opposite_pitches = opposite_chord.pitches
 
+            # Get root position mapping for this chord
+            root_position_mapping = get_root_position_mapping(current_selected_chord)
+
             for line_position in range(1, 5):
                 if BORROWING_STATE['circle_positions'][line_position] != 'line':
                     direction = BORROWING_STATE['borrowing_directions'][line_position]
-                    target_note_index = NOTE_POSITION_MAPPING[line_position]
+                    target_note_index = root_position_mapping[line_position]
 
                     if target_note_index < len(borrowed_pitches):
                         target_pitch = borrowed_pitches[target_note_index]
@@ -1838,8 +1964,20 @@ def generate_and_play_borrowed_chord():
 
                         borrowed_pitches[target_note_index] = replacement
 
-    # Play the borrowed chord
-    play_borrowed_chord(borrowed_pitches)
+    # Create borrowing name
+    borrowing_name = create_borrowing_name(current_selected_chord.name, BORROWING_STATE)
+
+    # Play the borrowed chord using the same play_chord function
+    # Pass the borrowed_pitches directly as pitch classes
+    play_chord(borrowed_pitches)
+
+    # Update chord info display with borrowing name
+    update_chord_info_display_with_name(borrowing_name, current_selected_chord.traditional_name)
+
+    # Print borrowing information to console
+    print(f"| {borrowing_name:^30} | {current_selected_chord.traditional_name:^20} | "
+          f"{current_selected_chord.spelling:^20} |")
+    print(TABLE_SEPARATOR)
 
     # Update state
     BORROWING_STATE['active'] = any(pos != 'line' for pos in BORROWING_STATE['circle_positions'].values())
@@ -1961,7 +2099,7 @@ def initialize_application():
                               DIAGRAM_X, VERTICAL_CENTER)
     diagram = Icon("./images/diagram.jpg", DIAGRAM_WIDTH, DISPLAY_HEIGHT)
     diagram_display.add(diagram)
-    diagram_display.showMouseCoordinates()
+    # diagram_display.showMouseCoordinates()
 
     # Create a circle that marks the active chord
     selected_chord_dot = Circle(DIAGRAM_WIDTH // 2, DISPLAY_HEIGHT // 2, 8, Color.BLUE, fill=True)
@@ -1980,7 +2118,7 @@ def initialize_application():
     NODE_RADIUS = max(MIN_NODE_RADIUS, int(CLOCK_RADIUS * 0.1))
     BIG_TICK_RADIUS = max(MIN_TICK_RADIUS, int(CLOCK_RADIUS * 0.04))
     SMALL_TICK_RADIUS = max(MIN_SMALL_TICK_RADIUS, int(CLOCK_RADIUS * 0.02))
-    LABEL_DISTANCE = max(MIN_LABEL_DISTANCE, int(CLOCK_RADIUS * 0.15))
+    LABEL_DISTANCE = max(MIN_LABEL_DISTANCE, int(CLOCK_RADIUS * 0.20))
 
     # Create the clock-like chord display
     create_chord_display()
