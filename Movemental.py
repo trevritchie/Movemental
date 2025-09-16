@@ -529,6 +529,19 @@ borrowing_controller = None
 # distance and find_closest_point now handled by DisplayManager
 
 
+def _warm_up_midi_system():
+    """Warm up the MIDI system to prevent audio stuttering on first chord."""
+    try:
+        # Play a very quiet, very short note to initialize the MIDI system
+        # This prevents the crackling/stuttering on the first real chord
+        Play.note(C4, 0, 0.01, 1)  # Very quiet (volume 1) and very short (0.01 seconds)
+        time.sleep(0.05)  # Small delay to let MIDI system settle
+        Play.allNotesOff()  # Ensure it's stopped
+    except:
+        # If warm-up fails, continue anyway
+        pass
+
+
 def play_chord(chord_or_pitches):
     """Play the provided chord or list of pitch classes.
     
@@ -538,8 +551,6 @@ def play_chord(chord_or_pitches):
     global DISPLAY_HEIGHT, CLOCK_WIDTH
     
     try:
-        print("DEBUG: play_chord called - generating MIDI phrase")
-        
         # Stop any sounding notes
         Play.allNotesOff()
         
@@ -572,13 +583,10 @@ def play_chord(chord_or_pitches):
             adjusted_pitches.append(adjusted_pitch)
             # Play.note(adjusted_pitch, 0, 1000, 120)
         
-        print(f"DEBUG: Adjusted pitches: {adjusted_pitches}")
-        
         # Create the chord
         phrase = Phrase()
         phrase.addChord(adjusted_pitches, config.CHORD_DURATION, 120)
         
-        print("DEBUG: Playing MIDI phrase via Play.midi()")
         # Play the chord!
         Play.midi(phrase)
         
@@ -586,7 +594,6 @@ def play_chord(chord_or_pitches):
         display_manager.update_chord_display(adjusted_pitches)
         if chord_info:
             display_manager.update_chord_info_display(chord_info)
-        print("DEBUG: Chord display updated - nodes/lines/labels positioned")
             
     except Exception as e:
         print(f"Error playing chord: {e}")
@@ -604,7 +611,6 @@ def select_chord_visually(x, y):
         x (float): X coordinate for the visual indicator (relative 0-1)
         y (float): Y coordinate for the visual indicator (relative 0-1)
     """
-    print(f"DEBUG: select_chord_visually called - placing dot at relative ({x}, {y})")
     display_manager.select_chord_visually(x, y)
 
 
@@ -625,7 +631,6 @@ def select_chord(x, y):
     """
     global first_time, current_selected_chord
     
-    print(f"DEBUG: select_chord called for click at ({x}, {y})")
     
     if first_time:
         first_time = False
@@ -641,7 +646,6 @@ def select_chord(x, y):
     
     # Get chord info
     chord = chord_manager.get_chord_by_coordinates(point)
-    print(f"DEBUG: Closest chord found: {chord.name}")
     
     # Update current selected chord for borrowing
     borrowing_controller.set_current_chord(chord)
@@ -651,18 +655,14 @@ def select_chord(x, y):
     
     # Handle borrowing state for this chord
     if chord.name in ["Earth", "Wind", "Fire"]:
-        print("DEBUG: Elemental chord selected - resetting borrowing and playing original")
         # Fundamental chords - reset borrowing and make circles gray
         borrowing_controller.reset_borrowing_circles()
         borrowing_controller.update_borrowing_display()
         display_name = chord.name
         
         # Play the original chord
-        print("DEBUG: Calling play_chord directly for elemental chord")
         play_chord(chord)
-        print("DEBUG: Elemental chord played directly")
     else:
-        print("DEBUG: Child chord selected, calling restore...")
         # Regular chords - restore borrowing state
         borrowing_controller.restore_borrowing_state(chord.name, lambda: None)
         
@@ -672,20 +672,19 @@ def select_chord(x, y):
             display_manager.update_chord_display_with_note_states,
             display_manager.update_chord_info_display_with_name
         )
-        print("DEBUG: restore_borrowing_state and generate_and_play_borrowed_chord completed")
         # Create borrowing name for display
         display_name = borrowing_controller.create_borrowing_name(chord.name, config.BORROWING_STATE)
     
     # Create active spelling based on current state
     # For normal chord selection, we need to generate the active pitches
-    print("DEBUG: Calling generate_active_pitches")
     active_pitches = generate_active_pitches(chord, config.BORROWING_STATE)
-    print(f"DEBUG: active_pitches: {active_pitches}")
     active_spelling = create_spelling_from_pitches(active_pitches)
     
-    print(f"| {display_name:^30} | {chord.traditional_name:^20} | "
-          f"{active_spelling:^20} |")
-    print(TABLE_SEPARATOR)
+    # Only print for elemental chords (child chords print from borrowing_system)
+    if chord.name in ["Earth", "Wind", "Fire"]:
+        print(f"| {display_name:^30} | {chord.traditional_name:^20} | "
+              f"{active_spelling:^20} |")
+        print(TABLE_SEPARATOR)
 
 
 def choose_action(x, y):
@@ -697,12 +696,10 @@ def choose_action(x, y):
         x (int): X coordinate of the click (absolute)
         y (int): Y coordinate of the click (absolute)
     """
-    print(f"DEBUG: choose_action called - mouse click at ({x}, {y}) registered")
     # print(f'{x/diagram_display.getWidth():.3f}, {y/diagram_display.getHeight():.3f}')
     
     # First check for borrowing control clicks
     def generate_callback():
-        print("DEBUG: Borrowing generate_callback invoked")
         borrowing_controller.generate_and_play_borrowed_chord(
             play_chord,
             display_manager.update_chord_display_with_note_states,
@@ -710,7 +707,6 @@ def choose_action(x, y):
         )
     
     if borrowing_controller.handle_borrowing_click(x, y, generate_callback):
-        print("DEBUG: Borrowing click handled")
         return
     
     # Original chord selection logic
@@ -720,12 +716,9 @@ def choose_action(x, y):
     # Test if key holds type is a chord
     chord = chord_manager.get_chord_by_coordinates(point)
     if isinstance(chord, Chord):  # test if value is a Chord
-        print("DEBUG: Chord detected - calling select_chord")
         # If a chord, call play chord function (pass original absolute
         # coordinates)
         select_chord(x, y)
-    else:
-        print("DEBUG: No chord detected at click position")
 
 
 # region Borrowing Functions ##################################################
@@ -742,6 +735,9 @@ from borrowing_system import get_borrowed_chord, get_borrowed_chord_from_ui_clic
 def initialize_application():
     """Initialize the main application displays and setup."""
     global display_manager, borrowing_controller
+
+    # Warm up MIDI system to prevent audio stuttering on first chord
+    _warm_up_midi_system()
 
     try:
         # Configure screen settings
@@ -795,11 +791,11 @@ def initialize_application():
         
         # Register mouse click handler immediately after initialization
         if display_manager and display_manager.get_diagram_display():
-            display_manager.get_diagram_display().onMouseClick(choose_action)
-            print("Mouse click handler registered successfully")
+            display_manager.get_diagram_display().onMouseDown(choose_action)
+            # print("Mouse click handler registered successfully")
         else:
             print("Error: Could not register mouse click handler")
-        
+
     except Exception as e:
         print(f"Error initializing application: {e}")
         raise RuntimeError(f"Failed to initialize application: {e}")

@@ -356,7 +356,6 @@ class BorrowingController:
         
         # Override the chord display to show all notes, but hide turned-off ones
         update_display_callback(borrowed_pitches, BORROWING_STATE, self.current_selected_chord)
-        print("Visuals updated with state for borrowed chord")
         
         # Update chord info display with borrowing name
         update_info_callback(borrowing_name, self.current_selected_chord.traditional_name)
@@ -426,7 +425,6 @@ class BorrowingController:
             chord_name: Name of the chord to restore state for
             generate_callback: Optional callback (for compatibility)
         """
-        print("Inside restore_borrowing_state")
         BORROWING_STATE = config.BORROWING_STATE
         
         # Reset to default state first
@@ -461,7 +459,6 @@ class BorrowingController:
         
         # Update visual display (always call this)
         self.update_borrowing_display()
-        print("restore_borrowing_state completed")
     
     def update_borrowing_display(self):
         """Update visual indicators for borrowing state."""

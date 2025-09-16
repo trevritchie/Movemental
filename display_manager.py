@@ -391,9 +391,10 @@ class DisplayManager:
             borrowing_state (dict): Current borrowing state
             current_chord: Current selected chord object
         """
-        # Performance optimization - throttle updates
-        if self._should_throttle_update():
-            return
+        # Skip throttling for borrowing operations - they need immediate visual feedback
+        # Performance optimization - throttle updates (disabled for borrowing)
+        # if self._should_throttle_update():
+        #     return
         
         # Sort pitches to ensure consistent ordering
         sorted_pitches = sorted(pitches)
@@ -412,6 +413,9 @@ class DisplayManager:
         
         # Update node positions and colors, but hide turned-off notes
         root_position_mapping = get_root_position_mapping(current_chord)
+        
+        # Track which nodes are active for line connections
+        active_node_indices = []
         
         for i in range(4):
             if i < len(positions):
@@ -432,6 +436,7 @@ class DisplayManager:
                     x, y = positions[i]
                     self.note_nodes[i].setColor(colors[i])
                     self.chord_display.move(self.note_nodes[i], x, y)
+                    active_node_indices.append(i)
             else:
                 # Hide unused nodes
                 self.note_nodes[i].setColor(TRANSPARENT_COLOR)
@@ -439,18 +444,8 @@ class DisplayManager:
         
         # Update connecting lines to connect only active nodes
         active_positions = []
-        for i in range(4):
-            if i < len(positions):
-                # Check if this note is active (not turned off)
-                note_is_off = False
-                for line_position in range(1, 5):
-                    if (borrowing_state['note_states'][line_position] == 'off' and
-                        root_position_mapping[line_position] == i):
-                        note_is_off = True
-                        break
-                
-                if not note_is_off:
-                    active_positions.append(positions[i])
+        for i in active_node_indices:
+            active_positions.append(positions[i])
         
         if len(active_positions) >= 2:
             # Connect active nodes to each other
@@ -474,7 +469,7 @@ class DisplayManager:
             # Hide unused connection lines
             for i in range(len(line_connections), len(self.note_connection_lines)):
                 self.chord_display.remove(self.note_connection_lines[i])
-                new_line = Line(self.clock_x, self.clock_y, self.clock_x, self.clock_y, 
+                new_line = Line(self.clock_x, self.clock_y, self.clock_x, self.clock_y,
                               Color.WHITE, 2)
                 self.chord_display.add(new_line)
                 self.note_connection_lines[i] = new_line
@@ -482,7 +477,7 @@ class DisplayManager:
             # Hide all lines if not enough active notes
             for i, line in enumerate(self.note_connection_lines):
                 self.chord_display.remove(line)
-                new_line = Line(self.clock_x, self.clock_y, self.clock_x, self.clock_y, 
+                new_line = Line(self.clock_x, self.clock_y, self.clock_x, self.clock_y,
                               Color.WHITE, 2)
                 self.chord_display.add(new_line)
                 self.note_connection_lines[i] = new_line
