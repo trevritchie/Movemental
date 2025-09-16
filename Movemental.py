@@ -322,17 +322,17 @@ def create_borrowing_name(original_chord_name, borrowing_state):
     return "".join(name_parts)
 
 
-def create_active_spelling(chord, borrowing_state):
+def generate_active_pitches(chord, borrowing_state):
     """
-    Create chord spelling based on only the active (turned on) notes,
-    including any borrowed notes.
+    Generate the active (voiced) pitches for a chord based on borrowing state.
+    This is the core logic shared between playback and spelling.
 
     Args:
         chord (Chord): The chord object
         borrowing_state (dict): Current borrowing state
 
     Returns:
-        str: Spelling of only the active notes with borrowed notes included
+        list: List of voiced MIDI pitches for active notes
     """
     # Start with original chord pitches
     original_pitches = sorted(chord.pitches)
@@ -388,11 +388,24 @@ def create_active_spelling(chord, borrowing_state):
             if note_index < len(voiced_pitches):
                 active_pitches.append(voiced_pitches[note_index])
 
-    if not active_pitches:
+    return active_pitches
+
+
+def create_spelling_from_pitches(pitches):
+    """
+    Create chord spelling from a list of MIDI pitches (already voiced).
+
+    Args:
+        pitches (list): List of MIDI pitch values (already voiced and filtered)
+
+    Returns:
+        str: Spelling of the pitches sorted from low to high
+    """
+    if not pitches:
         return "No notes"
 
     # Sort by actual MIDI pitch values (low to high)
-    sorted_pitches = sorted(active_pitches)
+    sorted_pitches = sorted(pitches)
     note_names = [NOTE_NAMES_FLAT[pitch % 12] for pitch in sorted_pitches]
 
     return "  ".join(f"{name:<2}" for name in note_names)
@@ -1775,7 +1788,9 @@ def select_chord(x, y):
         display_name = create_borrowing_name(chord.name, BORROWING_STATE)
 
     # Create active spelling based on current state
-    active_spelling = create_active_spelling(chord, BORROWING_STATE)
+    # For normal chord selection, we need to generate the active pitches
+    active_pitches = generate_active_pitches(chord, BORROWING_STATE)
+    active_spelling = create_spelling_from_pitches(active_pitches)
 
     print(f"| {display_name:^30} | {chord.traditional_name:^20} | "
           f"{active_spelling:^20} |")
@@ -1827,37 +1842,39 @@ def get_elemental_chord(element_name):
 
 
 def find_next_higher_note(reference_pitch, available_pitches):
-    """Find the next higher note from available pitches."""
+    """Find the next higher note from available pitches, guaranteeing higher absolute pitch."""
     # Convert to pitch classes for comparison
     reference_pc = reference_pitch % 12
+    reference_octave = reference_pitch // 12
     available_pcs = [pitch % 12 for pitch in available_pitches]
 
-    # Find pitches higher than reference
-    higher_pitches = [pc for pc in available_pcs if pc > reference_pc]
+    # Find pitches higher than reference pitch class
+    higher_pcs = [pc for pc in available_pcs if pc > reference_pc]
 
-    if higher_pitches:
-        # Return the lowest higher pitch
-        return min(higher_pitches)
+    if higher_pcs:
+        # Return the lowest higher pitch class in the same octave
+        return min(higher_pcs) + (reference_octave * 12)
     else:
-        # Wrap around to the lowest available pitch
-        return min(available_pcs)
+        # Wrap around to the lowest available pitch class in the next octave
+        return min(available_pcs) + ((reference_octave + 1) * 12)
 
 
 def find_next_lower_note(reference_pitch, available_pitches):
-    """Find the next lower note from available pitches."""
+    """Find the next lower note from available pitches, guaranteeing lower absolute pitch."""
     # Convert to pitch classes for comparison
     reference_pc = reference_pitch % 12
+    reference_octave = reference_pitch // 12
     available_pcs = [pitch % 12 for pitch in available_pitches]
 
-    # Find pitches lower than reference
-    lower_pitches = [pc for pc in available_pcs if pc < reference_pc]
+    # Find pitches lower than reference pitch class
+    lower_pcs = [pc for pc in available_pcs if pc < reference_pc]
 
-    if lower_pitches:
-        # Return the highest lower pitch
-        return max(lower_pitches)
+    if lower_pcs:
+        # Return the highest lower pitch class in the same octave
+        return max(lower_pcs) + (reference_octave * 12)
     else:
-        # Wrap around to the highest available pitch
-        return max(available_pcs)
+        # Wrap around to the highest available pitch class in the previous octave
+        return max(available_pcs) + ((reference_octave - 1) * 12)
 
 
 def get_borrowed_chord(chord_name, target_note_index, direction, opposite_element):
@@ -2285,8 +2302,8 @@ def generate_and_play_borrowed_chord():
     # Update chord info display with borrowing name
     update_chord_info_display_with_name(borrowing_name, current_selected_chord.traditional_name)
 
-    # Create active spelling based on current state
-    active_spelling = create_active_spelling(current_selected_chord, BORROWING_STATE)
+    # Create active spelling using the same active_pitches that were played
+    active_spelling = create_spelling_from_pitches(active_pitches)
 
     # Print borrowing information to console
     print(f"| {borrowing_name:^30} | {current_selected_chord.traditional_name:^20} | "
