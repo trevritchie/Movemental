@@ -21,7 +21,7 @@ import time
 # region Default Settings #####################################################
 # If the user clicks no drop down menus, these will be used
 
-DEFAULT_TONAL_CENTER_OFFSET = G0  # 0 = C, 2 = D, -2 = Bb, 10 = Bb etc.
+DEFAULT_TONAL_CENTER_OFFSET = BF0  # 0 = C, 2 = D, -2 = Bb, 10 = Bb etc.
 
 DEFAULT_OCTAVE_RANGE = 3  # which octave to place chords in
 
@@ -34,7 +34,7 @@ DEFAULT_CHORD_DURATION = HN  # how long to play each chord
 
 # For all instrument constants, see:
 # https://jythonmusic.me/api/midi-constants/instrument/
-DEFAULT_INSTRUMENT = RHODES_PIANO
+DEFAULT_INSTRUMENT = PIANO
 Play.setInstrument(DEFAULT_INSTRUMENT)
 
 # Screen dimensions
@@ -60,6 +60,18 @@ INSTRUMENT = DEFAULT_INSTRUMENT
 SCREEN_WIDTH = DEFAULT_SCREEN_WIDTH
 SCREEN_HEIGHT = DEFAULT_SCREEN_HEIGHT
 DISPLAY_SCALE = DEFAULT_DISPLAY_SCALE
+
+# Borrowing state management
+BORROWING_STATE = {
+    'active': False,
+    'chord_name': None,
+    'borrowed_notes': [],
+    'original_notes': [],
+    'circle_positions': {1: 'line', 2: 'line', 3: 'line', 4: 'line'},  # Where each circle is positioned: 'line', 'up', 'down', 'off'
+    'borrowing_directions': {1: None, 2: None, 3: None, 4: None},      # Direction for each line: None, 'up', 'down', 'off'
+    'note_states': {1: 'on', 2: 'on', 3: 'on', 4: 'on'},              # Whether each note is on or off: 'on', 'off'
+    'borrowing_history': {}  # Store borrowing state per chord: {chord_name: {line: direction}}
+}
 # endregion Runtime Variables #################################################
 
 
@@ -155,6 +167,285 @@ PI_OVER_6 = pi / 6
 PI_OVER_3 = pi / 3
 PI_OVER_2 = pi / 2
 PI_TIMES_2 = 2 * pi
+
+# Borrowing system constants
+ELEMENTAL_RELATIONSHIPS = {
+    "Earth": ["Wind", "Fire"],
+    "Wind": ["Earth", "Fire"],
+    "Fire": ["Earth", "Wind"],
+
+    # Earth+Wind chords → opposite is Fire
+    "Trunk": ["Fire"],
+    "Brother Trunk": ["Fire"],
+    "Twin Trunk": ["Fire"],
+    "Sister Trunk": ["Fire"],
+    "Branch": ["Fire"],
+    "Brother Branch": ["Fire"],
+    "Twin Branch": ["Fire"],
+    "Sister Branch": ["Fire"],
+    "Sand-Storm": ["Fire"],
+    "Brother Sand-Storm": ["Fire"],
+    "Twin Sand-Storm": ["Fire"],
+    "Sister Sand-Storm": ["Fire"],
+    "Leaf": ["Fire"],
+    "Brother Leaf": ["Fire"],
+    "Twin Leaf": ["Fire"],
+    "Sister Leaf": ["Fire"],
+
+    # Wind+Fire chords → opposite is Earth
+    "Smoke": ["Earth"],
+    "Brother Smoke": ["Earth"],
+    "Twin Smoke": ["Earth"],
+    "Sister Smoke": ["Earth"],
+    "Ember": ["Earth"],
+    "Brother Ember": ["Earth"],
+    "Twin Ember": ["Earth"],
+    "Sister Ember": ["Earth"],
+    "Fire-Storm": ["Earth"],
+    "Brother Fire-Storm": ["Earth"],
+    "Twin Fire-Storm": ["Earth"],
+    "Sister Fire-Storm": ["Earth"],
+    "Flame": ["Earth"],
+    "Brother Flame": ["Earth"],
+    "Twin Flame": ["Earth"],
+    "Sister Flame": ["Earth"],
+
+    # Fire+Earth chords → opposite is Wind
+    "Magma": ["Wind"],
+    "Brother Magma": ["Wind"],
+    "Twin Magma": ["Wind"],
+    "Sister Magma": ["Wind"],
+    "Glass": ["Wind"],
+    "Brother Glass": ["Wind"],
+    "Twin Glass": ["Wind"],
+    "Sister Glass": ["Wind"],
+    "Forest-Fire": ["Wind"],
+    "Brother Forest-Fire": ["Wind"],
+    "Twin Forest-Fire": ["Wind"],
+    "Sister Forest-Fire": ["Wind"],
+    "Charcoal": ["Wind"],
+    "Brother Charcoal": ["Wind"],
+    "Twin Charcoal": ["Wind"],
+    "Sister Charcoal": ["Wind"]
+}
+
+# Map line positions to chord note indices (sorted from low to high)
+NOTE_POSITION_MAPPING = {
+    1: 0,  # Line 1 → Lowest note (index 0)
+    2: 1,  # Line 2 → Second lowest note (index 1)
+    3: 2,  # Line 3 → Third lowest note (index 2)
+    4: 3   # Line 4 → Highest note (index 3)
+}
+
+
+def get_root_position_mapping(chord):
+    """
+    Generate mapping from borrowing lines to chord notes in root position order.
+
+    Args:
+        chord (Chord): The chord object with root_position_index
+
+    Returns:
+        dict: Mapping from line number (1-4) to sorted pitch index
+    """
+    if not hasattr(chord, 'root_position_index'):
+        # Fallback to original mapping if root position not available
+        return NOTE_POSITION_MAPPING
+
+    # Create root position order: root, 3rd, 5th, 7th
+    # Root is at root_position_index in sorted pitches
+    root_idx = chord.root_position_index
+    third_idx = (root_idx + 1) % 4
+    fifth_idx = (root_idx + 2) % 4
+    seventh_idx = (root_idx + 3) % 4
+
+    return {
+        1: root_idx,     # Line 1 → Root note
+        2: third_idx,    # Line 2 → Third note
+        3: fifth_idx,    # Line 3 → Fifth note
+        4: seventh_idx   # Line 4 → Seventh note
+    }
+
+
+def create_borrowing_name(original_chord_name, borrowing_state):
+    """
+    Create a chemistry-style borrowing name with subscripts reflecting note counts.
+
+    Args:
+        original_chord_name (str): Name of the original chord
+        borrowing_state (dict): Current borrowing state
+
+    Returns:
+        str: Borrowing name like "Branch₄" (4 original notes) or "Branch₃Fire₁" (3 original + 1 borrowed)
+    """
+    # Count how many notes are active (turned on)
+    active_count = 0
+    for line_position in range(1, 5):
+        if borrowing_state['note_states'][line_position] == 'on':
+            active_count += 1
+
+    # Create subscript numbers
+    subscript_map = {
+        0: '₀', 1: '₁', 2: '₂', 3: '₃', 4: '₄'
+    }
+
+    # Get the opposite element for this chord
+    opposite_element = ELEMENTAL_RELATIONSHIPS.get(original_chord_name, [None])[0]
+
+    # If no opposite element, just show active note count
+    if not opposite_element:
+        active_subscript = subscript_map.get(active_count, str(active_count))
+        return f"{original_chord_name}{active_subscript}"
+
+    # Count borrowed notes (notes that are borrowed from opposite element)
+    borrowed_count = 0
+    for line_position in range(1, 5):
+        if (borrowing_state['circle_positions'][line_position] in ['up', 'down'] and
+            borrowing_state['note_states'][line_position] == 'on'):
+            borrowed_count += 1
+
+    # Calculate original notes (active notes that are not borrowed)
+    original_count = active_count - borrowed_count
+
+    # Build the name with both original and borrowed counts
+    # Only include elements that have notes (count > 0)
+    name_parts = []
+
+    if original_count > 0:
+        original_subscript = subscript_map.get(original_count, str(original_count))
+        name_parts.append(f"{original_chord_name}{original_subscript}")
+
+    if borrowed_count > 0:
+        opposite_subscript = subscript_map.get(borrowed_count, str(borrowed_count))
+        name_parts.append(f"{opposite_element}{opposite_subscript}")
+
+    return "".join(name_parts)
+
+
+def generate_active_pitches(chord, borrowing_state):
+    """
+    Generate the active (voiced) pitches for a chord based on borrowing state.
+    This is the core logic shared between playback and spelling.
+
+    Args:
+        chord (Chord): The chord object
+        borrowing_state (dict): Current borrowing state
+
+    Returns:
+        list: List of voiced MIDI pitches for active notes
+    """
+    # Start with original chord pitches
+    original_pitches = sorted(chord.pitches)
+    borrowed_pitches = original_pitches.copy()
+
+    # Apply borrowing transformations (same logic as generate_and_play_borrowed_chord)
+    opposite_element = ELEMENTAL_RELATIONSHIPS.get(chord.name, [None])[0]
+    if opposite_element:
+        opposite_chord = get_elemental_chord(opposite_element)
+        if opposite_chord:
+            opposite_pitches = opposite_chord.pitches
+            root_position_mapping = get_root_position_mapping(chord)
+
+            for line_position in range(1, 5):
+                # Skip notes that are turned off
+                if borrowing_state['note_states'][line_position] == 'off':
+                    continue
+
+                if borrowing_state['circle_positions'][line_position] != 'line':
+                    direction = borrowing_state['borrowing_directions'][line_position]
+                    target_note_index = root_position_mapping[line_position]
+
+                    if target_note_index < len(borrowed_pitches):
+                        target_pitch = borrowed_pitches[target_note_index]
+
+                        if direction == 'up':
+                            replacement = find_next_higher_note(target_pitch, opposite_pitches)
+                        else:  # down
+                            replacement = find_next_lower_note(target_pitch, opposite_pitches)
+
+                        borrowed_pitches[target_note_index] = replacement
+
+    # Create a 4-note structure with null values for turned-off notes
+    # This ensures voicing is applied to the correct positions
+    full_pitch_structure = [None] * 4
+    root_position_mapping = get_root_position_mapping(chord)
+
+    for line_position in range(1, 5):
+        if borrowing_state['note_states'][line_position] == 'on':
+            note_index = root_position_mapping[line_position]
+            if note_index < len(borrowed_pitches):
+                full_pitch_structure[note_index] = borrowed_pitches[note_index]
+
+    # Apply voicing transformations to all notes first (same as play_chord function)
+    # This ensures voicing is applied to the correct positions in the 4-note structure
+    voiced_pitches = []
+    for i in range(len(full_pitch_structure)):
+        if full_pitch_structure[i] is None:
+            # Skip turned-off notes
+            continue
+
+        # Place the pitch class into the correct octave range
+        adjusted_pitch = full_pitch_structure[i] + OCTAVE_OFFSET
+
+        # For the chosen voicing, raise the appropriate notes up an octave
+        if i in VOICING_TO_INDICES.get(VOICING):
+            if adjusted_pitch + OCTAVE <= MAX_VOICING_PITCH:
+                adjusted_pitch += OCTAVE
+
+        voiced_pitches.append(adjusted_pitch)
+
+    return voiced_pitches
+
+
+def create_spelling_from_pitches(pitches):
+    """
+    Create chord spelling from a list of MIDI pitches (already voiced).
+
+    Args:
+        pitches (list): List of MIDI pitch values (already voiced and filtered)
+
+    Returns:
+        str: Spelling of the pitches sorted from low to high
+    """
+    if not pitches:
+        return "No notes"
+
+    # Sort by actual MIDI pitch values (low to high)
+    sorted_pitches = sorted(pitches)
+    note_names = [NOTE_NAMES_FLAT[pitch % 12] for pitch in sorted_pitches]
+
+    return "  ".join(f"{name:<2}" for name in note_names)
+
+
+# Borrowing control UI constants
+BORROWING_CONTROLS = {
+    'circle_radius': 8,  # Same as selected_chord_dot
+    'arrow_size': 6      # Size of arrow indicators
+}
+
+# Transparent color for hiding circles (alpha = 0)
+TRANSPARENT_COLOR = Color(0, 0, 0, 0)
+
+# Borrowing control coordinates (relative coordinates for scaling)
+# Base line positions for each note (where circles start)
+# Original coordinates captured on 1200x720 diagram image
+# Converted to relative (0-1) coordinates: x/1200, y/720
+BORROWING_LINE_COORDINATES = {
+    1: (0.036, 0.902),  # Line 1 - affects lowest note (bass)
+    2: (0.110, 0.903),  # Line 2 - affects second lowest note (tenor)
+    3: (0.188, 0.905),  # Line 3 - affects second highest note (alto)
+    4: (0.267, 0.908),  # Line 4 - affects highest note (soprano)
+}
+
+# Arrow positions for each line (up and down)
+# Original coordinates captured on 1200x720 diagram image
+# Converted to relative (0-1) coordinates: x/1200, y/720
+BORROWING_ARROW_COORDINATES = {
+    1: {'up': (0.035, 0.828), 'down': (0.038, 0.977)},    # Line 1 arrows (26/1200, 498/720), (32/1200, 582/720)
+    2: {'up': (0.109, 0.828), 'down': (0.111, 0.980)},    # Line 2 arrows (89/1200, 493/720), (92/1200, 584/720)
+    3: {'up': (0.189, 0.833), 'down': (0.185, 0.970)},    # Line 3 arrows (152/1200, 495/720), (148/1200, 584/720)
+    4: {'up': (0.268, 0.835), 'down': (0.268, 0.975)},    # Line 4 arrows (215/1200, 496/720), (216/1200, 583/720)
+}
 # endregion Constants #########################################################
 
 
@@ -203,7 +494,8 @@ class UserSettingsGUI:
 
         # Convert instrument constant to string
         instrument_map = {RHODES_PIANO: "Rhodes Keyboard", PIANO: "Piano", SYNTH: "Synth",
-                         CELLO: "Cello", DX_PIANO: "DX Keyboard"}
+                         CELLO: "Cello", DX_PIANO: "DX Keyboard", SHAKUHACHI: "Shakuhachi",
+                         MUSIC_BOX: "Music Box"}
         instrument_name = instrument_map.get(DEFAULT_INSTRUMENT, "Rhodes Keyboard")
 
         # Convert display scale to string
@@ -242,7 +534,7 @@ class UserSettingsGUI:
         self._create_dropdowns()
 
         # Create Done button with callback to start main application
-        self.done_button = Button("Done", self._on_done_clicked)
+        self.done_button = Button("Start", self._on_done_clicked)
         self.display.add(self.done_button, window_width // 2 - 50, window_height - 60)
 
     def _create_dropdowns(self):
@@ -350,7 +642,8 @@ class UserSettingsGUI:
 
         # Get current instrument and put it first if not already first
         current_instrument = self.settings['instrument']
-        all_instruments = ["Rhodes Keyboard", "Piano", "Synth", "Cello", "DX Keyboard"]
+        all_instruments = ["Rhodes Keyboard", "Shakuhachi", "Piano", "Synth",
+                           "Cello", "DX Keyboard", "Music Box"]
 
         if current_instrument == all_instruments[0]:
             instrument_options = all_instruments
@@ -436,10 +729,10 @@ class UserSettingsGUI:
     def _on_done_clicked(self):
         """Handle Done button click - apply settings and start main application."""
         if self.display:
-            print("Applying user settings...")
+            # print("Applying user settings...")
             apply_user_settings(self.settings)
 
-            print("Initializing main application...")
+            # print("Initializing main application...")
             initialize_application()
 
             # Register callback for playing chords by clicking the mouse
@@ -474,12 +767,14 @@ def string_to_instrument(instrument_name):
     """Convert instrument name string to MIDI instrument constant."""
     instrument_map = {
         "Rhodes Keyboard": RHODES_PIANO,
+        "Shakuhachi": SHAKUHACHI,
         "Piano": PIANO,
         "Synth": SYNTH,
         "Cello": CELLO,
-        "DX Keyboard": DX_PIANO
+        "DX Keyboard": DX_PIANO,
+        "Music Box": MUSIC_BOX
     }
-    return instrument_map.get(instrument_name, RHODES_PIANO)
+    return instrument_map.get(instrument_name, SHAKUHACHI)
 
 
 def parse_resolution(resolution_string):
@@ -590,17 +885,21 @@ class Chord:
         """
         self.name = name
 
+        # Store root pitch class from original chord definition (before tonal center offset)
+        root_pitch_class = pitches[0] % 12
+
         # Convert to pitch classes (0-11) then add tonal center offset
         self.pitches = [(x % 12) + TONAL_CENTER_PITCH_CLASS
                         for x in pitches]
 
         # Type of 4 note chord - simplified with dictionary lookup
         chord_quality_map = {
-            "arth": " dim7", "Wind": " dim7", "Fire": " dim7",
+            "Earth": " dim7", "Wind": " dim7",
+            "-Fire": "7 b5", "Fire": " dim7",  # -Fire must come before Fire
             "Trunk": " min6", "Smoke": " min6", "Magma": " min6",
-            "ranch": " maj6", "Ember": " maj6", "Glass": " maj6",
-            "Sand-Storm": "7 b5", "Fire-Storm": "7 b5", "orest-Fire": "7 b5",
-            "Leaf": "7", "lame": "7", "coal": "7"
+            "Branch": " maj6", "Ember": " maj6", "Glass": " maj6",
+            "Sand-Storm": "7 b5", "Fire-Storm": "7 b5",
+            "Leaf": "7", "Flame": "7", "Charcoal": "7"
         }
 
         self.quality = ""
@@ -618,6 +917,15 @@ class Chord:
 
         # Sort the pitches low to high
         self.pitches.sort()
+
+        # Find where the root note ended up after sorting
+        # The root pitch class after tonal center offset
+        transposed_root_pitch_class = (root_pitch_class + TONAL_CENTER_PITCH_CLASS) % 12
+        self.root_position_index = 0  # Default to first position
+        for i, pitch in enumerate(self.pitches):
+            if pitch % 12 == transposed_root_pitch_class:
+                self.root_position_index = i
+                break
 
         # Apply voicing transformations to get the actual note ordering
         voiced_pitches = []
@@ -741,7 +1049,7 @@ def initialize_chord_dictionary():
     # Fire-Earth Combinations
     # Magma (min 6)
     COORDINATES_TO_CHORD[(0.283, 0.690)] = Chord("Magma", [D4, F4, A4, B5])
-    COORDINATES_TO_CHORD[(0.233, 0.756)] = Chord("Brother Magma",
+    COORDINATES_TO_CHORD[(0.233, 0.754)] = Chord("Brother Magma",
                                                  [F4, AF4, C5, D5])
     COORDINATES_TO_CHORD[(0.284, 0.754)] = Chord("Twin Magma",
                                                  [AF4, CF5, EF5, F5])
@@ -930,7 +1238,7 @@ def create_tick_marks_and_labels():
 
         # Create a properly centered label
         note_label = Label(note_name, CENTER, Color.WHITE)
-        chord_display.add(note_label, label_x - 10, adjusted_label_y - 5)
+        chord_display.add(note_label, label_x - 8, adjusted_label_y - 5)
         note_labels.append(note_label)
 
 
@@ -993,6 +1301,10 @@ chord_display = None
 selected_chord_dot = None
 DISPLAY_HEIGHT = None
 CLOCK_WIDTH = None
+
+# Global variables for borrowing controls
+borrowing_circles = {}  # Dictionary to store circles by line number
+current_selected_chord = None
 # endregion GUI Setup Functions ###############################################
 
 
@@ -1047,22 +1359,36 @@ def find_closest_point(here, points):
     return closest_point
 
 
-def play_chord(chord):
-    """Play the provided chord.
+def play_chord(chord_or_pitches):
+    """Play the provided chord or list of pitch classes.
 
     Args:
-        chord (Chord): The chord object to play
+        chord_or_pitches: Either a Chord object or a list of pitch classes (0-11)
     """
     global DISPLAY_HEIGHT, CLOCK_WIDTH
 
     # Stop any sounding notes
     Play.allNotesOff()
 
+    # Handle both Chord objects and pitch class lists
+    if isinstance(chord_or_pitches, Chord):
+        chord = chord_or_pitches
+        pitches = chord.pitches
+        chord_info = chord
+    else:
+        # Assume it's a list of pitch classes
+        pitches = chord_or_pitches
+        chord_info = None
+
     adjusted_pitches = []
     # Place notes in the correct octave range based on the chosen voicing
-    for i in range(len(chord.pitches)):
+    for i in range(len(pitches)):
+        # Skip null values (turned-off notes)
+        if pitches[i] is None:
+            continue
+
         # Place the pitch class into the correct octave range
-        adjusted_pitch = chord.pitches[i] + OCTAVE_OFFSET
+        adjusted_pitch = pitches[i] + OCTAVE_OFFSET
 
         # For the chosen voicing, raise the appropriate notes up an octave
         if i in VOICING_TO_INDICES.get(VOICING):
@@ -1075,14 +1401,15 @@ def play_chord(chord):
 
     # Create the chord
     phrase = Phrase()
-    phrase.addChord(adjusted_pitches, CHORD_DURATION, 127)
+    phrase.addChord(adjusted_pitches, CHORD_DURATION, 120)
 
     # Play the chord!
     Play.midi(phrase)
 
-    # Update choed display with the chord pitches and info
+    # Update chord display with the chord pitches and info
     update_chord_display(adjusted_pitches)
-    update_chord_info_display(chord)
+    if chord_info:
+        update_chord_info_display(chord_info)
 
 
 def select_chord_visually(x, y):
@@ -1195,6 +1522,31 @@ def create_chord_labels(chord, font_size, horizontal_center, top_y, bottom_y):
     chord_display.add(traditional_label, traditional_x, bottom_y - 5)
 
 
+def create_custom_chord_labels(elemental_name, traditional_name, font_size, horizontal_center, top_y, bottom_y):
+    """Create and position custom chord name labels."""
+    global chord_info_text, chord_display
+
+    # Elemental name (top center, perfectly centered for any length)
+    elemental_label = Label(elemental_name, CENTER, Color.WHITE)
+    elemental_label.setFont(Font("Arial", Font.BOLD, font_size))
+    chord_info_text['elemental'] = elemental_label
+
+    # Calculate precise position for perfect centering
+    elemental_x = get_precise_label_position(
+        elemental_name, font_size, horizontal_center)
+    chord_display.add(elemental_label, elemental_x, top_y)
+
+    # Traditional name (bottom center, perfectly centered for any length)
+    traditional_label = Label(traditional_name, CENTER, Color.WHITE)
+    traditional_label.setFont(Font("Arial", Font.BOLD, font_size))
+    chord_info_text['traditional'] = traditional_label
+
+    # Calculate precise position for perfect centering
+    traditional_x = get_precise_label_position(
+        traditional_name, font_size, horizontal_center)
+    chord_display.add(traditional_label, traditional_x, bottom_y - 5)
+
+
 def update_chord_info_display(chord):
     """Update the chord information text at the top of the chord display.
 
@@ -1212,6 +1564,28 @@ def update_chord_info_display(chord):
     # Calculate positions and create labels
     font_size, horizontal_center, top_y, bottom_y = calculate_label_positions()
     create_chord_labels(chord, font_size, horizontal_center, top_y, bottom_y)
+
+
+def update_chord_info_display_with_name(elemental_name, traditional_name):
+    """Update the chord information text with custom names.
+
+    Args:
+        elemental_name (str): The elemental name to display
+        traditional_name (str): The traditional name to display
+    """
+    global chord_info_text, chord_display
+
+    # Remove old labels if they exist
+    if chord_info_text['elemental']:
+        chord_display.remove(chord_info_text['elemental'])
+    if chord_info_text['traditional']:
+        chord_display.remove(chord_info_text['traditional'])
+
+    # Calculate positions and create labels
+    font_size, horizontal_center, top_y, bottom_y = calculate_label_positions()
+
+    # Create custom labels
+    create_custom_chord_labels(elemental_name, traditional_name, font_size, horizontal_center, top_y, bottom_y)
 
 
 def update_chord_display(pitches):
@@ -1274,9 +1648,108 @@ def update_chord_display(pitches):
             note_connection_lines[i] = new_line
 
 
+def update_chord_display_with_note_states(pitches):
+    """Update the chord display with all notes, but hide turned-off ones.
+
+    Args:
+        pitches (list): List of four MIDI pitch values (including turned-off notes)
+    """
+    global note_nodes, note_connection_lines, clock_color_gradient, BORROWING_STATE
+
+    # Sort pitches to ensure consistent ordering
+    sorted_pitches = sorted(pitches)
+
+    # Calculate positions and colors for each note
+    positions = []
+    colors = []
+    for i, pitch in enumerate(sorted_pitches):
+        angle = pitch_to_angle(pitch)
+        x, y = get_position_on_chord_circle(angle)
+        positions.append((x, y))
+
+        # Get color based on visual position on circle (not pitch class)
+        color_index = int((angle / PI_TIMES_2) * 24) % 24
+        colors.append(clock_color_gradient[color_index])
+
+    # Update node positions and colors, but hide turned-off notes
+    root_position_mapping = get_root_position_mapping(current_selected_chord)
+
+    for i in range(4):
+        if i < len(positions):
+            # Check if this note is turned off
+            note_is_off = False
+            for line_position in range(1, 5):
+                if (BORROWING_STATE['note_states'][line_position] == 'off' and
+                    root_position_mapping[line_position] == i):
+                    note_is_off = True
+                    break
+
+            if note_is_off:
+                # Hide turned-off note by moving to center and making transparent
+                note_nodes[i].setColor(TRANSPARENT_COLOR)
+                chord_display.move(note_nodes[i], CLOCK_X, CLOCK_Y)
+            else:
+                # Show active note
+                x, y = positions[i]
+                note_nodes[i].setColor(colors[i])
+                chord_display.move(note_nodes[i], x, y)
+        else:
+            # Hide unused nodes
+            note_nodes[i].setColor(TRANSPARENT_COLOR)
+            chord_display.move(note_nodes[i], CLOCK_X, CLOCK_Y)
+
+    # Update connecting lines to connect only active nodes
+    active_positions = []
+    for i in range(4):
+        if i < len(positions):
+            # Check if this note is active (not turned off)
+            note_is_off = False
+            for line_position in range(1, 5):
+                if (BORROWING_STATE['note_states'][line_position] == 'off' and
+                    root_position_mapping[line_position] == i):
+                    note_is_off = True
+                    break
+
+            if not note_is_off:
+                active_positions.append(positions[i])
+
+    if len(active_positions) >= 2:
+        # Connect active nodes to each other
+        line_connections = []
+        for i in range(len(active_positions)):
+            for j in range(i + 1, len(active_positions)):
+                line_connections.append((i, j))
+
+        # Update connection lines
+        for i, (start_idx, end_idx) in enumerate(line_connections):
+            if i < len(note_connection_lines):
+                start_x, start_y = active_positions[start_idx]
+                end_x, end_y = active_positions[end_idx]
+
+                # Create new line with updated coordinates
+                new_line = Line(start_x, start_y, end_x, end_y, Color.WHITE, 2)
+                chord_display.remove(note_connection_lines[i])
+                chord_display.add(new_line)
+                note_connection_lines[i] = new_line
+
+        # Hide unused connection lines
+        for i in range(len(line_connections), len(note_connection_lines)):
+            new_line = Line(CLOCK_X, CLOCK_Y, CLOCK_X, CLOCK_Y, Color.WHITE, 2)
+            chord_display.remove(note_connection_lines[i])
+            chord_display.add(new_line)
+            note_connection_lines[i] = new_line
+    else:
+        # Hide all lines if not enough active notes
+        for i, line in enumerate(note_connection_lines):
+            new_line = Line(CLOCK_X, CLOCK_Y, CLOCK_X, CLOCK_Y, Color.WHITE, 2)
+            chord_display.remove(line)
+            chord_display.add(new_line)
+            note_connection_lines[i] = new_line
+
+
 first_time = True
 # make a bar of dashes with | in the same places as header
-TABLE_SEPARATOR = "|" + "-" * 22 + "|" + "-" * 22 + "|" + "-" * 22 + "|"
+TABLE_SEPARATOR = "|" + "-" * 32 + "|" + "-" * 22 + "|" + "-" * 22 + "|"
 
 
 def select_chord(x, y):
@@ -1286,12 +1759,12 @@ def select_chord(x, y):
         x (int): X coordinate of the click (absolute)
         y (int): Y coordinate of the click (absolute)
     """
-    global first_time, TABLE_SEPERATOR
+    global first_time, TABLE_SEPERATOR, current_selected_chord
 
     if first_time:
         first_time = False
         voicing_header = VOICING + " Voicing"
-        header = (f"| {'Elemental Name':^20} | {'Traditional Name':^20} | "
+        header = (f"| {'Elemental Name':^30} | {'Traditional Name':^20} | "
                   f"{voicing_header:^20} |")
         print("\n" + header)
 
@@ -1303,14 +1776,34 @@ def select_chord(x, y):
     # Get chord info
     chord = COORDINATES_TO_CHORD[point]
 
+    # Update current selected chord for borrowing
+    current_selected_chord = chord
+
     # Play the chord (this will also update the chord display)
     play_chord(chord)
 
     # Place a dot on the selection (point is already relative)
     select_chord_visually(point[0], point[1])
 
-    print(f"| {chord.name:^20} | {chord.traditional_name:^20} | "
-          f"{chord.spelling:^20} |")
+    # Handle borrowing state for this chord
+    if chord.name in ["Earth", "Wind", "Fire"]:
+        # Fundamental chords - reset borrowing and make circles gray
+        reset_borrowing_circles()
+        update_borrowing_display()
+        display_name = chord.name
+    else:
+        # Regular chords - restore borrowing state
+        restore_borrowing_state(chord.name)
+        # Create borrowing name for display
+        display_name = create_borrowing_name(chord.name, BORROWING_STATE)
+
+    # Create active spelling based on current state
+    # For normal chord selection, we need to generate the active pitches
+    active_pitches = generate_active_pitches(chord, BORROWING_STATE)
+    active_spelling = create_spelling_from_pitches(active_pitches)
+
+    print(f"| {display_name:^30} | {chord.traditional_name:^20} | "
+          f"{active_spelling:^20} |")
     print(TABLE_SEPARATOR)
 
 
@@ -1323,7 +1816,13 @@ def choose_action(x, y):
         x (int): X coordinate of the click (absolute)
         y (int): Y coordinate of the click (absolute)
     """
-    # Snap clicked coordinates to known centers (returns relative coordinates)
+    # print(f'{x/diagram_display.getWidth():.3f}, {y/diagram_display.getHeight():.3f}')
+
+    # First check for borrowing control clicks
+    if handle_borrowing_click(x, y):
+        return
+
+    # Original chord selection logic
     point = find_closest_point([x, y], COORDINATES_TO_CHORD.keys())
     new_x, new_y = point
 
@@ -1333,6 +1832,597 @@ def choose_action(x, y):
         # If a chord, call play chord function (pass original absolute
         # coordinates)
         select_chord(x, y)
+
+
+# region Borrowing Functions ##################################################
+def get_chord_by_name(chord_name):
+    """Find chord by name in COORDINATES_TO_CHORD."""
+    for chord in COORDINATES_TO_CHORD.values():
+        if chord.name == chord_name:
+            return chord
+    return None
+
+
+def get_elemental_chord(element_name):
+    """Get one of the three primary elemental chords."""
+    elemental_chords = ["Earth", "Wind", "Fire"]
+    if element_name in elemental_chords:
+        return get_chord_by_name(element_name)
+    return None
+
+
+def find_next_higher_note(reference_pitch, available_pitches):
+    """Find the next higher note from available pitches, guaranteeing higher absolute pitch."""
+    # Convert to pitch classes for comparison
+    reference_pc = reference_pitch % 12
+    reference_octave = reference_pitch // 12
+    available_pcs = [pitch % 12 for pitch in available_pitches]
+
+    # Find pitches higher than reference pitch class
+    higher_pcs = [pc for pc in available_pcs if pc > reference_pc]
+
+    if higher_pcs:
+        # Return the lowest higher pitch class in the same octave
+        return min(higher_pcs) + (reference_octave * 12)
+    else:
+        # Wrap around to the lowest available pitch class in the next octave
+        return min(available_pcs) + ((reference_octave + 1) * 12)
+
+
+def find_next_lower_note(reference_pitch, available_pitches):
+    """Find the next lower note from available pitches, guaranteeing lower absolute pitch."""
+    # Convert to pitch classes for comparison
+    reference_pc = reference_pitch % 12
+    reference_octave = reference_pitch // 12
+    available_pcs = [pitch % 12 for pitch in available_pitches]
+
+    # Find pitches lower than reference pitch class
+    lower_pcs = [pc for pc in available_pcs if pc < reference_pc]
+
+    if lower_pcs:
+        # Return the highest lower pitch class in the same octave
+        return max(lower_pcs) + (reference_octave * 12)
+    else:
+        # Wrap around to the highest available pitch class in the previous octave
+        return max(available_pcs) + ((reference_octave - 1) * 12)
+
+
+def get_borrowed_chord(chord_name, target_note_index, direction, opposite_element):
+    """
+    Generate a borrowed version of a chord by replacing a specific note.
+
+    Args:
+        chord_name (str): Name of the chord to borrow from
+        target_note_index (int): Index of note to replace (0=lowest, 3=highest)
+        direction (str): 'above' or 'below'
+        opposite_element (str): Element to borrow from ('Earth', 'Wind', 'Fire')
+
+    Returns:
+        list: New chord pitches with borrowed note
+    """
+    # Get original chord
+    original_chord = get_chord_by_name(chord_name)
+    if not original_chord:
+        return []
+
+    original_pitches = sorted(original_chord.pitches)  # Ensure sorted order
+
+    # Get opposite element chord
+    opposite_chord = get_elemental_chord(opposite_element)
+    if not opposite_chord:
+        return []
+
+    opposite_pitches = opposite_chord.pitches
+
+    # Get the target note to replace
+    if target_note_index >= len(original_pitches):
+        return original_pitches
+
+    target_pitch = original_pitches[target_note_index]
+
+    # Find replacement note from opposite element
+    if direction == 'above':
+        # Find next higher note from opposite element
+        replacement = find_next_higher_note(target_pitch, opposite_pitches)
+    else:  # below
+        # Find next lower note from opposite element
+        replacement = find_next_lower_note(target_pitch, opposite_pitches)
+
+    # Create new chord with replacement
+    new_pitches = original_pitches.copy()
+    new_pitches[target_note_index] = replacement
+
+    return new_pitches
+
+
+def get_borrowed_chord_from_ui_click(chord_name, line_position, direction, opposite_element):
+    """
+    Wrapper function that maps UI line position to note index.
+
+    Args:
+        chord_name (str): Name of the chord to borrow from
+        line_position (int): UI line position (1-4)
+        direction (str): 'above' or 'below'
+        opposite_element (str): Element to borrow from
+
+    Returns:
+        list: New chord pitches with borrowed note
+    """
+    # Get the chord object to determine root position mapping
+    chord = get_chord_by_name(chord_name)
+    if not chord:
+        return []
+
+    # Map line position to note index using root position order
+    root_position_mapping = get_root_position_mapping(chord)
+    target_note_index = root_position_mapping[line_position]
+
+    return get_borrowed_chord(chord_name, target_note_index, direction, opposite_element)
+
+
+
+
+def create_borrowing_controls():
+    """Create the borrowing control UI elements - just the blue circles."""
+    global borrowing_circles
+
+    # Initialize global variables
+    borrowing_circles = {}
+
+    # Create 4 blue circles, one for each note position
+    for line_num in range(1, 5):
+        # Get line coordinates
+        line_coord = BORROWING_LINE_COORDINATES[line_num]
+        line_x, line_y = relative_to_absolute(line_coord)
+
+        # Create blue circle (starts on line)
+        circle = Circle(line_x, line_y, BORROWING_CONTROLS['circle_radius'], Color.BLUE, True)
+        diagram_display.add(circle)
+        borrowing_circles[line_num] = circle
+
+
+def relative_to_absolute(coord):
+    """Convert relative coordinates to absolute coordinates."""
+    display_width = diagram_display.getWidth()
+    display_height = diagram_display.getHeight()
+    return int(coord[0] * display_width), int(coord[1] * display_height)
+
+
+def is_borrowing_click(x, y):
+    """Check if click is within borrowing control area."""
+    # Only check if we have borrowing controls initialized
+    if not borrowing_circles:
+        return False
+
+    # Don't allow borrowing clicks for fundamental chords
+    if current_selected_chord and current_selected_chord.name in ["Earth", "Wind", "Fire"]:
+        return False
+
+    # Check if click is near any arrow position with larger detection radius
+    for line_num in range(1, 5):
+        # Check up arrow
+        up_coord = BORROWING_ARROW_COORDINATES[line_num]['up']
+        up_x, up_y = relative_to_absolute(up_coord)
+        up_distance = distance((x, y), (up_x, up_y))
+        if up_distance < 25:  # Larger detection radius
+            return True
+
+        # Check down arrow
+        down_coord = BORROWING_ARROW_COORDINATES[line_num]['down']
+        down_x, down_y = relative_to_absolute(down_coord)
+        down_distance = distance((x, y), (down_x, down_y))
+        if down_distance < 25:  # Larger detection radius
+            return True
+
+        # Check line position (to reset borrowing)
+        line_coord = BORROWING_LINE_COORDINATES[line_num]
+        line_x, line_y = relative_to_absolute(line_coord)
+        line_distance = distance((x, y), (line_x, line_y))
+        if line_distance < 25:  # Larger detection radius
+            return True
+
+    return False
+
+
+def get_clicked_borrowing_control(x, y):
+    """Determine which borrowing control was clicked."""
+    closest_line = None
+    closest_direction = None
+    min_distance = float('inf')
+
+    for line_num in range(1, 5):
+        # Check up arrow
+        up_coord = BORROWING_ARROW_COORDINATES[line_num]['up']
+        up_x, up_y = relative_to_absolute(up_coord)
+        up_distance = distance((x, y), (up_x, up_y))
+        if up_distance < min_distance and up_distance < 25:  # Larger detection radius
+            min_distance = up_distance
+            closest_line = line_num
+            closest_direction = 'up'
+
+        # Check down arrow
+        down_coord = BORROWING_ARROW_COORDINATES[line_num]['down']
+        down_x, down_y = relative_to_absolute(down_coord)
+        down_distance = distance((x, y), (down_x, down_y))
+        if down_distance < min_distance and down_distance < 25:  # Larger detection radius
+            min_distance = down_distance
+            closest_line = line_num
+            closest_direction = 'down'
+
+        # Check line position (to reset borrowing)
+        line_coord = BORROWING_LINE_COORDINATES[line_num]
+        line_x, line_y = relative_to_absolute(line_coord)
+        line_distance = distance((x, y), (line_x, line_y))
+        if line_distance < min_distance and line_distance < 25:  # Larger detection radius
+            min_distance = line_distance
+            closest_line = line_num
+            closest_direction = 'line'
+
+    if closest_line:
+        return closest_line, closest_direction
+
+    return None, None
+
+
+def activate_borrowing(line_position, direction):
+    """Activate borrowing for the specified line and direction."""
+    global current_selected_chord, BORROWING_STATE
+
+    # Get current selected chord
+    if not current_selected_chord:
+        return
+
+    # Check if this is a fundamental chord (Earth, Wind, Fire) - no borrowing allowed
+    if current_selected_chord.name in ["Earth", "Wind", "Fire"]:
+        return
+
+    # Handle line click when circle is already on line - toggle note off
+    if direction == 'line' and BORROWING_STATE['circle_positions'][line_position] == 'line':
+        # Toggle note off
+        BORROWING_STATE['circle_positions'][line_position] = 'off'
+        BORROWING_STATE['borrowing_directions'][line_position] = 'off'
+        BORROWING_STATE['note_states'][line_position] = 'off'
+
+        # Hide circle
+        hide_circle(line_position)
+
+        # Update history for this chord
+        chord_name = current_selected_chord.name
+        if chord_name not in BORROWING_STATE['borrowing_history']:
+            BORROWING_STATE['borrowing_history'][chord_name] = {}
+        BORROWING_STATE['borrowing_history'][chord_name][line_position] = 'off'
+
+        # Generate and play modified chord
+        generate_and_play_borrowed_chord()
+
+        # Update visual display
+        update_borrowing_display()
+        return
+
+    # Handle clicking on off note to turn it back on (line click)
+    if direction == 'line' and BORROWING_STATE['circle_positions'][line_position] == 'off':
+        # Turn note back on
+        BORROWING_STATE['circle_positions'][line_position] = 'line'
+        BORROWING_STATE['borrowing_directions'][line_position] = None
+        BORROWING_STATE['note_states'][line_position] = 'on'
+
+        # Show circle back on line
+        show_circle(line_position)
+        move_circle_to_line(line_position)
+
+        # Update history for this chord
+        chord_name = current_selected_chord.name
+        if chord_name not in BORROWING_STATE['borrowing_history']:
+            BORROWING_STATE['borrowing_history'][chord_name] = {}
+        BORROWING_STATE['borrowing_history'][chord_name][line_position] = 'line'
+
+        # Generate and play modified chord
+        generate_and_play_borrowed_chord()
+
+        # Update visual display
+        update_borrowing_display()
+        return
+
+    # Handle clicking arrow when note is off - turn note on and move to arrow
+    if direction in ['up', 'down'] and BORROWING_STATE['circle_positions'][line_position] == 'off':
+        # Turn note back on
+        BORROWING_STATE['note_states'][line_position] = 'on'
+
+        # Show circle and move to arrow position
+        show_circle(line_position)
+        move_circle_to_arrow(line_position, direction)
+
+        # Update borrowing state
+        BORROWING_STATE['circle_positions'][line_position] = direction
+        BORROWING_STATE['borrowing_directions'][line_position] = direction
+
+        # Store borrowing state in history for this chord
+        chord_name = current_selected_chord.name
+        if chord_name not in BORROWING_STATE['borrowing_history']:
+            BORROWING_STATE['borrowing_history'][chord_name] = {}
+        BORROWING_STATE['borrowing_history'][chord_name][line_position] = direction
+
+        # Generate and play borrowed chord
+        generate_and_play_borrowed_chord()
+
+        # Update visual display
+        update_borrowing_display()
+        return
+
+    # Handle line click (reset borrowing for this line) - original behavior
+    if direction == 'line':
+        # Reset this line to no borrowing
+        BORROWING_STATE['circle_positions'][line_position] = 'line'
+        BORROWING_STATE['borrowing_directions'][line_position] = None
+
+        # Update history for this chord
+        chord_name = current_selected_chord.name
+        if chord_name not in BORROWING_STATE['borrowing_history']:
+            BORROWING_STATE['borrowing_history'][chord_name] = {}
+        BORROWING_STATE['borrowing_history'][chord_name][line_position] = 'line'
+
+        # Move circle back to line
+        move_circle_to_line(line_position)
+
+        # Generate and play borrowed chord
+        generate_and_play_borrowed_chord()
+
+        # Update visual display
+        update_borrowing_display()
+        return
+
+    # Determine opposite element
+    opposite_element = ELEMENTAL_RELATIONSHIPS.get(current_selected_chord.name, [None])[0]
+    if not opposite_element:
+        return
+
+    # Update borrowing state for this line
+    BORROWING_STATE['circle_positions'][line_position] = direction
+    BORROWING_STATE['borrowing_directions'][line_position] = direction
+
+    # Store borrowing state in history for this chord
+    chord_name = current_selected_chord.name
+    if chord_name not in BORROWING_STATE['borrowing_history']:
+        BORROWING_STATE['borrowing_history'][chord_name] = {}
+    BORROWING_STATE['borrowing_history'][chord_name][line_position] = direction
+
+    # Move the circle to the arrow position
+    move_circle_to_arrow(line_position, direction)
+
+    # Generate and play borrowed chord
+    generate_and_play_borrowed_chord()
+
+    # Update visual display
+    update_borrowing_display()
+
+
+def move_circle_to_arrow(line_position, direction):
+    """Move a circle to the specified arrow position."""
+    global borrowing_circles
+
+    if line_position in borrowing_circles:
+        # Get the arrow coordinates
+        arrow_coord = BORROWING_ARROW_COORDINATES[line_position][direction]
+        abs_x, abs_y = relative_to_absolute(arrow_coord)
+
+        # Move the circle
+        diagram_display.move(borrowing_circles[line_position], abs_x, abs_y)
+
+
+def move_circle_to_line(line_position):
+    """Move a circle back to its line position."""
+    global borrowing_circles
+
+    if line_position in borrowing_circles:
+        # Get the line coordinates
+        line_coord = BORROWING_LINE_COORDINATES[line_position]
+        abs_x, abs_y = relative_to_absolute(line_coord)
+
+        # Move the circle
+        diagram_display.move(borrowing_circles[line_position], abs_x, abs_y)
+
+
+def hide_circle(line_position):
+    """Hide the circle for the specified line position by making it transparent."""
+    global borrowing_circles
+
+    if line_position in borrowing_circles:
+        # Use global transparent color to hide the circle
+        borrowing_circles[line_position].setColor(TRANSPARENT_COLOR)
+
+
+def show_circle(line_position):
+    """Show the circle for the specified line position by making it visible."""
+    global borrowing_circles
+
+    if line_position in borrowing_circles:
+        # Restore the circle to its normal blue color (alpha = 255)
+        borrowing_circles[line_position].setColor(Color.BLUE)
+
+
+def move_circle_off_screen(line_position):
+    """Move circle off-screen when note is turned off."""
+    global borrowing_circles
+
+    if line_position in borrowing_circles:
+        # Move circle to a position off-screen (negative coordinates)
+        diagram_display.move(borrowing_circles[line_position], -100, -100)
+
+
+def generate_and_play_borrowed_chord():
+    """Generate and play the current borrowed chord based on all active borrowings."""
+    global current_selected_chord, BORROWING_STATE
+
+    if not current_selected_chord:
+        return
+
+    # Start with original chord
+    original_pitches = sorted(current_selected_chord.pitches)
+    borrowed_pitches = original_pitches.copy()
+
+    # Apply all active borrowings
+    opposite_element = ELEMENTAL_RELATIONSHIPS.get(current_selected_chord.name, [None])[0]
+    if opposite_element:
+        opposite_chord = get_elemental_chord(opposite_element)
+        if opposite_chord:
+            opposite_pitches = opposite_chord.pitches
+
+            # Get root position mapping for this chord
+            root_position_mapping = get_root_position_mapping(current_selected_chord)
+
+            for line_position in range(1, 5):
+                # Skip notes that are turned off
+                if BORROWING_STATE['note_states'][line_position] == 'off':
+                    continue
+
+                if BORROWING_STATE['circle_positions'][line_position] != 'line':
+                    direction = BORROWING_STATE['borrowing_directions'][line_position]
+                    target_note_index = root_position_mapping[line_position]
+
+                    if target_note_index < len(borrowed_pitches):
+                        target_pitch = borrowed_pitches[target_note_index]
+
+                        if direction == 'up':
+                            replacement = find_next_higher_note(target_pitch, opposite_pitches)
+                        else:  # down
+                            replacement = find_next_lower_note(target_pitch, opposite_pitches)
+
+                        borrowed_pitches[target_note_index] = replacement
+
+    # Create borrowing name
+    borrowing_name = create_borrowing_name(current_selected_chord.name, BORROWING_STATE)
+
+    # Create a 4-note structure with null values for turned-off notes
+    # This ensures voicing is applied to the correct positions
+    full_pitch_structure = [None] * 4
+    root_position_mapping = get_root_position_mapping(current_selected_chord)
+
+    for line_position in range(1, 5):
+        if BORROWING_STATE['note_states'][line_position] == 'on':
+            note_index = root_position_mapping[line_position]
+            if note_index < len(borrowed_pitches):
+                full_pitch_structure[note_index] = borrowed_pitches[note_index]
+
+    # Play the modified chord with proper voicing structure
+    play_chord(full_pitch_structure)
+
+    # Override the chord display to show all notes, but hide turned-off ones
+    update_chord_display_with_note_states(borrowed_pitches)
+
+    # Update chord info display with borrowing name
+    update_chord_info_display_with_name(borrowing_name, current_selected_chord.traditional_name)
+
+    # Generate the active pitches for spelling and state
+    active_pitches = generate_active_pitches(current_selected_chord, BORROWING_STATE)
+
+    # Create active spelling using the same active_pitches that were played
+    active_spelling = create_spelling_from_pitches(active_pitches)
+
+    # Print borrowing information to console
+    print(f"| {borrowing_name:^30} | {current_selected_chord.traditional_name:^20} | "
+          f"{active_spelling:^20} |")
+    print(TABLE_SEPARATOR)
+
+    # Update state
+    BORROWING_STATE['active'] = any(pos != 'line' for pos in BORROWING_STATE['circle_positions'].values())
+    BORROWING_STATE['chord_name'] = current_selected_chord.name
+    BORROWING_STATE['borrowed_notes'] = active_pitches
+    BORROWING_STATE['original_notes'] = original_pitches
+
+
+def handle_borrowing_click(x, y):
+    """Handle clicks on borrowing controls."""
+    # Check if click is within borrowing control area
+    if is_borrowing_click(x, y):
+        line_position, direction = get_clicked_borrowing_control(x, y)
+        if line_position is not None:
+            activate_borrowing(line_position, direction)
+            return True
+    return False
+
+
+def reset_borrowing_circles():
+    """Reset all circles to their line positions."""
+    global BORROWING_STATE
+
+    # Reset state
+    BORROWING_STATE['circle_positions'] = {1: 'line', 2: 'line', 3: 'line', 4: 'line'}
+    BORROWING_STATE['borrowing_directions'] = {1: None, 2: None, 3: None, 4: None}
+    BORROWING_STATE['note_states'] = {1: 'on', 2: 'on', 3: 'on', 4: 'on'}
+    BORROWING_STATE['active'] = False
+
+    # Move all circles back to lines and make them visible
+    for line_position in range(1, 5):
+        move_circle_to_line(line_position)
+        show_circle(line_position)
+
+
+def restore_borrowing_state(chord_name):
+    """Restore borrowing state for a specific chord from history."""
+    global BORROWING_STATE
+
+    # Reset to default state first
+    reset_borrowing_circles()
+
+    # Check if this chord has borrowing history
+    if chord_name in BORROWING_STATE['borrowing_history']:
+        chord_borrowing = BORROWING_STATE['borrowing_history'][chord_name]
+
+        # Apply each borrowing state
+        for line_position, direction in chord_borrowing.items():
+            if direction in ['up', 'down']:
+                BORROWING_STATE['circle_positions'][line_position] = direction
+                BORROWING_STATE['borrowing_directions'][line_position] = direction
+                BORROWING_STATE['note_states'][line_position] = 'on'  # Borrowed notes are always on
+                move_circle_to_arrow(line_position, direction)
+            elif direction == 'line':
+                # Keep line position (already set by reset_borrowing_circles)
+                BORROWING_STATE['circle_positions'][line_position] = 'line'
+                BORROWING_STATE['borrowing_directions'][line_position] = None
+                BORROWING_STATE['note_states'][line_position] = 'on'  # Line position means note is on
+            elif direction == 'off':
+                # Restore turned-off note
+                BORROWING_STATE['circle_positions'][line_position] = 'off'
+                BORROWING_STATE['borrowing_directions'][line_position] = 'off'
+                BORROWING_STATE['note_states'][line_position] = 'off'
+                hide_circle(line_position)
+
+        # Update active state
+        BORROWING_STATE['active'] = any(pos != 'line' for pos in BORROWING_STATE['circle_positions'].values())
+
+        # Generate and play the borrowed chord (always call this to handle turned-off notes)
+        generate_and_play_borrowed_chord()
+
+    # Update visual display (always call this)
+    update_borrowing_display()
+
+
+def update_borrowing_display():
+    """Update visual indicators for borrowing state."""
+    global borrowing_circles, current_selected_chord
+
+    # Check if this is a fundamental chord (Earth, Wind, Fire) - make circles gray
+    if current_selected_chord and current_selected_chord.name in ["Earth", "Wind", "Fire"]:
+        for line_num, circle in borrowing_circles.items():
+            circle.setColor(Color.GRAY)
+        return
+
+    # Update circle colors and visibility based on borrowing state
+    for line_num, circle in borrowing_circles.items():
+        if BORROWING_STATE['circle_positions'][line_num] == 'off':
+            # Note is off - hide circle with transparent color
+            circle.setColor(TRANSPARENT_COLOR)
+        else:
+            # Note is on - show circle with appropriate color
+            if BORROWING_STATE['circle_positions'][line_num] != 'line':
+                # Active borrowing - make circle green
+                circle.setColor(Color.GREEN)
+            else:
+                # No borrowing - keep blue
+                circle.setColor(Color.BLUE)
+
+
+# endregion Borrowing Functions ###############################################
 # endregion Functions #########################################################
 
 
@@ -1367,6 +2457,7 @@ def initialize_application():
                               DIAGRAM_X, VERTICAL_CENTER)
     diagram = Icon("./images/diagram.jpg", DIAGRAM_WIDTH, DISPLAY_HEIGHT)
     diagram_display.add(diagram)
+    # diagram_display.showMouseCoordinates()
 
     # Create a circle that marks the active chord
     selected_chord_dot = Circle(DIAGRAM_WIDTH // 2, DISPLAY_HEIGHT // 2, 8, Color.BLUE, fill=True)
@@ -1385,10 +2476,13 @@ def initialize_application():
     NODE_RADIUS = max(MIN_NODE_RADIUS, int(CLOCK_RADIUS * 0.1))
     BIG_TICK_RADIUS = max(MIN_TICK_RADIUS, int(CLOCK_RADIUS * 0.04))
     SMALL_TICK_RADIUS = max(MIN_SMALL_TICK_RADIUS, int(CLOCK_RADIUS * 0.02))
-    LABEL_DISTANCE = max(MIN_LABEL_DISTANCE, int(CLOCK_RADIUS * 0.15))
+    LABEL_DISTANCE = max(MIN_LABEL_DISTANCE, int(CLOCK_RADIUS * 0.20))
 
     # Create the clock-like chord display
     create_chord_display()
+
+    # Create borrowing controls
+    create_borrowing_controls()
 
 
 def main():
