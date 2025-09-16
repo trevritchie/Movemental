@@ -365,11 +365,27 @@ def generate_active_pitches(chord, borrowing_state):
 
                         borrowed_pitches[target_note_index] = replacement
 
+    # Create a 4-note structure with null values for turned-off notes
+    # This ensures voicing is applied to the correct positions
+    full_pitch_structure = [None] * 4
+    root_position_mapping = get_root_position_mapping(chord)
+
+    for line_position in range(1, 5):
+        if borrowing_state['note_states'][line_position] == 'on':
+            note_index = root_position_mapping[line_position]
+            if note_index < len(borrowed_pitches):
+                full_pitch_structure[note_index] = borrowed_pitches[note_index]
+
     # Apply voicing transformations to all notes first (same as play_chord function)
+    # This ensures voicing is applied to the correct positions in the 4-note structure
     voiced_pitches = []
-    for i in range(len(borrowed_pitches)):
+    for i in range(len(full_pitch_structure)):
+        if full_pitch_structure[i] is None:
+            # Skip turned-off notes
+            continue
+
         # Place the pitch class into the correct octave range
-        adjusted_pitch = borrowed_pitches[i] + OCTAVE_OFFSET
+        adjusted_pitch = full_pitch_structure[i] + OCTAVE_OFFSET
 
         # For the chosen voicing, raise the appropriate notes up an octave
         if i in VOICING_TO_INDICES.get(VOICING):
@@ -378,17 +394,7 @@ def generate_active_pitches(chord, borrowing_state):
 
         voiced_pitches.append(adjusted_pitch)
 
-    # Filter to only active notes using the voiced pitches
-    active_pitches = []
-    root_position_mapping = get_root_position_mapping(chord)
-
-    for line_position in range(1, 5):
-        if borrowing_state['note_states'][line_position] == 'on':
-            note_index = root_position_mapping[line_position]
-            if note_index < len(voiced_pitches):
-                active_pitches.append(voiced_pitches[note_index])
-
-    return active_pitches
+    return voiced_pitches
 
 
 def create_spelling_from_pitches(pitches):
@@ -1377,6 +1383,10 @@ def play_chord(chord_or_pitches):
     adjusted_pitches = []
     # Place notes in the correct octave range based on the chosen voicing
     for i in range(len(pitches)):
+        # Skip null values (turned-off notes)
+        if pitches[i] is None:
+            continue
+
         # Place the pitch class into the correct octave range
         adjusted_pitch = pitches[i] + OCTAVE_OFFSET
 
@@ -2282,25 +2292,28 @@ def generate_and_play_borrowed_chord():
     # Create borrowing name
     borrowing_name = create_borrowing_name(current_selected_chord.name, BORROWING_STATE)
 
-    # Filter out notes that are turned off for playback
-    active_pitches = []
+    # Create a 4-note structure with null values for turned-off notes
+    # This ensures voicing is applied to the correct positions
+    full_pitch_structure = [None] * 4
     root_position_mapping = get_root_position_mapping(current_selected_chord)
 
     for line_position in range(1, 5):
         if BORROWING_STATE['note_states'][line_position] == 'on':
             note_index = root_position_mapping[line_position]
             if note_index < len(borrowed_pitches):
-                active_pitches.append(borrowed_pitches[note_index])
+                full_pitch_structure[note_index] = borrowed_pitches[note_index]
 
-    # Play the modified chord (only active notes) - this will also update display
-    # But we need to override the display to show all notes with proper visibility
-    play_chord(active_pitches)
+    # Play the modified chord with proper voicing structure
+    play_chord(full_pitch_structure)
 
     # Override the chord display to show all notes, but hide turned-off ones
     update_chord_display_with_note_states(borrowed_pitches)
 
     # Update chord info display with borrowing name
     update_chord_info_display_with_name(borrowing_name, current_selected_chord.traditional_name)
+
+    # Generate the active pitches for spelling and state
+    active_pitches = generate_active_pitches(current_selected_chord, BORROWING_STATE)
 
     # Create active spelling using the same active_pitches that were played
     active_spelling = create_spelling_from_pitches(active_pitches)
