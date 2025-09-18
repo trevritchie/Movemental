@@ -18,13 +18,13 @@ from config import config, NOTE_NAMES_SHARP, NOTE_NAMES_FLAT, CHORD_COLORS, CHOR
 class PerformanceCache:
     """
     Performance optimization cache for expensive musical calculations.
-    
+
     Implements caching for:
     - Trigonometric calculations (sin/cos lookup tables)
     - Pitch-to-angle conversions
     - Chord coordinate mappings
     """
-    
+
     def __init__(self):
         """Initialize performance caches."""
         self._trig_cache = {}
@@ -32,20 +32,20 @@ class PerformanceCache:
         self._coordinate_cache = {}
         self._chord_cache = {}
         self._initialize_trig_lookup_tables()
-    
+
     def _initialize_trig_lookup_tables(self):
         """Pre-calculate trigonometric values for 12 pitch classes."""
         # Pre-calculate for all 12 pitch classes and common angles
         for i in range(12):
             angle = (i / 12.0) * config.PI_TIMES_2
             adjusted_angle = angle - config.PI_OVER_2
-            
+
             self._trig_cache[angle] = {
                 'cos': cos(adjusted_angle),
                 'sin': sin(adjusted_angle),
                 'adjusted_angle': adjusted_angle
             }
-    
+
     def get_trig_values(self, angle):
         """Get cached trigonometric values for an angle."""
         if angle not in self._trig_cache:
@@ -56,7 +56,7 @@ class PerformanceCache:
                 'adjusted_angle': adjusted_angle
             }
         return self._trig_cache[angle]
-    
+
     def get_pitch_angle(self, pitch, tonal_center_pitch_class):
         """Get cached pitch-to-angle conversion."""
         cache_key = (pitch % 12, tonal_center_pitch_class)
@@ -66,7 +66,7 @@ class PerformanceCache:
             angle = (adjusted_pitch_class / 12.0) * config.PI_TIMES_2
             self._pitch_angle_cache[cache_key] = angle
         return self._pitch_angle_cache[cache_key]
-    
+
     def get_chord_coordinates(self, chord_name, pitches):
         """Get cached chord coordinate mapping."""
         cache_key = (chord_name, tuple(sorted(pitches)))
@@ -74,12 +74,12 @@ class PerformanceCache:
             # This will be populated by ChordManager
             pass
         return self._coordinate_cache.get(cache_key)
-    
+
     def cache_chord_coordinates(self, chord_name, pitches, coordinates):
         """Cache chord coordinate mapping."""
         cache_key = (chord_name, tuple(sorted(pitches)))
         self._coordinate_cache[cache_key] = coordinates
-    
+
     def clear_cache(self):
         """Clear all caches (useful when tonal center changes)."""
         self._pitch_angle_cache.clear()
@@ -91,10 +91,10 @@ class PerformanceCache:
 class Chord:
     """
     Represents a musical chord with elemental naming and traditional theory.
-    
+
     Optimized version with caching support for better performance.
     """
-    
+
     def __init__(self, name, pitches, cache=None):
         """
         Initialize a Chord with name and pitches.
@@ -177,30 +177,30 @@ class Chord:
 class ChordManager:
     """
     Manages all chord operations with performance optimizations.
-    
+
     Handles chord dictionary initialization, coordinate mapping,
     and provides cached access to chord operations.
     """
-    
+
     def __init__(self):
         """Initialize the ChordManager with performance cache."""
         self.cache = PerformanceCache()
         self.coordinates_to_chord = {}
         self._initialization_time = None
         self._is_initialized = False
-    
+
     def initialize_chord_dictionary(self):
         """
         Initialize the chord dictionary with all chord definitions.
-        
+
         This function must be called after user settings are applied so that
         the correct tonal center is used when creating Chord objects.
-        
+
         Returns:
             float: Time taken for initialization (for performance monitoring)
         """
         start_time = time.time()
-        
+
         # Clear any existing chords and cache
         self.coordinates_to_chord = {}
         self.cache.clear_cache()
@@ -319,35 +319,35 @@ class ChordManager:
         end_time = time.time()
         self._initialization_time = end_time - start_time
         self._is_initialized = True
-        
+
         return self._initialization_time
-    
+
     def get_chord_by_coordinates(self, coordinates):
         """Get chord by coordinates with caching."""
         return self.coordinates_to_chord.get(coordinates)
-    
+
     def get_chord_by_name(self, chord_name):
         """Find chord by name in coordinates_to_chord."""
         for chord in self.coordinates_to_chord.values():
             if chord.name == chord_name:
                 return chord
         return None
-    
+
     def get_elemental_chord(self, element_name):
         """Get one of the three primary elemental chords."""
         elemental_chords = ["Earth", "Wind", "Fire"]
         if element_name in elemental_chords:
             return self.get_chord_by_name(element_name)
         return None
-    
+
     def get_all_coordinates(self):
         """Get all chord coordinates for closest point calculations."""
         return list(self.coordinates_to_chord.keys())
-    
+
     def get_initialization_time(self):
         """Get the time taken for the last initialization."""
         return self._initialization_time
-    
+
     def is_initialized(self):
         """Check if the chord dictionary has been initialized."""
         return self._is_initialized
@@ -356,15 +356,15 @@ class ChordManager:
 class MusicalCalculations:
     """
     Core musical calculation functions with performance optimizations.
-    
+
     Handles pitch-to-angle conversions, coordinate calculations,
     and other mathematical operations with caching support.
     """
-    
+
     def __init__(self, cache=None):
         """Initialize with optional performance cache."""
         self.cache = cache or PerformanceCache()
-    
+
     def get_position_on_chord_circle(self, angle, clock_radius, clock_x, clock_y):
         """
         Returns x,y coordinates on the chord circle for a given angle.
@@ -380,13 +380,13 @@ class MusicalCalculations:
         """
         # Use cached trigonometric values for better performance
         trig_values = self.cache.get_trig_values(angle)
-        
+
         # Calculate coordinates relative to center
         new_x = clock_radius * trig_values['cos'] + clock_x
         new_y = clock_radius * trig_values['sin'] + clock_y
 
         return (int(new_x), int(new_y))
-    
+
     def pitch_to_angle(self, pitch):
         """
         Convert MIDI pitch to angle on the circle with caching.
@@ -399,7 +399,7 @@ class MusicalCalculations:
         """
         tonal_center_pitch_class = config.get_tonal_center_pitch_class()
         return self.cache.get_pitch_angle(pitch, tonal_center_pitch_class)
-    
+
     def create_chord_color_gradient(self):
         """
         Create a 24-color array for the chord display.
@@ -432,15 +432,15 @@ class MusicalCalculations:
 class BorrowingLogic:
     """
     Handles all borrowing-related musical logic and calculations.
-    
+
     Manages note borrowing between elemental chords with performance
     optimizations and caching.
     """
-    
+
     def __init__(self, chord_manager):
         """Initialize with reference to chord manager."""
         self.chord_manager = chord_manager
-    
+
     def get_root_position_mapping(self, chord):
         """
         Generate mapping from borrowing lines to chord notes in root position order.
@@ -468,7 +468,7 @@ class BorrowingLogic:
             3: fifth_idx,    # Line 3 → Fifth note
             4: seventh_idx   # Line 4 → Seventh note
         }
-    
+
     def find_next_higher_note(self, reference_pitch, available_pitches):
         """Find the next higher note from available pitches, guaranteeing higher absolute pitch."""
         # Convert to pitch classes for comparison
@@ -485,7 +485,7 @@ class BorrowingLogic:
         else:
             # Wrap around to the lowest available pitch class in the next octave
             return min(available_pcs) + ((reference_octave + 1) * 12)
-    
+
     def find_next_lower_note(self, reference_pitch, available_pitches):
         """Find the next lower note from available pitches, guaranteeing lower absolute pitch."""
         # Convert to pitch classes for comparison
@@ -502,7 +502,7 @@ class BorrowingLogic:
         else:
             # Wrap around to the highest available pitch class in the previous octave
             return max(available_pcs) + ((reference_octave - 1) * 12)
-    
+
     def generate_active_pitches(self, chord, borrowing_state):
         """
         Generate the active (voiced) pitches for a chord based on borrowing state.
@@ -587,7 +587,7 @@ borrowing_logic = BorrowingLogic(chord_manager)
 def initialize_chord_dictionary():
     """
     Initialize the chord dictionary - wrapper function for compatibility.
-    
+
     Returns:
         float: Time taken for initialization
     """
@@ -603,7 +603,7 @@ _clock_y = None
 def set_clock_dimensions(radius, center_x, center_y):
     """
     Set the clock dimensions for coordinate calculations.
-    
+
     Args:
         radius (int): Clock radius
         center_x (int): Clock center X coordinate
@@ -618,26 +618,26 @@ def set_clock_dimensions(radius, center_x, center_y):
 def get_position_on_chord_circle(angle):
     """
     Get position on chord circle using set dimensions.
-    
+
     Args:
         angle (float): Angle in radians
-    
+
     Returns:
         tuple: (x, y) coordinates
     """
     if _clock_radius is None or _clock_x is None or _clock_y is None:
         raise ValueError("Clock dimensions not set - call set_clock_dimensions() first")
-    
+
     return musical_calculations.get_position_on_chord_circle(angle, _clock_radius, _clock_x, _clock_y)
 
 
 def pitch_to_angle(pitch):
     """
     Wrapper function for pitch to angle conversion.
-    
+
     Args:
         pitch (int): MIDI pitch value
-    
+
     Returns:
         float: Angle in radians
     """
@@ -647,7 +647,7 @@ def pitch_to_angle(pitch):
 def create_chord_color_gradient():
     """
     Wrapper function for chord color gradient creation.
-    
+
     Returns:
         list: List of Color objects
     """
@@ -657,10 +657,10 @@ def create_chord_color_gradient():
 def get_root_position_mapping(chord):
     """
     Wrapper function for root position mapping.
-    
+
     Args:
         chord (Chord): The chord object
-    
+
     Returns:
         dict: Mapping from line number to pitch index
     """
@@ -670,11 +670,11 @@ def get_root_position_mapping(chord):
 def generate_active_pitches(chord, borrowing_state):
     """
     Wrapper function for active pitch generation.
-    
+
     Args:
         chord (Chord): The chord object
         borrowing_state (dict): Current borrowing state
-    
+
     Returns:
         list: List of voiced MIDI pitches
     """
@@ -684,11 +684,11 @@ def generate_active_pitches(chord, borrowing_state):
 def find_next_higher_note(reference_pitch, available_pitches):
     """
     Wrapper function for finding next higher note.
-    
+
     Args:
         reference_pitch (int): Reference MIDI pitch
         available_pitches (list): Available pitches to choose from
-    
+
     Returns:
         int: Next higher MIDI pitch
     """
@@ -698,11 +698,11 @@ def find_next_higher_note(reference_pitch, available_pitches):
 def find_next_lower_note(reference_pitch, available_pitches):
     """
     Wrapper function for finding next lower note.
-    
+
     Args:
         reference_pitch (int): Reference MIDI pitch
         available_pitches (list): Available pitches to choose from
-    
+
     Returns:
         int: Next lower MIDI pitch
     """
@@ -712,10 +712,10 @@ def find_next_lower_note(reference_pitch, available_pitches):
 def get_chord_by_name(chord_name):
     """
     Wrapper function for getting chord by name.
-    
+
     Args:
         chord_name (str): Name of the chord
-    
+
     Returns:
         Chord: The chord object or None if not found
     """
@@ -725,11 +725,31 @@ def get_chord_by_name(chord_name):
 def get_elemental_chord(element_name):
     """
     Wrapper function for getting elemental chord.
-    
+
     Args:
         element_name (str): Name of the element ('Earth', 'Wind', 'Fire')
-    
+
     Returns:
         Chord: The elemental chord object or None if not found
     """
     return chord_manager.get_elemental_chord(element_name)
+
+
+def create_spelling_from_pitches(pitches):
+    """
+    Create chord spelling from a list of MIDI pitches (already voiced).
+
+    Args:
+        pitches (list): List of MIDI pitch values (already voiced and filtered)
+
+    Returns:
+        str: Spelling of the pitches sorted from low to high
+    """
+    if not pitches:
+        return "No notes"
+
+    # Sort by actual MIDI pitch values (low to high)
+    sorted_pitches = sorted(pitches)
+    note_names = [NOTE_NAMES_FLAT[pitch % 12] for pitch in sorted_pitches]
+
+    return "  ".join(f"{name:<2}" for name in note_names)

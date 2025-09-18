@@ -17,7 +17,7 @@ import time
 from config import config, NOTE_NAMES_FLAT, TABLE_SEPARATOR
 from musical_core import (
     chord_manager, Chord, initialize_chord_dictionary,
-    generate_active_pitches,set_clock_dimensions
+    generate_active_pitches, set_clock_dimensions, create_spelling_from_pitches
 )
 from borrowing_system import BorrowingController
 from display_manager import DisplayManager
@@ -25,35 +25,16 @@ from settings_gui import UserSettingsGUI
 # endregion Imports ###########################################################
 
 
-def create_spelling_from_pitches(pitches):
-    """
-    Create chord spelling from a list of MIDI pitches (already voiced).
-
-    Args:
-        pitches (list): List of MIDI pitch values (already voiced and filtered)
-
-    Returns:
-        str: Spelling of the pitches sorted from low to high
-    """
-    if not pitches:
-        return "No notes"
-
-    # Sort by actual MIDI pitch values (low to high)
-    sorted_pitches = sorted(pitches)
-    note_names = [NOTE_NAMES_FLAT[pitch % 12] for pitch in sorted_pitches]
-
-    return "  ".join(f"{name:<2}" for name in note_names)
+# region Global Variables #####################################################
+display_manager = None
+borrowing_controller = None
+first_time = True
+# make a bar of dashes with | in the same places as header
+TABLE_SEPARATOR = "|" + "-" * 32 + "|" + "-" * 22 + "|" + "-" * 22 + "|"
+# endregion Global Variables ##################################################
 
 
-
-
-
-# region Classes ##############################################################
-
-
-
-
-# region Settings Conversion Functions ########################################
+# region Settings Conversion Utilities ########################################
 def string_to_tonal_center_offset(note_name):
     """Convert note name string to tonal center offset value."""
     # Match the original system where C = 0
@@ -104,6 +85,10 @@ def parse_display_scale(scale_string):
         return 1.5  # Default fallback
 
 
+# endregion Settings Conversion Utilities ####################################
+
+
+# region Settings Application Logic ###########################################
 def apply_user_settings(settings_dict):
     """Apply user settings to runtime variables and recalculate constants."""
     try:
@@ -138,8 +123,10 @@ def apply_user_settings(settings_dict):
         print(f"Error applying user settings: {e}")
         # Fall back to defaults if there's an error
         config.__init__()
+# endregion Settings Application Logic ########################################
 
 
+# region User Interface Functions #############################################
 def show_user_settings_gui():
     """Show the user settings GUI."""
     settings_gui = UserSettingsGUI()
@@ -188,33 +175,7 @@ U|' \\/ '|u   \\/"_ \\/\\ \\   /"/u\\| ___"|/U|' \\/ '|u\\| ___"|/| \\ |"|   |_ 
     print(
         "  In his memory, let's play beautiful movements, not static chords, "
         "and remember to play with our family!!!\n")
-# endregion Settings Conversion Functions ####################################
-
-
-# Chord class now imported from musical_core
-# endregion Classes ###########################################################
-
-
-# Coordinates to chords mapping now handled by musical_core.chord_manager
-# endregion Coordinates to Chords #############################################
-
-
-# Chord functions now imported from musical_core
-# endregion chord Functions ###################################################
-
-
-# region GUI Setup Functions ##################################################
-# GUI setup functions now handled by DisplayManager
-
-
-# Global variables - now managed by DisplayManager and BorrowingController
-display_manager = None
-borrowing_controller = None
-# endregion GUI Setup Functions ###############################################
-
-
-# region Functions ############################################################
-# distance and find_closest_point now handled by DisplayManager
+# endregion User Interface Functions ##########################################
 
 
 def _warm_up_midi_system():
@@ -228,8 +189,10 @@ def _warm_up_midi_system():
     except:
         # If warm-up fails, continue anyway
         pass
+# endregion MIDI System Functions ############################################
 
 
+# region Chord Playback Functions #############################################
 def play_chord(chord_or_pitches):
     """Play the provided chord or list of pitch classes.
 
@@ -300,13 +263,10 @@ def select_chord_visually(x, y):
         y (float): Y coordinate for the visual indicator (relative 0-1)
     """
     display_manager.select_chord_visually(x, y)
+# endregion Chord Playback Functions ##########################################
 
 
-first_time = True
-# make a bar of dashes with | in the same places as header
-TABLE_SEPARATOR = "|" + "-" * 32 + "|" + "-" * 22 + "|" + "-" * 22 + "|"
-
-
+# region Chord Selection Functions ############################################
 def select_chord(x, y):
     """Find the closest chord and play it.
 
@@ -370,8 +330,10 @@ def select_chord(x, y):
         print(f"| {display_name:^30} | {chord.traditional_name:^20} | "
               f"{active_spelling:^20} |")
         print(TABLE_SEPARATOR)
+# endregion Chord Selection Functions ########################################
 
 
+# region User Interaction Functions ###########################################
 def choose_action(x, y):
     """Handle mouse click actions.
 
@@ -404,10 +366,10 @@ def choose_action(x, y):
         # If a chord, call play chord function (pass original absolute
         # coordinates)
         select_chord(x, y)
-# endregion Functions #########################################################
+# endregion User Interaction Functions ########################################
 
 
-# region Main #################################################################
+# region Application Initialization ###########################################
 def initialize_application():
     """Initialize the main application displays and setup."""
     global display_manager, borrowing_controller
@@ -486,4 +448,4 @@ def main():
 
 if __name__ == "__main__":
     main()
-# endregion Main ##############################################################
+# endregion Application Initialization ########################################
