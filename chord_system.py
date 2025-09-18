@@ -1,16 +1,12 @@
-"""
-Musical Core Module for Movemental.py
-
-This module contains the core musical logic including the Chord class,
-ChordManager, and all musical calculation functions with performance
-optimizations through caching.
-
-Phase 2 Refactoring - Extracted from Movemental.py
-"""
+# chord_system.py
+#
+# This module contains the core musical logic including the Chord class,
+# ChordManager, and all musical calculation functions with performance
+# optimizations through caching.
 
 from music import *
 from gui import Color
-from math import hypot, pi, cos, sin
+from math import cos, sin
 import time
 from config import config, NOTE_NAMES_SHARP, NOTE_NAMES_FLAT, CHORD_COLORS, CHORD_GRADIENT_SIZE, CHORD_PATTERN_REPEAT
 
