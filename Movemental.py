@@ -15,13 +15,14 @@ from music import *
 from gui import *
 import time
 from config import config, NOTE_NAMES_FLAT, TABLE_SEPARATOR
-from musical_core import (
+from chord_system import (
     chord_manager, Chord, initialize_chord_dictionary,
-    generate_active_pitches, set_clock_dimensions, create_spelling_from_pitches
+    generate_active_pitches, set_clock_dimensions,
+    create_spelling_from_pitches
 )
 from borrowing_system import BorrowingController
 from display_manager import DisplayManager
-from settings_gui import UserSettingsGUI
+from settings_gui import SettingsGUI
 # endregion Imports ###########################################################
 
 
@@ -37,7 +38,6 @@ TABLE_SEPARATOR = "|" + "-" * 32 + "|" + "-" * 22 + "|" + "-" * 22 + "|"
 # region Settings Conversion Utilities ########################################
 def string_to_tonal_center_offset(note_name):
     """Convert note name string to tonal center offset value."""
-    # Match the original system where C = 0
     note_map = {"C": 0, "Db": 1, "D": 2, "Eb": 3, "E": 4, "F": 5,
                 "Gb": 6, "G": 7, "Ab": 8, "A": 9, "Bb": 10, "B": 11}
     return note_map.get(note_name, G0)  # Default is G
@@ -83,12 +83,10 @@ def parse_display_scale(scale_string):
         return float(scale_part)
     except:
         return 1.5  # Default fallback
-
-
 # endregion Settings Conversion Utilities ####################################
 
 
-# region Settings Application Logic ###########################################
+# region Settings Logic #######################################################
 def apply_user_settings(settings_dict):
     """Apply user settings to runtime variables and recalculate constants."""
     try:
@@ -123,13 +121,13 @@ def apply_user_settings(settings_dict):
         print(f"Error applying user settings: {e}")
         # Fall back to defaults if there's an error
         config.__init__()
-# endregion Settings Application Logic ########################################
+# endregion Settings Logic ####################################################
 
 
-# region User Interface Functions #############################################
+# region UI Functions #########################################################
 def show_user_settings_gui():
     """Show the user settings GUI."""
-    settings_gui = UserSettingsGUI()
+    settings_gui = SettingsGUI()
     settings_gui.show_settings_gui()
     # The GUI will handle everything through callbacks
     # No need to return anything or wait
@@ -175,24 +173,10 @@ U|' \\/ '|u   \\/"_ \\/\\ \\   /"/u\\| ___"|/U|' \\/ '|u\\| ___"|/| \\ |"|   |_ 
     print(
         "  In his memory, let's play beautiful movements, not static chords, "
         "and remember to play with our family!!!\n")
-# endregion User Interface Functions ##########################################
+# endregion UI Functions ######################################################
 
 
-def _warm_up_midi_system():
-    """Warm up the MIDI system to prevent audio stuttering on first chord."""
-    try:
-        # Play a very quiet, very short note to initialize the MIDI system
-        # This prevents the crackling/stuttering on the first real chord
-        Play.note(C4, 0, 0.01, 1)  # Very quiet (volume 1) and very short (0.01 seconds)
-        time.sleep(0.05)  # Small delay to let MIDI system settle
-        Play.allNotesOff()  # Ensure it's stopped
-    except:
-        # If warm-up fails, continue anyway
-        pass
-# endregion MIDI System Functions ############################################
-
-
-# region Chord Playback Functions #############################################
+# region Chord Selection ######################################################
 def play_chord(chord_or_pitches):
     """Play the provided chord or list of pitch classes.
 
@@ -263,10 +247,8 @@ def select_chord_visually(x, y):
         y (float): Y coordinate for the visual indicator (relative 0-1)
     """
     display_manager.select_chord_visually(x, y)
-# endregion Chord Playback Functions ##########################################
 
 
-# region Chord Selection Functions ############################################
 def select_chord(x, y):
     """Find the closest chord and play it.
 
@@ -330,7 +312,7 @@ def select_chord(x, y):
         print(f"| {display_name:^30} | {chord.traditional_name:^20} | "
               f"{active_spelling:^20} |")
         print(TABLE_SEPARATOR)
-# endregion Chord Selection Functions ########################################
+# endregion Chord Selection ###################################################
 
 
 # region User Interaction Functions ###########################################
@@ -370,6 +352,12 @@ def choose_action(x, y):
 
 
 # region Application Initialization ###########################################
+
+def _warm_up_midi_system():
+    """Warm up the MIDI system to prevent audio stuttering on first chord."""
+    Play.setInstrument(config.DEFAULT_INSTRUMENT)
+
+
 def initialize_application():
     """Initialize the main application displays and setup."""
     global display_manager, borrowing_controller

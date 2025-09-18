@@ -1,19 +1,14 @@
-"""
-Borrowing System Module for Movemental.py
-
-This module handles all borrowing-related functionality including:
-- Borrowing state management
-- UI controls for borrowing interactions
-- Chord borrowing logic and calculations
-- Visual feedback for borrowing operations
-
-Author: Trevor Ritchie
-Date: 2025-09-16
-"""
+# borrowing_system.py
+#
+# This module handles all borrowing-related functionality including:
+# - Borrowing state management
+# - UI controls for borrowing interactions
+# - Chord borrowing logic and calculations
+# - Visual feedback for borrowing operations
 
 from gui import *
 from config import config, TRANSPARENT_COLOR, TABLE_SEPARATOR, calculate_distance
-from musical_core import (
+from chord_system import (
     get_chord_by_name, get_elemental_chord, get_root_position_mapping,
     find_next_higher_note, find_next_lower_note, generate_active_pitches
 )

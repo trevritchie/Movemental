@@ -1,19 +1,14 @@
-"""
-Settings GUI Module for Movemental.py
-
-This module contains the UserSettingsGUI class for handling user settings
-configuration before the main application starts.
-
-Author: Trevor Ritchie
-Date: 2025-09-16
-"""
+# settings_gui.py
+#
+# This module contains the SettingsGUI class for handling user settings
+# configuration before the main application starts.
 
 from gui import *
 from music import *
 from config import config, NOTE_NAMES_FLAT
 
 
-class UserSettingsGUI:
+class SettingsGUI:
     """GUI class for user settings configuration before main application."""
 
     def __init__(self):
