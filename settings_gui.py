@@ -271,6 +271,20 @@ class SettingsGUI:
         """Handle instrument selection."""
         self.settings['instrument'] = selection
 
+        # Set instrument immediately to avoid lag on first chord
+        instrument_name_to_constant = {
+            "Rhodes Keyboard": RHODES_PIANO,
+            "Piano": PIANO,
+            "Synth": SYNTH,
+            "Cello": CELLO,
+            "DX Keyboard": DX_PIANO,
+            "Shakuhachi": SHAKUHACHI,
+            "Music Box": MUSIC_BOX
+        }
+
+        instrument_constant = instrument_name_to_constant.get(selection, RHODES_PIANO)
+        Play.setInstrument(instrument_constant)
+
     def _on_resolution_selected(self, selection):
         """Handle screen resolution selection."""
         self.settings['screen_resolution'] = selection

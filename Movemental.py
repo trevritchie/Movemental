@@ -52,19 +52,6 @@ def string_to_duration(duration_name):
     return duration_map.get(duration_name, HN)
 
 
-def string_to_instrument(instrument_name):
-    """Convert instrument name string to MIDI instrument constant."""
-    instrument_map = {
-        "Rhodes Keyboard": RHODES_PIANO,
-        "Shakuhachi": SHAKUHACHI,
-        "Piano": PIANO,
-        "Synth": SYNTH,
-        "Cello": CELLO,
-        "DX Keyboard": DX_PIANO,
-        "Music Box": MUSIC_BOX
-    }
-    return instrument_map.get(instrument_name, SHAKUHACHI)
-
 
 def parse_resolution(resolution_string):
     """Parse '1920x1200' into (width, height) tuple."""
@@ -91,14 +78,14 @@ def apply_user_settings(settings_dict):
     """Apply user settings to runtime variables and recalculate constants."""
     try:
         # Apply basic settings to config object
+        # Note: Instrument is set directly in settings GUI, not here
         config.update_settings(
             TONAL_CENTER_OFFSET=string_to_tonal_center_offset(
                 settings_dict['tonal_center']),
             OCTAVE_RANGE=settings_dict['octave_range'],
             VOICING=settings_dict['voicing'],
             CHORD_DURATION=string_to_duration(
-                settings_dict['chord_duration']),
-            INSTRUMENT=string_to_instrument(settings_dict['instrument'])
+                settings_dict['chord_duration'])
         )
 
         # Apply screen settings
@@ -353,17 +340,9 @@ def choose_action(x, y):
 
 # region Application Initialization ###########################################
 
-def _warm_up_midi_system():
-    """Warm up the MIDI system to prevent audio stuttering on first chord."""
-    Play.setInstrument(config.DEFAULT_INSTRUMENT)
-
-
 def initialize_application():
     """Initialize the main application displays and setup."""
     global display_manager, borrowing_controller
-
-    # Warm up MIDI system to prevent audio stuttering on first chord
-    _warm_up_midi_system()
 
     try:
         # Configure screen settings
