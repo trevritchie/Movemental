@@ -15,17 +15,17 @@ export const ClockFace: React.FC = () => {
     return 'var(--color-fire)';
   };
 
-  const radius = 120;
+  const radius = 108;
   const cx = 150;
-  const cy = 150;
+  const cy = 155;
   
   const ticks = Array.from({ length: 12 }).map((_, i) => {
     const angle = (i / 12) * Math.PI * 2 - Math.PI / 2;
     const x = cx + radius * Math.cos(angle);
     const y = cy + radius * Math.sin(angle);
     
-    const labelX = cx + (radius + 25) * Math.cos(angle);
-    const labelY = cy + (radius + 25) * Math.sin(angle);
+    const labelX = cx + (radius + 22) * Math.cos(angle);
+    const labelY = cy + (radius + 22) * Math.sin(angle);
     
     const noteIndex = (i + tonalCenter) % 12;
     const noteName = NOTE_NAMES_FLAT[noteIndex];
@@ -87,8 +87,8 @@ export const ClockFace: React.FC = () => {
             <text 
               x={tick.labelX} 
               y={tick.labelY} 
-              fill="rgba(255,255,255,0.6)" 
-              fontSize={12} 
+              fill="rgba(255,255,255,0.8)" 
+              fontSize={13} 
               textAnchor="middle" 
               alignmentBaseline="middle"
             >

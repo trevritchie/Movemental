@@ -17,50 +17,30 @@ const SLICE_VARIANTS = [
   { prefix: 'Brother ', label: 'Br.',  sliceIdx: 3 },
 ];
 
-// ── Blended colour system ─────────────────────────────────────────────────────
-// Element anchor colours in HSL
-const E = { h: 28,  s: 55, l: 40 }; // Earth  – amber-brown
-const W = { h: 197, s: 66, l: 55 }; // Wind   – sky blue
-const F = { h:   5, s: 80, l: 52 }; // Fire   – vivid red
-
-/** Blend two HSL colours, always travelling CLOCKWISE around the hue wheel. */
-function blendHSL(
-  a: { h: number; s: number; l: number },
-  b: { h: number; s: number; l: number },
-  t: number,
-  lShift = 0,
-): { color: string; glow: string } {
-  let dh = b.h - a.h;
-  if (dh < 0) dh += 360; // clockwise only
-  const h = Math.round((a.h + dh * t) % 360);
-  const s = Math.round(a.s + (b.s - a.s) * t);
-  const l = Math.round(a.l + (b.l - a.l) * t) + lShift;
-  return {
-    color: `hsl(${h},${s}%,${l}%)`,
-    glow:  `hsla(${h},${s}%,${l}%,0.55)`,
-  };
-}
+// ── Pre-computed colours for each of the 12 chord groups ──────────────────────
 
 // Pre-computed colours for each of the 12 chord groups.
 // t=0.22 → ~3:1 ratio toward p1, t=0.50 → balanced, t=0.78 → ~3:1 toward p2
 // Macro-Out groups (Branch, Ember, Glass) are slightly lighter (+4 L)
 // Macro-In  groups (Sand-Storm, Fire-Storm, Forest-Fire) are slightly darker (-4 L)
 const GROUP_PALETTE: Record<string, { color: string; glow: string }> = {
-  // Earth → Wind  (olive → sage → teal)
-  'Trunk':      blendHSL(E, W, 0.22),       // 3E:1W – warm olive
-  'Branch':     blendHSL(E, W, 0.50, +4),   // balanced, outward – lighter sage
-  'Sand-Storm': blendHSL(E, W, 0.50, -4),   // balanced, inward  – darker sage
-  'Leaf':       blendHSL(E, W, 0.78),       // 1E:3W – teal
-  // Wind → Fire  (periwinkle → purple → magenta)
-  'Smoke':      blendHSL(W, F, 0.22),       // 3W:1F – periwinkle
-  'Ember':      blendHSL(W, F, 0.50, +4),   // balanced, outward – violet
-  'Fire-Storm': blendHSL(W, F, 0.50, -4),   // balanced, inward  – deep violet
-  'Flame':      blendHSL(W, F, 0.78),       // 1W:3F – magenta-red
-  // Fire → Earth  (orange-red → amber)
-  'Magma':       blendHSL(F, E, 0.22),      // 3F:1E – deep red-orange
-  'Glass':       blendHSL(F, E, 0.50, +4),  // balanced, outward – rust
-  'Forest-Fire': blendHSL(F, E, 0.50, -4),  // balanced, inward  – dark rust
-  'Charcoal':    blendHSL(F, E, 0.78),      // 1F:3E – amber-brown
+  // Earth-based / Woody / Greenery
+  'Trunk':      { color: 'hsl(25, 42%, 35%)',   glow: 'hsla(25, 42%, 35%, 0.55)' },    // Solid tree trunk brown
+  'Branch':     { color: 'hsl(32, 45%, 42%)',   glow: 'hsla(32, 45%, 42%, 0.55)' },    // Warm medium branch brown
+  'Leaf':       { color: 'hsl(122, 48%, 38%)',  glow: 'hsla(122, 48%, 38%, 0.55)' },   // Vibrant leaf green
+  'Sand-Storm': { color: 'hsl(42, 45%, 46%)',   glow: 'hsla(42, 45%, 46%, 0.55)' },    // Sandy gold / dust beige
+
+  // Wind / Atmospheric / Smokey
+  'Smoke':      { color: 'hsl(215, 18%, 48%)',  glow: 'hsla(215, 18%, 48%, 0.55)' },   // Slate blue-grey
+  'Ember':      { color: 'hsl(18, 90%, 45%)',   glow: 'hsla(18, 90%, 45%, 0.55)' },    // Glowing hot ember orange
+  'Fire-Storm': { color: 'hsl(8, 88%, 42%)',    glow: 'hsla(8, 88%, 42%, 0.55)' },     // Violent red-orange storm
+  'Flame':      { color: 'hsl(28, 95%, 48%)',   glow: 'hsla(28, 95%, 48%, 0.55)' },    // Bright active flame orange-yellow
+
+  // Fire / Deep Earth / Crystalline
+  'Magma':       { color: 'hsl(356, 85%, 40%)',  glow: 'hsla(356, 85%, 40%, 0.55)' },   // Deep molten lava red
+  'Glass':       { color: 'hsl(182, 55%, 44%)',  glow: 'hsla(182, 55%, 44%, 0.55)' },   // Glassy teal / crystalline turquoise
+  'Forest-Fire': { color: 'hsl(135, 38%, 28%)',  glow: 'hsla(135, 38%, 28%, 0.55)' },   // Dark pine/burnt forest green
+  'Charcoal':    { color: 'hsl(0, 0%, 28%)',     glow: 'hsla(0, 0%, 28%, 0.55)' },      // Dark charcoal grey
 };
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -81,17 +61,6 @@ function piePath(r: number, slice: number): string {
   return `M 0,0 L ${x1},${y1} A ${r},${r} 0 0,1 ${x2},${y2} Z`;
 }
 
-/** Visual centre of each slice (cardinal directions) */
-function sliceLabelPos(r: number, slice: number) {
-  const d = r * 0.58;
-  const positions = [
-    { x:  0, y: -d }, // top    (Base)
-    { x:  d, y:  0 }, // right  (Sister)
-    { x:  0, y:  d }, // bottom (Twin)
-    { x: -d, y:  0 }, // left   (Brother)
-  ];
-  return positions[slice];
-}
 
 export const ElementalDiagram: React.FC = () => {
   const {
@@ -100,8 +69,8 @@ export const ElementalDiagram: React.FC = () => {
     handleChordPointerUp,
     handleChordPointerEnter
   } = useChordContext();
-  const VIEW_W = 1000;
-  const VIEW_H = 850;
+  const VIEW_W = 1160;
+  const VIEW_H = 800;
 
   const [hoveredGroup, setHoveredGroup] = useState<string | null>(null);
   const [hoveredSliceIdx, setHoveredSliceIdx] = useState<number | null>(null);
@@ -135,8 +104,8 @@ export const ElementalDiagram: React.FC = () => {
   const windC  = getCoords(wind  ?? undefined);
   const fireC  = getCoords(fire  ?? undefined);
 
-  const R_MAIN  = 35;
-  const R_GROUP = 36;
+  const R_MAIN  = 52;
+  const R_GROUP = 54;
 
   return (
     <div className="diagram-container">
@@ -199,7 +168,7 @@ export const ElementalDiagram: React.FC = () => {
             >
               {/* Glow halo */}
               <circle
-                r={r * 1.7}
+                r={r * 1.25}
                 fill={glowColor}
                 filter="url(#glow)"
                 opacity={anySelected ? 0.55 : isThisGroup ? 0.25 : 0.12}
@@ -251,26 +220,12 @@ export const ElementalDiagram: React.FC = () => {
                 pointerEvents="none"
               />
 
-              {/* Hover: show variant label inside the hovered slice */}
-              {isThisGroup && hoveredSliceIdx !== null && (() => {
-                const { x: lx, y: ly } = sliceLabelPos(r, SLICE_VARIANTS[hoveredSliceIdx].sliceIdx);
-                return (
-                  <text
-                    x={lx} y={ly + 3}
-                    fill="white" fontSize={9} fontWeight="700"
-                    textAnchor="middle" pointerEvents="none"
-                  >
-                    {SLICE_VARIANTS[hoveredSliceIdx].label}
-                  </text>
-                );
-              })()}
-
               {/* Group name below node */}
               <text
-                y={r + 15}
-                fill={isThisGroup ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.72)'}
-                fontSize={10}
-                fontWeight="500"
+                y={r + 24}
+                fill={isThisGroup ? '#ffffff' : 'rgba(255, 255, 255, 0.85)'}
+                fontSize={15}
+                fontWeight="600"
                 textAnchor="middle"
                 pointerEvents="none"
               >
@@ -304,14 +259,14 @@ export const ElementalDiagram: React.FC = () => {
               }}
               style={{ cursor: 'pointer' }}
             >
-              <circle r={r * 1.6} fill={getGlow(chord.name)} filter="url(#glow)" opacity={isSelected ? 1 : 0.4} />
+              <circle r={r * 1.2} fill={getGlow(chord.name)} filter="url(#glow)" opacity={isSelected ? 1 : 0.4} />
               <circle
                 r={r}
                 fill={getColor(chord.name)}
                 stroke={isSelected ? 'white' : 'rgba(255,255,255,0.25)'}
                 strokeWidth={isSelected ? 4 : 1.5}
               />
-              <text y={r + 18} fill="rgba(255,255,255,0.92)" fontSize={17} fontWeight="bold" textAnchor="middle">
+              <text y={r + 29} fill="#ffffff" fontSize={24} fontWeight="bold" textAnchor="middle">
                 {chord.name}
               </text>
             </g>

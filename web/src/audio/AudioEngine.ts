@@ -2,6 +2,7 @@ import * as Tone from 'tone';
 
 export class AudioEngine {
   private synth: Tone.PolySynth | null = null;
+  private filter: Tone.Filter | null = null;
   private chorus: Tone.Chorus | null = null;
   private delay: Tone.PingPongDelay | null = null;
   private reverb: Tone.Reverb | null = null;
@@ -17,26 +18,32 @@ export class AudioEngine {
   private delayWetVal: number = 0.0;
   private reverbWetVal: number = 0.30;
 
+  // Cached envelope settings
+  private envelopeAttackVal: number = 0.08;
+  private envelopeDecayVal: number = 1.5;
+  private envelopeSustainVal: number = 0.6;
+  private envelopeReleaseVal: number = 1.2;
+
   constructor() {
     // Initialized on first user gesture via startContext()
   }
 
   private async initSynth() {
-    // Signal chain: PolySynth -> Chorus -> Delay -> Reverb -> EQ3 -> Compressor -> Limiter -> Destination
+    // Signal chain: PolySynth -> Filter -> Chorus -> Delay -> Reverb -> EQ3 -> Compressor -> Limiter -> Destination
     
-    // 7. Limiter - final peak control to guarantee no digital clipping
+    // 8. Limiter - final peak control to guarantee no digital clipping
     this.limiter = new Tone.Limiter(-1.5).toDestination();
 
-    // 6. Compressor - glues the polyphonic voices and smooths out transient spikes
+    // 7. Compressor - glues the polyphonic voices and smooths out transient spikes
     this.compressor = new Tone.Compressor({
-      threshold: -15,
-      ratio: 3.5,
+      threshold: -16,
+      ratio: 4.0,
       attack: 0.03,
       release: 0.08,
     });
     this.compressor.connect(this.limiter);
 
-    // 5. EQ3 - Tailored specifically for laptop speaker translation:
+    // 6. EQ3 - Tailored specifically for laptop speaker translation:
     // - Low shelf cut (-6dB at 180Hz) to prevent speaker rattling and muddy distortion on small diaphragms.
     // - Presence boost (+2.5dB between 250Hz and 2400Hz) to bring out mid-range warmth and body.
     // - High shelf cut (-2.5dB) to smooth out synth brightness and tame high-register beeps.
@@ -49,24 +56,24 @@ export class AudioEngine {
     });
     this.eq.connect(this.compressor);
 
-    // 4. Reverb - creates a lush, diffuse, expensive space (async generation)
+    // 5. Reverb - creates a lush, diffuse, expensive space (async generation)
     this.reverb = new Tone.Reverb({
-      decay: 3.0,
+      decay: 3.5,
       wet: this.reverbWetVal,
       preDelay: 0.02,
     });
     this.reverb.connect(this.eq);
     await this.reverb.generate();
 
-    // 3. Ping-Pong Delay - subtle bouncing ambient delay tail
+    // 4. Ping-Pong Delay - subtle bouncing ambient delay tail
     this.delay = new Tone.PingPongDelay({
       delayTime: "4n.", // dotted quarter note for rhythmic interest
-      feedback: 0.2,
+      feedback: 0.25,
       wet: this.delayWetVal,
     });
     this.delay.connect(this.reverb);
 
-    // 2. Chorus - adds high-end shimmer and incredible stereo width
+    // 3. Chorus - adds high-end shimmer and incredible stereo width
     this.chorus = new Tone.Chorus({
       frequency: 1.5,
       delayTime: 3.5,
@@ -76,40 +83,36 @@ export class AudioEngine {
     this.chorus.connect(this.delay);
     this.chorus.start(); // Start the LFO for the chorus effect
 
-    // 1. Synthesizer - PolySynth wrapping MonoSynth for independent voice filter sweeps
-    this.synth = new Tone.PolySynth(Tone.MonoSynth, {
+    // 2. Master Lowpass Filter - analog warmth sweep applied to all voices collectively
+    this.filter = new Tone.Filter({
+      frequency: 900,       // low cutoff to keep fundamental warm and prevent harsh brightness
+      type: 'lowpass',
+      rolloff: -12,
+    });
+    this.filter.connect(this.chorus);
+
+    // 1. Synthesizer - PolySynth wrapping standard Synth (highly optimized, 4x more CPU-efficient)
+    // - Oscillator: fatsawtooth (3 detuned saw waves for rich, wide analog warmth)
+    // - Envelopes: generous release for smooth ambient overlaps
+    this.synth = new Tone.PolySynth(Tone.Synth, {
       oscillator: {
-        type: 'fatsawtooth', // unison-style detuned sawtooth waves
-        count: 2,            // 2 detuned oscillators per note
-        spread: 20,          // wider detune spread to maintain thickness
-      },
-      filter: {
-        Q: 0.8,              // smooth, non-whistling lowpass resonance
-        type: 'lowpass',
-        rolloff: -12,
+        type: 'fatsawtooth',
+        count: 3,            // 3 detuned oscillators per voice
+        spread: 15,          // tight detuning to maintain clear, focused harmonic body
       },
       envelope: {
-        attack: 0.01,        // extremely snappy attack (10ms)
-        decay: 1.2,          // dynamic level decay
-        sustain: 0.3,        // lower sustain level for a plucky keyboard feel
-        release: 0.4,        // short release (relies on reverb for tail to save CPU)
+        attack: this.envelopeAttackVal,        // prevents zero-crossing popping clicks
+        decay: this.envelopeDecayVal,
+        sustain: this.envelopeSustainVal,      // sits beautifully in the drone background
+        release: this.envelopeReleaseVal,      // generous release for smooth legato transitions
       },
-      filterEnvelope: {
-        attack: 0.01,        // extremely snappy filter sweep (10ms)
-        decay: 1.0,          // filter cutoff decay time
-        sustain: 0.15,       // settles into a warm, muffled tone
-        release: 0.4,        // filter closes quickly as amplitude fades
-        baseFrequency: 200,  // low default cutoff to ensure fundamental warmth
-        octaves: 3.5,        // sweep range of the filter
-        exponent: 2,         // musical, non-linear envelope shape
-      },
-      volume: -4,            // initial volume leveled for the thick unison engine
+      volume: -12,           // balanced default volume to prevent summing distortion
     });
-    this.synth.maxPolyphony = 16;
-    this.synth.connect(this.chorus);
+    this.synth.maxPolyphony = 12; // perfectly sized for 4-note voicing + release overlaps
+    this.synth.connect(this.filter);
 
     this.isReady = true;
-    console.log('[AudioEngine] Premium Subtractive PolySynth (MonoSynth) ready');
+    console.log('[AudioEngine] Optimized Premium PolySynth (Synth) & Master Filter ready');
   }
 
   public async startContext() {
@@ -248,6 +251,23 @@ export class AudioEngine {
     this.reverbWetVal = value;
     if (this.reverb) {
       this.reverb.wet.value = Math.max(0, Math.min(1, value));
+    }
+  }
+
+  public setEnvelope(attack: number, decay: number, sustain: number, release: number) {
+    this.envelopeAttackVal = attack;
+    this.envelopeDecayVal = decay;
+    this.envelopeSustainVal = sustain;
+    this.envelopeReleaseVal = release;
+    if (this.synth) {
+      this.synth.set({
+        envelope: {
+          attack,
+          decay,
+          sustain,
+          release
+        }
+      });
     }
   }
 }

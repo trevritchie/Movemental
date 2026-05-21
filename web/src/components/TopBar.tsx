@@ -1,5 +1,5 @@
 import React from 'react';
-import { Volume2, VolumeX, SlidersHorizontal } from 'lucide-react';
+import { SlidersHorizontal, Square } from 'lucide-react';
 import { NOTE_NAMES_FLAT, VOICING_TO_INDICES } from '../music/config';
 import { audioEngine } from '../audio/AudioEngine';
 import { useChordContext, type PlayingMode } from '../context/ChordContext';
@@ -12,62 +12,50 @@ export const TopBar: React.FC = () => {
     chorusWet, setChorusWet,
     delayWet, setDelayWet,
     reverbWet, setReverbWet,
-    playingMode, setPlayingMode
+    playingMode, setPlayingMode,
+    envelopeAttack, setEnvelopeAttack,
+    envelopeDecay, setEnvelopeDecay,
+    envelopeSustain, setEnvelopeSustain,
+    envelopeRelease, setEnvelopeRelease
   } = useChordContext();
   
-  const [muted, setMuted] = React.useState(false);
   const [showEffects, setShowEffects] = React.useState(false);
-  const [testStatus, setTestStatus] = React.useState<'idle' | 'playing' | 'ok' | 'error'>('idle');
+  const [showADSR, setShowADSR] = React.useState(true);
+
+  // Dynamic coordinates for ADSR envelope SVG (viewBox 0 0 240 80)
+  const x0 = 10;
+  const y0 = 70;
   
-  const handleVolumeToggle = () => {
-    if (muted) {
-      audioEngine.setVolume(-4);
-      setMuted(false);
-    } else {
-      audioEngine.setVolume(-Infinity);
-      setMuted(true);
-    }
-  };
+  const wA = 15 + (envelopeAttack / 2.0) * 55;   // Attack width (15 to 70px)
+  const wD = 15 + (envelopeDecay / 3.0) * 55;    // Decay width (15 to 70px)
+  const wS = 40;                                 // Sustain width (fixed 40px)
+  const wR = 15 + (envelopeRelease / 4.0) * 55;  // Release width (15 to 70px)
+  
+  const x1 = x0 + wA;
+  const y1 = 15; // Peak level height
+  
+  const x2 = x1 + wD;
+  const y2 = 70 - (envelopeSustain * 55); // Sustain level height (sustain 0 to 1)
+  
+  const x3 = x2 + wS;
+  const y3 = y2;
+  
+  const x4 = x3 + wR;
+  const y4 = 70; // Silence release
+  
+  const strokePath = `M ${x0},${y0} L ${x1},${y1} L ${x2},${y2} L ${x3},${y3} L ${x4},${y4}`;
+  const fillPath = `M ${x0},70 L ${x1},${y1} L ${x2},${y2} L ${x3},${y3} L ${x4},70 Z`;
 
-  const handleTestAudio = async () => {
-    setTestStatus('playing');
-    try {
-      // Import Tone dynamically so errors surface clearly
-      const Tone = await import('tone');
-      // Resume AudioContext (required after user gesture)
-      await Tone.start();
-      
-      // Use a basic synth — no samples, no network, instant
-      const synth = new Tone.Synth({
-        oscillator: { type: 'triangle' },
-        envelope: { attack: 0.05, decay: 0.2, sustain: 0.5, release: 1 },
-      }).toDestination();
-      
-      synth.triggerAttackRelease('C4', '1n');
-      setTestStatus('ok');
-      
-      // Clean up after note finishes
-      setTimeout(() => {
-        synth.dispose();
-        setTestStatus('idle');
-      }, 3000);
-    } catch (err) {
-      console.error('Audio test failed:', err);
-      setTestStatus('error');
-    }
-  };
-
-  const testLabel = {
-    idle:    '🎹 Test Audio',
-    playing: '🔊 Playing…',
-    ok:      '✅ Audio OK!',
-    error:   '❌ Audio Failed',
-  }[testStatus];
+  // Calculate dynamic stop percentages for Gemini color gradient
+  const totalWidth = x4 - x0;
+  const p1 = totalWidth > 0 ? ((x1 - x0) / totalWidth) * 100 : 0;
+  const p2 = totalWidth > 0 ? ((x2 - x0) / totalWidth) * 100 : 0;
+  const p3 = totalWidth > 0 ? ((x3 - x0) / totalWidth) * 100 : 0;
 
   return (
     <div className="top-bar-wrapper">
       <div className="top-bar glass-panel">
-        <div className="brand">Movemental</div>
+        <div className="brand">Movemental: Chord Alchemy</div>
         <div className="controls-group">
           <select 
             value={tonalCenter} 
@@ -104,19 +92,29 @@ export const TopBar: React.FC = () => {
             onChange={(e) => setPlayingMode(e.target.value as PlayingMode)}
             title="Playing Mode"
           >
-            <option value="hold">Hold to Sustain</option>
-            <option value="envelope">Preset Envelope</option>
-            <option value="infinite">Infinite Drone</option>
+            <option value="adsr">Click and Hold</option>
+            <option value="infinite">Drone</option>
           </select>
 
-          <button
-            className={`test-audio-btn ${testStatus}`}
-            onClick={handleTestAudio}
-            disabled={testStatus === 'playing'}
-            title="Play a single note to verify audio is working"
-          >
-            {testLabel}
-          </button>
+          {playingMode === 'infinite' && (
+            <button
+              className="stop-btn"
+              onClick={() => audioEngine.releaseActiveNotes()}
+              title="Stop all active drone notes"
+            >
+              <Square size={12} fill="currentColor" style={{ marginRight: '6px' }} /> Stop
+            </button>
+          )}
+
+          {playingMode === 'adsr' && (
+            <button
+              className={`adsr-toggle-btn ${showADSR ? 'active' : ''}`}
+              onClick={() => setShowADSR(!showADSR)}
+              title="Toggle ADSR Envelope Controls"
+            >
+              <SlidersHorizontal size={12} style={{ marginRight: '6px' }} /> ADSR
+            </button>
+          )}
 
           <button 
             className={`borrow-btn ${showEffects ? 'active' : ''}`} 
@@ -125,14 +123,6 @@ export const TopBar: React.FC = () => {
             aria-label="Toggle effects settings panel"
           >
             <SlidersHorizontal size={18} />
-          </button>
-
-          <button 
-            className="borrow-btn" 
-            onClick={handleVolumeToggle}
-            title={muted ? "Unmute" : "Mute"}
-          >
-            {muted ? <VolumeX size={18} /> : <Volume2 size={18} />}
           </button>
         </div>
       </div>
@@ -186,6 +176,111 @@ export const TopBar: React.FC = () => {
                   onChange={(e) => setReverbWet(Number(e.target.value))} 
                 />
                 <span className="slider-val">{Math.round(reverbWet * 100)}%</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {playingMode === 'adsr' && showADSR && (
+        <div className="effects-panel adsr-panel glass-panel slide-down">
+          <div className="adsr-panel-content">
+            <div className="adsr-visualizer">
+              <svg className="adsr-svg" viewBox="0 0 240 80">
+                <defs>
+                  <linearGradient id="gemini-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" stopColor="#4285F4" />
+                    <stop offset={`${p1}%`} stopColor="#9B72F8" />
+                    <stop offset={`${p2}%`} stopColor="#E266F3" />
+                    <stop offset={`${p3}%`} stopColor="#74C7F7" />
+                    <stop offset="100%" stopColor="#4285F4" />
+                  </linearGradient>
+                  <filter id="glow-adsr" x="-20%" y="-20%" width="140%" height="140%">
+                    <feGaussianBlur stdDeviation="3.5" result="blur" />
+                    <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                  </filter>
+                </defs>
+                {/* Background grid lines */}
+                <line x1="10" y1="15" x2="230" y2="15" stroke="rgba(255,255,255,0.04)" strokeDasharray="3,3" />
+                <line x1="10" y1="70" x2="230" y2="70" stroke="rgba(255,255,255,0.08)" />
+                
+                {/* Filled envelope area */}
+                <path d={fillPath} fill="url(#gemini-grad)" fillOpacity={0.15} />
+                {/* Glowing envelope stroke */}
+                <path d={strokePath} fill="none" stroke="url(#gemini-grad)" strokeWidth="3" filter="url(#glow-adsr)" />
+                
+                {/* Color-coded Node dots */}
+                <circle cx={x1} cy={y1} r="4.5" fill="#9B72F8" stroke="#ffffff" strokeWidth="1" filter="url(#glow-adsr)" />
+                <circle cx={x2} cy={y2} r="4.5" fill="#E266F3" stroke="#ffffff" strokeWidth="1" filter="url(#glow-adsr)" />
+                <circle cx={x3} cy={y3} r="4.5" fill="#74C7F7" stroke="#ffffff" strokeWidth="1" filter="url(#glow-adsr)" />
+              </svg>
+            </div>
+            
+            <div className="adsr-sliders-container">
+              <div className="adsr-sliders">
+                <div className="effect-slider-group">
+                  <label htmlFor="attack-slider">Attack</label>
+                  <div className="slider-container">
+                    <input 
+                      id="attack-slider"
+                      type="range" 
+                      min="0.01" 
+                      max="2.0" 
+                      step="0.01" 
+                      value={envelopeAttack} 
+                      onChange={(e) => setEnvelopeAttack(Number(e.target.value))} 
+                    />
+                    <span className="slider-val">{envelopeAttack.toFixed(2)}s</span>
+                  </div>
+                </div>
+                
+                <div className="effect-slider-group">
+                  <label htmlFor="decay-slider">Decay</label>
+                  <div className="slider-container">
+                    <input 
+                      id="decay-slider"
+                      type="range" 
+                      min="0.01" 
+                      max="3.0" 
+                      step="0.01" 
+                      value={envelopeDecay} 
+                      onChange={(e) => setEnvelopeDecay(Number(e.target.value))} 
+                    />
+                    <span className="slider-val">{envelopeDecay.toFixed(2)}s</span>
+                  </div>
+                </div>
+                
+                <div className="effect-slider-group">
+                  <label htmlFor="sustain-slider">Sustain</label>
+                  <div className="slider-container">
+                    <input 
+                      id="sustain-slider"
+                      type="range" 
+                      min="0.0" 
+                      max="1.0" 
+                      step="0.01" 
+                      value={envelopeSustain} 
+                      onChange={(e) => setEnvelopeSustain(Number(e.target.value))} 
+                    />
+                    <span className="slider-val">{Math.round(envelopeSustain * 100)}%</span>
+                  </div>
+                </div>
+                
+                <div className="effect-slider-group">
+                  <label htmlFor="release-slider">Release</label>
+                  <div className="slider-container">
+                    <input 
+                      id="release-slider"
+                      type="range" 
+                      min="0.01" 
+                      max="4.0" 
+                      step="0.01" 
+                      value={envelopeRelease} 
+                      onChange={(e) => setEnvelopeRelease(Number(e.target.value))} 
+                    />
+                    <span className="slider-val">{envelopeRelease.toFixed(2)}s</span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>

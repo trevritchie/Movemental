@@ -30,12 +30,14 @@ function AppContent() {
       <div className="main-content">
         <ElementalDiagram />
         
-        <div className="side-panel">
-          <div className="glass-panel clock-panel">
+        <div className="side-panel glass-panel unified-side-panel">
+          <div className="side-section clock-section">
             <ClockFace />
           </div>
           
-          <div className="glass-panel controls-panel">
+          <div className="side-divider" />
+          
+          <div className="side-section controls-section">
             <BorrowingControls disabled={!selectedChord || isPrimaryElement} />
           </div>
         </div>
