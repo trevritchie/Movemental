@@ -1,29 +1,24 @@
 import React from 'react';
 import { ChevronUp, ChevronDown, Eye, EyeOff } from 'lucide-react';
-import type { BorrowingState, BorrowingDirection } from '../music/BorrowingLogic';
+import type { BorrowingDirection } from '../music/BorrowingLogic';
+import { useChordContext } from '../context/ChordContext';
 
 interface BorrowingControlsProps {
-  state: BorrowingState;
-  onStateChange: (newState: BorrowingState) => void;
   disabled: boolean;
 }
 
-export const BorrowingControls: React.FC<BorrowingControlsProps> = ({
-  state,
-  onStateChange,
-  disabled
-}) => {
+export const BorrowingControls: React.FC<BorrowingControlsProps> = ({ disabled }) => {
+  const { borrowingState: state, handleBorrowingStateChange: onStateChange } = useChordContext();
+
   const handleBorrow = (line: number, direction: BorrowingDirection) => {
     if (disabled) return;
     
     const newState = { ...state };
     
     if (newState.borrowingDirections[line] === direction) {
-      // Toggle off
       newState.borrowingDirections[line] = null;
       newState.circlePositions[line] = 'line';
     } else {
-      // Toggle on
       newState.borrowingDirections[line] = direction;
       newState.circlePositions[line] = direction as 'up' | 'down';
     }
@@ -39,7 +34,6 @@ export const BorrowingControls: React.FC<BorrowingControlsProps> = ({
     onStateChange(newState);
   };
 
-  // Render rows from highest note (4) down to lowest (1)
   const rows = [4, 3, 2, 1];
 
   return (

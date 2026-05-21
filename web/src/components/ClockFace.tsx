@@ -1,30 +1,29 @@
 import React from 'react';
 import { NOTE_NAMES_FLAT } from '../music/config';
+import { useChordContext } from '../context/ChordContext';
 
-interface ClockFaceProps {
-  tonalCenter: number;
-  activePitches: (number | null)[]; // 4 notes
-  elementalName: string | null;
-  traditionalName: string | null;
-}
+export const ClockFace: React.FC = () => {
+  const { tonalCenter, activePitches, selectedChord } = useChordContext();
+  
+  const elementalName = selectedChord?.name || null;
+  const traditionalName = selectedChord?.traditionalName || null;
 
-export const ClockFace: React.FC<ClockFaceProps> = ({
-  tonalCenter,
-  activePitches,
-  elementalName,
-  traditionalName
-}) => {
+  const getElementColor = (relativePitchClass: number) => {
+    const rem = ((relativePitchClass % 3) + 3) % 3;
+    if (rem === 0) return 'var(--color-earth)';
+    if (rem === 1) return 'var(--color-wind)';
+    return 'var(--color-fire)';
+  };
+
   const radius = 120;
   const cx = 150;
   const cy = 150;
   
-  // Create 12 positions for the clock
   const ticks = Array.from({ length: 12 }).map((_, i) => {
     const angle = (i / 12) * Math.PI * 2 - Math.PI / 2;
     const x = cx + radius * Math.cos(angle);
     const y = cy + radius * Math.sin(angle);
     
-    // Position labels slightly outside
     const labelX = cx + (radius + 25) * Math.cos(angle);
     const labelY = cy + (radius + 25) * Math.sin(angle);
     
@@ -34,7 +33,6 @@ export const ClockFace: React.FC<ClockFaceProps> = ({
     return { x, y, labelX, labelY, noteName };
   });
 
-  // Map active pitches to clock positions
   const activeNodes = activePitches
     .filter((p): p is number => p !== null)
     .map(pitch => {
@@ -48,7 +46,6 @@ export const ClockFace: React.FC<ClockFaceProps> = ({
       };
     });
 
-  // Calculate connection lines (complete graph between all active nodes)
   const connectionLines: { x1: number, y1: number, x2: number, y2: number }[] = [];
   for (let i = 0; i < activeNodes.length; i++) {
     for (let j = i + 1; j < activeNodes.length; j++) {
@@ -68,11 +65,9 @@ export const ClockFace: React.FC<ClockFaceProps> = ({
         <div className="traditional-name">{traditionalName || '---'}</div>
       </div>
       
-      <svg width={300} height={300} className="clock-svg">
-        {/* Background circle */}
+      <svg width="100%" height="100%" viewBox="0 0 300 300" className="clock-svg">
         <circle cx={cx} cy={cy} r={radius} fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth={2} />
         
-        {/* Background grid lines */}
         {ticks.map((t1, i) => 
           ticks.map((t2, j) => 
             i < j ? (
@@ -86,10 +81,9 @@ export const ClockFace: React.FC<ClockFaceProps> = ({
           )
         )}
 
-        {/* Ticks and labels */}
         {ticks.map((tick, i) => (
           <g key={i}>
-            <circle cx={tick.x} cy={tick.y} r={4} fill="rgba(255,255,255,0.3)" />
+            <circle cx={tick.x} cy={tick.y} r={4.5} fill={getElementColor(i)} />
             <text 
               x={tick.labelX} 
               y={tick.labelY} 
@@ -103,7 +97,6 @@ export const ClockFace: React.FC<ClockFaceProps> = ({
           </g>
         ))}
 
-        {/* Connection lines for active chord */}
         {connectionLines.map((line, i) => (
           <line 
             key={`conn-${i}`}
@@ -114,15 +107,20 @@ export const ClockFace: React.FC<ClockFaceProps> = ({
           />
         ))}
 
-        {/* Active Nodes */}
-        {activeNodes.map((node, i) => (
-          <circle 
-            key={`node-${i}`}
-            cx={node.x} cy={node.y} 
-            r={8} 
-            fill="white" 
-          />
-        ))}
+        {activeNodes.map((node, i) => {
+          const relativePitchClass = (node.pitch % 12 - tonalCenter + 12) % 12;
+          const nodeColor = getElementColor(relativePitchClass);
+          return (
+            <circle 
+              key={`node-${i}`}
+              cx={node.x} cy={node.y} 
+              r={8} 
+              fill={nodeColor} 
+              stroke="white"
+              strokeWidth={1.5}
+            />
+          );
+        })}
       </svg>
     </div>
   );

@@ -88,76 +88,99 @@ export class ChordManager {
     this.chords.clear();
 
     const add = (x: number, y: number, name: string, pitches: number[]) => {
-      this.chords.set(`${x},${y}`, this.createChord(name, pitches));
+      this.chords.set(`${x.toFixed(4)},${y.toFixed(4)}`, this.createChord(name, pitches));
     };
 
+    // Calculate symmetrical coordinates
+    // Downward-pointing triangle: Earth top-left, Wind top-right, Fire bottom-center
+    // This puts the Earth-Wind axis horizontal across the top (Branch at top center)
+    const R = 0.43;   // larger → more room between vertices
+    const cx = 0.5;
+    const cy = 0.44;  // shifted up so diagram sits higher in the panel
+
+    const earthP = { x: cx - R * Math.sqrt(3) / 2, y: cy - R / 2 }; // top-left
+    const windP  = { x: cx + R * Math.sqrt(3) / 2, y: cy - R / 2 }; // top-right
+    const fireP  = { x: cx,                          y: cy + R };     // bottom-center
+
     // Elemental Diminished Chords
-    add(0.091, 0.158, "Earth", [C4, EF4, FS4, A4]);
-    add(0.878, 0.157, "Wind", [DF4, E4, G4, BF4]);
-    add(0.471, 0.889, "Fire", [D4, F4, AF4, B4]);
+    add(earthP.x, earthP.y, "Earth", [C4, EF4, FS4, A4]);
+    add(windP.x, windP.y, "Wind", [DF4, E4, G4, BF4]);
+    add(fireP.x, fireP.y, "Fire", [D4, F4, AF4, B4]);
 
-    // Earth-Wind Combinations
-    add(0.277, 0.101, "Trunk", [C4, EF4, G4, A4]);
-    add(0.238, 0.165, "Brother Trunk", [EF4, GF4, BF4, C5]);
-    add(0.280, 0.161, "Twin Trunk", [GF4, A4, DF5, EF5]);
-    add(0.317, 0.160, "Sister Trunk", [A3, C4, E4, FS4]);
+    const addEdgeGroups = (p1: {x:number, y:number}, p2: {x:number, y:number}, groups: any[]) => {
+      const dx = p2.x - p1.x;
+      const dy = p2.y - p1.y;
+      const L = Math.hypot(dx, dy);
+      const ux = dx / L;
+      const uy = dy / L;
+      
+      // Outward normal (assuming clockwise p1->p2 around center)
+      const vx = uy;
+      const vy = -ux;
 
-    add(0.493, 0.042, "Branch", [C4, E4, G4, A4]);
-    add(0.442, 0.094, "Brother Branch", [EF4, G4, BF4, C5]);
-    add(0.488, 0.094, "Twin Branch", [GF4, BF4, DF5, EF5]);
-    add(0.533, 0.094, "Sister Branch", [A3, CS4, E4, FS4]);
+      const mx = p1.x + dx * 0.5;
+      const my = p1.y + dy * 0.5;
 
-    add(0.494, 0.221, "Sand-Storm", [C4, E4, GF4, BF4]);
-    add(0.442, 0.282, "Brother Sand-Storm", [EF4, G4, A4, DF5]);
-    add(0.499, 0.283, "Twin Sand-Storm", [GF4, BF4, C5, E5]);
-    add(0.558, 0.283, "Sister Sand-Storm", [A3, DF4, EF4, G4]);
+      const macroD = 0.105; // Reduced: less Macro-In reach into the congested centre
+      const macroPositions = [
+        { x: mx - ux * macroD, y: my - uy * macroD }, // Macro-Left (towards p1)
+        { x: mx + vx * macroD, y: my + vy * macroD }, // Macro-Out
+        { x: mx - vx * macroD, y: my - vy * macroD }, // Macro-In
+        { x: mx + ux * macroD, y: my + uy * macroD }  // Macro-Right (towards p2)
+      ];
 
-    add(0.683, 0.113, "Leaf", [C4, E4, G4, BF4]);
-    add(0.658, 0.171, "Brother Leaf", [EF4, G4, BF4, DF5]);
-    add(0.693, 0.161, "Twin Leaf", [GF4, BF4, DF5, E5]);
-    add(0.726, 0.165, "Sister Leaf", [A3, CS4, E4, G4]);
+      groups.forEach((g, i) => {
+        const C = macroPositions[i];
+        
+        // Micro-diamond points
+        const microD = 0.052; // Larger: more space between the 4 nodes in each cluster
+        
+        // Base: Outward
+        const baseX = C.x + vx * microD;
+        const baseY = C.y + vy * microD;
+        
+        // Twin: Inward
+        const twinX = C.x - vx * microD;
+        const twinY = C.y - vy * microD;
+        
+        // Brother: Left (towards p1)
+        const broX = C.x - ux * microD;
+        const broY = C.y - uy * microD;
+        
+        // Sister: Right (towards p2)
+        const sisX = C.x + ux * microD;
+        const sisY = C.y + uy * microD;
 
-    // Wind-Fire Combinations
-    add(0.833, 0.310, "Smoke", [G4, BF4, D5, E5]);
-    add(0.785, 0.360, "Brother Smoke", [BF4, DF5, F5, G5]);
-    add(0.825, 0.360, "Twin Smoke", [DF5, E5, AF5, BF5]);
-    add(0.864, 0.371, "Sister Smoke", [E4, G4, B4, CS5]);
+        add(baseX, baseY, g.base, g.p1);
+        add(broX, broY, g.bro, g.p2);
+        add(twinX, twinY, g.twin, g.p3);
+        add(sisX, sisY, g.sis, g.p4);
+      });
+    };
 
-    add(0.929, 0.475, "Ember", [G4, B4, D5, E5]);
-    add(0.873, 0.533, "Brother Ember", [BF4, D5, F5, G5]);
-    add(0.919, 0.528, "Twin Ember", [DF5, F5, AF5, BF5]);
-    add(0.962, 0.532, "Sister Ember", [E4, GS4, B4, CS5]);
+    // Earth-Wind
+    addEdgeGroups(earthP, windP, [
+      { base: "Trunk", bro: "Brother Trunk", twin: "Twin Trunk", sis: "Sister Trunk", p1: [C4, EF4, G4, A4], p2: [EF4, GF4, BF4, C5], p3: [GF4, A4, DF5, EF5], p4: [A3, C4, E4, FS4] },
+      { base: "Branch", bro: "Brother Branch", twin: "Twin Branch", sis: "Sister Branch", p1: [C4, E4, G4, A4], p2: [EF4, G4, BF4, C5], p3: [GF4, BF4, DF5, EF5], p4: [A3, CS4, E4, FS4] },
+      { base: "Sand-Storm", bro: "Brother Sand-Storm", twin: "Twin Sand-Storm", sis: "Sister Sand-Storm", p1: [C4, E4, GF4, BF4], p2: [EF4, G4, A4, DF5], p3: [GF4, BF4, C5, E5], p4: [A3, DF4, EF4, G4] },
+      { base: "Leaf", bro: "Brother Leaf", twin: "Twin Leaf", sis: "Sister Leaf", p1: [C4, E4, G4, BF4], p2: [EF4, G4, BF4, DF5], p3: [GF4, BF4, DF5, E5], p4: [A3, CS4, E4, G4] }
+    ]);
 
-    add(0.627, 0.444, "Fire-Storm", [G4, B4, DF5, F5]);
-    add(0.561, 0.511, "Brother Fire-Storm", [BF4, D5, E5, AF5]);
-    add(0.630, 0.501, "Twin Fire-Storm", [DF5, F5, G5, B5]);
-    add(0.686, 0.504, "Sister Fire-Storm", [E4, AF4, BF4, D5]);
+    // Wind-Fire
+    addEdgeGroups(windP, fireP, [
+      { base: "Smoke", bro: "Brother Smoke", twin: "Twin Smoke", sis: "Sister Smoke", p1: [G4, BF4, D5, E5], p2: [BF4, DF5, F5, G5], p3: [DF5, E5, AF5, BF5], p4: [E4, G4, B4, CS5] },
+      { base: "Ember", bro: "Brother Ember", twin: "Twin Ember", sis: "Sister Ember", p1: [G4, B4, D5, E5], p2: [BF4, D5, F5, G5], p3: [DF5, F5, AF5, BF5], p4: [E4, GS4, B4, CS5] },
+      { base: "Fire-Storm", bro: "Brother Fire-Storm", twin: "Twin Fire-Storm", sis: "Sister Fire-Storm", p1: [G4, B4, DF5, F5], p2: [BF4, D5, E5, AF5], p3: [DF5, F5, G5, B5], p4: [E4, AF4, BF4, D5] },
+      { base: "Flame", bro: "Brother Flame", twin: "Twin Flame", sis: "Sister Flame", p1: [G4, B4, D5, F5], p2: [BF4, D5, F5, AF5], p3: [DF5, F5, AF5, B5], p4: [E4, GS4, B4, D5] }
+    ]);
 
-    add(0.680, 0.738, "Flame", [G4, B4, D5, F5]);
-    add(0.623, 0.794, "Brother Flame", [BF4, D5, F5, AF5]);
-    add(0.675, 0.792, "Twin Flame", [DF5, F5, AF5, B5]);
-    add(0.728, 0.796, "Sister Flame", [E4, GS4, B4, D5]);
-
-    // Fire-Earth Combinations
-    add(0.283, 0.690, "Magma", [D4, F4, A4, B5]);
-    add(0.233, 0.754, "Brother Magma", [F4, AF4, C5, D5]);
-    add(0.284, 0.754, "Twin Magma", [AF4, CF5, EF5, F5]);
-    add(0.328, 0.751, "Sister Magma", [B3, D4, FS4, GS4]);
-
-    add(0.069, 0.468, "Glass", [F4, A4, C5, D5]);
-    add(0.028, 0.533, "Brother Glass", [AF4, C4, EF5, F5]);
-    add(0.072, 0.528, "Twin Glass", [B4, DS5, FS5, GS5]);
-    add(0.109, 0.525, "Sister Glass", [D4, FS4, A4, B5]);
-
-    add(0.392, 0.432, "Forest-Fire", [F4, A4, CF5, EF5]);
-    add(0.348, 0.493, "Brother Forest-Fire", [AF4, C5, D5, GF5]);
-    add(0.393, 0.487, "Twin Forest-Fire", [CF5, EF5, F5, A5]);
-    add(0.438, 0.485, "Sister Forest-Fire", [D4, GF4, AF4, C5]);
-
-    add(0.196, 0.326, "Charcoal", [F4, A4, C5, EF5]);
-    add(0.144, 0.381, "Brother Charcoal", [AF4, C4, EF5, GF5]);
-    add(0.193, 0.378, "Twin Charcoal", [B4, DS5, FS5, A5]);
-    add(0.241, 0.381, "Sister Charcoal", [D4, FS4, A4, C5]);
+    // Fire-Earth
+    addEdgeGroups(fireP, earthP, [
+      { base: "Magma", bro: "Brother Magma", twin: "Twin Magma", sis: "Sister Magma", p1: [D4, F4, A4, B5], p2: [F4, AF4, C5, D5], p3: [AF4, CF5, EF5, F5], p4: [B3, D4, FS4, GS4] },
+      { base: "Glass", bro: "Brother Glass", twin: "Twin Glass", sis: "Sister Glass", p1: [F4, A4, C5, D5], p2: [AF4, C4, EF5, F5], p3: [B4, DS5, FS5, GS5], p4: [D4, FS4, A4, B5] },
+      { base: "Forest-Fire", bro: "Brother Forest-Fire", twin: "Twin Forest-Fire", sis: "Sister Forest-Fire", p1: [F4, A4, CF5, EF5], p2: [AF4, C5, D5, GF5], p3: [CF5, EF5, F5, A5], p4: [D4, GF4, AF4, C5] },
+      { base: "Charcoal", bro: "Brother Charcoal", twin: "Twin Charcoal", sis: "Sister Charcoal", p1: [F4, A4, C5, EF5], p2: [AF4, C4, EF5, GF5], p3: [B4, DS5, FS5, A5], p4: [D4, FS4, A4, C5] }
+    ]);
   }
 
   public getAllCoordinates(): {x: number, y: number}[] {
