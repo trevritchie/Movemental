@@ -17,6 +17,15 @@ const SLICE_VARIANTS = [
   { prefix: 'Brother ', label: 'Br.',  sliceIdx: 3 },
 ];
 
+// Explicit map: every chord name → its base group name.
+// Built once at module load from BASE_GROUPS × SLICE_VARIANTS so
+// active-group detection is a simple O(1) lookup with no string inference.
+const CHORD_TO_GROUP = new Map<string, string>(
+  BASE_GROUPS.flatMap(group =>
+    SLICE_VARIANTS.map(v => [v.prefix + group, group] as [string, string])
+  )
+);
+
 // ── Pre-computed colours for each of the 12 chord groups ──────────────────────
 
 // Pre-computed colours for each of the 12 chord groups.
@@ -42,6 +51,27 @@ const GROUP_PALETTE: Record<string, { color: string; glow: string }> = {
   'Forest-Fire': { color: 'hsl(135, 38%, 28%)',  glow: 'hsla(135, 38%, 28%, 0.55)' },   // Dark pine/burnt forest green
   'Charcoal':    { color: 'hsl(0, 0%, 28%)',     glow: 'hsla(0, 0%, 28%, 0.55)' },      // Dark charcoal grey
 };
+
+// Mapping each of the 12 chord groups to their two parent axis elements
+const AXIS_PARENTS: Record<string, { p1: string; p2: string }> = {
+  // Earth-Wind axis
+  'Trunk':      { p1: 'Earth', p2: 'Wind' },
+  'Branch':     { p1: 'Earth', p2: 'Wind' },
+  'Sand-Storm': { p1: 'Earth', p2: 'Wind' },
+  'Leaf':       { p1: 'Earth', p2: 'Wind' },
+
+  // Wind-Fire axis
+  'Smoke':      { p1: 'Wind', p2: 'Fire' },
+  'Ember':      { p1: 'Wind', p2: 'Fire' },
+  'Fire-Storm': { p1: 'Wind', p2: 'Fire' },
+  'Flame':      { p1: 'Wind', p2: 'Fire' },
+
+  // Fire-Earth axis
+  'Magma':       { p1: 'Fire', p2: 'Earth' },
+  'Glass':       { p1: 'Fire', p2: 'Earth' },
+  'Forest-Fire': { p1: 'Fire', p2: 'Earth' },
+  'Charcoal':    { p1: 'Fire', p2: 'Earth' },
+};
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
@@ -65,6 +95,7 @@ function piePath(r: number, slice: number): string {
 export const ElementalDiagram: React.FC = () => {
   const {
     selectedChord,
+    borrowingState,
     handleChordPointerDown,
     handleChordPointerUp,
     handleChordPointerEnter
@@ -74,6 +105,13 @@ export const ElementalDiagram: React.FC = () => {
 
   const [hoveredGroup, setHoveredGroup] = useState<string | null>(null);
   const [hoveredSliceIdx, setHoveredSliceIdx] = useState<number | null>(null);
+
+  // A voice is currently borrowed if circlePosition !== 'line' and the voice note state is 'on'
+  const isBorrowingActive = selectedChord ? [1, 2, 3, 4].some(line => {
+    const pos = borrowingState.circlePositions[line] || (borrowingState.circlePositions as any)[String(line)];
+    const noteState = borrowingState.noteStates[line] || (borrowingState.noteStates as any)[String(line)];
+    return pos && pos !== 'line' && noteState === 'on';
+  }) : false;
 
   const getCoords = (chord: Chord | undefined) => {
     if (!chord) return null;
@@ -104,6 +142,40 @@ export const ElementalDiagram: React.FC = () => {
   const windC  = getCoords(wind  ?? undefined);
   const fireC  = getCoords(fire  ?? undefined);
 
+  const getParentCoords = (name: string) => {
+    if (name === 'Earth') return earthC;
+    if (name === 'Wind')  return windC;
+    if (name === 'Fire')  return fireC;
+    return null;
+  };
+
+  // Pre-calculate centers of the 12 quadrant group nodes
+  const groupCenters = BASE_GROUPS.reduce((acc, baseName) => {
+    const chords = SLICE_VARIANTS.map(v =>
+      chordManager.getChordByName(v.prefix + baseName) ?? undefined
+    );
+    const coords = chords.map(c => getCoords(c));
+    if (coords.every(c => !!c)) {
+      const cx = coords.reduce((s, c) => s + c!.x, 0) / 4;
+      const cy = coords.reduce((s, c) => s + c!.y, 0) / 4;
+      acc[baseName] = { x: cx, y: cy };
+    }
+    return acc;
+  }, {} as Record<string, { x: number; y: number }>);
+
+  // Helper to get parent coordinates for a group
+  const getGroupParentCoords = (baseName: string) => {
+    const parents = AXIS_PARENTS[baseName];
+    if (!parents) return null;
+
+    const p1C = getParentCoords(parents.p1);
+    const p2C = getParentCoords(parents.p2);
+
+    if (!p1C || !p2C) return null;
+
+    return { p1C, p2C };
+  };
+
   const R_MAIN  = 52;
   const R_GROUP = 54;
 
@@ -115,9 +187,17 @@ export const ElementalDiagram: React.FC = () => {
         preserveAspectRatio="xMidYMid meet"
       >
         <defs>
-          <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
+          <filter id="glow" x="-50%" y="-50%" width="200%" height="200%" filterUnits="userSpaceOnUse">
             <feGaussianBlur stdDeviation="14" result="blur" />
             <feComposite in="SourceGraphic" in2="blur" operator="over" />
+          </filter>
+
+          <filter id="ritual-glow" x="-50%" y="-50%" width="200%" height="200%" filterUnits="userSpaceOnUse">
+            <feGaussianBlur stdDeviation="6" result="blur" />
+            <feMerge>
+              <feMergeNode in="blur" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
           </filter>
         </defs>
 
@@ -131,18 +211,157 @@ export const ElementalDiagram: React.FC = () => {
           />
         )}
 
+        {/* ── Witch Ritual Glowing Lines (drawn under chord nodes) ── */}
+        {/* Pass 1: Draw all inactive lines first */}
+        {Object.entries(groupCenters).map(([baseName, center]) => {
+          const parents = AXIS_PARENTS[baseName];
+          if (!parents) return null;
+
+          const adjusted = getGroupParentCoords(baseName);
+          if (!adjusted) return null;
+          const { p1C, p2C } = adjusted;
+
+          const isGroupActive = selectedChord
+            ? CHORD_TO_GROUP.get(selectedChord.name) === baseName
+            : false;
+
+          if (isGroupActive) return null;
+
+          const oppParent =
+            parents.p1 === 'Earth' && parents.p2 === 'Wind' ? 'Fire' :
+            parents.p1 === 'Wind' && parents.p2 === 'Fire' ? 'Earth' :
+            'Wind';
+          const oppC = getParentCoords(oppParent);
+
+          return (
+            <g key={`ritual-inactive-${baseName}`}>
+              {/* Line from Parent 1 */}
+              <line
+                x1={p1C.x}
+                y1={p1C.y}
+                x2={center.x}
+                y2={center.y}
+                stroke={getColor(parents.p1)}
+                strokeWidth={2}
+                strokeDasharray="3 5"
+                opacity={0.35}
+                filter="none"
+                style={{ transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)' }}
+              />
+
+              {/* Line from Parent 2 */}
+              <line
+                x1={p2C.x}
+                y1={p2C.y}
+                x2={center.x}
+                y2={center.y}
+                stroke={getColor(parents.p2)}
+                strokeWidth={2}
+                strokeDasharray="3 5"
+                opacity={0.35}
+                filter="none"
+                style={{ transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)' }}
+              />
+
+              {/* Hidden/faint opposite element line */}
+              {oppC && (
+                <line
+                  x1={oppC.x}
+                  y1={oppC.y}
+                  x2={center.x}
+                  y2={center.y}
+                  stroke={getColor(oppParent)}
+                  strokeWidth={1.5}
+                  strokeDasharray="1 8"
+                  opacity={0.06}
+                  filter="none"
+                  style={{ transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)' }}
+                />
+              )}
+            </g>
+          );
+        })}
+
+        {/* Pass 2: Draw active glowing lines on top */}
+        {Object.entries(groupCenters).map(([baseName, center]) => {
+          const parents = AXIS_PARENTS[baseName];
+          if (!parents) return null;
+
+          const adjusted = getGroupParentCoords(baseName);
+          if (!adjusted) return null;
+          const { p1C, p2C } = adjusted;
+
+          const isGroupActive = selectedChord
+            ? CHORD_TO_GROUP.get(selectedChord.name) === baseName
+            : false;
+
+          if (!isGroupActive) return null;
+
+          const oppParent =
+            parents.p1 === 'Earth' && parents.p2 === 'Wind' ? 'Fire' :
+            parents.p1 === 'Wind' && parents.p2 === 'Fire' ? 'Earth' :
+            'Wind';
+          const oppC = getParentCoords(oppParent);
+
+          return (
+            <g key={`ritual-active-${baseName}`}>
+              {/* Line from Parent 1 */}
+              <line
+                x1={p1C.x}
+                y1={p1C.y}
+                x2={center.x}
+                y2={center.y}
+                stroke={getColor(parents.p1)}
+                strokeWidth={4.5}
+                strokeDasharray="none"
+                opacity={0.95}
+                filter="url(#ritual-glow)"
+                style={{ transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)' }}
+              />
+
+              {/* Line from Parent 2 */}
+              <line
+                x1={p2C.x}
+                y1={p2C.y}
+                x2={center.x}
+                y2={center.y}
+                stroke={getColor(parents.p2)}
+                strokeWidth={4.5}
+                strokeDasharray="none"
+                opacity={0.95}
+                filter="url(#ritual-glow)"
+                style={{ transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)' }}
+              />
+
+              {/* Opposite element line (glows if borrowing is active, else faint hidden) */}
+              {oppC && (
+                <line
+                  x1={oppC.x}
+                  y1={oppC.y}
+                  x2={center.x}
+                  y2={center.y}
+                  stroke={getColor(oppParent)}
+                  strokeWidth={isBorrowingActive ? 5 : 1.5}
+                  strokeDasharray={isBorrowingActive ? 'none' : '1 8'}
+                  opacity={isBorrowingActive ? 0.95 : 0.06}
+                  filter={isBorrowingActive ? 'url(#ritual-glow)' : 'none'}
+                  style={{ transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)' }}
+                />
+              )}
+            </g>
+          );
+        })}
+
         {/* ── 12 quadrant group nodes ── */}
         {BASE_GROUPS.map((baseName) => {
           // Resolve all 4 chord objects for this group
           const chords = SLICE_VARIANTS.map(v =>
             chordManager.getChordByName(v.prefix + baseName) ?? undefined
           );
-          const coords = chords.map(c => getCoords(c));
-          if (coords.some(c => !c)) return null;
-
-          // Centre = average of the 4 individual chord positions
-          const cx = coords.reduce((s, c) => s + c!.x, 0) / 4;
-          const cy = coords.reduce((s, c) => s + c!.y, 0) / 4;
+          const center = groupCenters[baseName];
+          if (!center) return null;
+          const cx = center.x;
+          const cy = center.y;
 
           const r           = R_GROUP;
           const palette     = GROUP_PALETTE[baseName] ?? { color: 'var(--color-mixed)', glow: 'rgba(255,255,255,0.2)' };
