@@ -20,7 +20,7 @@ export const TopBar: React.FC = () => {
     droneAttack, setDroneAttack,
     droneDecay, setDroneDecay,
     droneSustain, setDroneSustain,
-    droneRelease
+    droneRelease, setDroneRelease
   } = useChordContext();
   
   const [showEffects, setShowEffects] = React.useState(false);
@@ -38,11 +38,15 @@ export const TopBar: React.FC = () => {
   const x0 = 15;
   const y0 = 85;
   
-  const wA = 20 + (currentA / 5.0) * 80;   // Attack width (up to 5s)
-  const wD = 20 + (currentD / 5.0) * 80;   // Decay width (up to 5s)
-  const wS = isDrone ? 130 : 50;           // Sustain width (longer in drone to fill space)
-  const maxR = isDrone ? 10.0 : 2.0;
-  const wR = 20 + (currentR / maxR) * 80;  // Release width scaled to max release limit
+  // Custom sound design limits for scaling
+  const maxA = isDrone ? 12.0 : 4.0;
+  const maxD = isDrone ? 10.0 : 5.0;
+  const maxR = isDrone ? 5.0 : 6.0;
+
+  const wA = 20 + (currentA / maxA) * 80;   // Attack width scaled to max
+  const wD = 20 + (currentD / maxD) * 80;   // Decay width scaled to max
+  const wS = isDrone ? 100 : 50;           // Sustain width (adjusted for drone)
+  const wR = 20 + (currentR / maxR) * 80;  // Release width scaled to max
   
   const x1 = x0 + wA;
   const y1 = 15; // Peak level height
@@ -56,17 +60,11 @@ export const TopBar: React.FC = () => {
   const x4 = x3 + wR;
   const y4 = y0; // Silence release
   
-  const strokePath = isDrone 
-    ? `M ${x0},${y0} L ${x1},${y1} L ${x2},${y2} L ${x3},${y3} L 320,${y3}`
-    : `M ${x0},${y0} L ${x1},${y1} L ${x2},${y2} L ${x3},${y3} L ${x4},${y4}`;
-
-  const fillPath = isDrone
-    ? `M ${x0},${y0} L ${x1},${y1} L ${x2},${y2} L ${x3},${y3} L 320,${y3} L 320,${y0} Z`
-    : `M ${x0},${y0} L ${x1},${y1} L ${x2},${y2} L ${x3},${y3} L ${x4},${y0} Z`;
+  const strokePath = `M ${x0},${y0} L ${x1},${y1} L ${x2},${y2} L ${x3},${y3} L ${x4},${y4}`;
+  const fillPath = `M ${x0},${y0} L ${x1},${y1} L ${x2},${y2} L ${x3},${y3} L ${x4},${y0} Z`;
 
   // Calculate dynamic stop percentages for Gemini color gradient
-  const visualXEnd = isDrone ? 320 : x4;
-  const totalWidth = visualXEnd - x0;
+  const totalWidth = x4 - x0;
   const p1 = totalWidth > 0 ? ((x1 - x0) / totalWidth) * 100 : 0;
   const p2 = totalWidth > 0 ? ((x2 - x0) / totalWidth) * 100 : 0;
   const p3 = totalWidth > 0 ? ((x3 - x0) / totalWidth) * 100 : 0;
@@ -115,22 +113,21 @@ export const TopBar: React.FC = () => {
             <option value="infinite">Drone</option>
           </select>
 
-          {playingMode === 'infinite' && (
-            <button
-              className="stop-btn"
-              onClick={() => audioEngine.releaseActiveNotes()}
-              title="Stop all active drone notes"
-            >
-              <Square size={12} fill="currentColor" style={{ marginRight: '6px' }} /> Stop
-            </button>
-          )}
+          <button
+            className="stop-btn"
+            onClick={() => audioEngine.releaseActiveNotes()}
+            title="Stop all active notes (Panic)"
+          >
+            <Square size={12} fill="currentColor" style={{ marginRight: '6px' }} /> Stop
+          </button>
+
 
           <button
             className={`adsr-toggle-btn ${showADSR ? 'active' : ''}`}
             onClick={() => setShowADSR(!showADSR)}
             title="Toggle Envelope Controls"
           >
-            <SlidersHorizontal size={12} style={{ marginRight: '6px' }} /> {isDrone ? 'ADS' : 'ADSR'}
+            <SlidersHorizontal size={12} style={{ marginRight: '6px' }} /> ADSR
           </button>
 
           <button 
@@ -234,16 +231,16 @@ export const TopBar: React.FC = () => {
             </div>
             
             <div className="adsr-sliders-container">
-              <div className="adsr-sliders" style={{ gridTemplateColumns: isDrone ? 'repeat(3, 1fr)' : 'repeat(4, 1fr)' }}>
+              <div className="adsr-sliders" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
                 <div className="effect-slider-group">
                   <label htmlFor="attack-slider">Attack</label>
                   <div className="slider-container">
                     <input 
                       id="attack-slider"
                       type="range" 
-                      min="0.01" 
-                      max="5.0" 
-                      step="0.01" 
+                      min={isDrone ? 0.1 : 0.01} 
+                      max={isDrone ? 12.0 : 4.0} 
+                      step={isDrone ? 0.1 : 0.01} 
                       value={currentA} 
                       onChange={(e) => isDrone ? setDroneAttack(Number(e.target.value)) : setEnvelopeAttack(Number(e.target.value))} 
                     />
@@ -257,9 +254,9 @@ export const TopBar: React.FC = () => {
                     <input 
                       id="decay-slider"
                       type="range" 
-                      min="0.01" 
-                      max="5.0" 
-                      step="0.01" 
+                      min={isDrone ? 0.1 : 0.01} 
+                      max={isDrone ? 10.0 : 5.0} 
+                      step={isDrone ? 0.1 : 0.01} 
                       value={currentD} 
                       onChange={(e) => isDrone ? setDroneDecay(Number(e.target.value)) : setEnvelopeDecay(Number(e.target.value))} 
                     />
@@ -283,23 +280,21 @@ export const TopBar: React.FC = () => {
                   </div>
                 </div>
                 
-                {!isDrone && (
-                  <div className="effect-slider-group">
-                    <label htmlFor="release-slider">Release</label>
-                    <div className="slider-container">
-                      <input 
-                        id="release-slider"
-                        type="range" 
-                        min="0.01" 
-                        max="2.0" 
-                        step="0.01" 
-                        value={currentR} 
-                        onChange={(e) => setEnvelopeRelease(Number(e.target.value))} 
-                      />
-                      <span className="slider-val">{currentR.toFixed(2)}s</span>
-                    </div>
+                <div className="effect-slider-group">
+                  <label htmlFor="release-slider">Release</label>
+                  <div className="slider-container">
+                    <input 
+                      id="release-slider"
+                      type="range" 
+                      min={isDrone ? 0.1 : 0.01} 
+                      max={isDrone ? 5.0 : 6.0} 
+                      step={isDrone ? 0.1 : 0.01} 
+                      value={currentR} 
+                      onChange={(e) => isDrone ? setDroneRelease(Number(e.target.value)) : setEnvelopeRelease(Number(e.target.value))} 
+                    />
+                    <span className="slider-val">{currentR.toFixed(2)}s</span>
                   </div>
-                )}
+                </div>
               </div>
             </div>
           </div>

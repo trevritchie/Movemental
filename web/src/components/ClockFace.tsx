@@ -1,6 +1,38 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { NOTE_NAMES_FLAT } from '../music/config';
 import { useChordContext } from '../context/ChordContext';
+
+const CLOCK_RADIUS = 108;
+const CLOCK_CX = 150;
+const CLOCK_CY = 155;
+
+// Precompute static geometry for clock face background
+const CLOCK_POINTS = Array.from({ length: 12 }).map((_, i) => {
+  const angle = (i / 12) * Math.PI * 2 - Math.PI / 2;
+  return {
+    x: CLOCK_CX + CLOCK_RADIUS * Math.cos(angle),
+    y: CLOCK_CY + CLOCK_RADIUS * Math.sin(angle),
+    labelX: CLOCK_CX + (CLOCK_RADIUS + 22) * Math.cos(angle),
+    labelY: CLOCK_CY + (CLOCK_RADIUS + 22) * Math.sin(angle),
+  };
+});
+
+const BACKGROUND_LINES = (() => {
+  const lines = [];
+  for (let i = 0; i < 12; i++) {
+    for (let j = i + 1; j < 12; j++) {
+      lines.push(
+        <line 
+          key={`bg-${i}-${j}`} 
+          x1={CLOCK_POINTS[i].x} y1={CLOCK_POINTS[i].y} x2={CLOCK_POINTS[j].x} y2={CLOCK_POINTS[j].y} 
+          stroke="rgba(255,255,255,0.03)" 
+          strokeWidth={1} 
+        />
+      );
+    }
+  }
+  return lines;
+})();
 
 export const ClockFace: React.FC = () => {
   const { tonalCenter, activePitches, selectedChord } = useChordContext();
@@ -33,48 +65,42 @@ export const ClockFace: React.FC = () => {
     return 'var(--color-fire)';
   };
 
-  const radius = 108;
-  const cx = 150;
-  const cy = 155;
-  
-  const ticks = Array.from({ length: 12 }).map((_, i) => {
-    const angle = (i / 12) * Math.PI * 2 - Math.PI / 2;
-    const x = cx + radius * Math.cos(angle);
-    const y = cy + radius * Math.sin(angle);
-    
-    const labelX = cx + (radius + 22) * Math.cos(angle);
-    const labelY = cy + (radius + 22) * Math.sin(angle);
-    
-    const noteIndex = (i + tonalCenter) % 12;
-    const noteName = NOTE_NAMES_FLAT[noteIndex];
-    
-    return { x, y, labelX, labelY, noteName };
-  });
-
-  const activeNodes = activePitches
-    .filter((p): p is number => p !== null)
-    .map(pitch => {
-      const pitchClass = pitch % 12;
-      const adjustedPitchClass = (pitchClass - tonalCenter + 12) % 12;
-      const angle = (adjustedPitchClass / 12) * Math.PI * 2 - Math.PI / 2;
-      return {
-        x: cx + radius * Math.cos(angle),
-        y: cy + radius * Math.sin(angle),
-        pitch
-      };
+  const ticks = useMemo(() => {
+    return CLOCK_POINTS.map((pt, i) => {
+      const noteIndex = (i + tonalCenter) % 12;
+      return { ...pt, noteName: NOTE_NAMES_FLAT[noteIndex] };
     });
+  }, [tonalCenter]);
 
-  const connectionLines: { x1: number, y1: number, x2: number, y2: number }[] = [];
-  for (let i = 0; i < activeNodes.length; i++) {
-    for (let j = i + 1; j < activeNodes.length; j++) {
-      connectionLines.push({
-        x1: activeNodes[i].x,
-        y1: activeNodes[i].y,
-        x2: activeNodes[j].x,
-        y2: activeNodes[j].y
+  const activeNodes = useMemo(() => {
+    return activePitches
+      .filter((p): p is number => p !== null)
+      .map(pitch => {
+        const pitchClass = pitch % 12;
+        const adjustedPitchClass = (pitchClass - tonalCenter + 12) % 12;
+        const angle = (adjustedPitchClass / 12) * Math.PI * 2 - Math.PI / 2;
+        return {
+          x: CLOCK_CX + CLOCK_RADIUS * Math.cos(angle),
+          y: CLOCK_CY + CLOCK_RADIUS * Math.sin(angle),
+          pitch
+        };
       });
+  }, [activePitches, tonalCenter]);
+
+  const connectionLines = useMemo(() => {
+    const lines: { x1: number, y1: number, x2: number, y2: number }[] = [];
+    for (let i = 0; i < activeNodes.length; i++) {
+      for (let j = i + 1; j < activeNodes.length; j++) {
+        lines.push({
+          x1: activeNodes[i].x,
+          y1: activeNodes[i].y,
+          x2: activeNodes[j].x,
+          y2: activeNodes[j].y
+        });
+      }
     }
-  }
+    return lines;
+  }, [activeNodes]);
 
   return (
     <div className="clock-container">
@@ -103,20 +129,9 @@ export const ClockFace: React.FC = () => {
       </div>
       
       <svg width="100%" height="100%" viewBox="0 0 300 300" className="clock-svg">
-        <circle cx={cx} cy={cy} r={radius} fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth={2} />
+        <circle cx={CLOCK_CX} cy={CLOCK_CY} r={CLOCK_RADIUS} fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth={2} />
         
-        {ticks.map((t1, i) => 
-          ticks.map((t2, j) => 
-            i < j ? (
-              <line 
-                key={`bg-${i}-${j}`} 
-                x1={t1.x} y1={t1.y} x2={t2.x} y2={t2.y} 
-                stroke="rgba(255,255,255,0.03)" 
-                strokeWidth={1} 
-              />
-            ) : null
-          )
-        )}
+        {BACKGROUND_LINES}
 
         {ticks.map((tick, i) => (
           <g key={i}>

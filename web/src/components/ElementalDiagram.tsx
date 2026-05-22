@@ -113,12 +113,12 @@ export const ElementalDiagram: React.FC = () => {
     return pos && pos !== 'line' && noteState === 'on';
   }) : false;
 
-  const getCoords = (chord: Chord | undefined) => {
+  const getCoords = React.useCallback((chord: Chord | undefined) => {
     if (!chord) return null;
     const coord = chordManager.getCoordinateForChord(chord.name);
     if (!coord) return null;
     return { x: coord.x * VIEW_W, y: coord.y * VIEW_H };
-  };
+  }, []);
 
   // Exact-name match only — prevents 'Forest-Fire' and 'Fire-Storm' from matching 'Fire'
   const getColor = (name: string) => {
@@ -135,46 +135,45 @@ export const ElementalDiagram: React.FC = () => {
     return 'rgba(255,255,255,0.15)';
   };
 
-  const earth = chordManager.getChordByName('Earth');
-  const wind  = chordManager.getChordByName('Wind');
-  const fire  = chordManager.getChordByName('Fire');
-  const earthC = getCoords(earth ?? undefined);
-  const windC  = getCoords(wind  ?? undefined);
-  const fireC  = getCoords(fire  ?? undefined);
+  const { earth, wind, fire, earthC, windC, fireC, groupCenters, getParentCoords, getGroupParentCoords } = React.useMemo(() => {
+    const earth = chordManager.getChordByName('Earth');
+    const wind  = chordManager.getChordByName('Wind');
+    const fire  = chordManager.getChordByName('Fire');
+    const earthC = getCoords(earth ?? undefined);
+    const windC  = getCoords(wind  ?? undefined);
+    const fireC  = getCoords(fire  ?? undefined);
 
-  const getParentCoords = (name: string) => {
-    if (name === 'Earth') return earthC;
-    if (name === 'Wind')  return windC;
-    if (name === 'Fire')  return fireC;
-    return null;
-  };
+    const getParentCoords = (name: string) => {
+      if (name === 'Earth') return earthC;
+      if (name === 'Wind')  return windC;
+      if (name === 'Fire')  return fireC;
+      return null;
+    };
 
-  // Pre-calculate centers of the 12 quadrant group nodes
-  const groupCenters = BASE_GROUPS.reduce((acc, baseName) => {
-    const chords = SLICE_VARIANTS.map(v =>
-      chordManager.getChordByName(v.prefix + baseName) ?? undefined
-    );
-    const coords = chords.map(c => getCoords(c));
-    if (coords.every(c => !!c)) {
-      const cx = coords.reduce((s, c) => s + c!.x, 0) / 4;
-      const cy = coords.reduce((s, c) => s + c!.y, 0) / 4;
-      acc[baseName] = { x: cx, y: cy };
-    }
-    return acc;
-  }, {} as Record<string, { x: number; y: number }>);
+    const groupCenters = BASE_GROUPS.reduce((acc, baseName) => {
+      const chords = SLICE_VARIANTS.map(v =>
+        chordManager.getChordByName(v.prefix + baseName) ?? undefined
+      );
+      const coords = chords.map(c => getCoords(c));
+      if (coords.every(c => !!c)) {
+        const cx = coords.reduce((s, c) => s + c!.x, 0) / 4;
+        const cy = coords.reduce((s, c) => s + c!.y, 0) / 4;
+        acc[baseName] = { x: cx, y: cy };
+      }
+      return acc;
+    }, {} as Record<string, { x: number; y: number }>);
 
-  // Helper to get parent coordinates for a group
-  const getGroupParentCoords = (baseName: string) => {
-    const parents = AXIS_PARENTS[baseName];
-    if (!parents) return null;
+    const getGroupParentCoords = (baseName: string) => {
+      const parents = AXIS_PARENTS[baseName];
+      if (!parents) return null;
+      const p1C = getParentCoords(parents.p1);
+      const p2C = getParentCoords(parents.p2);
+      if (!p1C || !p2C) return null;
+      return { p1C, p2C };
+    };
 
-    const p1C = getParentCoords(parents.p1);
-    const p2C = getParentCoords(parents.p2);
-
-    if (!p1C || !p2C) return null;
-
-    return { p1C, p2C };
-  };
+    return { earth, wind, fire, earthC, windC, fireC, groupCenters, getParentCoords, getGroupParentCoords };
+  }, [getCoords]);
 
   const R_MAIN  = 52;
   const R_GROUP = 54;
