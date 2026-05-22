@@ -146,18 +146,24 @@ export class AudioEngine {
     this.synth.triggerAttackRelease(noteNames, duration, now + 0.015);
   }
 
-  public async triggerAttack(midiNotes: number[]) {
+  public triggerAttack(midiNotes: number[]) {
     this.isPointerDown = true;
-    if (!this.synth || !this.isReady) {
-      await this.startContext();
-      if (!this.synth) return;
+    if (this.synth && this.isReady) {
+      this.triggerAttackSync(midiNotes);
+    } else {
+      // Async initialization path for the first gesture
+      this.startContext().then(() => {
+        if (this.isPointerDown) {
+          this.triggerAttackSync(midiNotes);
+        } else {
+          console.log('[AudioEngine] Pointer was released during async initialization. Aborting attack.');
+        }
+      });
     }
+  }
 
-    // If the user released the mouse while we were asynchronously initializing, abort trigger
-    if (!this.isPointerDown) {
-      console.log('[AudioEngine] Pointer was released during async initialization. Aborting attack.');
-      return;
-    }
+  private triggerAttackSync(midiNotes: number[]) {
+    if (!this.synth || !this.isReady) return;
 
     const now = Tone.now();
 
@@ -167,13 +173,13 @@ export class AudioEngine {
     // type on toNote() is overly narrow for filter/includes operations.
     const noteNames: string[] = clamped.map(n => Tone.Frequency(n, 'midi').toNote() as string);
 
-    // ── Smart legato diffing ──────────────────────────────────────────────────
-    // Only release notes that are LEAVING (not in the new chord).
-    // Only attack notes that are ARRIVING (not already playing).
-    // Notes shared between old and new chord sustain uninterrupted — no click,
-    // no re-trigger, no CPU waste from releasing and immediately re-attacking.
+    // ── Synchronous Legato Diffing ──────────────────────────────────────────
+    // Vital for drone mode: prevents polyphony pile-up by sustaining common notes.
     const notesToRelease = this.activeNotes.filter(n => !noteNames.includes(n));
     const notesToAttack  = noteNames.filter(n => !this.activeNotes.includes(n));
+
+    // Update state synchronously before any audio scheduling
+    this.activeNotes = noteNames;
 
     if (notesToRelease.length > 0) {
       try {
@@ -183,13 +189,11 @@ export class AudioEngine {
       }
     }
 
-    // Update the tracked active notes immediately (before scheduling)
-    this.activeNotes = noteNames;
-
     if (notesToAttack.length > 0) {
       console.log('[AudioEngine] Attacking:', notesToAttack, '| Sustaining:', noteNames.filter(n => !notesToAttack.includes(n)), '| Releasing:', notesToRelease);
-      // 15ms offset prevents zero-crossing click between release and attack
-      this.synth.triggerAttack(notesToAttack, now + 0.015);
+      // Schedule immediately at `now`. Removing the arbitrary delay prevents 
+      // chronological inversions from rapid subsequent clicks.
+      this.synth.triggerAttack(notesToAttack, now);
     }
   }
 
@@ -203,6 +207,10 @@ export class AudioEngine {
     if (this.synth && this.isReady) {
       console.log('[AudioEngine] Hard stop — releasing all voices.');
       try {
+        // Redundancy: release specific tracked notes, then trigger releaseAll
+        if (this.activeNotes.length > 0) {
+          this.synth.triggerRelease(this.activeNotes, Tone.now());
+        }
         this.synth.releaseAll();
       } catch (err) {
         console.warn('[AudioEngine] ReleaseAll error:', err);

@@ -16,38 +16,57 @@ export const TopBar: React.FC = () => {
     envelopeAttack, setEnvelopeAttack,
     envelopeDecay, setEnvelopeDecay,
     envelopeSustain, setEnvelopeSustain,
-    envelopeRelease, setEnvelopeRelease
+    envelopeRelease, setEnvelopeRelease,
+    droneAttack, setDroneAttack,
+    droneDecay, setDroneDecay,
+    droneSustain, setDroneSustain,
+    droneRelease, setDroneRelease
   } = useChordContext();
   
   const [showEffects, setShowEffects] = React.useState(false);
-  const [showADSR, setShowADSR] = React.useState(true);
+  const [showADSR, setShowADSR] = React.useState(false);
 
-  // Dynamic coordinates for ADSR envelope SVG (viewBox 0 0 240 80)
-  const x0 = 10;
-  const y0 = 70;
+  const isDrone = playingMode === 'infinite';
   
-  const wA = 15 + (envelopeAttack / 2.0) * 55;   // Attack width (15 to 70px)
-  const wD = 15 + (envelopeDecay / 3.0) * 55;    // Decay width (15 to 70px)
-  const wS = 40;                                 // Sustain width (fixed 40px)
-  const wR = 15 + (envelopeRelease / 4.0) * 55;  // Release width (15 to 70px)
+  // Current values based on mode
+  const currentA = isDrone ? droneAttack : envelopeAttack;
+  const currentD = isDrone ? droneDecay : envelopeDecay;
+  const currentS = isDrone ? droneSustain : envelopeSustain;
+  const currentR = isDrone ? droneRelease : envelopeRelease;
+
+  // Dynamic coordinates for ADSR envelope SVG (viewBox 0 0 320 100)
+  const x0 = 15;
+  const y0 = 85;
+  
+  const wA = 20 + (currentA / 5.0) * 80;   // Attack width (up to 5s)
+  const wD = 20 + (currentD / 5.0) * 80;   // Decay width (up to 5s)
+  const wS = isDrone ? 130 : 50;           // Sustain width (longer in drone to fill space)
+  const maxR = isDrone ? 10.0 : 2.0;
+  const wR = 20 + (currentR / maxR) * 80;  // Release width scaled to max release limit
   
   const x1 = x0 + wA;
   const y1 = 15; // Peak level height
   
   const x2 = x1 + wD;
-  const y2 = 70 - (envelopeSustain * 55); // Sustain level height (sustain 0 to 1)
+  const y2 = y0 - (currentS * 70); // Sustain level height (sustain 0 to 1, height range 70px)
   
   const x3 = x2 + wS;
   const y3 = y2;
   
   const x4 = x3 + wR;
-  const y4 = 70; // Silence release
+  const y4 = y0; // Silence release
   
-  const strokePath = `M ${x0},${y0} L ${x1},${y1} L ${x2},${y2} L ${x3},${y3} L ${x4},${y4}`;
-  const fillPath = `M ${x0},70 L ${x1},${y1} L ${x2},${y2} L ${x3},${y3} L ${x4},70 Z`;
+  const strokePath = isDrone 
+    ? `M ${x0},${y0} L ${x1},${y1} L ${x2},${y2} L ${x3},${y3} L 320,${y3}`
+    : `M ${x0},${y0} L ${x1},${y1} L ${x2},${y2} L ${x3},${y3} L ${x4},${y4}`;
+
+  const fillPath = isDrone
+    ? `M ${x0},${y0} L ${x1},${y1} L ${x2},${y2} L ${x3},${y3} L 320,${y3} L 320,${y0} Z`
+    : `M ${x0},${y0} L ${x1},${y1} L ${x2},${y2} L ${x3},${y3} L ${x4},${y0} Z`;
 
   // Calculate dynamic stop percentages for Gemini color gradient
-  const totalWidth = x4 - x0;
+  const visualXEnd = isDrone ? 320 : x4;
+  const totalWidth = visualXEnd - x0;
   const p1 = totalWidth > 0 ? ((x1 - x0) / totalWidth) * 100 : 0;
   const p2 = totalWidth > 0 ? ((x2 - x0) / totalWidth) * 100 : 0;
   const p3 = totalWidth > 0 ? ((x3 - x0) / totalWidth) * 100 : 0;
@@ -106,15 +125,13 @@ export const TopBar: React.FC = () => {
             </button>
           )}
 
-          {playingMode === 'adsr' && (
-            <button
-              className={`adsr-toggle-btn ${showADSR ? 'active' : ''}`}
-              onClick={() => setShowADSR(!showADSR)}
-              title="Toggle ADSR Envelope Controls"
-            >
-              <SlidersHorizontal size={12} style={{ marginRight: '6px' }} /> ADSR
-            </button>
-          )}
+          <button
+            className={`adsr-toggle-btn ${showADSR ? 'active' : ''}`}
+            onClick={() => setShowADSR(!showADSR)}
+            title="Toggle Envelope Controls"
+          >
+            <SlidersHorizontal size={12} style={{ marginRight: '6px' }} /> {isDrone ? 'ADS' : 'ADSR'}
+          </button>
 
           <button 
             className={`borrow-btn ${showEffects ? 'active' : ''}`} 
@@ -182,11 +199,11 @@ export const TopBar: React.FC = () => {
         </div>
       )}
 
-      {playingMode === 'adsr' && showADSR && (
+      {showADSR && (
         <div className="effects-panel adsr-panel glass-panel slide-down">
           <div className="adsr-panel-content">
             <div className="adsr-visualizer">
-              <svg className="adsr-svg" viewBox="0 0 240 80">
+              <svg className="adsr-svg" viewBox="0 0 320 100">
                 <defs>
                   <linearGradient id="gemini-grad" x1="0%" y1="0%" x2="100%" y2="0%">
                     <stop offset="0%" stopColor="#4285F4" />
@@ -201,8 +218,8 @@ export const TopBar: React.FC = () => {
                   </filter>
                 </defs>
                 {/* Background grid lines */}
-                <line x1="10" y1="15" x2="230" y2="15" stroke="rgba(255,255,255,0.04)" strokeDasharray="3,3" />
-                <line x1="10" y1="70" x2="230" y2="70" stroke="rgba(255,255,255,0.08)" />
+                <line x1="15" y1="15" x2="305" y2="15" stroke="rgba(255,255,255,0.04)" strokeDasharray="3,3" />
+                <line x1="15" y1="85" x2="305" y2="85" stroke="rgba(255,255,255,0.08)" />
                 
                 {/* Filled envelope area */}
                 <path d={fillPath} fill="url(#gemini-grad)" fillOpacity={0.15} />
@@ -217,7 +234,7 @@ export const TopBar: React.FC = () => {
             </div>
             
             <div className="adsr-sliders-container">
-              <div className="adsr-sliders">
+              <div className="adsr-sliders" style={{ gridTemplateColumns: isDrone ? 'repeat(3, 1fr)' : 'repeat(4, 1fr)' }}>
                 <div className="effect-slider-group">
                   <label htmlFor="attack-slider">Attack</label>
                   <div className="slider-container">
@@ -225,12 +242,12 @@ export const TopBar: React.FC = () => {
                       id="attack-slider"
                       type="range" 
                       min="0.01" 
-                      max="2.0" 
+                      max="5.0" 
                       step="0.01" 
-                      value={envelopeAttack} 
-                      onChange={(e) => setEnvelopeAttack(Number(e.target.value))} 
+                      value={currentA} 
+                      onChange={(e) => isDrone ? setDroneAttack(Number(e.target.value)) : setEnvelopeAttack(Number(e.target.value))} 
                     />
-                    <span className="slider-val">{envelopeAttack.toFixed(2)}s</span>
+                    <span className="slider-val">{currentA.toFixed(2)}s</span>
                   </div>
                 </div>
                 
@@ -241,12 +258,12 @@ export const TopBar: React.FC = () => {
                       id="decay-slider"
                       type="range" 
                       min="0.01" 
-                      max="3.0" 
+                      max="5.0" 
                       step="0.01" 
-                      value={envelopeDecay} 
-                      onChange={(e) => setEnvelopeDecay(Number(e.target.value))} 
+                      value={currentD} 
+                      onChange={(e) => isDrone ? setDroneDecay(Number(e.target.value)) : setEnvelopeDecay(Number(e.target.value))} 
                     />
-                    <span className="slider-val">{envelopeDecay.toFixed(2)}s</span>
+                    <span className="slider-val">{currentD.toFixed(2)}s</span>
                   </div>
                 </div>
                 
@@ -259,28 +276,30 @@ export const TopBar: React.FC = () => {
                       min="0.0" 
                       max="1.0" 
                       step="0.01" 
-                      value={envelopeSustain} 
-                      onChange={(e) => setEnvelopeSustain(Number(e.target.value))} 
+                      value={currentS} 
+                      onChange={(e) => isDrone ? setDroneSustain(Number(e.target.value)) : setEnvelopeSustain(Number(e.target.value))} 
                     />
-                    <span className="slider-val">{Math.round(envelopeSustain * 100)}%</span>
+                    <span className="slider-val">{Math.round(currentS * 100)}%</span>
                   </div>
                 </div>
                 
-                <div className="effect-slider-group">
-                  <label htmlFor="release-slider">Release</label>
-                  <div className="slider-container">
-                    <input 
-                      id="release-slider"
-                      type="range" 
-                      min="0.01" 
-                      max="4.0" 
-                      step="0.01" 
-                      value={envelopeRelease} 
-                      onChange={(e) => setEnvelopeRelease(Number(e.target.value))} 
-                    />
-                    <span className="slider-val">{envelopeRelease.toFixed(2)}s</span>
+                {!isDrone && (
+                  <div className="effect-slider-group">
+                    <label htmlFor="release-slider">Release</label>
+                    <div className="slider-container">
+                      <input 
+                        id="release-slider"
+                        type="range" 
+                        min="0.01" 
+                        max="2.0" 
+                        step="0.01" 
+                        value={currentR} 
+                        onChange={(e) => setEnvelopeRelease(Number(e.target.value))} 
+                      />
+                      <span className="slider-val">{currentR.toFixed(2)}s</span>
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
             </div>
           </div>

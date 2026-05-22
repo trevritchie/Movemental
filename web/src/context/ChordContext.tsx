@@ -19,7 +19,7 @@ interface ChordContextType {
   activePitches: (number | null)[];
   handleChordSelect: (chord: Chord) => void;
   handleBorrowingStateChange: (newState: BorrowingState) => void;
-  
+
   // Real-time audio effects intensity settings
   chorusWet: number;
   setChorusWet: (val: number) => void;
@@ -44,6 +44,16 @@ interface ChordContextType {
   setEnvelopeSustain: (val: number) => void;
   envelopeRelease: number;
   setEnvelopeRelease: (val: number) => void;
+
+  // Drone-specific ADSR settings
+  droneAttack: number;
+  setDroneAttack: (val: number) => void;
+  droneDecay: number;
+  setDroneDecay: (val: number) => void;
+  droneSustain: number;
+  setDroneSustain: (val: number) => void;
+  droneRelease: number;
+  setDroneRelease: (val: number) => void;
 
   // Borrowing Memory mode settings
   borrowingMemory: 'global' | 'per-chord';
@@ -70,38 +80,50 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
   const [tonalCenter, setTonalCenter] = useState(DEFAULT_TONAL_CENTER_OFFSET);
   const [voicing, setVoicing] = useState(DEFAULT_VOICING);
   const [octaveRange, setOctaveRange] = useState(DEFAULT_OCTAVE_RANGE);
-  
+
   const [chorusWet, setChorusWetState] = useState(0.35);
   const [delayWet, setDelayWetState] = useState(0.0);
   const [reverbWet, setReverbWetState] = useState(0.30);
-  
+
   const [selectedChord, setSelectedChord] = useState<Chord | null>(null);
   const [borrowingState, setBorrowingState] = useState<BorrowingState>(getInitialBorrowingState());
   const [activePitches, setActivePitches] = useState<(number | null)[]>([]);
-  const [playingMode, setPlayingMode] = useState<PlayingMode>('adsr');
-  
+  const [playingMode, setPlayingMode] = useState<PlayingMode>('infinite');
+
   // Borrowing Memory state
   const [borrowingMemory, setBorrowingMemoryState] = useState<'global' | 'per-chord'>('global');
   const [chordBorrowingStates, setChordBorrowingStates] = useState<Record<string, BorrowingState>>({});
   const [lockedVoices, setLockedVoices] = useState<Record<string, Record<number, boolean>>>({});
 
-  // ADSR Envelope states
+  // ADSR Envelope states (Click and Hold)
   const [envelopeAttack, setEnvelopeAttack] = useState(0.08);
   const [envelopeDecay, setEnvelopeDecay] = useState(1.5);
   const [envelopeSustain, setEnvelopeSustain] = useState(0.6);
   const [envelopeRelease, setEnvelopeRelease] = useState(1.2);
 
-  // Sync ADSR values with audioEngine
+  // Drone-specific ADSR states
+  const [droneAttack, setDroneAttack] = useState(3.5);
+  const [droneDecay, setDroneDecay] = useState(2.5);
+  const [droneSustain, setDroneSustain] = useState(0.2);
+  const [droneRelease, setDroneRelease] = useState(0.2); // transition release
+
+  // Sync ADSR values with audioEngine based on current playing mode
   useEffect(() => {
-    audioEngine.setEnvelope(envelopeAttack, envelopeDecay, envelopeSustain, envelopeRelease);
-  }, [envelopeAttack, envelopeDecay, envelopeSustain, envelopeRelease]);
+    if (playingMode === 'infinite') {
+      audioEngine.setEnvelope(droneAttack, droneDecay, droneSustain, droneRelease);
+    } else {
+      audioEngine.setEnvelope(envelopeAttack, envelopeDecay, envelopeSustain, envelopeRelease);
+    }
+  }, [playingMode, envelopeAttack, envelopeDecay, envelopeSustain, envelopeRelease, droneAttack, droneDecay, droneSustain, droneRelease]);
 
   // useRef instead of useState so the global pointerup listener always reads the
   // live value — React state updates are async and cause stale closures on the
   // first click (before the effect can re-register with the new value).
   const isPointerDownRef = useRef(false);
+  const playingModeRef = useRef(playingMode);
 
   useEffect(() => {
+    playingModeRef.current = playingMode;
     // Release active notes if playing mode changes to avoid stuck drone notes
     audioEngine.releaseActiveNotes();
     isPointerDownRef.current = false;
@@ -111,7 +133,7 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
     chordManager.setTonalCenterOffset(tonalCenter);
     chordManager.setVoicing(voicing);
     chordManager.setOctaveRange(octaveRange);
-    
+
     if (selectedChord) {
       const updatedChord = chordManager.getChordByName(selectedChord.name);
       if (updatedChord) {
@@ -121,11 +143,17 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
   }, [tonalCenter, voicing, octaveRange]);
 
   // Global listener for pointerup and pointercancel to ensure release when lifting
-  // anywhere in window/OS. Registered once — reads from ref (never stale).
+  // anywhere in window/OS. Registered once — logic is inlined so there is NO
+  // stale function reference. All state is read directly from refs.
   useEffect(() => {
     const handleGlobalPointerUp = () => {
       if (isPointerDownRef.current) {
-        handleChordPointerUp();
+        isPointerDownRef.current = false;
+        // Only release notes in 'adsr' mode — in 'infinite' (Drone) mode the
+        // sound must never stop on mouse release, regardless of where it happens.
+        if (playingModeRef.current === 'adsr') {
+          audioEngine.releaseActiveNotes();
+        }
       }
     };
     window.addEventListener('pointerup', handleGlobalPointerUp);
@@ -134,7 +162,7 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
       window.removeEventListener('pointerup', handleGlobalPointerUp);
       window.removeEventListener('pointercancel', handleGlobalPointerUp);
     };
-  }, []); // empty deps — the ref is always current, no re-registration needed
+  }, []); // empty deps — refs are always current, no re-registration needed
 
   const getBorrowingStateForChord = (chordName: string, currentGlobalState: BorrowingState): BorrowingState => {
     const initial = getInitialBorrowingState();
@@ -163,7 +191,7 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
   const playAndDisplayChord = (chord: Chord, state: BorrowingState) => {
     const pitches = borrowingLogic.generateActivePitches(chord, state);
     setActivePitches(pitches);
-    
+
     const notesToPlay = pitches.filter((p): p is number => p !== null);
     if (notesToPlay.length > 0) {
       if (playingMode === 'infinite') {
@@ -177,7 +205,7 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
 
   const handleChordSelect = (chord: Chord) => {
     setSelectedChord(chord);
-    
+
     const newState = getBorrowingStateForChord(chord.name, borrowingState);
     setBorrowingState(newState);
     playAndDisplayChord(chord, newState);
@@ -186,13 +214,13 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
   const handleChordPointerDown = (chord: Chord) => {
     setSelectedChord(chord);
     isPointerDownRef.current = true;
-    
+
     const newState = getBorrowingStateForChord(chord.name, borrowingState);
     setBorrowingState(newState);
 
     const pitches = borrowingLogic.generateActivePitches(chord, newState);
     setActivePitches(pitches);
-    
+
     const notesToPlay = pitches.filter((p): p is number => p !== null);
     if (notesToPlay.length > 0) {
       // Both 'adsr' and 'infinite' playing modes trigger attack on pointer down
@@ -202,21 +230,21 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
 
   const handleChordPointerUp = () => {
     isPointerDownRef.current = false;
-    if (playingMode === 'adsr') {
+    if (playingModeRef.current === 'adsr') {
       audioEngine.releaseActiveNotes();
     }
   };
 
   const handleChordPointerEnter = (chord: Chord) => {
-    if (playingMode === 'adsr' && isPointerDownRef.current) {
+    if (isPointerDownRef.current) {
       setSelectedChord(chord);
-      
+
       const newState = getBorrowingStateForChord(chord.name, borrowingState);
       setBorrowingState(newState);
 
       const pitches = borrowingLogic.generateActivePitches(chord, newState);
       setActivePitches(pitches);
-      
+
       const notesToPlay = pitches.filter((p): p is number => p !== null);
       if (notesToPlay.length > 0) {
         audioEngine.triggerAttack(notesToPlay);
@@ -235,7 +263,7 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
           circlePositions: { ...currentChordState.circlePositions },
           noteStates: { ...currentChordState.noteStates }
         };
-        
+
         for (let line = 1; line <= 4; line++) {
           const isLocked = lockedVoices[selectedChord.name]?.[line];
           if (borrowingMemory === 'per-chord' || isLocked) {
@@ -244,7 +272,7 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
             updatedChordState.noteStates[line] = newState.noteStates[line];
           }
         }
-        
+
         return {
           ...prev,
           [selectedChord.name]: updatedChordState
@@ -268,17 +296,17 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
   const toggleVoiceLock = (chordName: string, line: number) => {
     const chordLocks = lockedVoices[chordName] || {};
     const newLocked = !chordLocks[line];
-    
+
     const newLocksForChord = {
       ...chordLocks,
       [line]: newLocked
     };
-    
+
     const newLockedVoices = {
       ...lockedVoices,
       [chordName]: newLocksForChord
     };
-    
+
     setLockedVoices(newLockedVoices);
 
     let nextChordStates = { ...chordBorrowingStates };
@@ -312,13 +340,13 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
         borrowingDirections: { ...borrowingState.borrowingDirections },
         circlePositions: { ...borrowingState.circlePositions }
       };
-      
+
       if (borrowingMemory === 'per-chord' || newLocked) {
         nextActiveState.noteStates[line] = chordSaved.noteStates[line];
         nextActiveState.borrowingDirections[line] = chordSaved.borrowingDirections[line];
         nextActiveState.circlePositions[line] = chordSaved.circlePositions[line];
       }
-      
+
       setBorrowingState(nextActiveState);
       playAndDisplayChord(selectedChord, nextActiveState);
     }
@@ -359,6 +387,10 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
     envelopeDecay, setEnvelopeDecay,
     envelopeSustain, setEnvelopeSustain,
     envelopeRelease, setEnvelopeRelease,
+    droneAttack, setDroneAttack,
+    droneDecay, setDroneDecay,
+    droneSustain, setDroneSustain,
+    droneRelease, setDroneRelease,
     borrowingMemory, setBorrowingMemory,
     lockedVoices, toggleVoiceLock
   };
@@ -369,4 +401,3 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
     </ChordContext.Provider>
   );
 };
-

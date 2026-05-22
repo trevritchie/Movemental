@@ -8,6 +8,24 @@ export const ClockFace: React.FC = () => {
   const elementalName = selectedChord?.name || null;
   const traditionalName = selectedChord?.traditionalName || null;
 
+  // Chemistry formula: count active pitches per element.
+  // Must use relative pitch class (same as clock face dots):
+  //   relativePitchClass = (pitch % 12 - tonalCenter + 12) % 12
+  //   rem = relativePitchClass % 3 → 0=Earth, 1=Wind, 2=Fire
+  const elementFormula = React.useMemo(() => {
+    const active = activePitches.filter((p): p is number => p !== null);
+    if (active.length === 0) return null;
+
+    let earth = 0, wind = 0, fire = 0;
+    for (const p of active) {
+      const relPc = ((p % 12) - tonalCenter + 12) % 12;
+      const rem = relPc % 3;
+      if (rem === 0) earth++;
+      else if (rem === 1) wind++;
+      else fire++;
+    }
+    return { earth, wind, fire };
+  }, [activePitches, tonalCenter]);
   const getElementColor = (relativePitchClass: number) => {
     const rem = ((relativePitchClass % 3) + 3) % 3;
     if (rem === 0) return 'var(--color-earth)';
@@ -62,6 +80,25 @@ export const ClockFace: React.FC = () => {
     <div className="clock-container">
       <div className="clock-info">
         <div className="elemental-name">{elementalName || 'Select a Chord'}</div>
+        {elementFormula && (
+          <div className="chemistry-formula" aria-label="Elemental chemistry formula">
+            {elementFormula.earth > 0 && (
+              <span className="chem-element chem-earth">
+                Earth<sub>{elementFormula.earth}</sub>
+              </span>
+            )}
+            {elementFormula.wind > 0 && (
+              <span className="chem-element chem-wind">
+                Wind<sub>{elementFormula.wind}</sub>
+              </span>
+            )}
+            {elementFormula.fire > 0 && (
+              <span className="chem-element chem-fire">
+                Fire<sub>{elementFormula.fire}</sub>
+              </span>
+            )}
+          </div>
+        )}
         <div className="traditional-name">{traditionalName || '---'}</div>
       </div>
       
