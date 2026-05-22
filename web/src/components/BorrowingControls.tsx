@@ -126,6 +126,8 @@ const BorrowSlider: React.FC<BorrowSliderProps> = ({
   );
 };
 
+const ROWS = [4, 3, 2, 1];
+
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export const BorrowingControls: React.FC<BorrowingControlsProps> = ({ disabled }) => {
@@ -141,7 +143,7 @@ export const BorrowingControls: React.FC<BorrowingControlsProps> = ({ disabled }
   } = useChordContext();
 
   // Dynamic 4th-voice label
-  const getVoiceLabel = (line: number): string => {
+  const getVoiceLabel = React.useCallback((line: number): string => {
     if (line !== 4) return VOICE_NAMES[line];
     if (!selectedChord) return '6/7th';
     const name = selectedChord.name;
@@ -152,7 +154,7 @@ export const BorrowingControls: React.FC<BorrowingControlsProps> = ({ disabled }
     if (trad.includes('6')) return '6th';
     if (trad.includes('7')) return '7th';
     return '6/7th';
-  };
+  }, [selectedChord]);
 
   // Color of the chord's opposite (borrowed-from) element
   const oppositeElementName = selectedChord
@@ -163,7 +165,7 @@ export const BorrowingControls: React.FC<BorrowingControlsProps> = ({ disabled }
     : 'rgba(255,255,255,0.45)';
 
   // Natural element color of a voice's home note (for the neutral node)
-  const getNeutralColor = (line: number): string => {
+  const getNeutralColor = React.useCallback((line: number): string => {
     if (!selectedChord) return 'rgba(255,255,255,0.45)';
     const rootIdx = selectedChord.rootPositionIndex;
     const mapping: Record<number, number> = {
@@ -180,17 +182,17 @@ export const BorrowingControls: React.FC<BorrowingControlsProps> = ({ disabled }
     if (rem === 0) return 'var(--color-earth)';
     if (rem === 1) return 'var(--color-wind)';
     return 'var(--color-fire)';
-  };
+  }, [selectedChord, tonalCenter]);
 
   // Current slider position — always 'up'|'neutral'|'down', independent of mute
-  const getSliderSlot = (line: number): 'up' | 'neutral' | 'down' => {
+  const getSliderSlot = React.useCallback((line: number): 'up' | 'neutral' | 'down' => {
     const dir = state.borrowingDirections[line];
     if (dir === 'up') return 'up';
     if (dir === 'down') return 'down';
     return 'neutral';
-  };
+  }, [state.borrowingDirections]);
 
-  const handleToggleMute = (line: number) => {
+  const handleToggleMute = React.useCallback((line: number) => {
     if (disabled) return;
     onStateChange({
       ...state,
@@ -201,10 +203,10 @@ export const BorrowingControls: React.FC<BorrowingControlsProps> = ({ disabled }
         [line]: state.noteStates[line] === 'off' ? 'on' : 'off',
       },
     });
-  };
+  }, [disabled, state, onStateChange]);
 
   // Slider change — always unmutes the voice
-  const handleSliderChange = (line: number, slot: 'up' | 'neutral' | 'down') => {
+  const handleSliderChange = React.useCallback((line: number, slot: 'up' | 'neutral' | 'down') => {
     if (disabled) return;
     const newState = {
       ...state,
@@ -220,9 +222,7 @@ export const BorrowingControls: React.FC<BorrowingControlsProps> = ({ disabled }
       newState.circlePositions[line] = slot;
     }
     onStateChange(newState);
-  };
-
-  const rows = [4, 3, 2, 1];
+  }, [disabled, state, onStateChange]);
 
   return (
     <div className="borrowing-controls">
@@ -230,19 +230,19 @@ export const BorrowingControls: React.FC<BorrowingControlsProps> = ({ disabled }
         <span className="borrowing-title">Voice Borrowing</span>
         <div className="memory-toggle">
           <button
+            className={`memory-btn ${borrowingMemory === 'per-chord' ? 'active' : ''}`}
+            onClick={() => setBorrowingMemory('per-chord')}
+            title="Per Chord: Remember unique borrowing settings per chord"
+          >Per Chord</button>
+          <button
             className={`memory-btn ${borrowingMemory === 'global' ? 'active' : ''}`}
             onClick={() => setBorrowingMemory('global')}
             title="Global: Borrowing state stays the same across all chords"
           >Global</button>
-          <button
-            className={`memory-btn ${borrowingMemory === 'per-chord' ? 'active' : ''}`}
-            onClick={() => setBorrowingMemory('per-chord')}
-            title="By Chord: Remember unique borrowing settings per chord"
-          >By Chord</button>
         </div>
       </div>
 
-      {rows.map(line => {
+      {ROWS.map(line => {
         const muted = state.noteStates[line] === 'off';
         const isLocked = selectedChord
           ? (lockedVoices[selectedChord.name]?.[line] || false)

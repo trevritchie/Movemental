@@ -37,24 +37,31 @@ export class BorrowingLogic {
     };
   }
 
+  // Caches unique pitch classes (mod 12) from an array of pitches to avoid redundant Math.floor/modulo.
+  private getUniquePitchClasses(pitches: number[]): number[] {
+    const pces = new Set<number>();
+    for (let i = 0; i < pitches.length; i++) {
+      pces.add(pitches[i] % 12);
+    }
+    return Array.from(pces);
+  }
+
   public findNextHigherNote(referencePitch: number, availablePitches: number[]): number {
     const referencePc = referencePitch % 12;
     const referenceOctave = Math.floor(referencePitch / 12);
 
-    let minHigherPc = Infinity;
-    let minPc = Infinity;
+    let minHigherPc = 12; // Modulo max is 11, so 12 acts as Infinity
+    let minPc = 12;
 
-    for (let i = 0; i < availablePitches.length; i++) {
-      const pc = availablePitches[i] % 12;
-      if (pc < minPc) {
-        minPc = pc;
-      }
-      if (pc > referencePc && pc < minHigherPc) {
-        minHigherPc = pc;
-      }
+    const uniquePCs = this.getUniquePitchClasses(availablePitches);
+
+    for (let i = 0; i < uniquePCs.length; i++) {
+      const pc = uniquePCs[i];
+      if (pc < minPc) minPc = pc;
+      if (pc > referencePc && pc < minHigherPc) minHigherPc = pc;
     }
 
-    if (minHigherPc !== Infinity) {
+    if (minHigherPc !== 12) {
       return minHigherPc + (referenceOctave * 12);
     } else {
       return minPc + ((referenceOctave + 1) * 12);
@@ -65,20 +72,18 @@ export class BorrowingLogic {
     const referencePc = referencePitch % 12;
     const referenceOctave = Math.floor(referencePitch / 12);
 
-    let maxLowerPc = -Infinity;
-    let maxPc = -Infinity;
+    let maxLowerPc = -1; // Modulo min is 0, so -1 acts as -Infinity
+    let maxPc = -1;
 
-    for (let i = 0; i < availablePitches.length; i++) {
-      const pc = availablePitches[i] % 12;
-      if (pc > maxPc) {
-        maxPc = pc;
-      }
-      if (pc < referencePc && pc > maxLowerPc) {
-        maxLowerPc = pc;
-      }
+    const uniquePCs = this.getUniquePitchClasses(availablePitches);
+
+    for (let i = 0; i < uniquePCs.length; i++) {
+      const pc = uniquePCs[i];
+      if (pc > maxPc) maxPc = pc;
+      if (pc < referencePc && pc > maxLowerPc) maxLowerPc = pc;
     }
 
-    if (maxLowerPc !== -Infinity) {
+    if (maxLowerPc !== -1) {
       return maxLowerPc + (referenceOctave * 12);
     } else {
       return maxPc + ((referenceOctave - 1) * 12);

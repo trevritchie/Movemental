@@ -30,7 +30,7 @@ export class AudioEngine {
 
   private async initSynth() {
     // Signal chain: PolySynth -> Filter -> Chorus -> Delay -> Reverb -> EQ3 -> Compressor -> Limiter -> Destination
-    
+
     // 8. Limiter - final peak control to guarantee no digital clipping
     this.limiter = new Tone.Limiter(-1.5).toDestination();
 
@@ -191,7 +191,7 @@ export class AudioEngine {
 
     if (notesToAttack.length > 0) {
       console.log('[AudioEngine] Attacking:', notesToAttack, '| Sustaining:', noteNames.filter(n => !notesToAttack.includes(n)), '| Releasing:', notesToRelease);
-      // Schedule immediately at `now`. Removing the arbitrary delay prevents 
+      // Schedule immediately at `now`. Removing the arbitrary delay prevents
       // chronological inversions from rapid subsequent clicks.
       this.synth.triggerAttack(notesToAttack, now);
     }

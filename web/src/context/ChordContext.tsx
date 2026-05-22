@@ -91,21 +91,21 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
   const [playingMode, setPlayingMode] = useState<PlayingMode>('infinite');
 
   // Borrowing Memory state
-  const [borrowingMemory, setBorrowingMemoryState] = useState<'global' | 'per-chord'>('global');
+  const [borrowingMemory, setBorrowingMemoryState] = useState<'global' | 'per-chord'>('per-chord');
   const [chordBorrowingStates, setChordBorrowingStates] = useState<Record<string, BorrowingState>>({});
   const [lockedVoices, setLockedVoices] = useState<Record<string, Record<number, boolean>>>({});
 
   // ADSR Envelope states (Click and Hold)
-  const [envelopeAttack, setEnvelopeAttack] = useState(0.08);
-  const [envelopeDecay, setEnvelopeDecay] = useState(1.5);
-  const [envelopeSustain, setEnvelopeSustain] = useState(0.6);
-  const [envelopeRelease, setEnvelopeRelease] = useState(1.2);
+  const [envelopeAttack, setEnvelopeAttack] = useState(0.15);
+  const [envelopeDecay, setEnvelopeDecay] = useState(2.0);
+  const [envelopeSustain, setEnvelopeSustain] = useState(0.5);
+  const [envelopeRelease, setEnvelopeRelease] = useState(2.5);
 
   // Drone-specific ADSR states
-  const [droneAttack, setDroneAttack] = useState(3.5);
-  const [droneDecay, setDroneDecay] = useState(2.5);
-  const [droneSustain, setDroneSustain] = useState(0.2);
-  const [droneRelease, setDroneRelease] = useState(0.2); // transition release
+  const [droneAttack, setDroneAttack] = useState(4.5);
+  const [droneDecay, setDroneDecay] = useState(3.5);
+  const [droneSustain, setDroneSustain] = useState(0.4);
+  const [droneRelease, setDroneRelease] = useState(0.50); // transition/stop release
 
   // Sync ADSR values with audioEngine based on current playing mode
   useEffect(() => {

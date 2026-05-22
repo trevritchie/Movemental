@@ -92,6 +92,25 @@ function piePath(r: number, slice: number): string {
 }
 
 
+const VIEW_W = 1160;
+const VIEW_H = 800;
+const R_MAIN  = 52;
+const R_GROUP = 54;
+
+const getColor = (name: string) => {
+  if (name === 'Earth') return 'var(--color-earth)';
+  if (name === 'Wind')  return 'var(--color-wind)';
+  if (name === 'Fire')  return 'var(--color-fire)';
+  return 'var(--color-mixed)';
+};
+
+const getGlow = (name: string) => {
+  if (name === 'Earth') return 'var(--glow-earth)';
+  if (name === 'Wind')  return 'var(--glow-wind)';
+  if (name === 'Fire')  return 'var(--glow-fire)';
+  return 'rgba(255,255,255,0.15)';
+};
+
 export const ElementalDiagram: React.FC = () => {
   const {
     selectedChord,
@@ -100,8 +119,6 @@ export const ElementalDiagram: React.FC = () => {
     handleChordPointerUp,
     handleChordPointerEnter
   } = useChordContext();
-  const VIEW_W = 1160;
-  const VIEW_H = 800;
 
   const [hoveredGroup, setHoveredGroup] = useState<string | null>(null);
   const [hoveredSliceIdx, setHoveredSliceIdx] = useState<number | null>(null);
@@ -119,21 +136,6 @@ export const ElementalDiagram: React.FC = () => {
     if (!coord) return null;
     return { x: coord.x * VIEW_W, y: coord.y * VIEW_H };
   }, []);
-
-  // Exact-name match only — prevents 'Forest-Fire' and 'Fire-Storm' from matching 'Fire'
-  const getColor = (name: string) => {
-    if (name === 'Earth') return 'var(--color-earth)';
-    if (name === 'Wind')  return 'var(--color-wind)';
-    if (name === 'Fire')  return 'var(--color-fire)';
-    return 'var(--color-mixed)';
-  };
-
-  const getGlow = (name: string) => {
-    if (name === 'Earth') return 'var(--glow-earth)';
-    if (name === 'Wind')  return 'var(--glow-wind)';
-    if (name === 'Fire')  return 'var(--glow-fire)';
-    return 'rgba(255,255,255,0.15)';
-  };
 
   const { earth, wind, fire, earthC, windC, fireC, groupCenters, getParentCoords, getGroupParentCoords } = React.useMemo(() => {
     const earth = chordManager.getChordByName('Earth');
@@ -175,9 +177,6 @@ export const ElementalDiagram: React.FC = () => {
     return { earth, wind, fire, earthC, windC, fireC, groupCenters, getParentCoords, getGroupParentCoords };
   }, [getCoords]);
 
-  const R_MAIN  = 52;
-  const R_GROUP = 54;
-
   return (
     <div className="diagram-container">
       <svg
@@ -210,21 +209,18 @@ export const ElementalDiagram: React.FC = () => {
           />
         )}
 
-        {/* ── Witch Ritual Glowing Lines (drawn under chord nodes) ── */}
-        {/* Pass 1: Draw all inactive lines first */}
-        {Object.entries(groupCenters).map(([baseName, center]) => {
+        {/* ── Witch Ritual Glowing Lines ── */}
+        {BASE_GROUPS.map((baseName) => {
+          const center = groupCenters[baseName];
           const parents = AXIS_PARENTS[baseName];
-          if (!parents) return null;
-
           const adjusted = getGroupParentCoords(baseName);
-          if (!adjusted) return null;
+
+          if (!center || !parents || !adjusted) return null;
           const { p1C, p2C } = adjusted;
 
           const isGroupActive = selectedChord
             ? CHORD_TO_GROUP.get(selectedChord.name) === baseName
             : false;
-
-          if (isGroupActive) return null;
 
           const oppParent =
             parents.p1 === 'Earth' && parents.p2 === 'Wind' ? 'Fire' :
@@ -233,7 +229,7 @@ export const ElementalDiagram: React.FC = () => {
           const oppC = getParentCoords(oppParent);
 
           return (
-            <g key={`ritual-inactive-${baseName}`}>
+            <g key={`ritual-${baseName}`}>
               {/* Line from Parent 1 */}
               <line
                 x1={p1C.x}
@@ -241,10 +237,10 @@ export const ElementalDiagram: React.FC = () => {
                 x2={center.x}
                 y2={center.y}
                 stroke={getColor(parents.p1)}
-                strokeWidth={2}
-                strokeDasharray="3 5"
-                opacity={0.35}
-                filter="none"
+                strokeWidth={isGroupActive ? 4.5 : 2}
+                strokeDasharray={isGroupActive ? "none" : "3 5"}
+                opacity={isGroupActive ? 0.95 : 0.35}
+                filter={isGroupActive ? "url(#ritual-glow)" : "none"}
                 style={{ transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)' }}
               />
 
@@ -255,14 +251,14 @@ export const ElementalDiagram: React.FC = () => {
                 x2={center.x}
                 y2={center.y}
                 stroke={getColor(parents.p2)}
-                strokeWidth={2}
-                strokeDasharray="3 5"
-                opacity={0.35}
-                filter="none"
+                strokeWidth={isGroupActive ? 4.5 : 2}
+                strokeDasharray={isGroupActive ? "none" : "3 5"}
+                opacity={isGroupActive ? 0.95 : 0.35}
+                filter={isGroupActive ? "url(#ritual-glow)" : "none"}
                 style={{ transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)' }}
               />
 
-              {/* Hidden/faint opposite element line */}
+              {/* Opposite element line (solid, fades in only when borrowing) */}
               {oppC && (
                 <line
                   x1={oppC.x}
@@ -270,80 +266,10 @@ export const ElementalDiagram: React.FC = () => {
                   x2={center.x}
                   y2={center.y}
                   stroke={getColor(oppParent)}
-                  strokeWidth={1.5}
-                  strokeDasharray="1 8"
-                  opacity={0.06}
-                  filter="none"
-                  style={{ transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)' }}
-                />
-              )}
-            </g>
-          );
-        })}
-
-        {/* Pass 2: Draw active glowing lines on top */}
-        {Object.entries(groupCenters).map(([baseName, center]) => {
-          const parents = AXIS_PARENTS[baseName];
-          if (!parents) return null;
-
-          const adjusted = getGroupParentCoords(baseName);
-          if (!adjusted) return null;
-          const { p1C, p2C } = adjusted;
-
-          const isGroupActive = selectedChord
-            ? CHORD_TO_GROUP.get(selectedChord.name) === baseName
-            : false;
-
-          if (!isGroupActive) return null;
-
-          const oppParent =
-            parents.p1 === 'Earth' && parents.p2 === 'Wind' ? 'Fire' :
-            parents.p1 === 'Wind' && parents.p2 === 'Fire' ? 'Earth' :
-            'Wind';
-          const oppC = getParentCoords(oppParent);
-
-          return (
-            <g key={`ritual-active-${baseName}`}>
-              {/* Line from Parent 1 */}
-              <line
-                x1={p1C.x}
-                y1={p1C.y}
-                x2={center.x}
-                y2={center.y}
-                stroke={getColor(parents.p1)}
-                strokeWidth={4.5}
-                strokeDasharray="none"
-                opacity={0.95}
-                filter="url(#ritual-glow)"
-                style={{ transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)' }}
-              />
-
-              {/* Line from Parent 2 */}
-              <line
-                x1={p2C.x}
-                y1={p2C.y}
-                x2={center.x}
-                y2={center.y}
-                stroke={getColor(parents.p2)}
-                strokeWidth={4.5}
-                strokeDasharray="none"
-                opacity={0.95}
-                filter="url(#ritual-glow)"
-                style={{ transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)' }}
-              />
-
-              {/* Opposite element line (glows if borrowing is active, else faint hidden) */}
-              {oppC && (
-                <line
-                  x1={oppC.x}
-                  y1={oppC.y}
-                  x2={center.x}
-                  y2={center.y}
-                  stroke={getColor(oppParent)}
-                  strokeWidth={isBorrowingActive ? 5 : 1.5}
-                  strokeDasharray={isBorrowingActive ? 'none' : '1 8'}
-                  opacity={isBorrowingActive ? 0.95 : 0.06}
-                  filter={isBorrowingActive ? 'url(#ritual-glow)' : 'none'}
+                  strokeWidth={isGroupActive && isBorrowingActive ? 5 : 1.5}
+                  strokeDasharray="none"
+                  opacity={isGroupActive && isBorrowingActive ? 0.95 : 0}
+                  filter={isGroupActive && isBorrowingActive ? 'url(#ritual-glow)' : 'none'}
                   style={{ transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)' }}
                 />
               )}
