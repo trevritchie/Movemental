@@ -4,7 +4,10 @@ import {
   A3, B3,
   NOTE_NAMES_FLAT,
   VOICING_TO_INDICES,
-  OCTAVE
+  OCTAVE,
+  DEFAULT_TONAL_CENTER_OFFSET,
+  DEFAULT_OCTAVE_RANGE,
+  DEFAULT_VOICING
 } from './config';
 
 export interface Chord {
@@ -19,9 +22,9 @@ export class ChordManager {
   private chordsByName: Map<string, Chord> = new Map();
   private coordinateList: { x: number; y: number; key: string; chord: Chord }[] = [];
   private chordNameToCoordinate: Map<string, { x: number; y: number }> = new Map();
-  private tonalCenterOffset: number = 0;
-  private octaveRange: number = 3;
-  private voicing: string = "Drop 2 & 4";
+  private tonalCenterOffset: number = DEFAULT_TONAL_CENTER_OFFSET;
+  private octaveRange: number = DEFAULT_OCTAVE_RANGE;
+  private voicing: string = DEFAULT_VOICING;
 
   constructor() {
     this.initializeChordDictionary();

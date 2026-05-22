@@ -49,8 +49,8 @@ At the core of the UI is the `ChordProvider`, which manages:
 *   **Active Configurations**: Tonal Center offset (default: Bb / Offset `10`), Octave Range (default: `3`), and Voicing style (`Close`, `Drop 2`, `Drop 3`, and `Drop 2 & 4`).
 *   **Borrowing State Configurations**: Keeps track of `circlePositions` (`line`, `up`, `down`), `borrowingDirections` (`up`, `down`, `null`), and `noteStates` (`on`, `off`) for the 4 voices.
 *   **Play/Sustain Modes**:
-    *   `adsr` (ADSR Click/Hover Mode): Notes play when clicked/hovered and are instantly released when the pointer is lifted anywhere on the user's OS. A global event listener on `window` bound to `useRef` references guarantees that pointer lifts are successfully captured with zero stale closures.
-    *   `infinite` (Infinite Drone Mode): Chords are triggered using sustain (`synth.triggerAttack()`) and ring out indefinitely. When transitioning to a new chord, matching voice pitches are sustained seamlessly, preventing note re-triggering and ensuring a continuous, rich legato drone.
+    *   `click_and_hold` (ADSR Click/Hover Mode): Notes play when clicked/hovered and are instantly released when the pointer is lifted anywhere on the user's OS. A global event listener on `window` bound to `useRef` references guarantees that pointer lifts are successfully captured with zero stale closures.
+    *   `drone` (Infinite Drone Mode): Chords are triggered using sustain (`synth.triggerAttack()`) and ring out indefinitely. When transitioning to a new chord, matching voice pitches are sustained seamlessly, preventing note re-triggering and ensuring a continuous, rich legato drone.
 *   **Memory Modes**: Supports both `global` memory (the borrowing state is locked globally as you navigate chords) and `per-chord` memory (saving and restoring unique voice, shift, and lock settings on a chord-by-chord basis).
 
 ---

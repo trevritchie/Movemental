@@ -117,7 +117,10 @@ export const ElementalDiagram: React.FC<{ children?: React.ReactNode }> = ({ chi
     borrowingState,
     handleChordPointerDown,
     handleChordPointerUp,
-    handleChordPointerEnter
+    handleChordPointerEnter,
+    tonalCenter,
+    voicing,
+    octaveRange
   } = useChordContext();
 
   const [hoveredGroup, setHoveredGroup] = useState<string | null>(null);
@@ -185,7 +188,7 @@ export const ElementalDiagram: React.FC<{ children?: React.ReactNode }> = ({ chi
     };
 
     return { earth, wind, fire, earthC, windC, fireC, groupCenters, getParentCoords, getGroupParentCoords };
-  }, [getCoords]);
+  }, [getCoords, tonalCenter, voicing, octaveRange]);
 
   return (
     <div className="diagram-container">

@@ -12,7 +12,7 @@ export const TopBar: React.FC = () => {
     chorusWet, setChorusWet,
     delayWet, setDelayWet,
     reverbWet, setReverbWet,
-    playingMode, setPlayStyle,
+    playStyle, setPlayStyle,
     envelopeAttack, setEnvelopeAttack,
     envelopeDecay, setEnvelopeDecay,
     envelopeSustain, setEnvelopeSustain,
@@ -26,7 +26,7 @@ export const TopBar: React.FC = () => {
   const [showEffects, setShowEffects] = React.useState(false);
   const [showADSR, setShowADSR] = React.useState(false);
 
-  const isDrone = playingMode === 'drone';
+  const isDrone = playStyle === 'drone';
 
   // Current values based on mode
   const currentA = isDrone ? droneAttack : envelopeAttack;
@@ -105,11 +105,11 @@ export const TopBar: React.FC = () => {
           </select>
 
           <select
-            value={playingMode}
+            value={playStyle}
             onChange={(e) => setPlayStyle(e.target.value as PlayStyle)}
             title="Play Style"
           >
-            <option value="adsr">Click & Hold</option>
+            <option value="click_and_hold">Click & Hold</option>
             <option value="drone">Drone</option>
           </select>
 

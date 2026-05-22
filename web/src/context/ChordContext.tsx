@@ -5,7 +5,7 @@ import { borrowingLogic, getInitialBorrowingState, type BorrowingState } from '.
 import { audioEngine } from '../audio/AudioEngine';
 import { DEFAULT_TONAL_CENTER_OFFSET, DEFAULT_OCTAVE_RANGE, DEFAULT_VOICING } from '../music/config';
 
-export type PlayStyle = 'adsr' | 'drone';
+export type PlayStyle = 'click_and_hold' | 'drone';
 
 interface ChordContextType {
   tonalCenter: number;
@@ -29,7 +29,7 @@ interface ChordContextType {
   setReverbWet: (val: number) => void;
 
   // Synthesizer playing modes
-  playingMode: PlayStyle;
+  playStyle: PlayStyle;
   setPlayStyle: (mode: PlayStyle) => void;
   handleChordPointerDown: (chord: Chord) => void;
   handleChordPointerUp: () => void;
@@ -88,14 +88,14 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
   const [selectedChord, setSelectedChord] = useState<Chord | null>(null);
   const [borrowingState, setBorrowingState] = useState<BorrowingState>(getInitialBorrowingState());
   const [activePitches, setActivePitches] = useState<(number | null)[]>([]);
-  const [playingMode, setPlayStyle] = useState<PlayStyle>('drone');
+  const [playStyle, setPlayStyle] = useState<PlayStyle>('drone');
 
   // Borrowing Memory state
   const [borrowingMemory, setBorrowingMemoryState] = useState<'global' | 'per-chord'>('per-chord');
   const [chordBorrowingStates, setChordBorrowingStates] = useState<Record<string, BorrowingState>>({});
   const [lockedVoices, setLockedVoices] = useState<Record<string, Record<number, boolean>>>({});
 
-  // ADSR Envelope states (Click and Hold)
+  // ADSR Envelope states (Click & Hold)
   const [envelopeAttack, setEnvelopeAttack] = useState(0.15);
   const [envelopeDecay, setEnvelopeDecay] = useState(2.0);
   const [envelopeSustain, setEnvelopeSustain] = useState(0.5);
@@ -109,25 +109,25 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
 
   // Sync ADSR values with audioEngine based on current playing mode
   useEffect(() => {
-    if (playingMode === 'drone') {
+    if (playStyle === 'drone') {
       audioEngine.setEnvelope(droneAttack, droneDecay, droneSustain, droneRelease);
     } else {
       audioEngine.setEnvelope(envelopeAttack, envelopeDecay, envelopeSustain, envelopeRelease);
     }
-  }, [playingMode, envelopeAttack, envelopeDecay, envelopeSustain, envelopeRelease, droneAttack, droneDecay, droneSustain, droneRelease]);
+  }, [playStyle, envelopeAttack, envelopeDecay, envelopeSustain, envelopeRelease, droneAttack, droneDecay, droneSustain, droneRelease]);
 
   // useRef instead of useState so the global pointerup listener always reads the
   // live value — React state updates are async and cause stale closures on the
   // first click (before the effect can re-register with the new value).
   const isPointerDownRef = useRef(false);
-  const playingModeRef = useRef(playingMode);
+  const playStyleRef = useRef(playStyle);
 
   useEffect(() => {
-    playingModeRef.current = playingMode;
+    playStyleRef.current = playStyle;
     // Release active notes if playing mode changes to avoid stuck drone notes
     audioEngine.releaseActiveNotes();
     isPointerDownRef.current = false;
-  }, [playingMode]);
+  }, [playStyle]);
 
   useEffect(() => {
     chordManager.setTonalCenterOffset(tonalCenter);
@@ -149,9 +149,9 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
     const handleGlobalPointerUp = () => {
       if (isPointerDownRef.current) {
         isPointerDownRef.current = false;
-        // Only release notes in 'adsr' mode — in 'drone' mode the
+        // Only release notes in 'click_and_hold' mode — in 'drone' mode the
         // sound must never stop on mouse release, regardless of where it happens.
-        if (playingModeRef.current === 'adsr') {
+        if (playStyleRef.current === 'click_and_hold') {
           audioEngine.releaseActiveNotes();
         }
       }
@@ -194,10 +194,10 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
 
     const notesToPlay = pitches.filter((p): p is number => p !== null);
     if (notesToPlay.length > 0) {
-      if (playingMode === 'drone') {
+      if (playStyle === 'drone') {
         audioEngine.triggerAttack(notesToPlay);
       } else {
-        // 'adsr' mode sidebar/topbar interaction plays as a preview
+        // 'click_and_hold' mode sidebar/topbar interaction plays as a preview
         audioEngine.playNotes(notesToPlay, "2n");
       }
     }
@@ -223,14 +223,14 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
 
     const notesToPlay = pitches.filter((p): p is number => p !== null);
     if (notesToPlay.length > 0) {
-      // Both 'adsr' and 'drone' playing modes trigger attack on pointer down
+      // Both 'click_and_hold' and 'drone' playing modes trigger attack on pointer down
       audioEngine.triggerAttack(notesToPlay);
     }
   };
 
   const handleChordPointerUp = () => {
     isPointerDownRef.current = false;
-    if (playingModeRef.current === 'adsr') {
+    if (playStyleRef.current === 'click_and_hold') {
       audioEngine.releaseActiveNotes();
     }
   };
@@ -379,7 +379,7 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
     chorusWet, setChorusWet,
     delayWet, setDelayWet,
     reverbWet, setReverbWet,
-    playingMode, setPlayStyle,
+    playStyle, setPlayStyle,
     handleChordPointerDown,
     handleChordPointerUp,
     handleChordPointerEnter,
