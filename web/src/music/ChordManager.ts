@@ -16,7 +16,7 @@ export interface Chord {
 }
 
 export class ChordManager {
-  private chords: Map<string, Chord> = new Map();
+  private chordsByName: Map<string, Chord> = new Map();
   private coordinateList: { x: number; y: number; key: string; chord: Chord }[] = [];
   private chordNameToCoordinate: Map<string, { x: number; y: number }> = new Map();
   private tonalCenterOffset: number = 0;
@@ -87,14 +87,14 @@ export class ChordManager {
   }
 
   public initializeChordDictionary() {
-    this.chords.clear();
+    this.chordsByName.clear();
     this.coordinateList = [];
     this.chordNameToCoordinate.clear();
 
     const add = (x: number, y: number, name: string, pitches: number[]) => {
       const key = `${x.toFixed(4)},${y.toFixed(4)}`;
       const chord = this.createChord(name, pitches);
-      this.chords.set(key, chord);
+      this.chordsByName.set(name, chord);
       this.coordinateList.push({ x, y, key, chord });
       this.chordNameToCoordinate.set(name, { x, y });
     };
@@ -223,10 +223,7 @@ export class ChordManager {
   }
 
   public getChordByName(name: string): Chord | undefined {
-    for (const chord of this.chords.values()) {
-      if (chord.name === name) return chord;
-    }
-    return undefined;
+    return this.chordsByName.get(name);
   }
 
   public getElementalChord(elementName: string): Chord | undefined {

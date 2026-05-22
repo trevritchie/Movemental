@@ -1,25 +1,14 @@
-import { useEffect } from 'react';
+import { useState } from 'react';
 import { TopBar } from './components/TopBar';
 import { ElementalDiagram } from './components/ElementalDiagram';
 import { ClockFace } from './components/ClockFace';
 import { BorrowingControls } from './components/BorrowingControls';
-import { audioEngine } from './audio/AudioEngine';
 import { ChordProvider, useChordContext } from './context/ChordContext';
 import { ErrorBoundary } from './components/ErrorBoundary';
+import { SplashPage } from './components/SplashPage';
 
 function AppContent() {
   const { selectedChord } = useChordContext();
-
-  // Initialize audio engine on any user interaction
-  // pointerdown fires before click, ensuring AudioContext is resumed
-  // before playNotes is called in the same gesture
-  useEffect(() => {
-    const startAudio = async () => {
-      await audioEngine.startContext();
-    };
-    document.addEventListener('pointerdown', startAudio, { once: true });
-    return () => document.removeEventListener('pointerdown', startAudio);
-  }, []);
 
   const isPrimaryElement = selectedChord ? ["Earth", "Wind", "Fire"].includes(selectedChord.name) : true;
 
@@ -47,9 +36,12 @@ function AppContent() {
 }
 
 function App() {
+  const [hasStarted, setHasStarted] = useState(false);
+
   return (
     <ErrorBoundary>
       <ChordProvider>
+        {!hasStarted && <SplashPage onEnter={() => setHasStarted(true)} />}
         <AppContent />
       </ChordProvider>
     </ErrorBoundary>
