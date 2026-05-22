@@ -5,7 +5,7 @@ import { borrowingLogic, getInitialBorrowingState, type BorrowingState } from '.
 import { audioEngine } from '../audio/AudioEngine';
 import { DEFAULT_TONAL_CENTER_OFFSET, DEFAULT_OCTAVE_RANGE, DEFAULT_VOICING } from '../music/config';
 
-export type PlayingMode = 'adsr' | 'infinite';
+export type PlayingMode = 'adsr' | 'drone';
 
 interface ChordContextType {
   tonalCenter: number;
@@ -30,7 +30,7 @@ interface ChordContextType {
 
   // Synthesizer playing modes
   playingMode: PlayingMode;
-  setPlayingMode: (mode: PlayingMode) => void;
+  setPlayStyle: (mode: PlayingMode) => void;
   handleChordPointerDown: (chord: Chord) => void;
   handleChordPointerUp: () => void;
   handleChordPointerEnter: (chord: Chord) => void;
@@ -88,7 +88,7 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
   const [selectedChord, setSelectedChord] = useState<Chord | null>(null);
   const [borrowingState, setBorrowingState] = useState<BorrowingState>(getInitialBorrowingState());
   const [activePitches, setActivePitches] = useState<(number | null)[]>([]);
-  const [playingMode, setPlayingMode] = useState<PlayingMode>('infinite');
+  const [playingMode, setPlayStyle] = useState<PlayingMode>('drone');
 
   // Borrowing Memory state
   const [borrowingMemory, setBorrowingMemoryState] = useState<'global' | 'per-chord'>('per-chord');
@@ -109,7 +109,7 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
 
   // Sync ADSR values with audioEngine based on current playing mode
   useEffect(() => {
-    if (playingMode === 'infinite') {
+    if (playingMode === 'drone') {
       audioEngine.setEnvelope(droneAttack, droneDecay, droneSustain, droneRelease);
     } else {
       audioEngine.setEnvelope(envelopeAttack, envelopeDecay, envelopeSustain, envelopeRelease);
@@ -149,7 +149,7 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
     const handleGlobalPointerUp = () => {
       if (isPointerDownRef.current) {
         isPointerDownRef.current = false;
-        // Only release notes in 'adsr' mode — in 'infinite' (Drone) mode the
+        // Only release notes in 'adsr' mode — in 'drone' mode the
         // sound must never stop on mouse release, regardless of where it happens.
         if (playingModeRef.current === 'adsr') {
           audioEngine.releaseActiveNotes();
@@ -194,7 +194,7 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
 
     const notesToPlay = pitches.filter((p): p is number => p !== null);
     if (notesToPlay.length > 0) {
-      if (playingMode === 'infinite') {
+      if (playingMode === 'drone') {
         audioEngine.triggerAttack(notesToPlay);
       } else {
         // 'adsr' mode sidebar/topbar interaction plays as a preview
@@ -223,7 +223,7 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
 
     const notesToPlay = pitches.filter((p): p is number => p !== null);
     if (notesToPlay.length > 0) {
-      // Both 'adsr' and 'infinite' playing modes trigger attack on pointer down
+      // Both 'adsr' and 'drone' playing modes trigger attack on pointer down
       audioEngine.triggerAttack(notesToPlay);
     }
   };
@@ -379,7 +379,7 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
     chorusWet, setChorusWet,
     delayWet, setDelayWet,
     reverbWet, setReverbWet,
-    playingMode, setPlayingMode,
+    playingMode, setPlayStyle,
     handleChordPointerDown,
     handleChordPointerUp,
     handleChordPointerEnter,

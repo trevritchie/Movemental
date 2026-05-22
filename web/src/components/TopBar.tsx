@@ -12,7 +12,7 @@ export const TopBar: React.FC = () => {
     chorusWet, setChorusWet,
     delayWet, setDelayWet,
     reverbWet, setReverbWet,
-    playingMode, setPlayingMode,
+    playingMode, setPlayStyle,
     envelopeAttack, setEnvelopeAttack,
     envelopeDecay, setEnvelopeDecay,
     envelopeSustain, setEnvelopeSustain,
@@ -106,44 +106,48 @@ export const TopBar: React.FC = () => {
 
           <select
             value={playingMode}
-            onChange={(e) => setPlayingMode(e.target.value as PlayingMode)}
-            title="Playing Mode"
+            onChange={(e) => setPlayStyle(e.target.value as PlayingMode)}
+            title="Play Style"
           >
-            <option value="adsr">Click and Hold</option>
+            <option value="adsr">Click & Hold</option>
             <option value="infinite">Drone</option>
           </select>
 
           <button
-            className="stop-btn"
-            onClick={() => audioEngine.releaseActiveNotes()}
-            title="Stop All Active Notes"
-          >
-            <Square size={12} fill="currentColor" style={{ marginRight: '6px' }} /> Stop
-          </button>
-
-
-          <button
             className={`adsr-toggle-btn ${showADSR ? 'active' : ''}`}
-            onClick={() => setShowADSR(!showADSR)}
-            title="Toggle Envelope Controls"
+            onClick={() => {
+              setShowADSR(!showADSR);
+              if (!showADSR) setShowEffects(false);
+            }}
+            title="Envelope Controls"
           >
             <SlidersHorizontal size={12} style={{ marginRight: '6px' }} /> ADSR
           </button>
 
           <button
-            className={`borrow-btn ${showEffects ? 'active' : ''}`}
-            onClick={() => setShowEffects(!showEffects)}
-            title="Synthesizer Effects Panel"
-            aria-label="Toggle effects settings panel"
+            className={`adsr-toggle-btn ${showEffects ? 'active' : ''}`}
+            onClick={() => {
+              setShowEffects(!showEffects);
+              if (!showEffects) setShowADSR(false);
+            }}
+            title="Synth Effects"
           >
-            <SlidersHorizontal size={18} />
+            <SlidersHorizontal size={12} style={{ marginRight: '6px' }} /> FX
+          </button>
+
+          <button
+            className="stop-btn"
+            onClick={() => audioEngine.releaseActiveNotes()}
+            title="Panic Switch"
+            style={{ padding: '8px', minWidth: '32px' }}
+          >
+            <Square size={14} fill="currentColor" />
           </button>
         </div>
       </div>
 
       {showEffects && (
-        <div className="effects-panel glass-panel slide-down">
-          <div className="effects-title">🎛️ Synthesizer Mastering Effects</div>
+        <div className="effects-panel adsr-panel glass-panel slide-down" style={{ padding: '16px 24px' }}>
           <div className="effects-sliders">
             <div className="effect-slider-group">
               <label htmlFor="chorus-slider">Chorus Intensity</label>

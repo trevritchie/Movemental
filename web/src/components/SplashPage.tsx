@@ -63,6 +63,9 @@ export const SplashPage: React.FC<SplashPageProps> = ({ onEnter }) => {
         >
           Start
         </button>
+        <p className="mobile-ringer-warning">
+          Mobile users: Please ensure your device's ringer is ON to hear audio.
+        </p>
       </div>
     </div>
   );
