@@ -17,7 +17,9 @@ function AppContent() {
       <TopBar />
       
       <div className="main-content">
-        <ElementalDiagram />
+        <ElementalDiagram>
+          <ClockFace isMobileOverlay />
+        </ElementalDiagram>
         
         <div className="side-panel glass-panel unified-side-panel">
           <div className="side-section clock-section">

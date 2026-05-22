@@ -111,7 +111,7 @@ const getGlow = (name: string) => {
   return 'rgba(255,255,255,0.15)';
 };
 
-export const ElementalDiagram: React.FC = () => {
+export const ElementalDiagram: React.FC<{ children?: React.ReactNode }> = ({ children }) => {
   const {
     selectedChord,
     borrowingState,
@@ -122,6 +122,16 @@ export const ElementalDiagram: React.FC = () => {
 
   const [hoveredGroup, setHoveredGroup] = useState<string | null>(null);
   const [hoveredSliceIdx, setHoveredSliceIdx] = useState<number | null>(null);
+
+  // Responsive viewBox for mobile
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 900);
+  React.useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth <= 900);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  const viewBox = isMobile ? `0 100 ${VIEW_W} 620` : `0 0 ${VIEW_W} ${VIEW_H}`;
 
   // A voice is currently borrowed if circlePosition !== 'line' and the voice note state is 'on'
   const isBorrowingActive = selectedChord ? [1, 2, 3, 4].some(line => {
@@ -180,7 +190,7 @@ export const ElementalDiagram: React.FC = () => {
   return (
     <div className="diagram-container">
       <svg
-        viewBox={`0 0 ${VIEW_W} ${VIEW_H}`}
+        viewBox={viewBox}
         className="diagram-svg"
         preserveAspectRatio="xMidYMid meet"
       >
@@ -417,6 +427,7 @@ export const ElementalDiagram: React.FC = () => {
           );
         })}
       </svg>
+      {children}
     </div>
   );
 };

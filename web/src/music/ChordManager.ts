@@ -21,7 +21,7 @@ export class ChordManager {
   private chordNameToCoordinate: Map<string, { x: number; y: number }> = new Map();
   private tonalCenterOffset: number = 0;
   private octaveRange: number = 3;
-  private voicing: string = "Drop 2 and 4";
+  private voicing: string = "Drop 2 & 4";
 
   constructor() {
     this.initializeChordDictionary();
@@ -45,7 +45,7 @@ export class ChordManager {
     const rootPitchClass = pitches[0] % 12;
 
     const transposedPitches = pitches.map(p => (p % 12) + (this.tonalCenterOffset % 12));
-    
+
     const chordQualityMap: Record<string, string> = {
       "Earth": " dim7", "Wind": " dim7",
       "-Fire": "7 b5", "Fire": " dim7",
@@ -112,8 +112,8 @@ export class ChordManager {
     add(fireP.x, fireP.y, "Fire", [D4, F4, AF4, B4]);
 
     const addEdgeGroups = (
-      p1: {x:number, y:number}, 
-      p2: {x:number, y:number}, 
+      p1: {x:number, y:number},
+      p2: {x:number, y:number},
       groups: any[],
       macroDAlong: number,
       macroDPerp: number
@@ -123,7 +123,7 @@ export class ChordManager {
       const L = Math.hypot(dx, dy);
       const ux = dx / L;
       const uy = dy / L;
-      
+
       // Outward normal (assuming clockwise p1->p2 around center)
       const vx = uy;
       const vy = -ux;
@@ -140,22 +140,22 @@ export class ChordManager {
 
       groups.forEach((g, i) => {
         const C = macroPositions[i];
-        
+
         // Micro-diamond points
         const microD = 0.052; // Larger: more space between the 4 nodes in each cluster
-        
+
         // Base: Outward
         const baseX = C.x + vx * microD;
         const baseY = C.y + vy * microD;
-        
+
         // Twin: Inward
         const twinX = C.x - vx * microD;
         const twinY = C.y - vy * microD;
-        
+
         // Brother: Left (towards p1)
         const broX = C.x - ux * microD;
         const broY = C.y - uy * microD;
-        
+
         // Sister: Right (towards p2)
         const sisX = C.x + ux * microD;
         const sisY = C.y + uy * microD;
@@ -203,7 +203,7 @@ export class ChordManager {
   public getChordByCoordinates(x: number, y: number): Chord | undefined {
     let closestDistSq = Infinity;
     let closestChord: Chord | undefined = undefined;
-    
+
     for (let i = 0; i < this.coordinateList.length; i++) {
       const coord = this.coordinateList[i];
       const dx = coord.x - x;
@@ -214,7 +214,7 @@ export class ChordManager {
         closestChord = coord.chord;
       }
     }
-    
+
     // 0.05 squared is 0.0025
     if (closestDistSq < 0.0025) {
       return closestChord;

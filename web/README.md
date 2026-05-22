@@ -46,7 +46,7 @@ graph TD
 
 ### 🧠 ChordContext React Core (`ChordContext.tsx`)
 At the core of the UI is the `ChordProvider`, which manages:
-*   **Active Configurations**: Tonal Center offset (default: Bb / Offset `10`), Octave Range (default: `3`), and Voicing style (`Close`, `Drop 2`, `Drop 3`, and `Drop 2 and 4`).
+*   **Active Configurations**: Tonal Center offset (default: Bb / Offset `10`), Octave Range (default: `3`), and Voicing style (`Close`, `Drop 2`, `Drop 3`, and `Drop 2 & 4`).
 *   **Borrowing State Configurations**: Keeps track of `circlePositions` (`line`, `up`, `down`), `borrowingDirections` (`up`, `down`, `null`), and `noteStates` (`on`, `off`) for the 4 voices.
 *   **Play/Sustain Modes**:
     *   `adsr` (ADSR Click/Hover Mode): Notes play when clicked/hovered and are instantly released when the pointer is lifted anywhere on the user's OS. A global event listener on `window` bound to `useRef` references guarantees that pointer lifts are successfully captured with zero stale closures.
@@ -130,7 +130,7 @@ After borrowing modifications are applied, the resulting pitch array is mapped t
 *   **Close Voicing**: Notes are kept in their original tightly packed intervals.
 *   **Drop 2**: The second highest note is dropped an octave.
 *   **Drop 3**: The third highest note is dropped an octave.
-*   **Drop 2 and 4**: The second and fourth highest notes are dropped an octave.
+*   **Drop 2 & 4**: The second and fourth highest notes are dropped an octave.
 
 ---
 

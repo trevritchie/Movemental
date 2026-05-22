@@ -2,7 +2,7 @@ import React from 'react';
 import { SlidersHorizontal, Square } from 'lucide-react';
 import { NOTE_NAMES_FLAT, VOICING_TO_INDICES } from '../music/config';
 import { audioEngine } from '../audio/AudioEngine';
-import { useChordContext, type PlayingMode } from '../context/ChordContext';
+import { useChordContext, type PlayStyle } from '../context/ChordContext';
 
 export const TopBar: React.FC = () => {
   const {
@@ -26,7 +26,7 @@ export const TopBar: React.FC = () => {
   const [showEffects, setShowEffects] = React.useState(false);
   const [showADSR, setShowADSR] = React.useState(false);
 
-  const isDrone = playingMode === 'infinite';
+  const isDrone = playingMode === 'drone';
 
   // Current values based on mode
   const currentA = isDrone ? droneAttack : envelopeAttack;
@@ -106,11 +106,11 @@ export const TopBar: React.FC = () => {
 
           <select
             value={playingMode}
-            onChange={(e) => setPlayStyle(e.target.value as PlayingMode)}
+            onChange={(e) => setPlayStyle(e.target.value as PlayStyle)}
             title="Play Style"
           >
             <option value="adsr">Click & Hold</option>
-            <option value="infinite">Drone</option>
+            <option value="drone">Drone</option>
           </select>
 
           <button

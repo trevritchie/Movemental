@@ -34,7 +34,7 @@ const BACKGROUND_LINES = (() => {
   return lines;
 })();
 
-export const ClockFace: React.FC = () => {
+export const ClockFace: React.FC<{ isMobileOverlay?: boolean }> = ({ isMobileOverlay }) => {
   const { tonalCenter, activePitches, selectedChord } = useChordContext();
   
   const elementalName = selectedChord?.name || null;
@@ -103,7 +103,7 @@ export const ClockFace: React.FC = () => {
   }, [activeNodes]);
 
   return (
-    <div className="clock-container">
+    <div className={`clock-container ${isMobileOverlay ? 'mobile-overlay' : ''}`}>
       <div className="clock-info">
         <div className="elemental-name">{elementalName || 'Select a Chord'}</div>
         {elementFormula && (
@@ -128,7 +128,7 @@ export const ClockFace: React.FC = () => {
         <div className="traditional-name">{traditionalName || '---'}</div>
       </div>
       
-      <svg width="100%" height="100%" viewBox="0 0 300 300" className="clock-svg">
+      <svg viewBox="0 0 300 300" className="clock-svg">
         <circle cx={CLOCK_CX} cy={CLOCK_CY} r={CLOCK_RADIUS} fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth={2} />
         
         {BACKGROUND_LINES}

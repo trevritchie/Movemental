@@ -5,7 +5,7 @@ import { borrowingLogic, getInitialBorrowingState, type BorrowingState } from '.
 import { audioEngine } from '../audio/AudioEngine';
 import { DEFAULT_TONAL_CENTER_OFFSET, DEFAULT_OCTAVE_RANGE, DEFAULT_VOICING } from '../music/config';
 
-export type PlayingMode = 'adsr' | 'drone';
+export type PlayStyle = 'adsr' | 'drone';
 
 interface ChordContextType {
   tonalCenter: number;
@@ -29,8 +29,8 @@ interface ChordContextType {
   setReverbWet: (val: number) => void;
 
   // Synthesizer playing modes
-  playingMode: PlayingMode;
-  setPlayStyle: (mode: PlayingMode) => void;
+  playingMode: PlayStyle;
+  setPlayStyle: (mode: PlayStyle) => void;
   handleChordPointerDown: (chord: Chord) => void;
   handleChordPointerUp: () => void;
   handleChordPointerEnter: (chord: Chord) => void;
@@ -88,7 +88,7 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
   const [selectedChord, setSelectedChord] = useState<Chord | null>(null);
   const [borrowingState, setBorrowingState] = useState<BorrowingState>(getInitialBorrowingState());
   const [activePitches, setActivePitches] = useState<(number | null)[]>([]);
-  const [playingMode, setPlayStyle] = useState<PlayingMode>('drone');
+  const [playingMode, setPlayStyle] = useState<PlayStyle>('drone');
 
   // Borrowing Memory state
   const [borrowingMemory, setBorrowingMemoryState] = useState<'global' | 'per-chord'>('per-chord');
