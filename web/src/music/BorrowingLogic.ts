@@ -40,34 +40,53 @@ export class BorrowingLogic {
   public findNextHigherNote(referencePitch: number, availablePitches: number[]): number {
     const referencePc = referencePitch % 12;
     const referenceOctave = Math.floor(referencePitch / 12);
-    const availablePcs = availablePitches.map(p => p % 12);
 
-    const higherPcs = availablePcs.filter(pc => pc > referencePc);
+    let minHigherPc = Infinity;
+    let minPc = Infinity;
 
-    if (higherPcs.length > 0) {
-      return Math.min(...higherPcs) + (referenceOctave * 12);
+    for (let i = 0; i < availablePitches.length; i++) {
+      const pc = availablePitches[i] % 12;
+      if (pc < minPc) {
+        minPc = pc;
+      }
+      if (pc > referencePc && pc < minHigherPc) {
+        minHigherPc = pc;
+      }
+    }
+
+    if (minHigherPc !== Infinity) {
+      return minHigherPc + (referenceOctave * 12);
     } else {
-      return Math.min(...availablePcs) + ((referenceOctave + 1) * 12);
+      return minPc + ((referenceOctave + 1) * 12);
     }
   }
 
   public findNextLowerNote(referencePitch: number, availablePitches: number[]): number {
     const referencePc = referencePitch % 12;
     const referenceOctave = Math.floor(referencePitch / 12);
-    const availablePcs = availablePitches.map(p => p % 12);
 
-    const lowerPcs = availablePcs.filter(pc => pc < referencePc);
+    let maxLowerPc = -Infinity;
+    let maxPc = -Infinity;
 
-    if (lowerPcs.length > 0) {
-      return Math.max(...lowerPcs) + (referenceOctave * 12);
+    for (let i = 0; i < availablePitches.length; i++) {
+      const pc = availablePitches[i] % 12;
+      if (pc > maxPc) {
+        maxPc = pc;
+      }
+      if (pc < referencePc && pc > maxLowerPc) {
+        maxLowerPc = pc;
+      }
+    }
+
+    if (maxLowerPc !== -Infinity) {
+      return maxLowerPc + (referenceOctave * 12);
     } else {
-      return Math.max(...availablePcs) + ((referenceOctave - 1) * 12);
+      return maxPc + ((referenceOctave - 1) * 12);
     }
   }
 
   public generateActivePitches(chord: Chord, state: BorrowingState): (number | null)[] {
-    const originalPitches = [...chord.pitches].sort((a, b) => a - b);
-    const borrowedPitches = [...originalPitches];
+    const borrowedPitches = [...chord.pitches];
 
     const oppositeElement = ELEMENTAL_RELATIONSHIPS[chord.name]?.[0];
 

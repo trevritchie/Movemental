@@ -20,7 +20,7 @@ export const TopBar: React.FC = () => {
     droneAttack, setDroneAttack,
     droneDecay, setDroneDecay,
     droneSustain, setDroneSustain,
-    droneRelease, setDroneRelease
+    droneRelease
   } = useChordContext();
   
   const [showEffects, setShowEffects] = React.useState(false);

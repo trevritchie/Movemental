@@ -17,6 +17,8 @@ export interface Chord {
 
 export class ChordManager {
   private chords: Map<string, Chord> = new Map();
+  private coordinateList: { x: number; y: number; key: string; chord: Chord }[] = [];
+  private chordNameToCoordinate: Map<string, { x: number; y: number }> = new Map();
   private tonalCenterOffset: number = 0;
   private octaveRange: number = 3;
   private voicing: string = "Drop 2 and 4";
@@ -86,9 +88,15 @@ export class ChordManager {
 
   public initializeChordDictionary() {
     this.chords.clear();
+    this.coordinateList = [];
+    this.chordNameToCoordinate.clear();
 
     const add = (x: number, y: number, name: string, pitches: number[]) => {
-      this.chords.set(`${x.toFixed(4)},${y.toFixed(4)}`, this.createChord(name, pitches));
+      const key = `${x.toFixed(4)},${y.toFixed(4)}`;
+      const chord = this.createChord(name, pitches);
+      this.chords.set(key, chord);
+      this.coordinateList.push({ x, y, key, chord });
+      this.chordNameToCoordinate.set(name, { x, y });
     };
 
     // Calculate symmetrical coordinates
@@ -185,38 +193,31 @@ export class ChordManager {
   }
 
   public getAllCoordinates(): {x: number, y: number}[] {
-    return Array.from(this.chords.keys()).map(k => {
-      const [x, y] = k.split(',');
-      return { x: parseFloat(x), y: parseFloat(y) };
-    });
+    return this.coordinateList.map(c => ({ x: c.x, y: c.y }));
   }
 
   public getCoordinateForChord(name: string): {x: number, y: number} | null {
-    for (const [key, chord] of this.chords.entries()) {
-      if (chord.name === name) {
-        const [x, y] = key.split(',');
-        return { x: parseFloat(x), y: parseFloat(y) };
-      }
-    }
-    return null;
+    return this.chordNameToCoordinate.get(name) || null;
   }
 
   public getChordByCoordinates(x: number, y: number): Chord | undefined {
-    // Find closest to avoid floating point issues
-    let closestDist = Infinity;
-    let closestCoord = "";
+    let closestDistSq = Infinity;
+    let closestChord: Chord | undefined = undefined;
     
-    for (const key of this.chords.keys()) {
-      const [cx, cy] = key.split(',').map(parseFloat);
-      const dist = Math.hypot(cx - x, cy - y);
-      if (dist < closestDist) {
-        closestDist = dist;
-        closestCoord = key;
+    for (let i = 0; i < this.coordinateList.length; i++) {
+      const coord = this.coordinateList[i];
+      const dx = coord.x - x;
+      const dy = coord.y - y;
+      const distSq = dx * dx + dy * dy;
+      if (distSq < closestDistSq) {
+        closestDistSq = distSq;
+        closestChord = coord.chord;
       }
     }
     
-    if (closestDist < 0.05) { // Threshold
-        return this.chords.get(closestCoord);
+    // 0.05 squared is 0.0025
+    if (closestDistSq < 0.0025) {
+      return closestChord;
     }
     return undefined;
   }
