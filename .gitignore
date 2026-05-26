@@ -6,6 +6,9 @@ __pycache__/
 # C extensions
 *.so
 
+# vite
+.vite/
+
 # Distribution / packaging
 .Python
 build/
@@ -190,3 +193,5 @@ marimo/_static/
 marimo/_lsp/
 __marimo__/
 
+# Historical pre-refactor archive (too large for version control)
+Movemental_beforeRefactor.py
