@@ -1195,17 +1195,10 @@ input[type="range"] {
 }
 
 .mobile-ringer-warning {
-  display: none;
   margin-top: 1.5rem;
   font-size: 0.85rem;
   color: var(--text-secondary);
   opacity: 0.8;
   max-width: 80%;
   line-height: 1.4;
-}
-
-@media (max-width: 950px) {
-  .mobile-ringer-warning {
-    display: block;
-  }
 }
