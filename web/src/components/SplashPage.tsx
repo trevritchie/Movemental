@@ -55,7 +55,6 @@ export const SplashPage: React.FC<SplashPageProps> = ({ onEnter }) => {
       </div>
       <div className="splash-content">
         <h1 className="splash-title">Movemental</h1>
-        <p className="splash-subtitle">Inspired by Dr. Barry Harris</p>
         <button 
           className="splash-button" 
           onClick={(e) => { e.stopPropagation(); handleStart(); }} 
