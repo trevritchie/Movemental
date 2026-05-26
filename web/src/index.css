@@ -1204,7 +1204,7 @@ input[type="range"] {
   line-height: 1.4;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 900px) {
   .mobile-ringer-warning {
     display: block;
   }
