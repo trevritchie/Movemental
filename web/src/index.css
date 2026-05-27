@@ -291,14 +291,11 @@ body {
 .diagram-svg {
   width: 100%;
   height: 100%;
-  transform: scale(1.15);
-  transform-origin: center center;
 }
 
 @media (max-width: 950px) and (orientation: portrait) {
   .diagram-svg {
-    transform: scale(1.15);
-    transform-origin: top center;
+    transform: none;
   }
 }
 

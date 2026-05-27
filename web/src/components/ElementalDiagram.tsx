@@ -132,7 +132,7 @@ export const ElementalDiagram: React.FC<{ children?: React.ReactNode }> = ({ chi
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  const viewBox = `0 0 ${VIEW_W} ${VIEW_H}`;
+  const viewBox = isMobile ? `0 180 ${VIEW_W} 540` : `0 0 ${VIEW_W} ${VIEW_H}`;
 
   const R_MAIN = isMobile ? 70 : 52;
   const R_GROUP = isMobile ? 72 : 54;
