@@ -6,6 +6,7 @@ import { BorrowingControls } from './components/BorrowingControls';
 import { ChordProvider, useChordContext } from './context/ChordContext';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { SplashPage } from './components/SplashPage';
+import { LandscapePrompt } from './components/LandscapePrompt';
 
 function AppContent() {
   const { selectedChord } = useChordContext();
@@ -43,6 +44,7 @@ function App() {
   return (
     <ErrorBoundary>
       <ChordProvider>
+        <LandscapePrompt />
         {!hasStarted && <SplashPage onEnter={() => setHasStarted(true)} />}
         <AppContent />
       </ChordProvider>
