@@ -113,7 +113,7 @@ body {
     border-left: none;
     border-right: none;
     border-bottom: none;
-    padding: 0;
+    padding: 0px;
     background: transparent;
     align-items: flex-start; /* Top align the diagram instead of center */
     padding-top: 0px; /* Add a little breathing room from the top bar */
@@ -495,7 +495,7 @@ input[type="range"] {
 
 /* Borrowing Controls Layout */
 .borrowing-controls {
-  padding: 4px 12px;
+  padding: 0 12px 4px 12px;
   display: flex;
   flex-direction: column;
   gap: 0;
