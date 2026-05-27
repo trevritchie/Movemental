@@ -40,6 +40,13 @@ export const ClockFace: React.FC<{ isMobileOverlay?: boolean }> = ({ isMobileOve
   const elementalName = selectedChord?.name || null;
   const traditionalName = selectedChord?.traditionalName || null;
 
+  const displayElementalName = React.useMemo(() => {
+    if (!elementalName || !isMobileOverlay) return elementalName;
+    return elementalName
+      .replace('Brother ', 'Bro. ')
+      .replace('Sister ', 'Sis. ');
+  }, [elementalName, isMobileOverlay]);
+
   // Chemistry formula: count active pitches per element.
   // Must use relative pitch class (same as clock face dots):
   //   relativePitchClass = (pitch % 12 - tonalCenter + 12) % 12
@@ -105,7 +112,7 @@ export const ClockFace: React.FC<{ isMobileOverlay?: boolean }> = ({ isMobileOve
   return (
     <div className={`clock-container ${isMobileOverlay ? 'mobile-overlay' : ''}`}>
       <div className="clock-info">
-        <div className="elemental-name">{elementalName || 'Select a Chord'}</div>
+        <div className="elemental-name">{displayElementalName || 'Select a Chord'}</div>
         {elementFormula && (
           <div className="chemistry-formula" aria-label="Elemental chemistry formula">
             {elementFormula.earth > 0 && (

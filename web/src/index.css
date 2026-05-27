@@ -156,6 +156,11 @@ body {
     border: 1px solid rgba(255, 255, 255, 0.05);
     backdrop-filter: blur(8px);
     margin: 0;
+    width: 220px; /* Fixed width to prevent shifting */
+    min-height: 105px; /* Stable height */
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
   }
   .clock-container.mobile-overlay .elemental-name {
     font-size: 1.5rem;
