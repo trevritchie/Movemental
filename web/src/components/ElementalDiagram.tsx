@@ -134,7 +134,7 @@ export const ElementalDiagram: React.FC<{ children?: React.ReactNode }> = ({ chi
 
   // Tighten the viewBox specifically for mobile portrait to maximize the diagram size
   // and anchor it to the top.
-  const viewBox = isMobile ? `-15 20 1190 770` : `0 0 ${VIEW_W} ${VIEW_H}`;
+  const viewBox = isMobile ? `-15 10 1190 815` : `0 0 ${VIEW_W} ${VIEW_H}`;
 
   const R_MAIN = isMobile ? 76 : 52;
   const R_GROUP = isMobile ? 78 : 54;
