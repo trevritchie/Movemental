@@ -150,17 +150,17 @@ body {
     left: 8px;
     text-align: left;
     pointer-events: auto;
-    background: rgba(0, 0, 0, 0.4);
-    padding: 8px 12px;
-    border-radius: 12px;
-    border: 1px solid rgba(255, 255, 255, 0.05);
-    backdrop-filter: blur(8px);
+    background: none;
+    border: none;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
     margin: 0;
-    width: 180px; /* Narrower box */
-    min-height: 80px; /* Tighter height */
+    padding: 0;
+    width: auto;
+    min-height: 0;
     display: flex;
     flex-direction: column;
-    justify-content: center;
+    justify-content: flex-end;
   }
   .clock-container.mobile-overlay .elemental-name {
     font-size: 1.05rem !important; /* Smaller as requested to avoid Fire overlap */
