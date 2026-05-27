@@ -116,7 +116,7 @@ body {
     padding: 0;
     background: transparent;
     align-items: flex-start; /* Top align the diagram instead of center */
-    padding-top: 16px; /* Add a little breathing room from the top bar */
+    padding-top: 0px; /* Add a little breathing room from the top bar */
   }
   .clock-section, .side-divider {
     display: none !important;
@@ -128,7 +128,7 @@ body {
   .borrowing-row {
     min-height: 44px;
   }
-  
+
   /* Mobile Clock Overlays */
   .clock-container.mobile-overlay {
     display: block;
@@ -208,7 +208,7 @@ body {
     }
     .diagram-container {
       min-height: 0 !important;
-      padding: 4px;
+      padding: 0px;
     }
   }
 }
@@ -229,7 +229,7 @@ body {
   backdrop-filter: blur(16px);
   border: 1px solid var(--panel-border);
   border-radius: 16px;
-  padding: 8px; /* Halved from 16px */
+  padding: 0px;
   min-height: 450px;
 }
 
@@ -1244,7 +1244,7 @@ input[type="range"] {
     text-align: center;
     padding: 2rem;
   }
-  
+
   .orientation-blocker h1 {
     font-size: 1.5rem;
     margin: 1rem 0;
