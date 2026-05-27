@@ -128,9 +128,8 @@ export const ElementalDiagram: React.FC<{ children?: React.ReactNode }> = ({ chi
   const R_MAIN = isMobile ? 100 : 52;
   const R_GROUP = isMobile ? 102 : 54;
 
-  // Hide labels on mobile if the vertical space is too squished (causing overlap)
-  // With nodes this big, we hide labels earlier (threshold 0.6)
-  const showLabels = !isMobile || aspectRatioCorrection > 0.6;
+  // Hide labels on mobile always as requested
+  const showLabels = !isMobile;
 
   const isBorrowingActive = selectedChord ? [1, 2, 3, 4].some(line => {
     const pos = borrowingState.circlePositions[line] || (borrowingState.circlePositions as any)[String(line)];
