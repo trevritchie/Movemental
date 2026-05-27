@@ -84,6 +84,9 @@ const getGlow = (name: string) => {
 };
 
 export const ElementalDiagram: React.FC<{ children?: React.ReactNode }> = ({ children }) => {
+  const containerRef = React.useRef<HTMLDivElement>(null);
+  const [aspectRatioCorrection, setAspectRatioCorrection] = useState(1);
+
   const {
     selectedChord,
     borrowingState,
@@ -103,8 +106,19 @@ export const ElementalDiagram: React.FC<{ children?: React.ReactNode }> = ({ chi
   React.useEffect(() => {
     const handleResize = () => {
       setIsMobile(window.innerWidth <= 950);
+      if (containerRef.current) {
+        const { width, height } = containerRef.current.getBoundingClientRect();
+        if (width > 0 && height > 0) {
+          // Calculate how much the browser is stretching the SVG
+          // viewBox is -25 -25 1210 860 (AR ~1.4)
+          const viewBoxAR = 1210 / 860;
+          const containerAR = width / height;
+          setAspectRatioCorrection(containerAR / viewBoxAR);
+        }
+      }
     };
     window.addEventListener('resize', handleResize);
+    handleResize(); // Initial calculation
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
@@ -168,7 +182,7 @@ export const ElementalDiagram: React.FC<{ children?: React.ReactNode }> = ({ chi
   }, [getCoords, tonalCenter, voicing, octaveRange]);
 
   return (
-    <div className="diagram-container">
+    <div className="diagram-container" ref={containerRef}>
       <svg
         viewBox={viewBox}
         className="diagram-svg"
@@ -288,62 +302,65 @@ export const ElementalDiagram: React.FC<{ children?: React.ReactNode }> = ({ chi
               transform={`translate(${cx}, ${cy})`}
               onMouseLeave={() => { setHoveredGroup(null); setHoveredSliceIdx(null); }}
             >
-              <circle
-                r={r * 1.25}
-                fill={glowColor}
-                filter="url(#glow)"
-                opacity={anySelected ? 0.55 : isThisGroup ? 0.25 : 0.12}
-              />
-              {SLICE_VARIANTS.map((v, i) => {
-                const chord      = chords[i];
-                const isSelected = selectedSlice === i;
-                const isHov      = isThisGroup && hoveredSliceIdx === i;
-                const opacity    = isSelected ? 1.0 : isHov ? 0.88 : baseOpacity[i];
+              {/* Correction Group: Inverse the SVG stretch to keep nodes circular */}
+              <g transform={`scale(1, ${aspectRatioCorrection})`}>
+                <circle
+                  r={r * 1.25}
+                  fill={glowColor}
+                  filter="url(#glow)"
+                  opacity={anySelected ? 0.55 : isThisGroup ? 0.25 : 0.12}
+                />
+                {SLICE_VARIANTS.map((v, i) => {
+                  const chord      = chords[i];
+                  const isSelected = selectedSlice === i;
+                  const isHov      = isThisGroup && hoveredSliceIdx === i;
+                  const opacity    = isSelected ? 1.0 : isHov ? 0.88 : baseOpacity[i];
 
-                return (
-                  <path
-                    key={i}
-                    d={piePath(r, v.sliceIdx)}
-                    fill={baseColor}
-                    fillOpacity={opacity}
-                    stroke={isSelected ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.45)'}
-                    strokeWidth={isSelected ? 2.5 : 1}
-                    style={{ cursor: 'pointer', transition: 'fill-opacity 0.12s ease' }}
-                    onPointerEnter={() => {
-                      setHoveredGroup(baseName);
-                      setHoveredSliceIdx(i);
-                      chord && handleChordPointerEnter(chord);
-                    }}
-                    onPointerDown={(e) => {
-                      e.preventDefault();
-                      e.currentTarget.releasePointerCapture(e.pointerId);
-                      chord && handleChordPointerDown(chord);
-                    }}
-                    onPointerUp={() => handleChordPointerUp()}
-                  />
-                );
-              })}
-              {(() => { const d = r / Math.SQRT2; return (<>
-                <line x1={-d} y1={-d} x2={d} y2={d}  stroke="rgba(0,0,0,0.5)" strokeWidth="1.5" pointerEvents="none" />
-                <line x1={d}  y1={-d} x2={-d} y2={d} stroke="rgba(0,0,0,0.5)" strokeWidth="1.5" pointerEvents="none" />
-              </>); })()}
-              <circle
-                r={r}
-                fill="none"
-                stroke={anySelected ? 'rgba(255,255,255,0.75)' : 'rgba(255,255,255,0.18)'}
-                strokeWidth={anySelected ? 2.5 : 1}
-                pointerEvents="none"
-              />
-              <text
-                y={r + 24}
-                fill={isThisGroup ? '#ffffff' : 'rgba(255, 255, 255, 0.85)'}
-                fontSize={15}
-                fontWeight="600"
-                textAnchor="middle"
-                pointerEvents="none"
-              >
-                {baseName}
-              </text>
+                  return (
+                    <path
+                      key={i}
+                      d={piePath(r, v.sliceIdx)}
+                      fill={baseColor}
+                      fillOpacity={opacity}
+                      stroke={isSelected ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.45)'}
+                      strokeWidth={isSelected ? 2.5 : 1}
+                      style={{ cursor: 'pointer', transition: 'fill-opacity 0.12s ease' }}
+                      onPointerEnter={() => {
+                        setHoveredGroup(baseName);
+                        setHoveredSliceIdx(i);
+                        chord && handleChordPointerEnter(chord);
+                      }}
+                      onPointerDown={(e) => {
+                        e.preventDefault();
+                        e.currentTarget.releasePointerCapture(e.pointerId);
+                        chord && handleChordPointerDown(chord);
+                      }}
+                      onPointerUp={() => handleChordPointerUp()}
+                    />
+                  );
+                })}
+                {(() => { const d = r / Math.SQRT2; return (<>
+                  <line x1={-d} y1={-d} x2={d} y2={d}  stroke="rgba(0,0,0,0.5)" strokeWidth="1.5" pointerEvents="none" />
+                  <line x1={d}  y1={-d} x2={-d} y2={d} stroke="rgba(0,0,0,0.5)" strokeWidth="1.5" pointerEvents="none" />
+                </>); })()}
+                <circle
+                  r={r}
+                  fill="none"
+                  stroke={anySelected ? 'rgba(255,255,255,0.75)' : 'rgba(255,255,255,0.18)'}
+                  strokeWidth={anySelected ? 2.5 : 1}
+                  pointerEvents="none"
+                />
+                <text
+                  y={r + 24}
+                  fill={isThisGroup ? '#ffffff' : 'rgba(255, 255, 255, 0.85)'}
+                  fontSize={15}
+                  fontWeight="600"
+                  textAnchor="middle"
+                  pointerEvents="none"
+                >
+                  {baseName}
+                </text>
+              </g>
             </g>
           );
         })}
@@ -371,16 +388,19 @@ export const ElementalDiagram: React.FC<{ children?: React.ReactNode }> = ({ chi
               }}
               style={{ cursor: 'pointer' }}
             >
-              <circle r={r * 1.2} fill={getGlow(chord.name)} filter="url(#glow)" opacity={isSelected ? 1 : 0.4} />
-              <circle
-                r={r}
-                fill={getColor(chord.name)}
-                stroke={isSelected ? 'white' : 'rgba(255,255,255,0.25)'}
-                strokeWidth={isSelected ? 4 : 1.5}
-              />
-              <text y={r + 29} fill="#ffffff" fontSize={24} fontWeight="bold" textAnchor="middle">
-                {chord.name}
-              </text>
+              {/* Correction Group: Inverse the SVG stretch to keep nodes circular */}
+              <g transform={`scale(1, ${aspectRatioCorrection})`}>
+                <circle r={r * 1.2} fill={getGlow(chord.name)} filter="url(#glow)" opacity={isSelected ? 1 : 0.4} />
+                <circle
+                  r={r}
+                  fill={getColor(chord.name)}
+                  stroke={isSelected ? 'white' : 'rgba(255,255,255,0.25)'}
+                  strokeWidth={isSelected ? 4 : 1.5}
+                />
+                <text y={r + 29} fill="#ffffff" fontSize={24} fontWeight="bold" textAnchor="middle">
+                  {chord.name}
+                </text>
+              </g>
             </g>
           );
         })}
