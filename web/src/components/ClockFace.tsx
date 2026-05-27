@@ -141,6 +141,7 @@ export const ClockFace: React.FC<{ isMobileOverlay?: boolean }> = ({ isMobileOve
               y={tick.labelY} 
               fill="rgba(255,255,255,0.8)" 
               fontSize={isMobileOverlay ? 18 : 13} 
+              fontWeight="bold"
               textAnchor="middle" 
               alignmentBaseline="middle"
             >
