@@ -102,9 +102,9 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
   const [envelopeRelease, setEnvelopeRelease] = useState(2.5);
 
   // Drone-specific ADSR states
-  const [droneAttack, setDroneAttack] = useState(4.5);
+  const [droneAttack, setDroneAttack] = useState(0.6);
   const [droneDecay, setDroneDecay] = useState(3.5);
-  const [droneSustain, setDroneSustain] = useState(0.4);
+  const [droneSustain, setDroneSustain] = useState(0.2);
   const [droneRelease, setDroneRelease] = useState(0.50); // transition/stop release
 
   // Sync ADSR values with audioEngine based on current playing mode
