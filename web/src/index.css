@@ -122,11 +122,19 @@ body {
     display: none !important;
   }
   .controls-section {
-    padding: 12px 4px;
+    padding: 0px 4px 4px 4px;
     overflow: visible;
+  }
+  .unified-side-panel {
+    justify-content: flex-start !important;
+  }
+  .borrowing-controls {
+    justify-content: flex-start !important;
+    gap: 8px !important;
   }
   .borrowing-row {
     min-height: 44px;
+    flex: 0 0 auto !important;
   }
 
   /* Mobile Clock Overlays */
