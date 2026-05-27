@@ -125,11 +125,12 @@ export const ElementalDiagram: React.FC<{ children?: React.ReactNode }> = ({ chi
   // Universal Mobile Optimization: Tight bounds and non-uniform stretching to fill space.
   const viewBox = isMobile ? `-25 -25 1210 860` : `0 0 ${VIEW_W} ${VIEW_H}`;
 
-  const R_MAIN = isMobile ? 84 : 52;
-  const R_GROUP = isMobile ? 86 : 54;
+  const R_MAIN = isMobile ? 100 : 52;
+  const R_GROUP = isMobile ? 102 : 54;
 
   // Hide labels on mobile if the vertical space is too squished (causing overlap)
-  const showLabels = !isMobile || aspectRatioCorrection > 0.4;
+  // With nodes this big, we hide labels earlier (threshold 0.6)
+  const showLabels = !isMobile || aspectRatioCorrection > 0.6;
 
   const isBorrowingActive = selectedChord ? [1, 2, 3, 4].some(line => {
     const pos = borrowingState.circlePositions[line] || (borrowingState.circlePositions as any)[String(line)];
