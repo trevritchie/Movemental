@@ -106,8 +106,10 @@ body {
     flex-wrap: nowrap !important;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
-    padding: 2px 4px;
+    padding: 6px 16px; /* Add more horizontal padding so the edges aren't flush */
     scrollbar-width: none;
+    mask-image: linear-gradient(to right, transparent, black 12px, black calc(100% - 12px), transparent); /* Faded edges to indicate scroll */
+    -webkit-mask-image: linear-gradient(to right, transparent, black 12px, black calc(100% - 12px), transparent);
   }
   .controls-group::-webkit-scrollbar {
     display: none;

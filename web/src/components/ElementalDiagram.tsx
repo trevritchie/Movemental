@@ -94,8 +94,7 @@ function piePath(r: number, slice: number): string {
 
 const VIEW_W = 1160;
 const VIEW_H = 800;
-const R_MAIN  = 52;
-const R_GROUP = 54;
+// We will calculate R_MAIN and R_GROUP dynamically inside the component based on isMobile.
 
 const getColor = (name: string) => {
   if (name === 'Earth') return 'var(--color-earth)';
@@ -135,6 +134,9 @@ export const ElementalDiagram: React.FC<{ children?: React.ReactNode }> = ({ chi
   }, []);
 
   const viewBox = isMobile ? `0 100 ${VIEW_W} 620` : `0 0 ${VIEW_W} ${VIEW_H}`;
+
+  const R_MAIN = isMobile ? 70 : 52;
+  const R_GROUP = isMobile ? 72 : 54;
 
   // A voice is currently borrowed if circlePosition !== 'line' and the voice note state is 'on'
   const isBorrowingActive = selectedChord ? [1, 2, 3, 4].some(line => {
