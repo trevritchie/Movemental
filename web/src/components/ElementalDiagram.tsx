@@ -132,10 +132,12 @@ export const ElementalDiagram: React.FC<{ children?: React.ReactNode }> = ({ chi
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  const viewBox = isMobile ? `0 180 ${VIEW_W} 540` : `0 0 ${VIEW_W} ${VIEW_H}`;
+  // Tighten the viewBox specifically for mobile portrait to maximize the diagram size
+  // and anchor it to the top.
+  const viewBox = isMobile ? `80 60 1000 720` : `0 0 ${VIEW_W} ${VIEW_H}`;
 
-  const R_MAIN = isMobile ? 70 : 52;
-  const R_GROUP = isMobile ? 72 : 54;
+  const R_MAIN = isMobile ? 82 : 52;
+  const R_GROUP = isMobile ? 84 : 54;
 
   // A voice is currently borrowed if circlePosition !== 'line' and the voice note state is 'on'
   const isBorrowingActive = selectedChord ? [1, 2, 3, 4].some(line => {
