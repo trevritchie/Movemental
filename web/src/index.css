@@ -1218,12 +1218,19 @@ input[type="range"] {
 }
 
 .mobile-ringer-warning {
+  display: none; /* Hidden on desktop by default */
   margin-top: 1.5rem;
   font-size: 0.85rem;
   color: var(--text-secondary);
   opacity: 0.8;
   max-width: 80%;
   line-height: 1.4;
+}
+
+@media (pointer: coarse) {
+  .mobile-ringer-warning {
+    display: block; /* Only show on mobile/touch devices */
+  }
 }
 
 /* Orientation Blocker */
