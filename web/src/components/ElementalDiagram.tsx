@@ -98,24 +98,21 @@ export const ElementalDiagram: React.FC<{ children?: React.ReactNode }> = ({ chi
   const [hoveredGroup, setHoveredGroup] = useState<string | null>(null);
   const [hoveredSliceIdx, setHoveredSliceIdx] = useState<number | null>(null);
 
-  const [isPortrait, setIsPortrait] = useState(
-    window.innerWidth <= 950 && window.innerHeight > window.innerWidth
-  );
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 950);
   
   React.useEffect(() => {
     const handleResize = () => {
-      setIsPortrait(window.innerWidth <= 950 && window.innerHeight > window.innerWidth);
+      setIsMobile(window.innerWidth <= 950);
     };
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Portrait Mobile: Tight Content Bounds to maximize space, anchored to top.
-  // Landscape Mobile: Desktop coordinate range for consistent side-by-side layout.
-  const viewBox = isPortrait ? `-25 -25 1210 860` : `0 0 ${VIEW_W} ${VIEW_H}`;
+  // Universal Mobile Optimization: Tight bounds and non-uniform stretching to fill space.
+  const viewBox = isMobile ? `-25 -25 1210 860` : `0 0 ${VIEW_W} ${VIEW_H}`;
 
-  const R_MAIN = isPortrait ? 76 : 52;
-  const R_GROUP = isPortrait ? 78 : 54;
+  const R_MAIN = isMobile ? 76 : 52;
+  const R_GROUP = isMobile ? 78 : 54;
 
   const isBorrowingActive = selectedChord ? [1, 2, 3, 4].some(line => {
     const pos = borrowingState.circlePositions[line] || (borrowingState.circlePositions as any)[String(line)];
@@ -175,7 +172,7 @@ export const ElementalDiagram: React.FC<{ children?: React.ReactNode }> = ({ chi
       <svg
         viewBox={viewBox}
         className="diagram-svg"
-        preserveAspectRatio={isPortrait ? "none" : "xMidYMid meet"}
+        preserveAspectRatio={isMobile ? "none" : "xMidYMid meet"}
       >
         <defs>
           <filter id="glow" x="-50%" y="-50%" width="200%" height="200%" filterUnits="userSpaceOnUse">
