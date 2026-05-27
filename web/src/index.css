@@ -297,7 +297,7 @@ body {
 
 @media (max-width: 950px) and (orientation: portrait) {
   .diagram-svg {
-    transform: scale(1.35);
+    transform: scale(1.2);
     transform-origin: top center;
   }
 }
