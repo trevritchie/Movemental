@@ -970,7 +970,15 @@ input[type="range"] {
 @media (max-width: 950px) {
   .adsr-panel-content {
     grid-template-columns: 1fr;
-    gap: 12px;
+    gap: 8px;
+  }
+  .adsr-svg {
+    aspect-ratio: 4 / 1; /* Shorter visualizer on mobile */
+    max-height: 80px;
+  }
+  .adsr-sliders {
+    grid-template-columns: repeat(2, 1fr) !important; /* Force 2 columns on mobile */
+    gap: 8px;
   }
 }
 
