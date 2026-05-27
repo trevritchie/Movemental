@@ -190,7 +190,7 @@ body {
       flex-direction: row;
     }
     .unified-side-panel {
-      flex: 0 0 180px; /* Narrower for just borrowing */
+      flex: 0 0 280px; /* Wider for comfortable sliders */
       height: 100%;
       border-radius: 20px 0 0 20px;
       border-top: none;
