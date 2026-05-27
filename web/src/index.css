@@ -190,7 +190,7 @@ body {
       flex-direction: row;
     }
     .unified-side-panel {
-      flex: 0 0 320px;
+      flex: 0 0 180px; /* Narrower for just borrowing */
       height: 100%;
       border-radius: 20px 0 0 20px;
       border-top: none;
@@ -202,19 +202,13 @@ body {
       z-index: 10;
       overflow-y: auto;
     }
+    /* Hide clock and divider in ALL mobile orientations (they move to overlays) */
     .clock-section, .side-divider {
-      display: block !important;
-    }
-    .clock-section {
-      padding: 10px 0;
-    }
-    .side-divider {
-      width: 90%;
-      margin: 10px auto;
+      display: none !important;
     }
     .diagram-container {
       min-height: 0 !important;
-      padding: 8px;
+      padding: 4px;
     }
   }
 }
