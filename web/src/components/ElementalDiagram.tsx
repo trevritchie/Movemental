@@ -196,7 +196,7 @@ export const ElementalDiagram: React.FC<{ children?: React.ReactNode }> = ({ chi
       <svg
         viewBox={viewBox}
         className="diagram-svg"
-        preserveAspectRatio="xMidYMid meet"
+        preserveAspectRatio={isMobile ? "xMidYMin meet" : "xMidYMid meet"}
       >
         <defs>
           <filter id="glow" x="-50%" y="-50%" width="200%" height="200%" filterUnits="userSpaceOnUse">
