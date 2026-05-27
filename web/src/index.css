@@ -229,7 +229,7 @@ body {
   backdrop-filter: blur(16px);
   border: 1px solid var(--panel-border);
   border-radius: 16px;
-  padding: 16px;
+  padding: 8px; /* Halved from 16px */
   min-height: 450px;
 }
 
