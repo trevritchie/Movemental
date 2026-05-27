@@ -125,10 +125,6 @@ export const ElementalDiagram: React.FC<{ children?: React.ReactNode }> = ({ chi
   const [hoveredGroup, setHoveredGroup] = useState<string | null>(null);
   const [hoveredSliceIdx, setHoveredSliceIdx] = useState<number | null>(null);
 
-  // Responsive viewBox for mobile.
-  // The coordinate system has empty space at the top. We slice it off by starting the Y coordinate
-  // lower down (e.g., 180 instead of 100) and reducing the total height so the 'Branch' node 
-  // hits the top edge of the SVG boundary.
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 950);
   React.useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth <= 950);
@@ -136,7 +132,7 @@ export const ElementalDiagram: React.FC<{ children?: React.ReactNode }> = ({ chi
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  const viewBox = isMobile ? `0 180 ${VIEW_W} 540` : `0 0 ${VIEW_W} ${VIEW_H}`;
+  const viewBox = `0 0 ${VIEW_W} ${VIEW_H}`;
 
   const R_MAIN = isMobile ? 70 : 52;
   const R_GROUP = isMobile ? 72 : 54;
