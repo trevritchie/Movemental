@@ -101,32 +101,10 @@ body {
   }
   .controls-group {
     width: 100%;
-    justify-content: flex-start !important;
+    justify-content: center !important;
     gap: 8px !important;
-    flex-wrap: nowrap !important;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    padding: 6px 16px; /* Add more horizontal padding so the edges aren't flush */
-    scrollbar-width: none;
-    mask-image: linear-gradient(to right, transparent, black 12px, black calc(100% - 12px), transparent); /* Faded edges to indicate scroll */
-    -webkit-mask-image: linear-gradient(to right, transparent, black 12px, black calc(100% - 12px), transparent);
-  }
-  .controls-group::-webkit-scrollbar {
-    display: none;
-  }
-  select {
-    padding: 4px 20px 4px 8px !important;
-    font-size: 0.75rem !important;
-    background-position: right 6px center !important;
-    border-radius: 8px !important;
-    min-width: fit-content;
-    flex-shrink: 0;
-  }
-  .adsr-toggle-btn, .stop-btn {
-    padding: 4px 10px !important;
-    font-size: 0.75rem !important;
-    border-radius: 8px !important;
-    flex-shrink: 0;
+    flex-wrap: wrap !important;
+    padding: 6px 16px;
   }
   .diagram-container {
     flex: 1;
@@ -137,6 +115,8 @@ body {
     border-bottom: none;
     padding: 0;
     background: transparent;
+    align-items: flex-start; /* Top align the diagram instead of center */
+    padding-top: 16px; /* Add a little breathing room from the top bar */
   }
   .clock-section, .side-divider {
     display: none !important;
