@@ -119,43 +119,7 @@ body {
     padding-top: 0px; /* Add a little breathing room from the top bar */
   }
   .clock-section, .side-divider {
-    display: flex !important; /* Restore on mobile */
-    align-items: center;
-    justify-content: center;
-  }
-  .clock-section {
-    flex: 0 0 auto !important;
-    padding: 8px 12px !important;
-    border-bottom: 1px solid var(--panel-border);
-    background: rgba(0, 0, 0, 0.2);
-  }
-  .side-divider {
-    display: none !important; /* No need for divider in status row */
-  }
-  .clock-container {
-    flex-direction: row !important;
-    justify-content: space-between !important;
-    gap: 16px;
-    width: 100%;
-  }
-  .clock-info {
-    text-align: left !important;
-    margin: 0 !important;
-    flex: 1;
-    min-height: 0 !important;
-    width: auto !important;
-  }
-  .elemental-name {
-    font-size: 1.25rem !important;
-    font-weight: 800;
-  }
-  .traditional-name {
-    font-size: 0.95rem !important;
-  }
-  .clock-svg {
-    width: 80px !important; /* Compact size for row */
-    height: 80px !important;
-    margin: 0 !important;
+    display: none !important;
   }
   .controls-section {
     padding: 0px 4px 4px 0px;
@@ -173,9 +137,51 @@ body {
     flex: 0 0 auto !important;
   }
 
-  /* Remove Absolute Overlays */
+  /* Mobile Clock Overlays (Restored) */
   .clock-container.mobile-overlay {
-    display: none !important;
+    display: block;
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+  }
+  .clock-container.mobile-overlay .clock-info {
+    position: absolute;
+    bottom: 8px;
+    left: 8px;
+    text-align: left;
+    pointer-events: auto;
+    background: rgba(0, 0, 0, 0.4);
+    padding: 8px 12px;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(8px);
+    margin: 0;
+    width: 180px; /* Narrower box */
+    min-height: 80px; /* Tighter height */
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  .clock-container.mobile-overlay .elemental-name {
+    font-size: 1.05rem !important; /* Smaller as requested to avoid Fire overlap */
+    font-weight: 800;
+  }
+  .clock-container.mobile-overlay .traditional-name {
+    font-size: 0.9rem !important; /* Kept similar to before */
+  }
+  .clock-container.mobile-overlay .clock-svg {
+    position: absolute;
+    bottom: 8px;
+    right: 8px;
+    width: 110px; /* Slightly smaller to give info box room */
+    height: 110px;
+    pointer-events: auto;
+    margin: 0;
+  }
+  .clock-container.mobile-overlay .chemistry-formula {
+    justify-content: flex-start;
+    gap: 4px;
+    margin: 4px 0;
   }
 
   @media (orientation: portrait) {
