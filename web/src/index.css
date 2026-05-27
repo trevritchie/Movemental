@@ -1225,3 +1225,54 @@ input[type="range"] {
   max-width: 80%;
   line-height: 1.4;
 }
+
+/* Orientation Blocker */
+.orientation-blocker {
+  display: none;
+}
+
+@media (max-width: 950px) and (orientation: landscape) {
+  .orientation-blocker {
+    display: flex;
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+    background-color: var(--bg-dark);
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 2rem;
+  }
+  
+  .orientation-blocker h1 {
+    font-size: 1.5rem;
+    margin: 1rem 0;
+    background: linear-gradient(135deg, var(--color-earth) 0%, var(--color-wind) 50%, var(--color-fire) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  .orientation-blocker p {
+    color: var(--text-secondary);
+    max-width: 300px;
+    line-height: 1.5;
+  }
+
+  .rotate-icon {
+    color: var(--color-wind);
+    animation: rotate-phone 2s infinite ease-in-out;
+  }
+
+  @keyframes rotate-phone {
+    0% { transform: rotate(90deg); }
+    50% { transform: rotate(0deg); }
+    100% { transform: rotate(90deg); }
+  }
+
+  /* Hide the rest of the app when blocked */
+  #root > *:not(.orientation-blocker) {
+    visibility: hidden !important;
+  }
+}
