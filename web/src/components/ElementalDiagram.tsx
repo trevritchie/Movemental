@@ -125,8 +125,11 @@ export const ElementalDiagram: React.FC<{ children?: React.ReactNode }> = ({ chi
   // Universal Mobile Optimization: Tight bounds and non-uniform stretching to fill space.
   const viewBox = isMobile ? `-25 -25 1210 860` : `0 0 ${VIEW_W} ${VIEW_H}`;
 
-  const R_MAIN = isMobile ? 76 : 52;
-  const R_GROUP = isMobile ? 78 : 54;
+  const R_MAIN = isMobile ? 84 : 52;
+  const R_GROUP = isMobile ? 86 : 54;
+
+  // Hide labels on mobile if the vertical space is too squished (causing overlap)
+  const showLabels = !isMobile || aspectRatioCorrection > 0.4;
 
   const isBorrowingActive = selectedChord ? [1, 2, 3, 4].some(line => {
     const pos = borrowingState.circlePositions[line] || (borrowingState.circlePositions as any)[String(line)];
@@ -350,16 +353,18 @@ export const ElementalDiagram: React.FC<{ children?: React.ReactNode }> = ({ chi
                   strokeWidth={anySelected ? 2.5 : 1}
                   pointerEvents="none"
                 />
-                <text
-                  y={r + 24}
-                  fill={isThisGroup ? '#ffffff' : 'rgba(255, 255, 255, 0.85)'}
-                  fontSize={15}
-                  fontWeight="600"
-                  textAnchor="middle"
-                  pointerEvents="none"
-                >
-                  {baseName}
-                </text>
+                {showLabels && (
+                  <text
+                    y={r + 24}
+                    fill={isThisGroup ? '#ffffff' : 'rgba(255, 255, 255, 0.85)'}
+                    fontSize={15}
+                    fontWeight="600"
+                    textAnchor="middle"
+                    pointerEvents="none"
+                  >
+                    {baseName}
+                  </text>
+                )}
               </g>
             </g>
           );
@@ -397,9 +402,11 @@ export const ElementalDiagram: React.FC<{ children?: React.ReactNode }> = ({ chi
                   stroke={isSelected ? 'white' : 'rgba(255,255,255,0.25)'}
                   strokeWidth={isSelected ? 4 : 1.5}
                 />
-                <text y={r + 29} fill="#ffffff" fontSize={24} fontWeight="bold" textAnchor="middle">
-                  {chord.name}
-                </text>
+                {showLabels && (
+                  <text y={r + 29} fill="#ffffff" fontSize={24} fontWeight="bold" textAnchor="middle">
+                    {chord.name}
+                  </text>
+                )}
               </g>
             </g>
           );
