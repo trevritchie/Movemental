@@ -163,41 +163,59 @@ body {
     gap: 4px;
     margin: 4px 0;
   }
-}
 
-@media (max-width: 950px) and (orientation: portrait) {
-  .main-content {
-    flex-direction: column;
+  @media (orientation: portrait) {
+    .main-content {
+      flex-direction: column;
+    }
+    .unified-side-panel {
+      flex: 0 0 auto;
+      height: auto;
+      border-radius: 20px 20px 0 0;
+      border-left: none;
+      border-right: none;
+      border-bottom: none;
+      background: var(--panel-bg);
+      padding-bottom: env(safe-area-inset-bottom);
+      box-shadow: 0 -8px 32px rgba(0,0,0,0.5);
+      z-index: 10;
+    }
+    .clock-section, .side-divider {
+      display: none !important;
+    }
   }
-  .unified-side-panel {
-    flex: 0 0 auto;
-    height: auto;
-    border-radius: 20px 20px 0 0;
-    border-left: none;
-    border-right: none;
-    border-bottom: none;
-    background: var(--panel-bg);
-    padding-bottom: env(safe-area-inset-bottom);
-    box-shadow: 0 -8px 32px rgba(0,0,0,0.5);
-    z-index: 10;
-  }
-}
 
-@media (max-width: 950px) and (orientation: landscape) {
-  .main-content {
-    flex-direction: row;
-  }
-  .unified-side-panel {
-    flex: 0 0 250px;
-    height: 100%;
-    border-radius: 20px 0 0 20px;
-    border-top: none;
-    border-right: none;
-    border-bottom: none;
-    background: var(--panel-bg);
-    padding-right: env(safe-area-inset-right);
-    box-shadow: -8px 0 32px rgba(0,0,0,0.5);
-    z-index: 10;
+  @media (orientation: landscape) {
+    .main-content {
+      flex-direction: row;
+    }
+    .unified-side-panel {
+      flex: 0 0 320px;
+      height: 100%;
+      border-radius: 20px 0 0 20px;
+      border-top: none;
+      border-right: none;
+      border-bottom: none;
+      background: var(--panel-bg);
+      padding-right: env(safe-area-inset-right);
+      box-shadow: -8px 0 32px rgba(0,0,0,0.5);
+      z-index: 10;
+      overflow-y: auto;
+    }
+    .clock-section, .side-divider {
+      display: block !important;
+    }
+    .clock-section {
+      padding: 10px 0;
+    }
+    .side-divider {
+      width: 90%;
+      margin: 10px auto;
+    }
+    .diagram-container {
+      min-height: 0 !important;
+      padding: 8px;
+    }
   }
 }
 
