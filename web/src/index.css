@@ -69,7 +69,7 @@ body {
   min-height: 0;
 }
 
-@media (max-width: 900px) {
+@media (max-width: 950px) {
   #root {
     height: 100dvh;
     min-height: 100dvh;
@@ -82,7 +82,6 @@ body {
   }
   .main-content {
     display: flex;
-    flex-direction: column;
     flex: 1;
     min-height: 0;
     gap: 0;
@@ -102,30 +101,10 @@ body {
   }
   .controls-group {
     width: 100%;
-    justify-content: flex-start !important;
+    justify-content: center !important;
     gap: 8px !important;
-    flex-wrap: nowrap !important;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    padding: 2px 4px;
-    scrollbar-width: none;
-  }
-  .controls-group::-webkit-scrollbar {
-    display: none;
-  }
-  select {
-    padding: 4px 20px 4px 8px !important;
-    font-size: 0.75rem !important;
-    background-position: right 6px center !important;
-    border-radius: 8px !important;
-    min-width: fit-content;
-    flex-shrink: 0;
-  }
-  .adsr-toggle-btn, .stop-btn {
-    padding: 4px 10px !important;
-    font-size: 0.75rem !important;
-    border-radius: 8px !important;
-    flex-shrink: 0;
+    flex-wrap: wrap !important;
+    padding: 6px 16px;
   }
   .diagram-container {
     flex: 1;
@@ -134,33 +113,31 @@ body {
     border-left: none;
     border-right: none;
     border-bottom: none;
-    padding: 0;
+    padding: 0px;
     background: transparent;
-  }
-  .unified-side-panel {
-    flex: 0 0 auto;
-    height: auto;
-    border-radius: 20px 20px 0 0;
-    border-left: none;
-    border-right: none;
-    border-bottom: none;
-    background: var(--panel-bg);
-    padding-bottom: env(safe-area-inset-bottom);
-    box-shadow: 0 -8px 32px rgba(0,0,0,0.5);
-    z-index: 10;
+    align-items: flex-start; /* Top align the diagram instead of center */
+    padding-top: 0px; /* Add a little breathing room from the top bar */
   }
   .clock-section, .side-divider {
     display: none !important;
   }
   .controls-section {
-    padding: 12px 4px;
+    padding: 0px 4px 4px 0px;
     overflow: visible;
   }
-  .borrowing-row {
-    min-height: 32px;
+  .unified-side-panel {
+    justify-content: flex-start !important;
   }
-  
-  /* Mobile Clock Overlays */
+  .borrowing-controls {
+    justify-content: flex-start !important;
+    gap: 8px !important;
+  }
+  .borrowing-row {
+    min-height: 44px;
+    flex: 0 0 auto !important;
+  }
+
+  /* Mobile Clock Overlays (Restored) */
   .clock-container.mobile-overlay {
     display: block;
     position: absolute;
@@ -173,18 +150,30 @@ body {
     left: 8px;
     text-align: left;
     pointer-events: auto;
-    background: rgba(0, 0, 0, 0.4);
-    padding: 6px 10px;
-    border-radius: 12px;
-    border: 1px solid rgba(255, 255, 255, 0.05);
-    backdrop-filter: blur(8px);
+    background: none;
+    border: none;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
     margin: 0;
+    padding: 0;
+    width: auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+  }
+  .clock-container.mobile-overlay .elemental-name {
+    font-size: 1.05rem !important; /* Smaller as requested to avoid Fire overlap */
+    font-weight: 800;
+  }
+  .clock-container.mobile-overlay .traditional-name {
+    font-size: 0.9rem !important; /* Kept similar to before */
   }
   .clock-container.mobile-overlay .clock-svg {
     position: absolute;
     bottom: 8px;
     right: 8px;
-    width: 110px;
+    width: 110px; /* Slightly smaller to give info box room */
     height: 110px;
     pointer-events: auto;
     margin: 0;
@@ -194,9 +183,57 @@ body {
     gap: 4px;
     margin: 4px 0;
   }
+
+  @media (orientation: portrait) {
+    .main-content {
+      flex-direction: column;
+    }
+    .unified-side-panel {
+      flex: 0 0 auto;
+      height: auto;
+      border-radius: 20px 20px 0 0;
+      border-left: none;
+      border-right: none;
+      border-bottom: none;
+      background: var(--panel-bg);
+      padding-bottom: env(safe-area-inset-bottom);
+      box-shadow: 0 -8px 32px rgba(0,0,0,0.5);
+      z-index: 10;
+    }
+    .clock-section, .side-divider {
+      display: none !important;
+    }
+  }
+
+  @media (orientation: landscape) {
+    .main-content {
+      flex-direction: row;
+    }
+    .unified-side-panel {
+      flex: 0 0 280px; /* Wider for comfortable sliders */
+      height: 100%;
+      border-radius: 20px 0 0 20px;
+      border-top: none;
+      border-right: none;
+      border-bottom: none;
+      background: var(--panel-bg);
+      padding-right: env(safe-area-inset-right);
+      box-shadow: -8px 0 32px rgba(0,0,0,0.5);
+      z-index: 10;
+      overflow-y: auto;
+    }
+    /* Hide clock and divider in ALL mobile orientations (they move to overlays) */
+    .clock-section, .side-divider {
+      display: none !important;
+    }
+    .diagram-container {
+      min-height: 0 !important;
+      padding: 0px;
+    }
+  }
 }
 
-@media (min-width: 901px) {
+@media (min-width: 1101px) and (pointer: fine) {
   .clock-container.mobile-overlay {
     display: none;
   }
@@ -212,7 +249,7 @@ body {
   backdrop-filter: blur(16px);
   border: 1px solid var(--panel-border);
   border-radius: 16px;
-  padding: 16px;
+  padding: 0px;
   min-height: 450px;
 }
 
@@ -273,7 +310,7 @@ body {
   overflow: hidden;
 }
 
-@media (max-width: 900px) {
+@media (max-width: 950px) {
   .unified-side-panel {
     height: auto;
   }
@@ -286,6 +323,12 @@ body {
 .diagram-svg {
   width: 100%;
   height: 100%;
+}
+
+@media (max-width: 950px) and (orientation: portrait) {
+  .diagram-svg {
+    transform: none;
+  }
 }
 
 .chord-node {
@@ -472,7 +515,7 @@ input[type="range"] {
 
 /* Borrowing Controls Layout */
 .borrowing-controls {
-  padding: 4px 12px;
+  padding: 0 12px 4px 12px;
   display: flex;
   flex-direction: column;
   gap: 0;
@@ -944,10 +987,18 @@ input[type="range"] {
   align-items: center;
 }
 
-@media (max-width: 900px) {
+@media (max-width: 950px) {
   .adsr-panel-content {
     grid-template-columns: 1fr;
-    gap: 12px;
+    gap: 8px;
+  }
+  .adsr-svg {
+    aspect-ratio: 4 / 1; /* Shorter visualizer on mobile */
+    max-height: 80px;
+  }
+  .adsr-sliders {
+    grid-template-columns: repeat(2, 1fr) !important; /* Force 2 columns on mobile */
+    gap: 8px;
   }
 }
 
@@ -1195,7 +1246,7 @@ input[type="range"] {
 }
 
 .mobile-ringer-warning {
-  display: none;
+  display: none; /* Hidden on desktop by default */
   margin-top: 1.5rem;
   font-size: 0.85rem;
   color: var(--text-secondary);
@@ -1204,8 +1255,59 @@ input[type="range"] {
   line-height: 1.4;
 }
 
-@media (max-width: 768px) {
+@media (pointer: coarse) {
   .mobile-ringer-warning {
-    display: block;
+    display: block; /* Only show on mobile/touch devices */
+  }
+}
+
+/* Orientation Blocker */
+.orientation-blocker {
+  display: none;
+}
+
+@media (max-width: 1100px) and (orientation: landscape), (pointer: coarse) and (orientation: landscape) {
+  .orientation-blocker {
+    display: flex;
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+    background-color: var(--bg-dark);
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 2rem;
+  }
+
+  .orientation-blocker h1 {
+    font-size: 1.5rem;
+    margin: 1rem 0;
+    background: linear-gradient(135deg, var(--color-earth) 0%, var(--color-wind) 50%, var(--color-fire) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  .orientation-blocker p {
+    color: var(--text-secondary);
+    max-width: 300px;
+    line-height: 1.5;
+  }
+
+  .rotate-icon {
+    color: var(--color-wind);
+    animation: rotate-phone 2s infinite ease-in-out;
+  }
+
+  @keyframes rotate-phone {
+    0% { transform: rotate(90deg); }
+    50% { transform: rotate(0deg); }
+    100% { transform: rotate(90deg); }
+  }
+
+  /* Hide the rest of the app when blocked */
+  #root > *:not(.orientation-blocker) {
+    visibility: hidden !important;
   }
 }

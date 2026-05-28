@@ -17,7 +17,7 @@ export const SplashPage: React.FC<SplashPageProps> = ({ onEnter }) => {
     } catch (e) {
       console.error("Failed to start audio engine", e);
     }
-    
+
     // Wait for the fade-out CSS transition (800ms) before unmounting
     setTimeout(() => {
       onEnter();
@@ -37,9 +37,9 @@ export const SplashPage: React.FC<SplashPageProps> = ({ onEnter }) => {
   };
 
   return (
-    <div 
+    <div
       ref={containerRef}
-      className={`splash-container ${isStarting ? 'fade-out' : ''}`} 
+      className={`splash-container ${isStarting ? 'fade-out' : ''}`}
       onClick={handleStart}
       onMouseMove={handleMouseMove}
     >
@@ -55,16 +55,15 @@ export const SplashPage: React.FC<SplashPageProps> = ({ onEnter }) => {
       </div>
       <div className="splash-content">
         <h1 className="splash-title">Movemental</h1>
-        <p className="splash-subtitle">Inspired by Dr. Barry Harris</p>
-        <button 
-          className="splash-button" 
-          onClick={(e) => { e.stopPropagation(); handleStart(); }} 
+        <button
+          className="splash-button"
+          onClick={(e) => { e.stopPropagation(); handleStart(); }}
           disabled={isStarting}
         >
           Start
         </button>
         <p className="mobile-ringer-warning">
-          Mobile users: Please ensure your device's ringer is ON to hear audio.
+          Please ensure your device's ringer is ON to hear audio.
         </p>
       </div>
     </div>

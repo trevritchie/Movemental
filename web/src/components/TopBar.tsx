@@ -69,6 +69,11 @@ export const TopBar: React.FC = () => {
   const p2 = totalWidth > 0 ? ((x2 - x0) / totalWidth) * 100 : 0;
   const p3 = totalWidth > 0 ? ((x3 - x0) / totalWidth) * 100 : 0;
 
+  // Dynamically center the envelope in the 320px SVG width
+  const svgW = 320;
+  const viewBoxX = (totalWidth - svgW) / 2 + x0;
+  const dynamicViewBox = `${viewBoxX} 0 ${svgW} 100`;
+
   return (
     <div className="top-bar-wrapper">
       <div className="top-bar glass-panel">
@@ -204,7 +209,7 @@ export const TopBar: React.FC = () => {
         <div className="effects-panel adsr-panel glass-panel slide-down">
           <div className="adsr-panel-content">
             <div className="adsr-visualizer">
-              <svg className="adsr-svg" viewBox="0 0 320 100">
+              <svg className="adsr-svg" viewBox={dynamicViewBox}>
                 <defs>
                   <linearGradient id="gemini-grad" x1="0%" y1="0%" x2="100%" y2="0%">
                     <stop offset="0%" stopColor="#4285F4" />
