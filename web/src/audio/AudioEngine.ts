@@ -1,5 +1,17 @@
 import * as Tone from 'tone';
 
+const devLog = (...args: unknown[]) => {
+  if (import.meta.env.DEV) {
+    console.log(...args);
+  }
+};
+
+const devWarn = (...args: unknown[]) => {
+  if (import.meta.env.DEV) {
+    console.warn(...args);
+  }
+};
+
 export class AudioEngine {
   private synth: Tone.PolySynth | null = null;
   private filter: Tone.Filter | null = null;
@@ -112,7 +124,7 @@ export class AudioEngine {
     this.synth.connect(this.filter);
 
     this.isReady = true;
-    console.log('[AudioEngine] Optimized Premium PolySynth (Synth) & Master Filter ready');
+    devLog('[AudioEngine] Optimized Premium PolySynth (Synth) & Master Filter ready');
   }
 
   public async startContext() {
@@ -140,7 +152,7 @@ export class AudioEngine {
     // Convert MIDI → note names (e.g. 60 → "C4")
     const noteNames = clamped.map(n => Tone.Frequency(n, 'midi').toNote());
 
-    console.log('[AudioEngine] Playing notes:', noteNames, '(MIDI:', clamped, ')');
+    devLog('[AudioEngine] Playing notes:', noteNames, '(MIDI:', clamped, ')');
 
     // Add a microscopic 15ms delay to the attack to prevent popping/clicks against the release
     this.synth.triggerAttackRelease(noteNames, duration, now + 0.015);
@@ -156,7 +168,7 @@ export class AudioEngine {
         if (this.isPointerDown) {
           this.triggerAttackSync(midiNotes);
         } else {
-          console.log('[AudioEngine] Pointer was released during async initialization. Aborting attack.');
+          devLog('[AudioEngine] Pointer was released during async initialization. Aborting attack.');
         }
       });
     }
@@ -185,12 +197,12 @@ export class AudioEngine {
       try {
         this.synth.triggerRelease(notesToRelease, now);
       } catch (err) {
-        console.warn('[AudioEngine] Transition release error:', err);
+        devWarn('[AudioEngine] Transition release error:', err);
       }
     }
 
     if (notesToAttack.length > 0) {
-      console.log('[AudioEngine] Attacking:', notesToAttack, '| Sustaining:', noteNames.filter(n => !notesToAttack.includes(n)), '| Releasing:', notesToRelease);
+      devLog('[AudioEngine] Attacking:', notesToAttack, '| Sustaining:', noteNames.filter(n => !notesToAttack.includes(n)), '| Releasing:', notesToRelease);
       // Schedule immediately at `now`. Removing the arbitrary delay prevents
       // chronological inversions from rapid subsequent clicks.
       this.synth.triggerAttack(notesToAttack, now);
@@ -205,7 +217,7 @@ export class AudioEngine {
   public releaseActiveNotes() {
     this.isPointerDown = false;
     if (this.synth && this.isReady) {
-      console.log('[AudioEngine] Hard stop — releasing all voices.');
+      devLog('[AudioEngine] Hard stop — releasing all voices.');
       try {
         // Redundancy: release specific tracked notes, then trigger releaseAll
         if (this.activeNotes.length > 0) {
@@ -213,7 +225,7 @@ export class AudioEngine {
         }
         this.synth.releaseAll();
       } catch (err) {
-        console.warn('[AudioEngine] ReleaseAll error:', err);
+        devWarn('[AudioEngine] ReleaseAll error:', err);
       }
       this.activeNotes = [];
     }
@@ -228,7 +240,7 @@ export class AudioEngine {
       try {
         this.synth.triggerRelease(this.activeNotes, time);
       } catch (err) {
-        console.warn('[AudioEngine] Preview release error:', err);
+        devWarn('[AudioEngine] Preview release error:', err);
       }
       this.activeNotes = [];
     }
