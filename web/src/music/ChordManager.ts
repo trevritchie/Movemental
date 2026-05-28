@@ -117,7 +117,7 @@ export class ChordManager {
     const addEdgeGroups = (
       p1: {x:number, y:number},
       p2: {x:number, y:number},
-      groups: any[],
+      groups: { base: string, bro: string, twin: string, sis: string, p1: number[], p2: number[], p3: number[], p4: number[] }[],
       macroDAlong: number,
       macroDPerp: number
     ) => {

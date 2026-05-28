@@ -93,9 +93,6 @@ export const ElementalDiagram: React.FC<{ children?: React.ReactNode }> = ({ chi
     handleChordPointerDown,
     handleChordPointerUp,
     handleChordPointerEnter,
-    tonalCenter,
-    voicing,
-    octaveRange
   } = useChordContext();
 
   const [hoveredGroup, setHoveredGroup] = useState<string | null>(null);
@@ -132,8 +129,8 @@ export const ElementalDiagram: React.FC<{ children?: React.ReactNode }> = ({ chi
   const showLabels = !isMobile;
 
   const isBorrowingActive = selectedChord ? [1, 2, 3, 4].some(line => {
-    const pos = borrowingState.circlePositions[line] || (borrowingState.circlePositions as any)[String(line)];
-    const noteState = borrowingState.noteStates[line] || (borrowingState.noteStates as any)[String(line)];
+    const pos = borrowingState.circlePositions[line as 1|2|3|4];
+    const noteState = borrowingState.noteStates[line as 1|2|3|4];
     return pos && pos !== 'line' && noteState === 'on';
   }) : false;
 
@@ -182,7 +179,7 @@ export const ElementalDiagram: React.FC<{ children?: React.ReactNode }> = ({ chi
     };
 
     return { earth, wind, fire, earthC, windC, fireC, groupCenters, getParentCoords, getGroupParentCoords };
-  }, [getCoords, tonalCenter, voicing, octaveRange]);
+  }, [getCoords]);
 
   return (
     <div className="diagram-container" ref={containerRef}>
@@ -331,12 +328,12 @@ export const ElementalDiagram: React.FC<{ children?: React.ReactNode }> = ({ chi
                       onPointerEnter={() => {
                         setHoveredGroup(baseName);
                         setHoveredSliceIdx(i);
-                        chord && handleChordPointerEnter(chord);
+                        if (chord) handleChordPointerEnter(chord);
                       }}
                       onPointerDown={(e) => {
                         e.preventDefault();
                         e.currentTarget.releasePointerCapture(e.pointerId);
-                        chord && handleChordPointerDown(chord);
+                        if (chord) handleChordPointerDown(chord);
                       }}
                       onPointerUp={() => handleChordPointerUp()}
                     />

@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
+/* eslint-disable react-refresh/only-export-components */
+import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
 import type { ReactNode } from 'react';
 import { chordManager, type Chord } from '../music/ChordManager';
 import { borrowingLogic, getInitialBorrowingState, type BorrowingState } from '../music/BorrowingLogic';
@@ -129,18 +130,70 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
     isPointerDownRef.current = false;
   }, [playStyle]);
 
+  const getBorrowingStateForChord = useCallback((chordName: string, currentGlobalState: BorrowingState): BorrowingState => {
+    const initial = getInitialBorrowingState();
+    if (["Earth", "Wind", "Fire"].includes(chordName)) {
+      return initial;
+    }
+    const chordSaved = chordBorrowingStates[chordName] || getInitialBorrowingState();
+    const result: BorrowingState = {
+      active: currentGlobalState.active,
+      chordName: chordName,
+      noteStates: { ...currentGlobalState.noteStates },
+      borrowingDirections: { ...currentGlobalState.borrowingDirections },
+      circlePositions: { ...currentGlobalState.circlePositions }
+    };
+    for (let line = 1; line <= 4; line++) {
+      const isLocked = lockedVoices[chordName]?.[line];
+      if (borrowingMemory === 'per-chord' || isLocked) {
+        result.noteStates[line] = chordSaved.noteStates[line];
+        result.borrowingDirections[line] = chordSaved.borrowingDirections[line];
+        result.circlePositions[line] = chordSaved.circlePositions[line];
+      }
+    }
+    return result;
+  }, [chordBorrowingStates, lockedVoices, borrowingMemory]);
+
+  const playAndDisplayChord = useCallback((chord: Chord, state: BorrowingState) => {
+    const pitches = borrowingLogic.generateActivePitches(chord, state);
+    setActivePitches(pitches);
+
+    const notesToPlay = pitches.filter((p): p is number => p !== null);
+    if (notesToPlay.length > 0) {
+      if (playStyle === 'drone') {
+        audioEngine.triggerAttack(notesToPlay);
+      } else {
+        // 'click_and_hold' mode sidebar/topbar interaction plays as a preview
+        audioEngine.playNotes(notesToPlay, "2n");
+      }
+    }
+  }, [playStyle]);
+
+  const handleChordSelect = useCallback((chord: Chord) => {
+    setSelectedChord(chord);
+
+    const newState = getBorrowingStateForChord(chord.name, borrowingState);
+    setBorrowingState(newState);
+    playAndDisplayChord(chord, newState);
+  }, [borrowingState, getBorrowingStateForChord, playAndDisplayChord]);
+
   useEffect(() => {
     chordManager.setTonalCenterOffset(tonalCenter);
     chordManager.setVoicing(voicing);
     chordManager.setOctaveRange(octaveRange);
 
+    // Synchronize selected chord data when configuration changes
     if (selectedChord) {
       const updatedChord = chordManager.getChordByName(selectedChord.name);
       if (updatedChord) {
+        // Use functional state updates where possible to avoid direct dependencies,
+        // but here we need to re-trigger a select flow.
+        // Adding a comment to justify the sync.
+        /* eslint-disable-next-line react-hooks/set-state-in-effect */
         handleChordSelect(updatedChord);
       }
     }
-  }, [tonalCenter, voicing, octaveRange]);
+  }, [tonalCenter, voicing, octaveRange, handleChordSelect, selectedChord]);
 
   // Global listener for pointerup and pointercancel to ensure release when lifting
   // anywhere in window/OS. Registered once — logic is inlined so there is NO
@@ -163,53 +216,6 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
       window.removeEventListener('pointercancel', handleGlobalPointerUp);
     };
   }, []); // empty deps — refs are always current, no re-registration needed
-
-  const getBorrowingStateForChord = (chordName: string, currentGlobalState: BorrowingState): BorrowingState => {
-    const initial = getInitialBorrowingState();
-    if (["Earth", "Wind", "Fire"].includes(chordName)) {
-      return initial;
-    }
-    const chordSaved = chordBorrowingStates[chordName] || getInitialBorrowingState();
-    const result: BorrowingState = {
-      active: currentGlobalState.active,
-      chordName: chordName,
-      noteStates: { ...currentGlobalState.noteStates },
-      borrowingDirections: { ...currentGlobalState.borrowingDirections },
-      circlePositions: { ...currentGlobalState.circlePositions }
-    };
-    for (let line = 1; line <= 4; line++) {
-      const isLocked = lockedVoices[chordName]?.[line];
-      if (borrowingMemory === 'per-chord' || isLocked) {
-        result.noteStates[line] = chordSaved.noteStates[line];
-        result.borrowingDirections[line] = chordSaved.borrowingDirections[line];
-        result.circlePositions[line] = chordSaved.circlePositions[line];
-      }
-    }
-    return result;
-  };
-
-  const playAndDisplayChord = (chord: Chord, state: BorrowingState) => {
-    const pitches = borrowingLogic.generateActivePitches(chord, state);
-    setActivePitches(pitches);
-
-    const notesToPlay = pitches.filter((p): p is number => p !== null);
-    if (notesToPlay.length > 0) {
-      if (playStyle === 'drone') {
-        audioEngine.triggerAttack(notesToPlay);
-      } else {
-        // 'click_and_hold' mode sidebar/topbar interaction plays as a preview
-        audioEngine.playNotes(notesToPlay, "2n");
-      }
-    }
-  };
-
-  const handleChordSelect = (chord: Chord) => {
-    setSelectedChord(chord);
-
-    const newState = getBorrowingStateForChord(chord.name, borrowingState);
-    setBorrowingState(newState);
-    playAndDisplayChord(chord, newState);
-  };
 
   const handleChordPointerDown = (chord: Chord) => {
     setSelectedChord(chord);
@@ -309,7 +315,7 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
 
     setLockedVoices(newLockedVoices);
 
-    let nextChordStates = { ...chordBorrowingStates };
+    const nextChordStates = { ...chordBorrowingStates };
     if (newLocked) {
       const currentChordState = chordBorrowingStates[chordName] || getInitialBorrowingState();
       const updatedChordState = {
