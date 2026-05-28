@@ -3,7 +3,8 @@ import '@testing-library/jest-dom';
 
 // Mock Web Audio API
 class MockAudioContext {
-  state = 'suspended';
+  state = 'running';
+  sampleRate = 44100;
   resume = vi.fn().mockResolvedValue(undefined);
   suspend = vi.fn().mockResolvedValue(undefined);
   close = vi.fn().mockResolvedValue(undefined);
@@ -17,6 +18,13 @@ class MockAudioContext {
     stop: vi.fn(),
     frequency: { setValueAtTime: vi.fn() },
   }));
+  createBuffer = vi.fn(() => ({}));
+  createBufferSource = vi.fn(() => ({
+    buffer: null,
+    connect: vi.fn(),
+    disconnect: vi.fn(),
+    start: vi.fn(),
+  }));
   destination = {};
 }
 
@@ -27,6 +35,18 @@ Object.defineProperty(window, 'AudioContext', {
 
 Object.defineProperty(window, 'webkitAudioContext', {
   value: MockAudioContext,
+  writable: true,
+});
+
+Object.defineProperty(navigator, 'audioSession', {
+  value: { type: 'auto' },
+  configurable: true,
+  writable: true,
+});
+
+Object.defineProperty(navigator, 'maxTouchPoints', {
+  value: 0,
+  configurable: true,
   writable: true,
 });
 

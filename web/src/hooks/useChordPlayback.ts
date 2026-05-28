@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback, type RefObject } from 'react'
 import type { Chord } from '../music/ChordManager';
 import { borrowingLogic, type BorrowingState } from '../music/BorrowingLogic';
 import { audioEngine } from '../audio/AudioEngine';
+import { unlockIosMediaChannel } from '../audio/iosMediaChannel';
 import type { PlayStyle } from '../context/types';
 
 interface UseChordPlaybackOptions {
@@ -85,6 +86,7 @@ export function useChordPlayback({
   };
 
   const handleChordPointerDown = (chord: Chord) => {
+    unlockIosMediaChannel();
     setSelectedChord(chord);
     isPointerDownRef.current = true;
     applyChordWithBorrowing(chord);

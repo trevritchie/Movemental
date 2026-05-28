@@ -1,5 +1,9 @@
 import React, { useState, useRef } from 'react';
 import { audioEngine } from '../audio/AudioEngine';
+import {
+  unlockIosMediaChannel,
+  waitForIosMediaChannel,
+} from '../audio/iosMediaChannel';
 
 interface SplashPageProps {
   onEnter: () => void;
@@ -9,19 +13,24 @@ export const SplashPage: React.FC<SplashPageProps> = ({ onEnter }) => {
   const [isStarting, setIsStarting] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const handleStart = async () => {
+  const handleStart = () => {
     if (isStarting) return;
     setIsStarting(true);
-    try {
-      await audioEngine.startContext();
-    } catch (e) {
-      console.error("Failed to start audio engine", e);
-    }
 
-    // Wait for the fade-out CSS transition (800ms) before unmounting
-    setTimeout(() => {
-      onEnter();
-    }, 800);
+    unlockIosMediaChannel();
+
+    void (async () => {
+      try {
+        await waitForIosMediaChannel();
+        await audioEngine.startContext();
+      } catch (e) {
+        console.error('Failed to start audio engine', e);
+      }
+
+      setTimeout(() => {
+        onEnter();
+      }, 800);
+    })();
   };
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -62,9 +71,6 @@ export const SplashPage: React.FC<SplashPageProps> = ({ onEnter }) => {
         >
           Start
         </button>
-        <p className="mobile-ringer-warning">
-          Please ensure your device's ringer is ON to hear audio.
-        </p>
       </div>
     </div>
   );
