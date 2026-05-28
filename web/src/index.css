@@ -70,11 +70,41 @@ body {
 }
 
 @media (max-width: 950px) {
+  html,
+  body {
+    height: 100%;
+    overflow: hidden;
+    overscroll-behavior: none;
+    position: fixed;
+    width: 100%;
+    touch-action: manipulation;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  #root,
+  .app-container {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  input,
+  textarea,
+  [contenteditable='true'] {
+    -webkit-user-select: text;
+    user-select: text;
+    -webkit-touch-callout: default;
+  }
+
   #root {
     height: 100dvh;
     min-height: 100dvh;
     overflow: hidden;
+    overscroll-behavior: none;
   }
+
   .app-container {
     height: 100dvh;
     padding: 0;
@@ -117,6 +147,7 @@ body {
     background: transparent;
     align-items: flex-start; /* Top align the diagram instead of center */
     padding-top: 0px; /* Add a little breathing room from the top bar */
+    touch-action: none;
   }
   .clock-section, .side-divider {
     display: none !important;
@@ -205,32 +236,6 @@ body {
     }
   }
 
-  @media (orientation: landscape) {
-    .main-content {
-      flex-direction: row;
-    }
-    .unified-side-panel {
-      flex: 0 0 280px; /* Wider for comfortable sliders */
-      height: 100%;
-      border-radius: 20px 0 0 20px;
-      border-top: none;
-      border-right: none;
-      border-bottom: none;
-      background: var(--panel-bg);
-      padding-right: env(safe-area-inset-right);
-      box-shadow: -8px 0 32px rgba(0,0,0,0.5);
-      z-index: 10;
-      overflow-y: auto;
-    }
-    /* Hide clock and divider in ALL mobile orientations (they move to overlays) */
-    .clock-section, .side-divider {
-      display: none !important;
-    }
-    .diagram-container {
-      min-height: 0 !important;
-      padding: 0px;
-    }
-  }
 }
 
 @media (min-width: 1101px) and (pointer: fine) {
@@ -1243,22 +1248,6 @@ input[type="range"] {
 @keyframes float-icon {
   0% { transform: translateY(0); }
   100% { transform: translateY(-8px); }
-}
-
-.mobile-ringer-warning {
-  display: none; /* Hidden on desktop by default */
-  margin-top: 1.5rem;
-  font-size: 0.85rem;
-  color: var(--text-secondary);
-  opacity: 0.8;
-  max-width: 80%;
-  line-height: 1.4;
-}
-
-@media (pointer: coarse) {
-  .mobile-ringer-warning {
-    display: block; /* Only show on mobile/touch devices */
-  }
 }
 
 /* Orientation Blocker */

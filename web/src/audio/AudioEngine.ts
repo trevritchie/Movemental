@@ -1,4 +1,8 @@
 import * as Tone from 'tone';
+import {
+  unlockIosMediaChannel,
+  waitForIosMediaChannel,
+} from './iosMediaChannel';
 
 const devLog = (...args: unknown[]) => {
   if (import.meta.env.DEV) {
@@ -128,6 +132,8 @@ export class AudioEngine {
   }
 
   public async startContext() {
+    unlockIosMediaChannel();
+    await waitForIosMediaChannel();
     await Tone.start();
     if (!this.isReady) {
       await this.initSynth();

@@ -1,5 +1,7 @@
 {
   "projects": {
-    "default": "movemental-chords"
+    "default": "movemental-dev",
+    "dev": "movemental-dev",
+    "prod": "movemental-chords"
   }
 }

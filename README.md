@@ -29,6 +29,17 @@ npm run build
 npm run preview   # optional: serve production build locally
 ```
 
+### Deploy (Firebase Hosting)
+
+| Environment | Project | How it deploys |
+|-------------|---------|----------------|
+| Dev | `movemental-dev` | `npm run build` locally (build + deploy; skipped when `CI=true`) |
+| Prod | `movemental-chords` | Push to `main` with changes under `web/` (GitHub Actions after verify) |
+
+**Local (dev):** Run `firebase login` once in `web/`, then `npm run build` deploys to dev.
+
+**CI (prod):** Add a repository secret `FIREBASE_TOKEN` from `npx firebase login:ci` (account needs Hosting deploy access on both projects).
+
 See [`web/README.md`](web/README.md) for architecture, audio chain, and domain logic.
 
 ## Python prototype
