@@ -1,10 +1,10 @@
 # Movemental Web: The Elemental Tesseract Audio Engine & Interactive Interface
 
-Movemental Web is a state-of-the-art interactive audio application built on React, TypeScript, and Vite. It implements the **Elemental Tesseract**—a mathematical and music-theoretical system that maps pitch relations to symmetrical coordinates across elemental axes, utilizing an advanced voice borrowing system and an 8-stage laptop-optimized DSP signal chain powered by Tone.js.
+Movemental Web is a state-of-the-art interactive audio application built on React, TypeScript, and Vite. It implements the **Elemental Tesseract**, a mathematical and music-theoretical system that maps pitch relations to symmetrical coordinates across elemental axes, utilizing an advanced voice borrowing system and an 8-stage laptop-optimized DSP signal chain powered by Tone.js.
 
 ---
 
-## 🗺️ Architectural & Data Flow Overview
+## Architectural & Data Flow Overview
 
 The web application is structured around a unidirectional state flow, managed by a central React Context (`ChordContext`) and driven by user events from highly responsive SVG graphics.
 
@@ -44,7 +44,7 @@ graph TD
     style DSP Engine fill:#121820,stroke:#238636,stroke-width:2px
 ```
 
-### 🧠 ChordContext React Core (`ChordContext.tsx`)
+### ChordContext React Core (`ChordContext.tsx`)
 At the core of the UI is the `ChordProvider`, which manages:
 *   **Active Configurations**: Tonal Center offset (default: Bb / Offset `10`), Octave Range (default: `3`), and Voicing style (`Close`, `Drop 2`, `Drop 3`, and `Drop 2 & 4`).
 *   **Borrowing State Configurations**: Keeps track of `circlePositions` (`line`, `up`, `down`), `borrowingDirections` (`up`, `down`, `null`), and `noteStates` (`on`, `off`) for the 4 voices.
@@ -55,7 +55,7 @@ At the core of the UI is the `ChordProvider`, which manages:
 
 ---
 
-## 📐 Symmetrical Geometry & Chord Dictionary
+## Symmetrical Geometry & Chord Dictionary
 
 The pitch universe of Movemental is structured around a downward-pointing triangle, separating the chromatic octave into three mutually exclusive symmetrical sets.
 
@@ -68,19 +68,19 @@ The pitch universe of Movemental is structured around a downward-pointing triang
                    [Fire: bottom]
 ```
 
-### 🧬 The Three Symmetrical Roots
+### The Three Symmetrical Roots
 The three primary vertices correspond to the three **Symmetrical Diminished 7th Chords**:
-*   🟢 **Earth** (C, Eb, F#, A) — $[C_4, E\flat_4, F\sharp_4, A_4]$
-*   🔵 **Wind** (Db, E, G, Bb) — $[D\flat_4, E_4, G_4, B\flat_4]$
-*   🔴 **Fire** (D, F, Ab, B) — $[D_4, F_4, A\flat_4, B_4]$
+*   **Earth** (C, Eb, F#, A): $[C_4, E\flat_4, F\sharp_4, A_4]$
+*   **Wind** (Db, E, G, Bb): $[D\flat_4, E_4, G_4, B\flat_4]$
+*   **Fire** (D, F, Ab, B): $[D_4, F_4, A\flat_4, B_4]$
 
-### 💎 Coordinates and Quadrant Groups
+### Coordinates and Quadrant Groups
 Along the edges of the Earth-Wind-Fire triangle are **12 quadrant groups** (each representing a cluster of 4 chord variations). They are mathematically calculated along vector coordinates inside `ChordManager.ts`:
 1.  **Earth-Wind Axis**: `Trunk`, `Branch`, `Sand-Storm`, `Leaf`
 2.  **Wind-Fire Axis**: `Smoke`, `Ember`, `Fire-Storm`, `Flame`
 3.  **Fire-Earth Axis**: `Magma`, `Glass`, `Forest-Fire`, `Charcoal`
 
-#### 🍊 The 4 Symmetrical Slice Variants (The Diamond Clusters)
+#### The 4 Symmetrical Slice Variants (The Diamond Clusters)
 Every group is a micro-diamond of **4 chord variations**, positioned via normal and tangent vector offsets relative to the main axis:
 *   **Base** (Center-outward slice): The foundational voicing.
 *   **Sister** (Clockwise-shifted slice): Lighter, higher-frequency extension.
@@ -92,7 +92,7 @@ Every group is a micro-diamond of **4 chord variations**, positioned via normal 
 
 ---
 
-## 🔄 The Advanced Voice Borrowing System
+## The Advanced Voice Borrowing System
 
 The voice borrowing system is a unique harmonic mutation algorithm. Instead of transposing notes within a key, voices "borrow" pitches from the **opposite element** (the vertex opposite to the chord's active axis).
 
@@ -102,7 +102,7 @@ Axis: Wind  <───> Fire  ========> Borrow from: Earth
 Axis: Fire  <───> Earth ========> Borrow from: Wind
 ```
 
-### 🎼 The 4 Voices & Inversion Mapping
+### The 4 Voices & Inversion Mapping
 The 4 voice channels of the synthesizer are mapped to the notes of the active chord based on its **Root Position Index** (`rootPositionIndex`), automatically accounting for chord inversions:
 *   **Line 1** ➔ **Root** note of the chord ($index = rootIdx$)
 *   **Line 2** ➔ **3rd** of the chord ($index = (rootIdx + 1) \bmod 4$)
@@ -111,7 +111,7 @@ The 4 voice channels of the synthesizer are mapped to the notes of the active ch
     *   *6th Chords*: Trunk, Smoke, Magma, Branch, Ember, Glass.
     *   *7th Chords*: Sand-Storm, Fire-Storm, Forest-Fire, Leaf, Flame, Charcoal.
 
-### 🧮 Symmetrical Shift Calculation (`BorrowingLogic.ts`)
+### Symmetrical Shift Calculation (`BorrowingLogic.ts`)
 When a user shifts a voice `up` or `down`, the algorithm replaces that note's pitch class with the closest matching pitch class from the opposite element:
 
 *   **`findNextHigherNote`**: Takes the voice's current pitch class ($PC_0$) and finds the smallest pitch class ($PC_{opp}$) from the opposite diminished chord where $PC_{opp} > PC_0$. It transposes $PC_{opp}$ into the voice's active octave. If no higher pitch class exists, it wraps around to the lowest pitch class of the opposite chord in the next higher octave ($octave + 1$).
@@ -125,7 +125,7 @@ Next higher pitch class relative to C (0) in Fire is D (2).
 Resulting pitch: D4 (62) is borrowed into the chord.
 ```
 
-### 🧼 Voicing Application
+### Voicing Application
 After borrowing modifications are applied, the resulting pitch array is mapped to a voicing template:
 *   **Close Voicing**: Notes are kept in their original tightly packed intervals.
 *   **Drop 2**: The second highest note is dropped an octave.
@@ -134,7 +134,7 @@ After borrowing modifications are applied, the resulting pitch array is mapped t
 
 ---
 
-## 🧪 Dynamic Chord Chemistry (`ClockFace.tsx`)
+## Dynamic Chord Chemistry (`ClockFace.tsx`)
 
 The circular `ClockFace` component acts as a high-fidelity visualizer for active pitches, and calculates a dynamic **chemistry formula** representing the active elemental weight of the sound.
 
@@ -151,7 +151,7 @@ $$\text{Earth}_x \text{Wind}_y \text{Fire}_z \quad (\text{e.g., } \mathbf{Earth_
 
 ---
 
-## 🎛️ Tone.js Audio Engine & DSP Signal Chain
+## Tone.js Audio Engine & DSP Signal Chain
 
 The application's synthesizer features an optimized **8-stage DSP Signal Chain** configured for high-fidelity stereo width, lush environments, and balanced small-diaphragm performance.
 
@@ -218,47 +218,47 @@ graph LR
 
 ---
 
-## 🛠️ Developer Setup & Verification
+## Developer Setup & Verification
 
 Follow these instructions to set up, build, and run the project locally.
 
-### 📦 Prerequisites
+### Prerequisites
 *   [Node.js](https://nodejs.org/) (v18.0.0 or higher recommended)
 *   `npm` (v9.0.0 or higher)
 
-### 🚀 Installation
+### Installation
 From the root of the `web` folder, run:
 ```bash
 npm install
 ```
 
-### 💻 Local Development
+### Local Development
 Start the local Vite development server with Hot Module Replacement (HMR):
 ```bash
 npm run dev
 ```
 Open [http://localhost:5173](http://localhost:5173) in your browser.
 
-### 🔍 Static Code Analysis (Linting)
+### Static Code Analysis (Linting)
 Run ESLint to verify code quality and style compliance:
 ```bash
 npm run lint
 ```
 
-### 📦 Production Build
+### Production Build
 Type-check the project and compile optimized production assets:
 ```bash
 npm run build
 ```
 Highly optimized, minified assets will be generated in the `web/dist` directory.
 
-### 🌐 Preview Production Build
+### Preview Production Build
 Serve the compiled production files locally to test performance:
 ```bash
 npm run preview
 ```
 
-### 🧪 Verification Utility Script
+### Verification Utility Script
 The codebase includes a CLI utility `web/src/check.ts` that initializes the chord dictionary and prints symmetrical coordinates, vector centers, and pitch arrays to the console. You can run this directly in your terminal using a runner like `vite-node` or `ts-node` to verify mathematical alignment:
 ```bash
 npx vite-node src/check.ts

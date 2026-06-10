@@ -6,8 +6,8 @@ Interactive chord exploration through the Elemental Tesseract harmonic system (E
 
 | Directory | Role |
 |-----------|------|
-| [`web/`](web/) | **Active product** — React, TypeScript, Vite, Tone.js. Deploy output: `web/dist` (Firebase Hosting). |
-| [`python/`](python/) | **Archived prototype** — CreativePython / PySide desktop app kept for reference. |
+| [`web/`](web/) | **Active product** (React, TypeScript, Vite, Tone.js). Deploy output: `web/dist` (Firebase Hosting). |
+| [`python/`](python/) | **Archived prototype** (CreativePython / PySide desktop app kept for reference). |
 
 ## Quick start (web)
 
