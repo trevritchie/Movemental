@@ -7,7 +7,7 @@ export const LandscapePrompt: React.FC = () => {
       <div className="blocker-content">
         <Smartphone className="rotate-icon" size={48} />
         <h1>Please Rotate Your Device</h1>
-        <p>This application is optimized for portrait (vertical) orientation on mobile devices.</p>
+        <p>This application is optimized for portrait orientation on phones. Please rotate your phone to continue.</p>
       </div>
     </div>
   );
