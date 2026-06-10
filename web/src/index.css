@@ -1,4 +1,5 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import './layout/breakpoints.css';
 
 :root {
   --bg-dark: #09090b;
@@ -69,7 +70,8 @@ body {
   min-height: 0;
 }
 
-@media (max-width: 950px) {
+@media (max-width: 767px),
+       (max-width: 950px) and (orientation: portrait) and (pointer: coarse) {
   html,
   body {
     height: 100%;
@@ -238,9 +240,38 @@ body {
 
 }
 
-@media (min-width: 1101px) and (pointer: fine) {
+@media (min-width: 768px) and (pointer: fine),
+       (min-width: 768px) and (max-width: 1199px) and (pointer: coarse) {
   .clock-container.mobile-overlay {
     display: none;
+  }
+}
+
+/* Tablet: touch side-by-side layout with desktop-like grid */
+@media (min-width: 768px) and (max-width: 1199px) and (pointer: coarse) {
+  .app-container {
+    padding: 0 max(12px, env(safe-area-inset-right))
+             max(12px, env(safe-area-inset-bottom))
+             max(12px, env(safe-area-inset-left));
+    gap: 12px;
+  }
+
+  .top-bar {
+    padding-top: max(8px, env(safe-area-inset-top));
+    padding-left: max(12px, env(safe-area-inset-left));
+    padding-right: max(12px, env(safe-area-inset-right));
+  }
+
+  .main-content {
+    gap: 12px;
+  }
+
+  .diagram-container {
+    min-height: 0;
+  }
+
+  .borrowing-row {
+    min-height: 44px;
   }
 }
 
@@ -315,7 +346,8 @@ body {
   overflow: hidden;
 }
 
-@media (max-width: 950px) {
+@media (max-width: 767px),
+       (max-width: 950px) and (orientation: portrait) and (pointer: coarse) {
   .unified-side-panel {
     height: auto;
   }
@@ -330,7 +362,8 @@ body {
   height: 100%;
 }
 
-@media (max-width: 950px) and (orientation: portrait) {
+@media (max-width: 767px) and (orientation: portrait),
+       (max-width: 950px) and (orientation: portrait) and (pointer: coarse) {
   .diagram-svg {
     transform: none;
   }
@@ -992,7 +1025,8 @@ input[type="range"] {
   align-items: center;
 }
 
-@media (max-width: 950px) {
+@media (max-width: 767px),
+       (max-width: 950px) and (orientation: portrait) and (pointer: coarse) {
   .adsr-panel-content {
     grid-template-columns: 1fr;
     gap: 8px;
@@ -1250,53 +1284,59 @@ input[type="range"] {
   100% { transform: translateY(-8px); }
 }
 
-/* Orientation Blocker */
+/* Orientation Blocker (rendered only while blocked via React) */
 .orientation-blocker {
-  display: none;
+  display: flex;
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  background-color: var(--bg-dark);
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 2rem;
 }
 
-@media (max-width: 1100px) and (orientation: landscape), (pointer: coarse) and (orientation: landscape) {
-  .orientation-blocker {
-    display: flex;
-    position: fixed;
-    inset: 0;
-    z-index: 10000;
-    background-color: var(--bg-dark);
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-    padding: 2rem;
+.orientation-blocker h1 {
+  font-size: 1.5rem;
+  margin: 1rem 0;
+  background: linear-gradient(135deg, var(--color-earth) 0%, var(--color-wind) 50%, var(--color-fire) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.orientation-blocker p {
+  color: var(--text-secondary);
+  max-width: 300px;
+  line-height: 1.5;
+}
+
+.rotate-icon {
+  color: var(--color-wind);
+  animation: rotate-phone 2s infinite ease-in-out;
+}
+
+@keyframes rotate-phone {
+  0% { transform: rotate(90deg); }
+  50% { transform: rotate(0deg); }
+  100% { transform: rotate(90deg); }
+}
+
+/* Foldable: gutter padding when spanning both viewport segments */
+@media (horizontal-viewport-segments: 2) {
+  .app-container {
+    padding-left: max(16px, env(safe-area-inset-left));
+    padding-right: max(16px, env(safe-area-inset-right));
   }
 
-  .orientation-blocker h1 {
-    font-size: 1.5rem;
-    margin: 1rem 0;
-    background: linear-gradient(135deg, var(--color-earth) 0%, var(--color-wind) 50%, var(--color-fire) 100%);
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
+  .top-bar {
+    padding-left: max(24px, env(safe-area-inset-left));
+    padding-right: max(24px, env(safe-area-inset-right));
   }
 
-  .orientation-blocker p {
-    color: var(--text-secondary);
-    max-width: 300px;
-    line-height: 1.5;
-  }
-
-  .rotate-icon {
-    color: var(--color-wind);
-    animation: rotate-phone 2s infinite ease-in-out;
-  }
-
-  @keyframes rotate-phone {
-    0% { transform: rotate(90deg); }
-    50% { transform: rotate(0deg); }
-    100% { transform: rotate(90deg); }
-  }
-
-  /* Hide the rest of the app when blocked */
-  #root > *:not(.orientation-blocker) {
-    visibility: hidden !important;
+  .unified-side-panel {
+    padding-right: env(safe-area-inset-right);
   }
 }

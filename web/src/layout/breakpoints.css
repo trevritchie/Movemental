@@ -1,0 +1,8 @@
+/* Must stay in sync with layout/breakpoints.ts BREAKPOINTS values. */
+:root {
+  --bp-phone-max: 767px;
+  --bp-compact-max: 950px;
+  --bp-tablet-max: 1199px;
+  --bp-desktop-min: 1200px;
+  --bp-phone-landscape-max-height: 500px;
+}

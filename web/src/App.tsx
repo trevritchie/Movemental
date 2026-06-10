@@ -7,28 +7,40 @@ import { ChordProvider, useChordContext } from './context/ChordContext';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { SplashPage } from './components/SplashPage';
 import { LandscapePrompt } from './components/LandscapePrompt';
+import { useLayoutTier } from './hooks/useLayoutTier';
+import { usePhoneLandscapeBlocked } from './hooks/usePhoneLandscapeBlocked';
 
 function AppContent() {
   const { selectedChord } = useChordContext();
+  const layoutTier = useLayoutTier();
 
   const isPrimaryElement = selectedChord ? ["Earth", "Wind", "Fire"].includes(selectedChord.name) : true;
+  const isPhoneLayout = layoutTier === 'phone';
 
   return (
     <div className="app-container">
       <TopBar />
-      
+
       <div className="main-content">
-        <ElementalDiagram>
-          <ClockFace isMobileOverlay />
-        </ElementalDiagram>
-        
+        {isPhoneLayout ? (
+          <ElementalDiagram>
+            <ClockFace isMobileOverlay />
+          </ElementalDiagram>
+        ) : (
+          <ElementalDiagram />
+        )}
+
         <div className="side-panel glass-panel unified-side-panel">
-          <div className="side-section clock-section">
-            <ClockFace />
-          </div>
-          
-          <div className="side-divider" />
-          
+          {!isPhoneLayout && (
+            <>
+              <div className="side-section clock-section">
+                <ClockFace />
+              </div>
+
+              <div className="side-divider" />
+            </>
+          )}
+
           <div className="side-section controls-section">
             <BorrowingControls disabled={!selectedChord || isPrimaryElement} />
           </div>
@@ -40,13 +52,19 @@ function AppContent() {
 
 function App() {
   const [hasStarted, setHasStarted] = useState(false);
+  const isBlocked = usePhoneLandscapeBlocked();
 
   return (
     <ErrorBoundary>
       <ChordProvider>
-        <LandscapePrompt />
-        {!hasStarted && <SplashPage onEnter={() => setHasStarted(true)} />}
-        <AppContent />
+        {isBlocked ? (
+          <LandscapePrompt />
+        ) : (
+          <>
+            {!hasStarted && <SplashPage onEnter={() => setHasStarted(true)} />}
+            <AppContent />
+          </>
+        )}
       </ChordProvider>
     </ErrorBoundary>
   );

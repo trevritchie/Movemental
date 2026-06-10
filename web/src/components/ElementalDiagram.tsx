@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useLayoutEffect, useCallback } from 'react';
 import { chordManager, type Chord } from '../music/ChordManager';
 import {
   BASE_GROUPS,
@@ -8,6 +8,8 @@ import {
   AXIS_PARENTS,
 } from '../music/diagramMetadata';
 import { useChordContext } from '../context/ChordContext';
+import { BREAKPOINTS } from '../layout/breakpoints';
+import { useLayoutTier } from '../hooks/useLayoutTier';
 
 function piePath(r: number, slice: number): string {
   const d = r / Math.SQRT2;
@@ -54,35 +56,60 @@ export const ElementalDiagram: React.FC<{ children?: React.ReactNode }> = ({ chi
   const [hoveredGroup, setHoveredGroup] = useState<string | null>(null);
   const [hoveredSliceIdx, setHoveredSliceIdx] = useState<number | null>(null);
 
-  const [isMobile, setIsMobile] = useState(window.innerWidth <= 950);
-  
-  React.useEffect(() => {
-    const handleResize = () => {
-      setIsMobile(window.innerWidth <= 950);
-      if (containerRef.current) {
-        const { width, height } = containerRef.current.getBoundingClientRect();
-        if (width > 0 && height > 0) {
-          // Calculate how much the browser is stretching the SVG
-          // viewBox is -25 -25 1210 860 (AR ~1.4)
-          const viewBoxAR = 1210 / 860;
-          const containerAR = width / height;
-          setAspectRatioCorrection(containerAR / viewBoxAR);
-        }
-      }
-    };
-    window.addEventListener('resize', handleResize);
-    handleResize(); // Initial calculation
-    return () => window.removeEventListener('resize', handleResize);
+  const layoutTier = useLayoutTier();
+  const [containerWidth, setContainerWidth] = useState(0);
+  const [isDiagramReady, setIsDiagramReady] = useState(false);
+
+  const measureContainer = useCallback(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    const { width, height } = container.getBoundingClientRect();
+    setContainerWidth(width);
+    if (width > 0 && height > 0) {
+      const viewBoxAR = 1210 / 860;
+      const containerAR = width / height;
+      setAspectRatioCorrection(containerAR / viewBoxAR);
+    }
   }, []);
 
-  // Universal Mobile Optimization: Tight bounds and non-uniform stretching to fill space.
-  const viewBox = isMobile ? `-25 -25 1210 860` : `0 0 ${VIEW_W} ${VIEW_H}`;
+  useLayoutEffect(() => {
+    let frame2 = 0;
+    const frame1 = requestAnimationFrame(() => {
+      frame2 = requestAnimationFrame(() => {
+        measureContainer();
+        setIsDiagramReady(true);
+      });
+    });
+    return () => {
+      cancelAnimationFrame(frame1);
+      cancelAnimationFrame(frame2);
+    };
+  }, [measureContainer]);
 
-  const R_MAIN = isMobile ? 100 : 52;
-  const R_GROUP = isMobile ? 102 : 54;
+  React.useEffect(() => {
+    if (!isDiagramReady) return;
+    const container = containerRef.current;
+    if (!container) return;
 
-  // Hide labels on mobile always as requested
-  const showLabels = !isMobile;
+    const observer = new ResizeObserver(measureContainer);
+    observer.observe(container);
+
+    return () => observer.disconnect();
+  }, [isDiagramReady, measureContainer]);
+
+  const isCompactDiagram =
+    layoutTier === 'phone' ||
+    layoutTier === 'tablet' ||
+    containerWidth < BREAKPOINTS.compactDiagramWidth;
+
+  const viewBox = isCompactDiagram
+    ? `-25 -25 1210 860`
+    : `0 0 ${VIEW_W} ${VIEW_H}`;
+
+  const R_MAIN = isCompactDiagram ? 100 : 52;
+  const R_GROUP = isCompactDiagram ? 102 : 54;
+
+  const showLabels = !isCompactDiagram;
 
   const isBorrowingActive = selectedChord ? [1, 2, 3, 4].some(line => {
     const pos = borrowingState.circlePositions[line as 1|2|3|4];
@@ -138,11 +165,15 @@ export const ElementalDiagram: React.FC<{ children?: React.ReactNode }> = ({ chi
   }, [getCoords]);
 
   return (
-    <div className="diagram-container" ref={containerRef}>
+    <div
+      className="diagram-container"
+      ref={containerRef}
+      style={{ opacity: isDiagramReady ? 1 : 0 }}
+    >
       <svg
         viewBox={viewBox}
         className="diagram-svg"
-        preserveAspectRatio={isMobile ? "none" : "xMidYMid meet"}
+        preserveAspectRatio={isCompactDiagram ? 'none' : 'xMidYMid meet'}
       >
         <defs>
           <filter id="glow" x="-50%" y="-50%" width="200%" height="200%" filterUnits="userSpaceOnUse">
