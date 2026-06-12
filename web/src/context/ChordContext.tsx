@@ -18,6 +18,9 @@ import {
 import { useAudioSettings } from '../hooks/useAudioSettings';
 import { useBorrowingMemory } from '../hooks/useBorrowingMemory';
 import { useChordPlayback } from '../hooks/useChordPlayback';
+import { useDeviceTilt, type TiltStatus } from '../hooks/useDeviceTilt';
+import { triggerHaptic } from '../audio/haptics';
+import type { TiltSample } from '../music/TiltVoicingEngine';
 import type { PlayStyle } from './types';
 
 export type { PlayStyle } from './types';
@@ -65,6 +68,9 @@ interface ChordContextType {
   setBorrowingMemory: (mode: 'global' | 'per-chord') => void;
   lockedVoices: Record<string, Record<number, boolean>>;
   toggleVoiceLock: (chordName: string, line: number) => void;
+  tiltStatus: TiltStatus;
+  tiltSample: TiltSample;
+  requestTiltPermission: () => Promise<void>;
 }
 
 const ChordContext = createContext<ChordContextType | undefined>(undefined);
@@ -102,16 +108,33 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
       playAndDisplayChordRef.current(chord, state),
   });
 
+  // Ref avoids a hook ordering cycle: useDeviceTilt must exist before
+  // useChordPlayback (which needs tiltRef), but the haptic gate needs the
+  // play style that useChordPlayback owns.
+  const playStyleRef = useRef<PlayStyle>('drone');
+  const handleTiltLevelChange = useCallback(() => {
+    if (playStyleRef.current === 'tilt') {
+      triggerHaptic();
+    }
+  }, []);
+
+  const deviceTilt = useDeviceTilt(handleTiltLevelChange);
+
   const playback = useChordPlayback({
     getBorrowingStateForChord: borrowing.getBorrowingStateForChord,
     borrowingStateRef: borrowing.borrowingStateRef,
     setBorrowingState: borrowing.setBorrowingState,
     setSelectedChord,
+    tiltRef: deviceTilt.tiltRef,
   });
 
   useEffect(() => {
     playAndDisplayChordRef.current = playback.playAndDisplayChord;
   }, [playback.playAndDisplayChord]);
+
+  useEffect(() => {
+    playStyleRef.current = playback.playStyle;
+  }, [playback.playStyle]);
 
   const audio = useAudioSettings(playback.playStyle);
 
@@ -213,6 +236,9 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
     setBorrowingMemory: borrowing.setBorrowingMemory,
     lockedVoices: borrowing.lockedVoices,
     toggleVoiceLock: borrowing.toggleVoiceLock,
+    tiltStatus: deviceTilt.status,
+    tiltSample: deviceTilt.tilt,
+    requestTiltPermission: deviceTilt.requestPermission,
   };
 
   return (

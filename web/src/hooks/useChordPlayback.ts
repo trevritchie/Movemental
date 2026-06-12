@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef, useCallback, type RefObject } from 'react';
-import type { Chord } from '../music/ChordManager';
+import { chordManager, type Chord } from '../music/ChordManager';
 import { borrowingLogic, type BorrowingState } from '../music/BorrowingLogic';
+import { computeTiltVoicing, type TiltSample } from '../music/TiltVoicingEngine';
+import { triggerHaptic } from '../audio/haptics';
 import { audioEngine } from '../audio/AudioEngine';
 import { unlockIosMediaChannel } from '../audio/iosMediaChannel';
 import type { PlayStyle } from '../context/types';
@@ -13,6 +15,7 @@ interface UseChordPlaybackOptions {
   borrowingStateRef: RefObject<BorrowingState>;
   setBorrowingState: (state: BorrowingState) => void;
   setSelectedChord: (chord: Chord | null) => void;
+  tiltRef: RefObject<TiltSample>;
 }
 
 export function useChordPlayback({
@@ -20,6 +23,7 @@ export function useChordPlayback({
   borrowingStateRef,
   setBorrowingState,
   setSelectedChord,
+  tiltRef,
 }: UseChordPlaybackOptions) {
   const [playStyle, setPlayStyle] = useState<PlayStyle>('drone');
   const [activePitches, setActivePitches] = useState<(number | null)[]>([]);
@@ -33,8 +37,33 @@ export function useChordPlayback({
     isPointerDownRef.current = false;
   }, [playStyle]);
 
+  // Tilt play style: voice the post-borrowing chord with the MNC contrary
+  // and oblique motion engine, sampling the device tilt at tap time.
+  const computeTiltPitches = useCallback(
+    (chord: Chord, state: BorrowingState): number[] => {
+      const structure = borrowingLogic.generatePitchStructure(chord, state);
+      const rootPitchClass = chord.pitches[chord.rootPositionIndex] % 12;
+      return computeTiltVoicing(
+        structure,
+        rootPitchClass,
+        tiltRef.current,
+        chordManager.getOctaveRange()
+      );
+    },
+    [tiltRef]
+  );
+
   const playAndDisplayChord = useCallback(
     (chord: Chord, state: BorrowingState) => {
+      if (playStyle === 'tilt') {
+        const pitches = computeTiltPitches(chord, state);
+        setActivePitches(pitches);
+        if (pitches.length > 0) {
+          audioEngine.triggerAttack(pitches);
+        }
+        return;
+      }
+
       const pitches = borrowingLogic.generateActivePitches(chord, state);
       setActivePitches(pitches);
 
@@ -47,7 +76,7 @@ export function useChordPlayback({
         }
       }
     },
-    [playStyle]
+    [playStyle, computeTiltPitches]
   );
 
   useEffect(() => {
@@ -73,6 +102,18 @@ export function useChordPlayback({
       borrowingStateRef.current
     );
     setBorrowingState(newState);
+
+    if (playStyle === 'tilt') {
+      const pitches = computeTiltPitches(chord, newState);
+      setActivePitches(pitches);
+      if (pitches.length > 0) {
+        triggerHaptic();
+        // Retrigger: an explicit tap should re-strike the chord even when
+        // the tilt (and thus the voicing) is unchanged.
+        audioEngine.triggerAttack(pitches, true);
+      }
+      return newState;
+    }
 
     const pitches = borrowingLogic.generateActivePitches(chord, newState);
     setActivePitches(pitches);

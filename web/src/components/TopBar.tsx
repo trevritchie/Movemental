@@ -3,6 +3,7 @@ import { SlidersHorizontal, Square } from 'lucide-react';
 import { NOTE_NAMES_FLAT, VOICING_TO_INDICES } from '../music/config';
 import { audioEngine } from '../audio/AudioEngine';
 import { useChordContext, type PlayStyle } from '../context/ChordContext';
+import { useLayoutTier } from '../hooks/useLayoutTier';
 
 export const TopBar: React.FC = () => {
   const {
@@ -20,13 +21,17 @@ export const TopBar: React.FC = () => {
     droneAttack, setDroneAttack,
     droneDecay, setDroneDecay,
     droneSustain, setDroneSustain,
-    droneRelease, setDroneRelease
+    droneRelease, setDroneRelease,
+    tiltStatus, tiltSample, requestTiltPermission
   } = useChordContext();
 
   const [showEffects, setShowEffects] = React.useState(false);
   const [showADSR, setShowADSR] = React.useState(false);
 
-  const isDrone = playStyle === 'drone';
+  // The tilt style drones, so it shares the drone envelope settings.
+  const isDrone = playStyle === 'drone' || playStyle === 'tilt';
+  const isTilt = playStyle === 'tilt';
+  const isDesktop = useLayoutTier() === 'desktop';
 
   // Current values based on mode
   const currentA = isDrone ? droneAttack : envelopeAttack;
@@ -89,15 +94,61 @@ export const TopBar: React.FC = () => {
             ))}
           </select>
 
-          <select
-            value={voicing}
-            onChange={(e) => setVoicing(e.target.value)}
-            title="Voicing"
-          >
-            {Object.keys(VOICING_TO_INDICES).map(v => (
-              <option key={v} value={v}>{v}</option>
-            ))}
-          </select>
+          {/* In tilt mode the voicing is determined by tilting, so the
+              motion UI takes the voicing dropdown's slot. */}
+          {!isTilt && (
+            <select
+              value={voicing}
+              onChange={(e) => setVoicing(e.target.value)}
+              title="Voicing"
+            >
+              {Object.keys(VOICING_TO_INDICES).map(v => (
+                <option key={v} value={v}>{v}</option>
+              ))}
+            </select>
+          )}
+          {isTilt && tiltStatus === 'needs-permission' && (
+            <button
+              className="adsr-toggle-btn"
+              onClick={() => requestTiltPermission()}
+              title="Allow access to the motion sensors"
+            >
+              Enable Motion
+            </button>
+          )}
+          {isTilt && tiltStatus === 'denied' && (
+            <button
+              className="adsr-toggle-btn"
+              onClick={() => requestTiltPermission()}
+              title="Motion access was denied. Tap to retry."
+            >
+              Motion Denied
+            </button>
+          )}
+          {isTilt && tiltStatus === 'unsupported' && (
+            <span
+              className="tilt-readout"
+              title="This device has no motion sensors; tilt stays flat"
+              style={{ fontSize: '11px', opacity: 0.7, whiteSpace: 'nowrap' }}
+            >
+              No motion sensors
+            </span>
+          )}
+          {isTilt && tiltStatus === 'active' && (
+            <span
+              className="tilt-readout"
+              title="Live tilt: roll narrows the chord, pitch raises the pivot"
+              style={{
+                fontSize: '11px',
+                opacity: 0.7,
+                whiteSpace: 'nowrap',
+                fontVariantNumeric: 'tabular-nums',
+              }}
+            >
+              Roll {Math.round(Math.abs(tiltSample.x) * 100)}% / Pitch{' '}
+              {Math.round(Math.abs(tiltSample.y) * 100)}%
+            </span>
+          )}
 
           <select
             value={octaveRange}
@@ -116,6 +167,7 @@ export const TopBar: React.FC = () => {
           >
             <option value="click_and_hold">Click & Hold</option>
             <option value="drone">Drone</option>
+            {!isDesktop && <option value="tilt">Tilt</option>}
           </select>
 
           <button

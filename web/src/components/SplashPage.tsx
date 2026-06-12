@@ -4,6 +4,9 @@ import {
   unlockIosMediaChannel,
   waitForIosMediaChannel,
 } from '../audio/iosMediaChannel';
+import { useChordContext } from '../context/ChordContext';
+import { useLayoutTier } from '../hooks/useLayoutTier';
+import { primeHaptics } from '../audio/haptics';
 
 interface SplashPageProps {
   onEnter: () => void;
@@ -12,6 +15,9 @@ interface SplashPageProps {
 export const SplashPage: React.FC<SplashPageProps> = ({ onEnter }) => {
   const [isStarting, setIsStarting] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const { setPlayStyle, requestTiltPermission } = useChordContext();
+  const layoutTier = useLayoutTier();
+  const isDesktop = layoutTier === 'desktop';
 
   const handleStart = () => {
     if (isStarting) return;
@@ -33,6 +39,22 @@ export const SplashPage: React.FC<SplashPageProps> = ({ onEnter }) => {
     })();
   };
 
+  const handleStartTilt = () => {
+    if (isStarting) return;
+    // Must run inside the tap gesture: iOS only grants motion access from a
+    // user-initiated call, and switch haptics require a user gesture too.
+    void requestTiltPermission();
+    setPlayStyle('tilt');
+    primeHaptics();
+    handleStart();
+  };
+
+  const handleStartStatic = () => {
+    if (isStarting) return;
+    setPlayStyle('drone');
+    handleStart();
+  };
+
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     if (containerRef.current) {
       const { clientX, clientY } = e;
@@ -49,7 +71,7 @@ export const SplashPage: React.FC<SplashPageProps> = ({ onEnter }) => {
     <div
       ref={containerRef}
       className={`splash-container ${isStarting ? 'fade-out' : ''}`}
-      onClick={handleStart}
+      onClick={isDesktop ? handleStart : undefined}
       onMouseMove={handleMouseMove}
     >
       <div className="splash-background">
@@ -64,13 +86,32 @@ export const SplashPage: React.FC<SplashPageProps> = ({ onEnter }) => {
       </div>
       <div className="splash-content">
         <h1 className="splash-title">Movemental</h1>
-        <button
-          className="splash-button"
-          onClick={(e) => { e.stopPropagation(); handleStart(); }}
-          disabled={isStarting}
-        >
-          Start
-        </button>
+        {isDesktop ? (
+          <button
+            className="splash-button"
+            onClick={(e) => { e.stopPropagation(); handleStart(); }}
+            disabled={isStarting}
+          >
+            Start
+          </button>
+        ) : (
+          <div className="splash-mode-row">
+            <button
+              className="splash-button"
+              onClick={(e) => { e.stopPropagation(); handleStartTilt(); }}
+              disabled={isStarting}
+            >
+              Tilt
+            </button>
+            <button
+              className="splash-button"
+              onClick={(e) => { e.stopPropagation(); handleStartStatic(); }}
+              disabled={isStarting}
+            >
+              Static
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

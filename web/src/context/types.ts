@@ -1,1 +1,1 @@
-export type PlayStyle = 'click_and_hold' | 'drone';
+export type PlayStyle = 'click_and_hold' | 'drone' | 'tilt';

@@ -1261,6 +1261,17 @@ input[type="range"] {
   transform: none;
 }
 
+.splash-mode-row {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.splash-mode-row .splash-button {
+  min-width: 8.5rem;
+}
+
 .splash-elements {
   display: flex;
   gap: 2.5rem;
