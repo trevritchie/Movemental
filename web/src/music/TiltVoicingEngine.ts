@@ -93,11 +93,16 @@ export function parallelLevelFromTilt(tilt: TiltSample): number {
 }
 
 export const TILT_INVERSION_LEVEL_NAMES = [
-  'Root Inv',
-  '1st Inv',
-  '2nd Inv',
-  '3rd Inv',
+  'Root',
+  'First',
+  'Second',
+  'Third',
 ] as const;
+
+/** Desktop top-bar inversion select labels (no separate inversion title). */
+export const TILT_INVERSION_DESKTOP_LABELS = TILT_INVERSION_LEVEL_NAMES.map(
+  (name) => `${name} Inv.`,
+);
 
 export const TILT_INVERSION_MAX_LABEL = (
   [...TILT_INVERSION_LEVEL_NAMES] as const
@@ -111,7 +116,7 @@ export const TILT_INVERSION_MAX_LABEL = (
  */
 export function tiltInversionLevelName(tilt: TiltSample): string {
   const level = parallelLevelFromTilt(tilt);
-  return TILT_INVERSION_LEVEL_NAMES[level] ?? 'Root Inv';
+  return TILT_INVERSION_LEVEL_NAMES[level] ?? 'Root';
 }
 
 /**
@@ -136,7 +141,7 @@ export function mapTiltToPositions(tilt: TiltSample): {
 /** Default static voicing level index (8 = Double Octave). */
 export const DEFAULT_STATIC_VOICING_LEVEL = MAX_INPUT_STEPS;
 
-/** Default static inversion level index (0 = Root Inv). */
+/** Default static inversion level index (0 = Root). */
 export const DEFAULT_STATIC_INVERSION_LEVEL = 0;
 
 /**
@@ -165,6 +170,23 @@ export const TILT_VOICING_LEVEL_NAMES = [
   'Drop 2&4',
   'Double Octave',
 ] as const;
+
+/** Longest voicing label on phone diagram overlays (sizes both top pills). */
+export const TILT_VOICING_OVERLAY_MAX_LABEL = 'Double Oct.';
+
+/** Overlay-friendly voicing names (abbreviated where needed). */
+export const TILT_VOICING_OVERLAY_LABELS = TILT_VOICING_LEVEL_NAMES.map(
+  (name) => (name === 'Double Octave' ? TILT_VOICING_OVERLAY_MAX_LABEL : name),
+);
+
+/**
+ * Human-readable voicing level for diagram overlay readouts.
+ */
+export function tiltVoicingOverlayLabel(tilt: TiltSample): string {
+  const width = voicingWidthFromTilt(tilt);
+  const idx = width - 1;
+  return TILT_VOICING_OVERLAY_LABELS[idx] ?? 'Unison';
+}
 
 // Longest label shown in the TopBar voicing/tilt readout slot (sizes the box).
 export const TILT_READOUT_MAX_LABEL = (

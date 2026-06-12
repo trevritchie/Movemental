@@ -1,11 +1,17 @@
 import React from 'react';
 import {
   tiltInversionLevelName,
-  tiltVoicingLevelName,
+  tiltVoicingOverlayLabel,
   TILT_INVERSION_LEVEL_NAMES,
+  TILT_VOICING_OVERLAY_LABELS,
+  TILT_VOICING_OVERLAY_MAX_LABEL,
   TILT_VOICING_LEVEL_NAMES,
 } from '../music/TiltVoicingEngine';
 import { useChordContext } from '../context/ChordContext';
+import { DiagramOverlayPill } from './DiagramOverlayPill';
+
+/** Shared sizer so voicing and inversion pills stay the same width. */
+const TOP_PILL_SIZER = TILT_VOICING_OVERLAY_MAX_LABEL;
 
 /**
  * Phone-only overlay: voicing (top left) and inversion (top right), mirroring
@@ -25,18 +31,20 @@ export const DiagramVoicingOverlay: React.FC = () => {
 
   const isTilt = playStyle === 'tilt';
 
-  const renderVoicingCorner = () => {
+  const renderVoicingValue = () => {
     if (!isTilt) {
       return (
         <select
           className="diagram-overlay-select"
           value={staticVoicingLevel}
           onChange={(e) => setStaticVoicingLevel(Number(e.target.value))}
-          title="Voicing level"
-          aria-label="Voicing level"
+          title="Voicing"
+          aria-label="Voicing"
         >
-          {TILT_VOICING_LEVEL_NAMES.map((name, idx) => (
-            <option key={name} value={idx}>{name}</option>
+          {TILT_VOICING_OVERLAY_LABELS.map((name, idx) => (
+            <option key={TILT_VOICING_LEVEL_NAMES[idx]} value={idx}>
+              {name}
+            </option>
           ))}
         </select>
       );
@@ -70,7 +78,7 @@ export const DiagramVoicingOverlay: React.FC = () => {
 
     if (tiltStatus === 'unsupported') {
       return (
-        <span className="diagram-overlay-label" title="No motion sensors">
+        <span className="diagram-overlay-readout" title="No motion sensors">
           No motion
         </span>
       );
@@ -78,23 +86,23 @@ export const DiagramVoicingOverlay: React.FC = () => {
 
     return (
       <span
-        className="diagram-overlay-label"
+        className="diagram-overlay-readout"
         title="Roll sets voicing width"
       >
-        {tiltVoicingLevelName(tiltSample)}
+        {tiltVoicingOverlayLabel(tiltSample)}
       </span>
     );
   };
 
-  const renderInversionCorner = () => {
+  const renderInversionValue = () => {
     if (!isTilt) {
       return (
         <select
-          className="diagram-overlay-select diagram-overlay-select--right"
+          className="diagram-overlay-select"
           value={staticInversionLevel}
           onChange={(e) => setStaticInversionLevel(Number(e.target.value))}
-          title="Inversion level"
-          aria-label="Inversion level"
+          title="Inversion"
+          aria-label="Inversion"
         >
           {TILT_INVERSION_LEVEL_NAMES.map((name, idx) => (
             <option key={name} value={idx}>{name}</option>
@@ -105,7 +113,7 @@ export const DiagramVoicingOverlay: React.FC = () => {
 
     return (
       <span
-        className="diagram-overlay-label diagram-overlay-label--right"
+        className="diagram-overlay-readout"
         title="Pitch selects inversion"
       >
         {tiltInversionLevelName(tiltSample)}
@@ -115,12 +123,20 @@ export const DiagramVoicingOverlay: React.FC = () => {
 
   return (
     <div className="diagram-voicing-overlay" aria-live="polite">
-      <div className="diagram-voicing-overlay__corner diagram-voicing-overlay__corner--left">
-        {renderVoicingCorner()}
-      </div>
-      <div className="diagram-voicing-overlay__corner diagram-voicing-overlay__corner--right">
-        {renderInversionCorner()}
-      </div>
+      <DiagramOverlayPill
+        label="Voicing"
+        corner="top-left"
+        sizerText={TOP_PILL_SIZER}
+      >
+        {renderVoicingValue()}
+      </DiagramOverlayPill>
+      <DiagramOverlayPill
+        label="Inversion"
+        corner="top-right"
+        sizerText={TOP_PILL_SIZER}
+      >
+        {renderInversionValue()}
+      </DiagramOverlayPill>
     </div>
   );
 };

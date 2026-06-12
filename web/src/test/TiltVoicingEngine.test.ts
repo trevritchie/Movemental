@@ -17,6 +17,7 @@ import {
   tiltInversionLevelName,
   TILT_VOICING_LEVEL_NAMES,
   TILT_INVERSION_LEVEL_NAMES,
+  TILT_INVERSION_DESKTOP_LABELS,
   FLAT_TILT,
 } from '../music/TiltVoicingEngine';
 
@@ -156,18 +157,24 @@ describe('tiltSampleFromLevels', () => {
 
 describe('tiltInversionLevelName', () => {
   it('maps pitch tilt to parallel inversion labels', () => {
-    expect(tiltInversionLevelName({ x: 0, y: 0 })).toBe('Root Inv');
-    expect(tiltInversionLevelName({ x: 0, y: -0.34 })).toBe('1st Inv');
-    expect(tiltInversionLevelName({ x: 0, y: -0.67 })).toBe('2nd Inv');
-    expect(tiltInversionLevelName({ x: 0, y: -1 })).toBe('3rd Inv');
+    expect(tiltInversionLevelName({ x: 0, y: 0 })).toBe('Root');
+    expect(tiltInversionLevelName({ x: 0, y: -0.34 })).toBe('First');
+    expect(tiltInversionLevelName({ x: 0, y: -0.67 })).toBe('Second');
+    expect(tiltInversionLevelName({ x: 0, y: -1 })).toBe('Third');
   });
 
   it('lists four inversion level names', () => {
     expect(TILT_INVERSION_LEVEL_NAMES).toEqual([
-      'Root Inv',
-      '1st Inv',
-      '2nd Inv',
-      '3rd Inv',
+      'Root',
+      'First',
+      'Second',
+      'Third',
+    ]);
+    expect(TILT_INVERSION_DESKTOP_LABELS).toEqual([
+      'Root Inv.',
+      'First Inv.',
+      'Second Inv.',
+      'Third Inv.',
     ]);
   });
 });

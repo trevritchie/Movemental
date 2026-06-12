@@ -6,8 +6,9 @@ import {
   tiltInversionLevelName,
   TILT_READOUT_MAX_LABEL,
   TILT_INVERSION_MAX_LABEL,
+  TILT_INVERSION_DESKTOP_LABELS,
   TILT_VOICING_LEVEL_NAMES,
-  TILT_INVERSION_LEVEL_NAMES,
+  TILT_VOICING_OVERLAY_LABELS,
 } from '../music/TiltVoicingEngine';
 import { audioEngine } from '../audio/AudioEngine';
 import { useChordContext, type PlayStyle } from '../context/ChordContext';
@@ -111,83 +112,58 @@ export const TopBar: React.FC = () => {
           >
             {[1, 2, 3, 4, 5, 6].map(o => (
               <option key={o} value={o}>
-                {isPhone ? `Oct ${o}` : `Octave ${o}`}
+                {`Octave ${o}`}
               </option>
             ))}
           </select>
 
           {!isPhone && (
             <>
-              <div className="voicing-readout-slot">
-                <span className="voicing-readout-slot__sizer" aria-hidden="true">
-                  {TILT_READOUT_MAX_LABEL}
-                </span>
-                {!isTilt && (
-                  <select
-                    value={staticVoicingLevel}
-                    onChange={(e) =>
-                      setStaticVoicingLevel(Number(e.target.value))
-                    }
-                    title="Voicing level"
-                  >
-                    {TILT_VOICING_LEVEL_NAMES.map((name, idx) => (
-                      <option key={name} value={idx}>{name}</option>
-                    ))}
-                  </select>
-                )}
-                {isTilt && tiltStatus === 'needs-permission' && (
-                  <button
-                    className="adsr-toggle-btn"
-                    onClick={() => requestTiltPermission()}
-                    title="Allow access to the motion sensors"
-                  >
-                    Enable Motion
-                  </button>
-                )}
-                {isTilt && tiltStatus === 'denied' && (
-                  <button
-                    className="adsr-toggle-btn"
-                    onClick={() => requestTiltPermission()}
-                    title="Motion access was denied. Tap to retry."
-                  >
-                    Motion Denied
-                  </button>
-                )}
-                {isTilt && tiltStatus === 'unsupported' && (
-                  <span
-                    className="tilt-readout"
-                    title="This device has no motion sensors; tilt stays flat"
-                  >
-                    No motion sensors
-                  </span>
-                )}
-                {isTilt && tiltStatus === 'active' && (
-                  <span
-                    className="tilt-readout"
-                    title="Live tilt: roll sets voicing width, pitch selects inversion"
-                  >
-                    {tiltVoicingLevelName(tiltSample)}
-                  </span>
-                )}
-              </div>
-
               {isTilt ? (
-                <div className="voicing-readout-slot">
-                  <span
-                    className="voicing-readout-slot__sizer"
-                    aria-hidden="true"
-                  >
-                    {TILT_INVERSION_MAX_LABEL}
-                  </span>
-                  <span
-                    className="tilt-readout"
-                    title="Pitch tilt selects parallel inversion"
-                  >
-                    {tiltInversionLevelName(tiltSample)}
-                  </span>
-                </div>
-              ) : (
                 <>
+                  <div className="voicing-readout-slot">
+                    <span
+                      className="voicing-readout-slot__sizer"
+                      aria-hidden="true"
+                    >
+                      {TILT_READOUT_MAX_LABEL}
+                    </span>
+                    {tiltStatus === 'needs-permission' && (
+                      <button
+                        className="adsr-toggle-btn"
+                        onClick={() => requestTiltPermission()}
+                        title="Allow access to the motion sensors"
+                      >
+                        Enable Motion
+                      </button>
+                    )}
+                    {tiltStatus === 'denied' && (
+                      <button
+                        className="adsr-toggle-btn"
+                        onClick={() => requestTiltPermission()}
+                        title="Motion access was denied. Tap to retry."
+                      >
+                        Motion Denied
+                      </button>
+                    )}
+                    {tiltStatus === 'unsupported' && (
+                      <span
+                        className="tilt-readout"
+                        title="This device has no motion sensors; tilt stays flat"
+                      >
+                        No motion sensors
+                      </span>
+                    )}
+                    {tiltStatus === 'active' && (
+                      <span
+                        className="tilt-readout"
+                        title="Live tilt: roll sets voicing width, pitch selects inversion"
+                      >
+                        {tiltVoicingLevelName(tiltSample)}
+                      </span>
+                    )}
+                  </div>
+
                   <div className="voicing-readout-slot">
                     <span
                       className="voicing-readout-slot__sizer"
@@ -195,18 +171,42 @@ export const TopBar: React.FC = () => {
                     >
                       {TILT_INVERSION_MAX_LABEL}
                     </span>
-                    <select
-                      value={staticInversionLevel}
-                      onChange={(e) =>
-                        setStaticInversionLevel(Number(e.target.value))
-                      }
-                      title="Inversion level"
+                    <span
+                      className="tilt-readout"
+                      title="Pitch tilt selects parallel inversion"
                     >
-                      {TILT_INVERSION_LEVEL_NAMES.map((name, idx) => (
-                        <option key={name} value={idx}>{name}</option>
-                      ))}
-                    </select>
+                      {tiltInversionLevelName(tiltSample)}
+                    </span>
                   </div>
+                </>
+              ) : (
+                <>
+                  <select
+                    value={staticVoicingLevel}
+                    onChange={(e) =>
+                      setStaticVoicingLevel(Number(e.target.value))
+                    }
+                    title="Voicing"
+                  >
+                    {TILT_VOICING_OVERLAY_LABELS.map((name, idx) => (
+                      <option key={TILT_VOICING_LEVEL_NAMES[idx]} value={idx}>
+                        {name}
+                      </option>
+                    ))}
+                  </select>
+
+                  <select
+                    value={staticInversionLevel}
+                    onChange={(e) =>
+                      setStaticInversionLevel(Number(e.target.value))
+                    }
+                    title="Inversion"
+                  >
+                    {TILT_INVERSION_DESKTOP_LABELS.map((name, idx) => (
+                      <option key={name} value={idx}>{name}</option>
+                    ))}
+                  </select>
+
                   <select
                     value={playStyle}
                     onChange={(e) =>

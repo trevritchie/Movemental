@@ -78,13 +78,16 @@ describe('SplashPage', () => {
     expect(
       screen.queryByRole('button', { name: /static/i }),
     ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /no tilt/i }),
+    ).not.toBeInTheDocument();
   });
 
-  it('shows Tilt and Static buttons on mobile', () => {
+  it('shows Tilt and No Tilt buttons on mobile', () => {
     vi.mocked(useLayoutTier).mockReturnValue('phone');
     render(<SplashPage onEnter={vi.fn()} />);
-    expect(screen.getByRole('button', { name: /tilt/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /static/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^tilt$/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /no tilt/i })).toBeInTheDocument();
     expect(
       screen.queryByRole('button', { name: /^start$/i }),
     ).not.toBeInTheDocument();
@@ -96,7 +99,7 @@ describe('SplashPage', () => {
     render(<SplashPage onEnter={onEnter} />);
 
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: /tilt/i }));
+      fireEvent.click(screen.getByRole('button', { name: /^tilt$/i }));
     });
 
     expect(requestTiltPermission).toHaveBeenCalledTimes(1);
@@ -110,13 +113,13 @@ describe('SplashPage', () => {
     expect(onEnter).toHaveBeenCalled();
   });
 
-  it('enters drone mode from the Static button without a permission request', async () => {
+  it('enters drone mode from the No Tilt button without a permission request', async () => {
     vi.mocked(useLayoutTier).mockReturnValue('tablet');
     const onEnter = vi.fn();
     render(<SplashPage onEnter={onEnter} />);
 
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: /static/i }));
+      fireEvent.click(screen.getByRole('button', { name: /no tilt/i }));
     });
 
     expect(requestTiltPermission).not.toHaveBeenCalled();

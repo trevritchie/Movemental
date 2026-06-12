@@ -108,7 +108,7 @@ export const SplashPage: React.FC<SplashPageProps> = ({ onEnter }) => {
               onClick={(e) => { e.stopPropagation(); handleStartStatic(); }}
               disabled={isStarting}
             >
-              Static
+              No Tilt
             </button>
           </div>
         )}

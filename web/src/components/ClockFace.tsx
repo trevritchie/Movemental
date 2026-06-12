@@ -1,10 +1,33 @@
 import React, { useMemo } from 'react';
 import { NOTE_NAMES_FLAT } from '../music/config';
+import {
+  CHORD_OVERLAY_MAX_CHEM_COUNT,
+  CHORD_OVERLAY_MAX_NAME,
+  mobileChordDisplayName,
+} from '../music/diagramMetadata';
 import { useChordContext } from '../context/ChordContext';
+import { DiagramOverlayPill } from './DiagramOverlayPill';
 
 const CLOCK_RADIUS = 108;
 const CLOCK_CX = 150;
 const CLOCK_CY = 155;
+
+const CHORD_PILL_SIZER = (
+  <>
+    <span className="elemental-name">{CHORD_OVERLAY_MAX_NAME}</span>
+    <div className="chemistry-formula">
+      <span className="chem-element chem-earth">
+        Earth<sub>{CHORD_OVERLAY_MAX_CHEM_COUNT}</sub>
+      </span>
+      <span className="chem-element chem-wind">
+        Wind<sub>{CHORD_OVERLAY_MAX_CHEM_COUNT}</sub>
+      </span>
+      <span className="chem-element chem-fire">
+        Fire<sub>{CHORD_OVERLAY_MAX_CHEM_COUNT}</sub>
+      </span>
+    </div>
+  </>
+);
 
 // Precompute static geometry for clock face background
 const CLOCK_POINTS = Array.from({ length: 12 }).map((_, i) => {
@@ -22,11 +45,14 @@ const BACKGROUND_LINES = (() => {
   for (let i = 0; i < 12; i++) {
     for (let j = i + 1; j < 12; j++) {
       lines.push(
-        <line 
-          key={`bg-${i}-${j}`} 
-          x1={CLOCK_POINTS[i].x} y1={CLOCK_POINTS[i].y} x2={CLOCK_POINTS[j].x} y2={CLOCK_POINTS[j].y} 
-          stroke="rgba(255,255,255,0.03)" 
-          strokeWidth={1} 
+        <line
+          key={`bg-${i}-${j}`}
+          x1={CLOCK_POINTS[i].x}
+          y1={CLOCK_POINTS[i].y}
+          x2={CLOCK_POINTS[j].x}
+          y2={CLOCK_POINTS[j].y}
+          stroke="rgba(255,255,255,0.03)"
+          strokeWidth={1}
         />
       );
     }
@@ -34,28 +60,26 @@ const BACKGROUND_LINES = (() => {
   return lines;
 })();
 
-export const ClockFace: React.FC<{ isMobileOverlay?: boolean }> = ({ isMobileOverlay }) => {
+export const ClockFace: React.FC<{ isMobileOverlay?: boolean }> = ({
+  isMobileOverlay,
+}) => {
   const { tonalCenter, activePitches, selectedChord } = useChordContext();
-  
+
   const elementalName = selectedChord?.name || null;
   const traditionalName = selectedChord?.traditionalName || null;
 
   const displayElementalName = React.useMemo(() => {
     if (!elementalName || !isMobileOverlay) return elementalName;
-    return elementalName
-      .replace('Brother ', 'Bro. ')
-      .replace('Sister ', 'Sis. ');
+    return mobileChordDisplayName(elementalName);
   }, [elementalName, isMobileOverlay]);
 
-  // Chemistry formula: count active pitches per element.
-  // Must use relative pitch class (same as clock face dots):
-  //   relativePitchClass = (pitch % 12 - tonalCenter + 12) % 12
-  //   rem = relativePitchClass % 3 → 0=Earth, 1=Wind, 2=Fire
   const elementFormula = React.useMemo(() => {
     const active = activePitches.filter((p): p is number => p !== null);
     if (active.length === 0) return null;
 
-    let earth = 0, wind = 0, fire = 0;
+    let earth = 0;
+    let wind = 0;
+    let fire = 0;
     for (const p of active) {
       const relPc = ((p % 12) - tonalCenter + 12) % 12;
       const rem = relPc % 3;
@@ -65,6 +89,7 @@ export const ClockFace: React.FC<{ isMobileOverlay?: boolean }> = ({ isMobileOve
     }
     return { earth, wind, fire };
   }, [activePitches, tonalCenter]);
+
   const getElementColor = (relativePitchClass: number) => {
     const rem = ((relativePitchClass % 3) + 3) % 3;
     if (rem === 0) return 'var(--color-earth)';
@@ -89,99 +114,145 @@ export const ClockFace: React.FC<{ isMobileOverlay?: boolean }> = ({ isMobileOve
         return {
           x: CLOCK_CX + CLOCK_RADIUS * Math.cos(angle),
           y: CLOCK_CY + CLOCK_RADIUS * Math.sin(angle),
-          pitch
+          pitch,
         };
       });
   }, [activePitches, tonalCenter]);
 
   const connectionLines = useMemo(() => {
-    const lines: { x1: number, y1: number, x2: number, y2: number }[] = [];
+    const lines: { x1: number; y1: number; x2: number; y2: number }[] = [];
     for (let i = 0; i < activeNodes.length; i++) {
       for (let j = i + 1; j < activeNodes.length; j++) {
         lines.push({
           x1: activeNodes[i].x,
           y1: activeNodes[i].y,
           x2: activeNodes[j].x,
-          y2: activeNodes[j].y
+          y2: activeNodes[j].y,
         });
       }
     }
     return lines;
   }, [activeNodes]);
 
-  return (
-    <div className={`clock-container ${isMobileOverlay ? 'mobile-overlay' : ''}`}>
-      <div className="clock-info">
-        <div className="elemental-name">{displayElementalName || 'Select a Chord'}</div>
-        {elementFormula && (
-          <div className="chemistry-formula" aria-label="Elemental chemistry formula">
-            {elementFormula.earth > 0 && (
-              <span className="chem-element chem-earth">
-                Earth<sub>{elementFormula.earth}</sub>
-              </span>
-            )}
-            {elementFormula.wind > 0 && (
-              <span className="chem-element chem-wind">
-                Wind<sub>{elementFormula.wind}</sub>
-              </span>
-            )}
-            {elementFormula.fire > 0 && (
-              <span className="chem-element chem-fire">
-                Fire<sub>{elementFormula.fire}</sub>
-              </span>
-            )}
-          </div>
-        )}
-        <div className="traditional-name">{traditionalName || '---'}</div>
+  const chordInfo = (
+    <>
+      <div className="elemental-name">
+        {displayElementalName || 'Select a Chord'}
       </div>
-      
-      <svg viewBox="0 0 300 300" className="clock-svg">
-        <circle cx={CLOCK_CX} cy={CLOCK_CY} r={CLOCK_RADIUS} fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth={2} />
-        
-        {BACKGROUND_LINES}
+      {elementFormula && (
+        <div
+          className="chemistry-formula"
+          aria-label="Elemental chemistry formula"
+        >
+          {elementFormula.earth > 0 && (
+            <span className="chem-element chem-earth">
+              Earth<sub>{elementFormula.earth}</sub>
+            </span>
+          )}
+          {elementFormula.wind > 0 && (
+            <span className="chem-element chem-wind">
+              Wind<sub>{elementFormula.wind}</sub>
+            </span>
+          )}
+          {elementFormula.fire > 0 && (
+            <span className="chem-element chem-fire">
+              Fire<sub>{elementFormula.fire}</sub>
+            </span>
+          )}
+        </div>
+      )}
+      <div className="traditional-name">{traditionalName || '---'}</div>
+    </>
+  );
 
-        {ticks.map((tick, i) => (
-          <g key={i}>
-            <circle cx={tick.x} cy={tick.y} r={4.5} fill={getElementColor(i)} />
-            <text 
-              x={tick.labelX} 
-              y={tick.labelY} 
-              fill="rgba(255,255,255,0.8)" 
-              fontSize={isMobileOverlay ? 18 : 13} 
-              fontWeight="bold"
-              textAnchor="middle" 
-              alignmentBaseline="middle"
-            >
-              {tick.noteName}
-            </text>
-          </g>
-        ))}
+  const noteLabelSize = isMobileOverlay ? 18 : 13;
 
-        {connectionLines.map((line, i) => (
-          <line 
-            key={`conn-${i}`}
-            x1={line.x1} y1={line.y1} 
-            x2={line.x2} y2={line.y2}
-            stroke="white"
-            strokeWidth={2}
+  const clockSvg = (
+    <svg viewBox="0 0 300 300" className="clock-svg">
+      <circle
+        cx={CLOCK_CX}
+        cy={CLOCK_CY}
+        r={CLOCK_RADIUS}
+        fill="none"
+        stroke="rgba(255,255,255,0.1)"
+        strokeWidth={2}
+      />
+
+      {BACKGROUND_LINES}
+
+      {ticks.map((tick, i) => (
+        <g key={i}>
+          <circle
+            cx={tick.x}
+            cy={tick.y}
+            r={4.5}
+            fill={getElementColor(i)}
           />
-        ))}
+          <text
+            x={tick.labelX}
+            y={tick.labelY}
+            fill="rgba(255,255,255,0.8)"
+            fontSize={noteLabelSize}
+            fontWeight="bold"
+            textAnchor="middle"
+            alignmentBaseline="middle"
+          >
+            {tick.noteName}
+          </text>
+        </g>
+      ))}
 
-        {activeNodes.map((node, i) => {
-          const relativePitchClass = (node.pitch % 12 - tonalCenter + 12) % 12;
-          const nodeColor = getElementColor(relativePitchClass);
-          return (
-            <circle 
-              key={`node-${i}`}
-              cx={node.x} cy={node.y} 
-              r={8} 
-              fill={nodeColor} 
-              stroke="white"
-              strokeWidth={1.5}
-            />
-          );
-        })}
-      </svg>
+      {connectionLines.map((line, i) => (
+        <line
+          key={`conn-${i}`}
+          x1={line.x1}
+          y1={line.y1}
+          x2={line.x2}
+          y2={line.y2}
+          stroke="white"
+          strokeWidth={2}
+        />
+      ))}
+
+      {activeNodes.map((node, i) => {
+        const relativePitchClass =
+          ((node.pitch % 12) - tonalCenter + 12) % 12;
+        const nodeColor = getElementColor(relativePitchClass);
+        return (
+          <circle
+            key={`node-${i}`}
+            cx={node.x}
+            cy={node.y}
+            r={8}
+            fill={nodeColor}
+            stroke="white"
+            strokeWidth={1.5}
+          />
+        );
+      })}
+    </svg>
+  );
+
+  if (isMobileOverlay) {
+    return (
+      <div className="clock-container mobile-overlay">
+        {clockSvg}
+        <DiagramOverlayPill
+          label="Chord"
+          corner="bottom-left"
+          sizerContent={CHORD_PILL_SIZER}
+          title={elementalName ?? undefined}
+        >
+          <div className="clock-info">{chordInfo}</div>
+        </DiagramOverlayPill>
+      </div>
+    );
+  }
+
+  return (
+    <div className="clock-container">
+      <div className="clock-info">{chordInfo}</div>
+      {clockSvg}
     </div>
   );
 };

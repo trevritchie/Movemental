@@ -10,6 +10,10 @@ import {
 import { useChordContext } from '../context/ChordContext';
 import { BREAKPOINTS } from '../layout/breakpoints';
 import { useLayoutTier } from '../hooks/useLayoutTier';
+import {
+  applyDiagramOverlayMetrics,
+  computeDiagramOverlayMetrics,
+} from '../hooks/useDiagramOverlayMetrics';
 import { DiagramVoicingOverlay } from './DiagramVoicingOverlay';
 
 function piePath(r: number, slice: number): string {
@@ -70,8 +74,14 @@ export const ElementalDiagram: React.FC<{ children?: React.ReactNode }> = ({ chi
       const viewBoxAR = 1210 / 860;
       const containerAR = width / height;
       setAspectRatioCorrection(containerAR / viewBoxAR);
+      if (layoutTier === 'phone') {
+        applyDiagramOverlayMetrics(
+          container,
+          computeDiagramOverlayMetrics({ width, height }),
+        );
+      }
     }
-  }, []);
+  }, [layoutTier]);
 
   useLayoutEffect(() => {
     let frame2 = 0;
@@ -170,6 +180,7 @@ export const ElementalDiagram: React.FC<{ children?: React.ReactNode }> = ({ chi
       className="diagram-container"
       ref={containerRef}
       style={{ opacity: isDiagramReady ? 1 : 0 }}
+      data-layout-tier={layoutTier === 'phone' ? 'phone' : undefined}
     >
       {layoutTier === 'phone' && <DiagramVoicingOverlay />}
       <svg
