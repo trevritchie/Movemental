@@ -31,8 +31,8 @@ const READOUT_INTERVAL_MS = 150; // throttle for the React-visible sample
  *
  * - x: roll magnitude (|gamma| / 90), so either roll direction narrows the
  *   voicing. Fully vertical maps to -1.
- * - y: chest-ward pitch (beta / 90, positive beta only), matching the
- *   Python version where only one pitch direction raises the pivot.
+ * - y: chest-ward pitch (beta / 90, positive beta only), selecting parallel
+ *   inversions on the chord tone ladder.
  *
  * onLevelChange fires whenever the quantized voicing level (the step pair
  * from mapTiltToPositions) changes, e.g. to drive haptic feedback.
@@ -41,14 +41,14 @@ export function useDeviceTilt(onLevelChange?: () => void) {
   const tiltRef = useRef<TiltSample>({ ...FLAT_TILT });
   const smoothedRef = useRef({ gamma: 0, beta: 0 });
   const lastReadoutRef = useRef(0);
-  const lastLevelRef = useRef<{ inputSteps: number; pivotSteps: number } | null>(
+  const lastLevelRef = useRef<{ inputSteps: number; parallelSteps: number } | null>(
     null
   );
   // iOS switch haptics require a user gesture. Track the latest sensed level
   // from orientation separately from the last level that actually fired a
   // haptic, so touchmove can deliver ticks while the user is touching the
   // screen.
-  const lastHapticLevelRef = useRef<{ inputSteps: number; pivotSteps: number } | null>(
+  const lastHapticLevelRef = useRef<{ inputSteps: number; parallelSteps: number } | null>(
     null
   );
   const rawTiltRef = useRef<TiltSample>({ ...FLAT_TILT });
@@ -90,7 +90,7 @@ export function useDeviceTilt(onLevelChange?: () => void) {
     if (
       lastLevel !== null &&
       (level.inputSteps !== lastLevel.inputSteps ||
-        level.pivotSteps !== lastLevel.pivotSteps)
+        level.parallelSteps !== lastLevel.parallelSteps)
     ) {
       // Android: vibrate works from sensor callbacks. iOS: defer to touch
       // handlers below, which run inside a user gesture.
@@ -128,7 +128,7 @@ export function useDeviceTilt(onLevelChange?: () => void) {
       if (
         lastHaptic !== null &&
         sensed.inputSteps === lastHaptic.inputSteps &&
-        sensed.pivotSteps === lastHaptic.pivotSteps
+        sensed.parallelSteps === lastHaptic.parallelSteps
       ) {
         return;
       }

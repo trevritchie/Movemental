@@ -12,10 +12,10 @@ The performer holds a phone flat, like a tray of water. Tapping the screen
 selects a chord. Tilting the phone changes how that chord is voiced: rolling
 the phone sideways expands or shrinks the chord symmetrically around a central
 "pivot" note (contrary motion: the bottom voice moves down while the top voice
-moves up), and pitching the phone toward the chest raises the pivot itself
-(oblique motion: the bottom voice holds while the upper voices climb). The
-result is polyphonic voice movement, in the spirit of Barry Harris's
-"movements, not chords", playable by anyone who can tilt a phone.
+moves up), and pitching the phone toward the chest cycles parallel inversions
+(each voice moves up one chord tone on the ladder). The result is polyphonic
+voice movement, in the spirit of Barry Harris's "movements, not chords",
+playable by anyone who can tilt a phone.
 
 ## 2. Data structures in the Python version
 
@@ -221,40 +221,53 @@ Worked examples with tonal center C:
 | Leaf | C E G Bb | 0, 4, 7, 10 | C dominant seventh diminished |
 | Fire | D F Ab B | 0, 3, 6, 9 | the shared off chord of all three |
 
-### 5.2 Reversed tilt response
+### 5.2 Reversed roll; parallel pitch; oblique width
 
 The web version deliberately REVERSES the roll mapping relative to Python:
 
 - Phone flat (natural face-up position): the WIDEST voicing, the double
   octave chord (9-note chain thinned to 5 voices).
-- Phone rolled toward fully vertical: the single pivot note.
+- Phone rolled toward fully vertical: the single pivot note (Unison).
 
-The pitch axis keeps the Python direction: flat leaves the pivot at home, and
-tilting toward the chest raises the pivot (up to 4 chord tones, one octave).
+Roll expands the voicing in **oblique motion** from the parallel pivot: each
+wider level adds one ladder tone, alternating above and below the anchor
+(width 2 adds above, width 3 adds below, and so on). Nine evenly spaced roll
+levels reach every named voicing shape:
+
+Unison, Third, Triad, Close, Octave, Drop 2, Drop 3, Drop 2 and 4, Double
+Octave.
+
+The pitch axis uses **parallel motion**. Flat selects root position (parallel
+level 0). Tilting toward the chest (camera toward the sky) steps through four
+inversion levels (0 through 3 on a 4-tone cycle). Each level rotates every
+voice up one chord tone on the tone ladder (C E G A becomes E G A C, then G A
+C E, then A C E G).
+
+Roll and pitch compose: at parallel level 2, rolling still sweeps through all
+nine oblique widths anchored on the second-inversion bass.
 
 ### 5.3 Engine math (TiltVoicingEngine)
 
 Inputs are a normalized tilt sample with both axes in [-1, 0] (0 = flat) and
 the tone cycle. All positions are integer steps on the chord-tone ladder,
-with the home position at the chord root in the register implied by the
-app's octave range setting (`homeMidi = rootPitchClass + 12 * (octaveRange + 2)`,
-which is C5-ish at the default octave range of 3, placing the double octave
-chord in the app's normal sounding register):
+with the home register anchored at the chord root (`homeMidi =
+rootPitchClass + 12 * (octaveRange + 2)`, which is C5-ish at the default
+octave range of 3, placing the double octave chord in the app's normal
+sounding register):
 
 ```text
-inputSteps  = round(map(x, -1..0  ->  0..4))    # flat -> 4 steps below home
-pivotSteps  = round(map(y, -1..0  ->  4..0))    # flat -> home, chest -> +4
-bottom      = home - inputSteps
-pivot       = home + pivotSteps
-width       = 1 + 2 * min(pivot - bottom, 4)    # capped at 9, like Python
-chain       = cycle tones from bottom, ascending, width notes
-voicing     = thin(chain)                       # same table as section 3.4
+inputSteps    = round(map(x, -1..0  ->  0..8))     # flat -> widest oblique
+width         = inputSteps + 1                    # 1..9 voicing levels
+parallelSteps = round(map(|y|, 0..1  ->  0..3))   # flat -> root inversion
+pivot         = min(parallelSteps, cycle.length - 1)
+bottom        = pivot - floor((width - 1) / 2)
+chain         = cycle tones from bottom, ascending, width notes
+voicing       = thin(chain)                       # same table as section 3.4
 ```
 
-When `bottom >= pivot` the engine returns the single pivot note, matching
-Python. Pure roll yields odd widths (1, 3, 5, 7, 9); the even-width drop 2
-and drop 2 and 4 shapes are kept in the table for robustness with borrowed
-cycles of unusual sizes.
+Width 1 returns only the pivot note. Odd widths are symmetric around the
+pivot; even widths extend farther above than below (or vice versa on the
+first step). Wide voicings use the existing thinning table from section 3.4.
 
 ### 5.4 Sensors: from OSC to browser APIs
 
@@ -272,7 +285,7 @@ well-known sign quirk in its `devicemotion` acceleration values. Mapping:
 
 ```text
 x = -clamp(|gamma| / 90, 0, 1)    # roll magnitude, so either roll direction narrows the chord
-y = -clamp(beta / 90, 0, 1)       # only chest-ward pitch raises the pivot, like Python
+y = -clamp(beta / 90, 0, 1)       # chest-ward pitch selects parallel inversion level
 ```
 
 Using the roll magnitude is a small ergonomic upgrade over Python (which only
