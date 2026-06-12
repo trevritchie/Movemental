@@ -91,6 +91,13 @@ export class BorrowingLogic {
   }
 
   public generateActivePitches(chord: Chord, state: BorrowingState): (number | null)[] {
+    return chordManager.applyVoicing(this.generatePitchStructure(chord, state));
+  }
+
+  // Pre-voicing pitch structure: borrowing applied, voices toggled off as
+  // nulls, no octave-range or drop-voicing offsets. Used directly by the
+  // tilt play style, which voices chords itself.
+  public generatePitchStructure(chord: Chord, state: BorrowingState): (number | null)[] {
     const borrowedPitches = [...chord.pitches];
 
     const oppositeElement = ELEMENTAL_RELATIONSHIPS[chord.name]?.[0];
@@ -137,7 +144,7 @@ export class BorrowingLogic {
       }
     }
 
-    return chordManager.applyVoicing(fullPitchStructure);
+    return fullPitchStructure;
   }
 }
 

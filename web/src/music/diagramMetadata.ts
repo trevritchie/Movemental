@@ -50,3 +50,21 @@ export const AXIS_PARENTS: Record<string, { p1: string; p2: string }> = {
   'Forest-Fire': { p1: 'Fire', p2: 'Earth' },
   'Charcoal': { p1: 'Fire', p2: 'Earth' },
 };
+
+/** Mobile chord pill: abbreviate Brother/Sister like ClockFace overlay. */
+export function mobileChordDisplayName(name: string): string {
+  return name
+    .replace('Brother ', 'Bro. ')
+    .replace('Sister ', 'Sis. ');
+}
+
+/** Longest elemental name shown in the phone chord overlay pill. */
+export const CHORD_OVERLAY_MAX_NAME = BASE_GROUPS.flatMap((group) =>
+  SLICE_VARIANTS.map((v) => mobileChordDisplayName(v.prefix + group))
+).reduce(
+  (longest, label) => (label.length > longest.length ? label : longest),
+  '',
+);
+
+/** Max subscript count for chord overlay width sizer (widest chemistry row). */
+export const CHORD_OVERLAY_MAX_CHEM_COUNT = 5;

@@ -1,13 +1,24 @@
 import React from 'react';
 import { SlidersHorizontal, Square } from 'lucide-react';
-import { NOTE_NAMES_FLAT, VOICING_TO_INDICES } from '../music/config';
+import { NOTE_NAMES_FLAT } from '../music/config';
+import {
+  tiltVoicingLevelName,
+  tiltInversionLevelName,
+  TILT_READOUT_MAX_LABEL,
+  TILT_INVERSION_MAX_LABEL,
+  TILT_INVERSION_DESKTOP_LABELS,
+  TILT_VOICING_LEVEL_NAMES,
+  TILT_VOICING_OVERLAY_LABELS,
+} from '../music/TiltVoicingEngine';
 import { audioEngine } from '../audio/AudioEngine';
 import { useChordContext, type PlayStyle } from '../context/ChordContext';
+import { useLayoutTier } from '../hooks/useLayoutTier';
 
 export const TopBar: React.FC = () => {
   const {
     tonalCenter, setTonalCenter,
-    voicing, setVoicing,
+    staticVoicingLevel, setStaticVoicingLevel,
+    staticInversionLevel, setStaticInversionLevel,
     octaveRange, setOctaveRange,
     chorusWet, setChorusWet,
     delayWet, setDelayWet,
@@ -20,13 +31,18 @@ export const TopBar: React.FC = () => {
     droneAttack, setDroneAttack,
     droneDecay, setDroneDecay,
     droneSustain, setDroneSustain,
-    droneRelease, setDroneRelease
+    droneRelease, setDroneRelease,
+    tiltStatus, tiltSample, requestTiltPermission
   } = useChordContext();
 
   const [showEffects, setShowEffects] = React.useState(false);
   const [showADSR, setShowADSR] = React.useState(false);
 
-  const isDrone = playStyle === 'drone';
+  // The tilt style drones, so it shares the drone envelope settings.
+  const isDrone = playStyle === 'drone' || playStyle === 'tilt';
+  const isTilt = playStyle === 'tilt';
+  const isDesktop = useLayoutTier() === 'desktop';
+  const isPhone = useLayoutTier() === 'phone';
 
   // Current values based on mode
   const currentA = isDrone ? droneAttack : envelopeAttack;
@@ -76,7 +92,7 @@ export const TopBar: React.FC = () => {
 
   return (
     <div className="top-bar-wrapper">
-      <div className="top-bar glass-panel">
+      <div className={`top-bar glass-panel${isPhone ? ' top-bar--phone' : ''}`}>
         <div className="brand">Movemental: Chord Alchemy</div>
         <div className="controls-group">
           <select
@@ -90,33 +106,122 @@ export const TopBar: React.FC = () => {
           </select>
 
           <select
-            value={voicing}
-            onChange={(e) => setVoicing(e.target.value)}
-            title="Voicing"
-          >
-            {Object.keys(VOICING_TO_INDICES).map(v => (
-              <option key={v} value={v}>{v}</option>
-            ))}
-          </select>
-
-          <select
             value={octaveRange}
             onChange={(e) => setOctaveRange(Number(e.target.value))}
             title="Octave Range"
           >
             {[1, 2, 3, 4, 5, 6].map(o => (
-              <option key={o} value={o}>Octave {o}</option>
+              <option key={o} value={o}>
+                {`Octave ${o}`}
+              </option>
             ))}
           </select>
 
-          <select
-            value={playStyle}
-            onChange={(e) => setPlayStyle(e.target.value as PlayStyle)}
-            title="Play Style"
-          >
-            <option value="click_and_hold">Click & Hold</option>
-            <option value="drone">Drone</option>
-          </select>
+          {!isPhone && (
+            <>
+              {isTilt ? (
+                <>
+                  <div className="voicing-readout-slot">
+                    <span
+                      className="voicing-readout-slot__sizer"
+                      aria-hidden="true"
+                    >
+                      {TILT_READOUT_MAX_LABEL}
+                    </span>
+                    {tiltStatus === 'needs-permission' && (
+                      <button
+                        className="adsr-toggle-btn"
+                        onClick={() => requestTiltPermission()}
+                        title="Allow access to the motion sensors"
+                      >
+                        Enable Motion
+                      </button>
+                    )}
+                    {tiltStatus === 'denied' && (
+                      <button
+                        className="adsr-toggle-btn"
+                        onClick={() => requestTiltPermission()}
+                        title="Motion access was denied. Tap to retry."
+                      >
+                        Motion Denied
+                      </button>
+                    )}
+                    {tiltStatus === 'unsupported' && (
+                      <span
+                        className="tilt-readout"
+                        title="This device has no motion sensors; tilt stays flat"
+                      >
+                        No motion sensors
+                      </span>
+                    )}
+                    {tiltStatus === 'active' && (
+                      <span
+                        className="tilt-readout"
+                        title="Live tilt: roll sets voicing width, pitch selects inversion"
+                      >
+                        {tiltVoicingLevelName(tiltSample)}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="voicing-readout-slot">
+                    <span
+                      className="voicing-readout-slot__sizer"
+                      aria-hidden="true"
+                    >
+                      {TILT_INVERSION_MAX_LABEL}
+                    </span>
+                    <span
+                      className="tilt-readout"
+                      title="Pitch tilt selects parallel inversion"
+                    >
+                      {tiltInversionLevelName(tiltSample)}
+                    </span>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <select
+                    value={staticVoicingLevel}
+                    onChange={(e) =>
+                      setStaticVoicingLevel(Number(e.target.value))
+                    }
+                    title="Voicing"
+                  >
+                    {TILT_VOICING_OVERLAY_LABELS.map((name, idx) => (
+                      <option key={TILT_VOICING_LEVEL_NAMES[idx]} value={idx}>
+                        {name}
+                      </option>
+                    ))}
+                  </select>
+
+                  <select
+                    value={staticInversionLevel}
+                    onChange={(e) =>
+                      setStaticInversionLevel(Number(e.target.value))
+                    }
+                    title="Inversion"
+                  >
+                    {TILT_INVERSION_DESKTOP_LABELS.map((name, idx) => (
+                      <option key={name} value={idx}>{name}</option>
+                    ))}
+                  </select>
+
+                  <select
+                    value={playStyle}
+                    onChange={(e) =>
+                      setPlayStyle(e.target.value as PlayStyle)
+                    }
+                    title="Play Style"
+                  >
+                    <option value="click_and_hold">Click & Hold</option>
+                    <option value="drone">Drone</option>
+                    {!isDesktop && <option value="tilt">Tilt</option>}
+                  </select>
+                </>
+              )}
+            </>
+          )}
 
           <button
             className={`adsr-toggle-btn ${showADSR ? 'active' : ''}`}
@@ -126,7 +231,8 @@ export const TopBar: React.FC = () => {
             }}
             title="Envelope Controls"
           >
-            <SlidersHorizontal size={12} style={{ marginRight: '6px' }} /> ADSR
+            <SlidersHorizontal size={12} style={{ marginRight: '6px' }} />
+            <span className="adsr-toggle-btn__label">ADSR</span>
           </button>
 
           <button
@@ -137,7 +243,8 @@ export const TopBar: React.FC = () => {
             }}
             title="Synth Effects"
           >
-            <SlidersHorizontal size={12} style={{ marginRight: '6px' }} /> FX
+            <SlidersHorizontal size={12} style={{ marginRight: '6px' }} />
+            <span className="adsr-toggle-btn__label">FX</span>
           </button>
 
           <button

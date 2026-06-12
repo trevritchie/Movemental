@@ -44,6 +44,10 @@ export class ChordManager {
     this.voicing = voicing;
   }
 
+  public getOctaveRange(): number {
+    return this.octaveRange;
+  }
+
   private createChord(name: string, pitches: number[]): Chord {
     const rootPitchClass = pitches[0] % 12;
 

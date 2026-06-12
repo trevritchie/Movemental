@@ -164,15 +164,15 @@ export class AudioEngine {
     this.synth.triggerAttackRelease(noteNames, duration, now + 0.015);
   }
 
-  public triggerAttack(midiNotes: number[]) {
+  public triggerAttack(midiNotes: number[], retrigger: boolean = false) {
     this.isPointerDown = true;
     if (this.synth && this.isReady) {
-      this.triggerAttackSync(midiNotes);
+      this.triggerAttackSync(midiNotes, retrigger);
     } else {
       // Async initialization path for the first gesture
       this.startContext().then(() => {
         if (this.isPointerDown) {
-          this.triggerAttackSync(midiNotes);
+          this.triggerAttackSync(midiNotes, retrigger);
         } else {
           devLog('[AudioEngine] Pointer was released during async initialization. Aborting attack.');
         }
@@ -180,7 +180,7 @@ export class AudioEngine {
     }
   }
 
-  private triggerAttackSync(midiNotes: number[]) {
+  private triggerAttackSync(midiNotes: number[], retrigger: boolean = false) {
     if (!this.synth || !this.isReady) return;
 
     const now = Tone.now();
@@ -190,6 +190,23 @@ export class AudioEngine {
     // Cast to string[] — Tone internally accepts note name strings; the strict union
     // type on toNote() is overly narrow for filter/includes operations.
     const noteNames: string[] = clamped.map(n => Tone.Frequency(n, 'midi').toNote() as string);
+
+    if (retrigger) {
+      // Explicit re-strike (tilt mode taps): release everything and re-attack
+      // the full voicing, even when the notes are unchanged. The 15ms attack
+      // offset prevents popping against the release, matching playNotes.
+      if (this.activeNotes.length > 0) {
+        try {
+          this.synth.triggerRelease(this.activeNotes, now);
+        } catch (err) {
+          devWarn('[AudioEngine] Retrigger release error:', err);
+        }
+      }
+      this.activeNotes = noteNames;
+      devLog('[AudioEngine] Retriggering:', noteNames);
+      this.synth.triggerAttack(noteNames, now + 0.015);
+      return;
+    }
 
     // ── Synchronous Legato Diffing ──────────────────────────────────────────
     // Vital for drone mode: prevents polyphony pile-up by sustaining common notes.

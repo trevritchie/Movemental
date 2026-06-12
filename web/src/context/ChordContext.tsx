@@ -13,11 +13,17 @@ import type { BorrowingState } from '../music/BorrowingLogic';
 import {
   DEFAULT_TONAL_CENTER_OFFSET,
   DEFAULT_OCTAVE_RANGE,
-  DEFAULT_VOICING,
 } from '../music/config';
+import {
+  DEFAULT_STATIC_INVERSION_LEVEL,
+  DEFAULT_STATIC_VOICING_LEVEL,
+  type TiltSample,
+} from '../music/TiltVoicingEngine';
 import { useAudioSettings } from '../hooks/useAudioSettings';
 import { useBorrowingMemory } from '../hooks/useBorrowingMemory';
 import { useChordPlayback } from '../hooks/useChordPlayback';
+import { useDeviceTilt, type TiltStatus } from '../hooks/useDeviceTilt';
+import { triggerHaptic } from '../audio/haptics';
 import type { PlayStyle } from './types';
 
 export type { PlayStyle } from './types';
@@ -25,8 +31,10 @@ export type { PlayStyle } from './types';
 interface ChordContextType {
   tonalCenter: number;
   setTonalCenter: (val: number) => void;
-  voicing: string;
-  setVoicing: (val: string) => void;
+  staticVoicingLevel: number;
+  setStaticVoicingLevel: (val: number) => void;
+  staticInversionLevel: number;
+  setStaticInversionLevel: (val: number) => void;
   octaveRange: number;
   setOctaveRange: (val: number) => void;
   selectedChord: Chord | null;
@@ -65,6 +73,9 @@ interface ChordContextType {
   setBorrowingMemory: (mode: 'global' | 'per-chord') => void;
   lockedVoices: Record<string, Record<number, boolean>>;
   toggleVoiceLock: (chordName: string, line: number) => void;
+  tiltStatus: TiltStatus;
+  tiltSample: TiltSample;
+  requestTiltPermission: () => Promise<void>;
 }
 
 const ChordContext = createContext<ChordContextType | undefined>(undefined);
@@ -83,7 +94,12 @@ interface ChordProviderProps {
 
 export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
   const [tonalCenter, setTonalCenter] = useState(DEFAULT_TONAL_CENTER_OFFSET);
-  const [voicing, setVoicing] = useState(DEFAULT_VOICING);
+  const [staticVoicingLevel, setStaticVoicingLevel] = useState(
+    DEFAULT_STATIC_VOICING_LEVEL
+  );
+  const [staticInversionLevel, setStaticInversionLevel] = useState(
+    DEFAULT_STATIC_INVERSION_LEVEL
+  );
   const [octaveRange, setOctaveRange] = useState(DEFAULT_OCTAVE_RANGE);
   const [selectedChord, setSelectedChord] = useState<Chord | null>(null);
 
@@ -102,16 +118,44 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
       playAndDisplayChordRef.current(chord, state),
   });
 
+  // Ref avoids a hook ordering cycle: useDeviceTilt must exist before
+  // useChordPlayback (which needs tiltRef), but the haptic gate needs the
+  // play style that useChordPlayback owns.
+  const playStyleRef = useRef<PlayStyle>('drone');
+  const handleTiltLevelChange = useCallback(() => {
+    if (playStyleRef.current === 'tilt') {
+      triggerHaptic();
+    }
+  }, []);
+
+  const deviceTilt = useDeviceTilt(handleTiltLevelChange);
+
+  const staticVoicingLevelRef = useRef(staticVoicingLevel);
+  const staticInversionLevelRef = useRef(staticInversionLevel);
+  useEffect(() => {
+    staticVoicingLevelRef.current = staticVoicingLevel;
+  }, [staticVoicingLevel]);
+  useEffect(() => {
+    staticInversionLevelRef.current = staticInversionLevel;
+  }, [staticInversionLevel]);
+
   const playback = useChordPlayback({
     getBorrowingStateForChord: borrowing.getBorrowingStateForChord,
     borrowingStateRef: borrowing.borrowingStateRef,
     setBorrowingState: borrowing.setBorrowingState,
     setSelectedChord,
+    tiltRef: deviceTilt.tiltRef,
+    staticVoicingLevelRef,
+    staticInversionLevelRef,
   });
 
   useEffect(() => {
     playAndDisplayChordRef.current = playback.playAndDisplayChord;
   }, [playback.playAndDisplayChord]);
+
+  useEffect(() => {
+    playStyleRef.current = playback.playStyle;
+  }, [playback.playStyle]);
 
   const audio = useAudioSettings(playback.playStyle);
 
@@ -142,9 +186,8 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
 
   useEffect(() => {
     chordManager.setTonalCenterOffset(tonalCenter);
-    chordManager.setVoicing(voicing);
     chordManager.setOctaveRange(octaveRange);
-  }, [tonalCenter, voicing, octaveRange]);
+  }, [tonalCenter, octaveRange]);
 
   useEffect(() => {
     const name = selectedChordNameRef.current;
@@ -162,8 +205,9 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
     playAndDisplayChord(updatedChord, newState);
   }, [
     tonalCenter,
-    voicing,
     octaveRange,
+    staticVoicingLevel,
+    staticInversionLevel,
     getBorrowingStateForChord,
     borrowingStateRef,
     setBorrowingState,
@@ -173,8 +217,10 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
   const value: ChordContextType = {
     tonalCenter,
     setTonalCenter,
-    voicing,
-    setVoicing,
+    staticVoicingLevel,
+    setStaticVoicingLevel,
+    staticInversionLevel,
+    setStaticInversionLevel,
     octaveRange,
     setOctaveRange,
     selectedChord,
@@ -213,6 +259,9 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
     setBorrowingMemory: borrowing.setBorrowingMemory,
     lockedVoices: borrowing.lockedVoices,
     toggleVoiceLock: borrowing.toggleVoiceLock,
+    tiltStatus: deviceTilt.status,
+    tiltSample: deviceTilt.tilt,
+    requestTiltPermission: deviceTilt.requestPermission,
   };
 
   return (
