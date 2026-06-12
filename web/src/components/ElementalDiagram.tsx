@@ -10,6 +10,7 @@ import {
 import { useChordContext } from '../context/ChordContext';
 import { BREAKPOINTS } from '../layout/breakpoints';
 import { useLayoutTier } from '../hooks/useLayoutTier';
+import { DiagramVoicingOverlay } from './DiagramVoicingOverlay';
 
 function piePath(r: number, slice: number): string {
   const d = r / Math.SQRT2;
@@ -170,6 +171,7 @@ export const ElementalDiagram: React.FC<{ children?: React.ReactNode }> = ({ chi
       ref={containerRef}
       style={{ opacity: isDiagramReady ? 1 : 0 }}
     >
+      {layoutTier === 'phone' && <DiagramVoicingOverlay />}
       <svg
         viewBox={viewBox}
         className="diagram-svg"

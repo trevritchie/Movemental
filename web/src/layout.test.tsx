@@ -50,6 +50,18 @@ describe('Responsive Layout CSS', () => {
     expect(phoneBlock).toMatch(/input[\s\S]*user-select:\s*text/);
   });
 
+  it('should use a single-row full-width toolbar on mobile', () => {
+    const phoneStart = cssContent.search(phoneLayoutPattern);
+    const phoneBlock = cssContent.slice(phoneStart, phoneStart + 3500);
+    expect(phoneBlock).toMatch(
+      /\.controls-group\s*\{[^}]*flex-wrap:\s*nowrap/,
+    );
+    expect(phoneBlock).toMatch(
+      /\.top-bar--phone\s+\.controls-group\s*>\s*select[\s\S]*flex:\s*1\s*1\s*0/,
+    );
+    expect(phoneBlock).not.toMatch(/overflow-x:\s*auto/);
+  });
+
   it('should ensure accessible touch targets (min 44px) for compactly stacked controls on mobile', () => {
     const mobileTouchTargetMatch = cssContent.match(
       /\(max-width: 767px\)[\s\S]*?\.borrowing-row\s*\{[^}]*min-height:\s*44px/,

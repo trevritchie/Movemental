@@ -1,6 +1,14 @@
 import React from 'react';
 import { SlidersHorizontal, Square } from 'lucide-react';
-import { NOTE_NAMES_FLAT, VOICING_TO_INDICES } from '../music/config';
+import { NOTE_NAMES_FLAT } from '../music/config';
+import {
+  tiltVoicingLevelName,
+  tiltInversionLevelName,
+  TILT_READOUT_MAX_LABEL,
+  TILT_INVERSION_MAX_LABEL,
+  TILT_VOICING_LEVEL_NAMES,
+  TILT_INVERSION_LEVEL_NAMES,
+} from '../music/TiltVoicingEngine';
 import { audioEngine } from '../audio/AudioEngine';
 import { useChordContext, type PlayStyle } from '../context/ChordContext';
 import { useLayoutTier } from '../hooks/useLayoutTier';
@@ -8,7 +16,8 @@ import { useLayoutTier } from '../hooks/useLayoutTier';
 export const TopBar: React.FC = () => {
   const {
     tonalCenter, setTonalCenter,
-    voicing, setVoicing,
+    staticVoicingLevel, setStaticVoicingLevel,
+    staticInversionLevel, setStaticInversionLevel,
     octaveRange, setOctaveRange,
     chorusWet, setChorusWet,
     delayWet, setDelayWet,
@@ -32,6 +41,7 @@ export const TopBar: React.FC = () => {
   const isDrone = playStyle === 'drone' || playStyle === 'tilt';
   const isTilt = playStyle === 'tilt';
   const isDesktop = useLayoutTier() === 'desktop';
+  const isPhone = useLayoutTier() === 'phone';
 
   // Current values based on mode
   const currentA = isDrone ? droneAttack : envelopeAttack;
@@ -81,7 +91,7 @@ export const TopBar: React.FC = () => {
 
   return (
     <div className="top-bar-wrapper">
-      <div className="top-bar glass-panel">
+      <div className={`top-bar glass-panel${isPhone ? ' top-bar--phone' : ''}`}>
         <div className="brand">Movemental: Chord Alchemy</div>
         <div className="controls-group">
           <select
@@ -94,81 +104,124 @@ export const TopBar: React.FC = () => {
             ))}
           </select>
 
-          {/* In tilt mode the voicing is determined by tilting, so the
-              motion UI takes the voicing dropdown's slot. */}
-          {!isTilt && (
-            <select
-              value={voicing}
-              onChange={(e) => setVoicing(e.target.value)}
-              title="Voicing"
-            >
-              {Object.keys(VOICING_TO_INDICES).map(v => (
-                <option key={v} value={v}>{v}</option>
-              ))}
-            </select>
-          )}
-          {isTilt && tiltStatus === 'needs-permission' && (
-            <button
-              className="adsr-toggle-btn"
-              onClick={() => requestTiltPermission()}
-              title="Allow access to the motion sensors"
-            >
-              Enable Motion
-            </button>
-          )}
-          {isTilt && tiltStatus === 'denied' && (
-            <button
-              className="adsr-toggle-btn"
-              onClick={() => requestTiltPermission()}
-              title="Motion access was denied. Tap to retry."
-            >
-              Motion Denied
-            </button>
-          )}
-          {isTilt && tiltStatus === 'unsupported' && (
-            <span
-              className="tilt-readout"
-              title="This device has no motion sensors; tilt stays flat"
-              style={{ fontSize: '11px', opacity: 0.7, whiteSpace: 'nowrap' }}
-            >
-              No motion sensors
-            </span>
-          )}
-          {isTilt && tiltStatus === 'active' && (
-            <span
-              className="tilt-readout"
-              title="Live tilt: roll narrows the chord, pitch raises the pivot"
-              style={{
-                fontSize: '11px',
-                opacity: 0.7,
-                whiteSpace: 'nowrap',
-                fontVariantNumeric: 'tabular-nums',
-              }}
-            >
-              Roll {Math.round(Math.abs(tiltSample.x) * 100)}% / Pitch{' '}
-              {Math.round(Math.abs(tiltSample.y) * 100)}%
-            </span>
-          )}
-
           <select
             value={octaveRange}
             onChange={(e) => setOctaveRange(Number(e.target.value))}
             title="Octave Range"
           >
             {[1, 2, 3, 4, 5, 6].map(o => (
-              <option key={o} value={o}>Octave {o}</option>
+              <option key={o} value={o}>
+                {isPhone ? `Oct ${o}` : `Octave ${o}`}
+              </option>
             ))}
           </select>
 
-          <select
-            value={playStyle}
-            onChange={(e) => setPlayStyle(e.target.value as PlayStyle)}
-            title="Play Style"
-          >
-            <option value="click_and_hold">Click & Hold</option>
-            <option value="drone">Drone</option>
-            {!isDesktop && <option value="tilt">Tilt</option>}
-          </select>
+          {!isPhone && (
+            <>
+              <div className="voicing-readout-slot">
+                <span className="voicing-readout-slot__sizer" aria-hidden="true">
+                  {TILT_READOUT_MAX_LABEL}
+                </span>
+                {!isTilt && (
+                  <select
+                    value={staticVoicingLevel}
+                    onChange={(e) =>
+                      setStaticVoicingLevel(Number(e.target.value))
+                    }
+                    title="Voicing level"
+                  >
+                    {TILT_VOICING_LEVEL_NAMES.map((name, idx) => (
+                      <option key={name} value={idx}>{name}</option>
+                    ))}
+                  </select>
+                )}
+                {isTilt && tiltStatus === 'needs-permission' && (
+                  <button
+                    className="adsr-toggle-btn"
+                    onClick={() => requestTiltPermission()}
+                    title="Allow access to the motion sensors"
+                  >
+                    Enable Motion
+                  </button>
+                )}
+                {isTilt && tiltStatus === 'denied' && (
+                  <button
+                    className="adsr-toggle-btn"
+                    onClick={() => requestTiltPermission()}
+                    title="Motion access was denied. Tap to retry."
+                  >
+                    Motion Denied
+                  </button>
+                )}
+                {isTilt && tiltStatus === 'unsupported' && (
+                  <span
+                    className="tilt-readout"
+                    title="This device has no motion sensors; tilt stays flat"
+                  >
+                    No motion sensors
+                  </span>
+                )}
+                {isTilt && tiltStatus === 'active' && (
+                  <span
+                    className="tilt-readout"
+                    title="Live tilt: roll sets voicing width, pitch selects inversion"
+                  >
+                    {tiltVoicingLevelName(tiltSample)}
+                  </span>
+                )}
+              </div>
+
+              {isTilt ? (
+                <div className="voicing-readout-slot">
+                  <span
+                    className="voicing-readout-slot__sizer"
+                    aria-hidden="true"
+                  >
+                    {TILT_INVERSION_MAX_LABEL}
+                  </span>
+                  <span
+                    className="tilt-readout"
+                    title="Pitch tilt selects parallel inversion"
+                  >
+                    {tiltInversionLevelName(tiltSample)}
+                  </span>
+                </div>
+              ) : (
+                <>
+                  <div className="voicing-readout-slot">
+                    <span
+                      className="voicing-readout-slot__sizer"
+                      aria-hidden="true"
+                    >
+                      {TILT_INVERSION_MAX_LABEL}
+                    </span>
+                    <select
+                      value={staticInversionLevel}
+                      onChange={(e) =>
+                        setStaticInversionLevel(Number(e.target.value))
+                      }
+                      title="Inversion level"
+                    >
+                      {TILT_INVERSION_LEVEL_NAMES.map((name, idx) => (
+                        <option key={name} value={idx}>{name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <select
+                    value={playStyle}
+                    onChange={(e) =>
+                      setPlayStyle(e.target.value as PlayStyle)
+                    }
+                    title="Play Style"
+                  >
+                    <option value="click_and_hold">Click & Hold</option>
+                    <option value="drone">Drone</option>
+                    {!isDesktop && <option value="tilt">Tilt</option>}
+                  </select>
+                </>
+              )}
+            </>
+          )}
 
           <button
             className={`adsr-toggle-btn ${showADSR ? 'active' : ''}`}
@@ -178,7 +231,8 @@ export const TopBar: React.FC = () => {
             }}
             title="Envelope Controls"
           >
-            <SlidersHorizontal size={12} style={{ marginRight: '6px' }} /> ADSR
+            <SlidersHorizontal size={12} style={{ marginRight: '6px' }} />
+            <span className="adsr-toggle-btn__label">ADSR</span>
           </button>
 
           <button
@@ -189,7 +243,8 @@ export const TopBar: React.FC = () => {
             }}
             title="Synth Effects"
           >
-            <SlidersHorizontal size={12} style={{ marginRight: '6px' }} /> FX
+            <SlidersHorizontal size={12} style={{ marginRight: '6px' }} />
+            <span className="adsr-toggle-btn__label">FX</span>
           </button>
 
           <button

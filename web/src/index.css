@@ -124,19 +124,48 @@ body {
     border-top: none;
     border-left: none;
     border-right: none;
-    padding: 4px 8px !important;
+    padding: 2px 4px !important;
     justify-content: center !important;
-    min-height: 48px;
+    min-height: 44px;
   }
   .brand {
     display: none;
   }
   .controls-group {
     width: 100%;
-    justify-content: center !important;
-    gap: 8px !important;
-    flex-wrap: wrap !important;
-    padding: 6px 16px;
+    justify-content: stretch !important;
+    gap: 4px !important;
+    flex-wrap: nowrap !important;
+    overflow: hidden;
+    padding: 4px 6px;
+    box-sizing: border-box;
+  }
+  .top-bar--phone .controls-group > select,
+  .top-bar--phone .controls-group > .adsr-toggle-btn,
+  .top-bar--phone .controls-group > .stop-btn {
+    flex: 1 1 0;
+    min-width: 0;
+    min-height: 44px;
+  }
+  .top-bar--phone .controls-group > select {
+    padding: 8px 22px 8px 8px;
+    font-size: 0.78rem;
+    background-position: right 6px center;
+    background-size: 11px;
+    text-overflow: ellipsis;
+  }
+  .top-bar--phone .controls-group > .adsr-toggle-btn {
+    padding: 8px 4px;
+    font-size: 0.78rem;
+  }
+  .top-bar--phone .controls-group > .stop-btn {
+    flex: 0.65 1 0;
+    padding: 8px 4px !important;
+    min-width: 44px;
+  }
+  .top-bar--phone .voicing-readout-slot {
+    min-height: 36px;
+    padding: 0 6px;
   }
   .diagram-container {
     flex: 1;
@@ -215,6 +244,82 @@ body {
     justify-content: flex-start;
     gap: 4px;
     margin: 4px 0;
+  }
+
+  .diagram-voicing-overlay {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    right: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 8px;
+    pointer-events: none;
+    z-index: 2;
+  }
+
+  .diagram-voicing-overlay__corner {
+    pointer-events: auto;
+    max-width: 46%;
+  }
+
+  .diagram-voicing-overlay__corner--right {
+    text-align: right;
+  }
+
+  .diagram-overlay-label {
+    display: block;
+    font-size: 0.85rem;
+    font-weight: 700;
+    line-height: 1.2;
+    color: rgba(255, 255, 255, 0.88);
+    text-shadow: 0 1px 6px rgba(0, 0, 0, 0.65);
+  }
+
+  .diagram-overlay-label--right {
+    text-align: right;
+  }
+
+  .diagram-overlay-select {
+    appearance: none;
+    -webkit-appearance: none;
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.88);
+    font-family: inherit;
+    font-size: 0.85rem;
+    font-weight: 700;
+    line-height: 1.2;
+    padding: 0;
+    margin: 0;
+    cursor: pointer;
+    text-shadow: 0 1px 6px rgba(0, 0, 0, 0.65);
+    max-width: 100%;
+  }
+
+  .diagram-overlay-select--right {
+    text-align: right;
+    direction: rtl;
+  }
+
+  .diagram-overlay-select--right option {
+    direction: ltr;
+    color: #111;
+  }
+
+  .diagram-overlay-btn {
+    appearance: none;
+    background: rgba(20, 20, 22, 0.55);
+    border: 1px solid var(--panel-border);
+    border-radius: 8px;
+    color: rgba(255, 255, 255, 0.9);
+    font-family: inherit;
+    font-size: 0.75rem;
+    font-weight: 600;
+    line-height: 1.2;
+    padding: 4px 8px;
+    cursor: pointer;
   }
 
   @media (orientation: portrait) {
@@ -417,6 +522,61 @@ body {
   gap: 16px;
   align-items: center;
   flex-wrap: wrap;
+}
+
+.voicing-readout-slot {
+  display: inline-grid;
+  align-items: center;
+  justify-items: center;
+  min-height: 2.125rem;
+  padding: 0 10px;
+  box-sizing: border-box;
+  border: 1px solid var(--panel-border);
+  border-radius: 10px;
+  background: rgba(20, 20, 22, 0.4);
+}
+
+.voicing-readout-slot > * {
+  grid-area: 1 / 1;
+}
+
+.voicing-readout-slot__sizer {
+  visibility: hidden;
+  white-space: nowrap;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1;
+  pointer-events: none;
+}
+
+.voicing-readout-slot select {
+  width: 100%;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+  padding: 8px 28px 8px 4px;
+}
+
+.voicing-readout-slot select:hover,
+.voicing-readout-slot select:focus {
+  border: none;
+  box-shadow: none;
+  background: transparent;
+}
+
+.voicing-readout-slot .adsr-toggle-btn {
+  width: 100%;
+  justify-content: center;
+  padding-left: 8px;
+  padding-right: 8px;
+}
+
+.tilt-readout {
+  font-size: 11px;
+  font-weight: 500;
+  opacity: 0.7;
+  white-space: nowrap;
+  text-align: center;
 }
 
 select {
