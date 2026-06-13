@@ -25,7 +25,7 @@ interface UseChordPlaybackOptions {
   setSelectedChord: (chord: Chord | null) => void;
   tiltRef: RefObject<TiltSample>;
   staticVoicingLevelRef: RefObject<number>;
-  staticInversionLevelRef: RefObject<number>;
+  staticPositionLevelRef: RefObject<number>;
   tonalCenterRef: RefObject<number>;
 }
 
@@ -36,7 +36,7 @@ export function useChordPlayback({
   setSelectedChord,
   tiltRef,
   staticVoicingLevelRef,
-  staticInversionLevelRef,
+  staticPositionLevelRef,
   tonalCenterRef,
 }: UseChordPlaybackOptions) {
   const [playStyle, setPlayStyle] = useState<PlayStyle>('drone');
@@ -100,10 +100,10 @@ export function useChordPlayback({
         state,
         tiltSampleFromLevels(
           staticVoicingLevelRef.current,
-          staticInversionLevelRef.current
+          staticPositionLevelRef.current
         )
       ),
-    [computeVoicedPitches, staticVoicingLevelRef, staticInversionLevelRef]
+    [computeVoicedPitches, staticVoicingLevelRef, staticPositionLevelRef]
   );
 
   const playPitches = useCallback(

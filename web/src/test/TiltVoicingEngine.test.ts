@@ -14,10 +14,11 @@ import {
   computeTiltVoicing,
   voicingWidthFromTilt,
   tiltVoicingLevelName,
-  tiltInversionLevelName,
+  tiltPositionLevelName,
   TILT_VOICING_LEVEL_NAMES,
-  TILT_INVERSION_LEVEL_NAMES,
-  TILT_INVERSION_DESKTOP_LABELS,
+  TILT_POSITION_MOBILE_LABELS,
+  TILT_POSITION_DESKTOP_LABELS,
+  parallelLevelFromTilt,
   FLAT_TILT,
 } from '../music/TiltVoicingEngine';
 
@@ -89,17 +90,46 @@ describe('mapTiltToPositions', () => {
     });
   });
 
-  it('maps full chest-ward pitch to third inversion', () => {
+  it('maps full chest-ward pitch to high 1st position (one cycle up)', () => {
     expect(mapTiltToPositions({ x: -1, y: -1 })).toEqual({
       inputSteps: 0,
+      parallelSteps: 4,
+    });
+  });
+
+  it('reaches 4th position before full chest-ward tilt', () => {
+    expect(mapTiltToPositions({ x: 0, y: -0.75 })).toEqual({
+      inputSteps: 8,
       parallelSteps: 3,
     });
   });
 
-  it('clamps values outside [-1, 0]', () => {
+  it('maps away-from-chest pitch to lower signed pivot steps', () => {
+    expect(mapTiltToPositions({ x: 0, y: 0.25 })).toEqual({
+      inputSteps: 8,
+      parallelSteps: -1,
+    });
+    expect(mapTiltToPositions({ x: 0, y: 1 })).toEqual({
+      inputSteps: 8,
+      parallelSteps: -4,
+    });
+  });
+
+  it('reaches 2nd position before full away-from-chest tilt', () => {
+    expect(mapTiltToPositions({ x: 0, y: 0.75 })).toEqual({
+      inputSteps: 8,
+      parallelSteps: -3,
+    });
+  });
+
+  it('clamps values outside axis ranges', () => {
     expect(mapTiltToPositions({ x: 0.7, y: -2 })).toEqual({
       inputSteps: 8,
-      parallelSteps: 3,
+      parallelSteps: 4,
+    });
+    expect(mapTiltToPositions({ x: -1, y: 2 })).toEqual({
+      inputSteps: 0,
+      parallelSteps: -4,
     });
   });
 });
@@ -142,7 +172,7 @@ describe('tiltVoicingLevelName', () => {
 });
 
 describe('tiltSampleFromLevels', () => {
-  it('round-trips discrete voicing and inversion levels', () => {
+  it('round-trips discrete voicing and position levels', () => {
     for (let inputSteps = 0; inputSteps <= 8; inputSteps++) {
       for (let parallelSteps = 0; parallelSteps <= 3; parallelSteps++) {
         const sample = tiltSampleFromLevels(inputSteps, parallelSteps);
@@ -155,27 +185,42 @@ describe('tiltSampleFromLevels', () => {
   });
 });
 
-describe('tiltInversionLevelName', () => {
-  it('maps pitch tilt to parallel inversion labels', () => {
-    expect(tiltInversionLevelName({ x: 0, y: 0 })).toBe('Root');
-    expect(tiltInversionLevelName({ x: 0, y: -0.34 })).toBe('First');
-    expect(tiltInversionLevelName({ x: 0, y: -0.67 })).toBe('Second');
-    expect(tiltInversionLevelName({ x: 0, y: -1 })).toBe('Third');
+describe('tiltPositionLevelName', () => {
+  it('maps chest-ward pitch to ascending position labels', () => {
+    expect(tiltPositionLevelName({ x: 0, y: 0 }, 'mobile')).toBe('1st');
+    expect(tiltPositionLevelName({ x: 0, y: -0.25 }, 'mobile')).toBe('2nd');
+    expect(tiltPositionLevelName({ x: 0, y: -0.5 }, 'mobile')).toBe('3rd');
+    expect(tiltPositionLevelName({ x: 0, y: -0.75 }, 'mobile')).toBe('4th');
+    expect(tiltPositionLevelName({ x: 0, y: -1 }, 'mobile')).toBe('1st');
   });
 
-  it('lists four inversion level names', () => {
-    expect(TILT_INVERSION_LEVEL_NAMES).toEqual([
-      'Root',
-      'First',
-      'Second',
-      'Third',
+  it('maps away-from-chest pitch to reversed position labels', () => {
+    expect(tiltPositionLevelName({ x: 0, y: 0.25 }, 'mobile')).toBe('4th');
+    expect(tiltPositionLevelName({ x: 0, y: 0.5 }, 'mobile')).toBe('3rd');
+    expect(tiltPositionLevelName({ x: 0, y: 0.75 }, 'mobile')).toBe('2nd');
+    expect(tiltPositionLevelName({ x: 0, y: 1 }, 'mobile')).toBe('1st');
+  });
+
+  it('lists four position level names', () => {
+    expect(TILT_POSITION_MOBILE_LABELS).toEqual([
+      '1st',
+      '2nd',
+      '3rd',
+      '4th',
     ]);
-    expect(TILT_INVERSION_DESKTOP_LABELS).toEqual([
-      'Root Inv.',
-      'First Inv.',
-      'Second Inv.',
-      'Third Inv.',
+    expect(TILT_POSITION_DESKTOP_LABELS).toEqual([
+      '1st Pos.',
+      '2nd Pos.',
+      '3rd Pos.',
+      '4th Pos.',
     ]);
+  });
+
+  it('uses desktop labels when requested', () => {
+    expect(tiltPositionLevelName({ x: 0, y: -0.75 }, 'desktop')).toBe('4th Pos.');
+    expect(tiltPositionLevelName({ x: 0, y: -1 }, 'desktop')).toBe('1st Pos.');
+    expect(tiltPositionLevelName({ x: 0, y: 0.75 }, 'desktop')).toBe('2nd Pos.');
+    expect(tiltPositionLevelName({ x: 0, y: 1 }, 'desktop')).toBe('1st Pos.');
   });
 });
 
@@ -252,28 +297,34 @@ describe('computeTiltVoicing', () => {
     ).toEqual([60, 64]);
   });
 
-  it('plays the first-inversion bass when parallel level 1 and vertical', () => {
+  it('plays the 2nd-position bass when chest-ward at parallel level 1 and vertical', () => {
     expect(
-      computeTiltVoicing(BRANCH, 0, { x: -1, y: -0.34 }, OCTAVE_RANGE, 0)
+      computeTiltVoicing(BRANCH, 0, { x: -1, y: -0.25 }, OCTAVE_RANGE, 0)
     ).toEqual([64]);
   });
 
-  it('plays the second-inversion bass when parallel level 2 and vertical', () => {
+  it('plays the 3rd-position bass when chest-ward at parallel level 2 and vertical', () => {
     expect(
-      computeTiltVoicing(BRANCH, 0, { x: -1, y: -0.67 }, OCTAVE_RANGE, 0)
+      computeTiltVoicing(BRANCH, 0, { x: -1, y: -0.5 }, OCTAVE_RANGE, 0)
     ).toEqual([67]);
   });
 
-  it('plays the wide first-inversion voicing when parallel 1 and flat', () => {
+  it('plays high 1st at full chest-ward tilt (one cycle above center)', () => {
     expect(
-      computeTiltVoicing(BRANCH, 0, { x: 0, y: -0.34 }, OCTAVE_RANGE, 0)
+      computeTiltVoicing(BRANCH, 0, { x: -1, y: -1 }, OCTAVE_RANGE, 0)
+    ).toEqual([72]);
+  });
+
+  it('plays the wide 2nd-position voicing when parallel 1 and flat', () => {
+    expect(
+      computeTiltVoicing(BRANCH, 0, { x: 0, y: -0.25 }, OCTAVE_RANGE, 0)
     ).toEqual(obliqueMotion(1, 9, BRANCH_CYCLE, 60));
   });
 
-  it('plays a three-note stack at parallel 2 with partial roll', () => {
+  it('plays a three-note stack at parallel 3 with partial roll', () => {
     expect(
-      computeTiltVoicing(BRANCH, 0, { x: -0.75, y: -0.67 }, OCTAVE_RANGE, 0)
-    ).toEqual([64, 67, 69]);
+      computeTiltVoicing(BRANCH, 0, { x: -0.75, y: -0.75 }, OCTAVE_RANGE, 0)
+    ).toEqual([67, 69, 72]);
   });
 
   it('voices a minor sixth cycle (Trunk) correctly when flat', () => {
@@ -320,6 +371,34 @@ describe('computeTiltVoicing', () => {
         69
       )
     ).toEqual([69]);
+  });
+
+  it('lowers the unison pivot when tilted away from chest', () => {
+    const flatUnison = computeTiltVoicing(
+      BRANCH,
+      0,
+      { x: -1, y: 0 },
+      OCTAVE_RANGE,
+      0
+    );
+    const downTiltUnison = computeTiltVoicing(
+      BRANCH,
+      0,
+      { x: -1, y: 0.25 },
+      OCTAVE_RANGE,
+      0
+    );
+    expect(flatUnison).toEqual([60]);
+    expect(downTiltUnison).toEqual([57]);
+    expect(downTiltUnison[0]).toBeLessThan(flatUnison[0]!);
+    expect(parallelLevelFromTilt({ x: -1, y: 0.25 })).toBe(-1);
+    expect(tiltPositionLevelName({ x: -1, y: 0.25 }, 'mobile')).toBe('4th');
+  });
+
+  it('plays low 1st at full away-from-chest tilt (one cycle below center)', () => {
+    expect(
+      computeTiltVoicing(BRANCH, 0, { x: -1, y: 1 }, OCTAVE_RANGE, 0)
+    ).toEqual([48]);
   });
 
   it('returns empty when all voices are off', () => {
