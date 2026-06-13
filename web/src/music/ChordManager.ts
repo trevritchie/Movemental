@@ -9,6 +9,12 @@ import {
   DEFAULT_OCTAVE_RANGE,
   DEFAULT_VOICING
 } from './config';
+import {
+  isElementalName,
+  getDefaultElementalRoot,
+  findRootPositionIndex,
+  elementalTraditionalName,
+} from './elementalRoot';
 
 export interface Chord {
   name: string;
@@ -51,7 +57,9 @@ export class ChordManager {
   private createChord(name: string, pitches: number[]): Chord {
     const rootPitchClass = pitches[0] % 12;
 
-    const transposedPitches = pitches.map(p => (p % 12) + (this.tonalCenterOffset % 12));
+    const transposedPitches = pitches.map(
+      p => ((p % 12) + (this.tonalCenterOffset % 12)) % 12
+    );
 
     const chordQualityMap: Record<string, string> = {
       "Earth": " dim7", "Wind": " dim7",
@@ -71,18 +79,25 @@ export class ChordManager {
     }
 
     const rootNote = NOTE_NAMES_FLAT[transposedPitches[0] % 12];
-    const traditionalName = rootNote + quality;
+    let traditionalName = rootNote + quality;
 
     transposedPitches.sort((a, b) => a - b);
 
-    const transposedRootPitchClass = (rootPitchClass + (this.tonalCenterOffset % 12)) % 12;
-    let rootPositionIndex = 0;
-    for (let i = 0; i < transposedPitches.length; i++) {
-      if (transposedPitches[i] % 12 === transposedRootPitchClass) {
-        rootPositionIndex = i;
-        break;
-      }
+    let transposedRootPitchClass =
+      (rootPitchClass + (this.tonalCenterOffset % 12)) % 12;
+
+    if (isElementalName(name)) {
+      transposedRootPitchClass = getDefaultElementalRoot(
+        name,
+        this.tonalCenterOffset
+      );
+      traditionalName = elementalTraditionalName(transposedRootPitchClass);
     }
+
+    const rootPositionIndex = findRootPositionIndex(
+      transposedPitches,
+      transposedRootPitchClass
+    );
 
     return {
       name,

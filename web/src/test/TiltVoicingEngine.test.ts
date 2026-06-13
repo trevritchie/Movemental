@@ -196,8 +196,10 @@ describe('obliqueMotion', () => {
     expect(obliqueMotion(0, 4, BRANCH_CYCLE, 60)).toEqual([57, 60, 64, 67]);
   });
 
-  it('thins the octave chord (width 5) by dropping the middle note', () => {
-    expect(obliqueMotion(0, 5, BRANCH_CYCLE, 60)).toEqual([55, 57, 64, 67]);
+  it('plays all five notes at width 5 (Octave) without thinning', () => {
+    expect(obliqueMotion(0, 5, BRANCH_CYCLE, 60)).toEqual([
+      55, 57, 60, 64, 67,
+    ]);
   });
 
   it('thins width 6 with the drop 2 rule', () => {
@@ -233,50 +235,50 @@ describe('obliqueMotion', () => {
 
 describe('computeTiltVoicing', () => {
   it('plays the widest voicing when flat (reversed from Python)', () => {
-    expect(computeTiltVoicing(BRANCH, 0, FLAT_TILT, OCTAVE_RANGE)).toEqual([
+    expect(computeTiltVoicing(BRANCH, 0, FLAT_TILT, OCTAVE_RANGE, 0)).toEqual([
       48, 57, 64, 67, 72,
     ]);
   });
 
   it('narrows to the single pivot note when fully vertical', () => {
     expect(
-      computeTiltVoicing(BRANCH, 0, { x: -1, y: 0 }, OCTAVE_RANGE)
+      computeTiltVoicing(BRANCH, 0, { x: -1, y: 0 }, OCTAVE_RANGE, 0)
     ).toEqual([60]);
   });
 
   it('plays Third (note above pivot) at the second roll stop', () => {
     expect(
-      computeTiltVoicing(BRANCH, 0, { x: -0.875, y: 0 }, OCTAVE_RANGE)
+      computeTiltVoicing(BRANCH, 0, { x: -0.875, y: 0 }, OCTAVE_RANGE, 0)
     ).toEqual([60, 64]);
   });
 
   it('plays the first-inversion bass when parallel level 1 and vertical', () => {
     expect(
-      computeTiltVoicing(BRANCH, 0, { x: -1, y: -0.34 }, OCTAVE_RANGE)
+      computeTiltVoicing(BRANCH, 0, { x: -1, y: -0.34 }, OCTAVE_RANGE, 0)
     ).toEqual([64]);
   });
 
   it('plays the second-inversion bass when parallel level 2 and vertical', () => {
     expect(
-      computeTiltVoicing(BRANCH, 0, { x: -1, y: -0.67 }, OCTAVE_RANGE)
+      computeTiltVoicing(BRANCH, 0, { x: -1, y: -0.67 }, OCTAVE_RANGE, 0)
     ).toEqual([67]);
   });
 
   it('plays the wide first-inversion voicing when parallel 1 and flat', () => {
     expect(
-      computeTiltVoicing(BRANCH, 0, { x: 0, y: -0.34 }, OCTAVE_RANGE)
+      computeTiltVoicing(BRANCH, 0, { x: 0, y: -0.34 }, OCTAVE_RANGE, 0)
     ).toEqual(obliqueMotion(1, 9, BRANCH_CYCLE, 60));
   });
 
   it('plays a three-note stack at parallel 2 with partial roll', () => {
     expect(
-      computeTiltVoicing(BRANCH, 0, { x: -0.75, y: -0.67 }, OCTAVE_RANGE)
+      computeTiltVoicing(BRANCH, 0, { x: -0.75, y: -0.67 }, OCTAVE_RANGE, 0)
     ).toEqual([64, 67, 69]);
   });
 
   it('voices a minor sixth cycle (Trunk) correctly when flat', () => {
     const trunk = [0, 3, 7, 9]; // C Eb G A
-    expect(computeTiltVoicing(trunk, 0, FLAT_TILT, OCTAVE_RANGE)).toEqual([
+    expect(computeTiltVoicing(trunk, 0, FLAT_TILT, OCTAVE_RANGE, 0)).toEqual([
       48, 57, 63, 67, 72,
     ]);
   });
@@ -285,24 +287,44 @@ describe('computeTiltVoicing', () => {
     // Branch with the second voice borrowed up into Fire: C F G A.
     const borrowed = [0, 5, 7, 9];
     expect(
-      computeTiltVoicing(borrowed, 0, { x: -0.5, y: 0 }, OCTAVE_RANGE)
-    ).toEqual([55, 57, 65, 67]);
+      computeTiltVoicing(borrowed, 0, { x: -0.5, y: 0 }, OCTAVE_RANGE, 0)
+    ).toEqual([55, 57, 60, 65, 67]);
   });
 
   it('follows the octave range setting', () => {
-    expect(computeTiltVoicing(BRANCH, 0, { x: -1, y: 0 }, 1)).toEqual([36]);
+    expect(computeTiltVoicing(BRANCH, 0, { x: -1, y: 0 }, 1, 0)).toEqual([36]);
   });
 
   it('handles a non-zero root pitch class', () => {
     // Branch at tonal center Bb: root pc 10, home = 10 + 60 = 70.
     expect(
-      computeTiltVoicing([10, 14, 17, 19], 10, { x: -1, y: 0 }, OCTAVE_RANGE)
+      computeTiltVoicing(
+        [10, 14, 17, 19],
+        10,
+        { x: -1, y: 0 },
+        OCTAVE_RANGE,
+        10
+      )
     ).toEqual([70]);
+  });
+
+  it('keeps Fire contrary to Branch when tonal center is Bb', () => {
+    // Fire default root A (9), pivot one semitone below Branch (70) -> 69.
+    expect(
+      computeTiltVoicing(
+        [0, 3, 6, 9],
+        9,
+        { x: -1, y: 0 },
+        OCTAVE_RANGE,
+        10,
+        69
+      )
+    ).toEqual([69]);
   });
 
   it('returns empty when all voices are off', () => {
     expect(
-      computeTiltVoicing([null, null, null, null], 0, FLAT_TILT, OCTAVE_RANGE)
+      computeTiltVoicing([null, null, null, null], 0, FLAT_TILT, OCTAVE_RANGE, 0)
     ).toEqual([]);
   });
 });

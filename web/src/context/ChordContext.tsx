@@ -132,12 +132,16 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
 
   const staticVoicingLevelRef = useRef(staticVoicingLevel);
   const staticInversionLevelRef = useRef(staticInversionLevel);
+  const tonalCenterRef = useRef(tonalCenter);
   useEffect(() => {
     staticVoicingLevelRef.current = staticVoicingLevel;
   }, [staticVoicingLevel]);
   useEffect(() => {
     staticInversionLevelRef.current = staticInversionLevel;
   }, [staticInversionLevel]);
+  useEffect(() => {
+    tonalCenterRef.current = tonalCenter;
+  }, [tonalCenter]);
 
   const playback = useChordPlayback({
     getBorrowingStateForChord: borrowing.getBorrowingStateForChord,
@@ -147,6 +151,7 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
     tiltRef: deviceTilt.tiltRef,
     staticVoicingLevelRef,
     staticInversionLevelRef,
+    tonalCenterRef,
   });
 
   useEffect(() => {

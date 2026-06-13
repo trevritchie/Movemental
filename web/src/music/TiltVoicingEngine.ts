@@ -39,7 +39,6 @@ const MAX_CHAIN_WIDTH = 9;
 // max 5 voices). Keyed by chain width; values are 1-indexed chain positions
 // to skip, counted from the bottom.
 const THINNING_RULES: Record<number, number[]> = {
-  5: [3],          // octave chord
   6: [2, 5],       // drop 2
   7: [3, 6],       // drop 3
   8: [2, 4, 7],    // drop 2 and 4
@@ -270,19 +269,27 @@ export function obliqueMotion(
  * pitchStructure: pre-voicing pitches from BorrowingLogic (4 slots, nulls
  * for voices toggled off). rootPitchClass: pitch class of the chord root.
  * octaveRange: the app's octave range setting, used to place the register.
+ * tonalCenter: selected root/key pitch class; anchors home register so
+ * elemental chords stay in a continuous register when roots wrap mod 12.
+ * homeMidiOverride: when set, uses this pivot instead of the default formula
+ * (used for elemental contrary-motion anchoring).
  */
 export function computeTiltVoicing(
   pitchStructure: (number | null)[],
   rootPitchClass: number,
   tilt: TiltSample,
-  octaveRange: number
+  octaveRange: number,
+  tonalCenter: number,
+  homeMidiOverride?: number
 ): number[] {
   const cycle = buildToneCycle(pitchStructure, rootPitchClass);
   if (cycle.length === 0) return [];
 
-  // Home register: the chord root two octaves above the octave-range base,
-  // so the double octave chord below it spans the app's normal register.
-  const homeMidi = rootPitchClass + OCTAVE * (octaveRange + 2);
+  const homeMidi =
+    homeMidiOverride ??
+    (tonalCenter +
+      OCTAVE * (octaveRange + 2) +
+      ((rootPitchClass - tonalCenter + OCTAVE) % OCTAVE));
 
   const { parallelSteps } = mapTiltToPositions(tilt);
   const parallel = Math.min(parallelSteps, cycle.length - 1);

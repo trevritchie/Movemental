@@ -67,4 +67,8 @@ export const CHORD_OVERLAY_MAX_NAME = BASE_GROUPS.flatMap((group) =>
 );
 
 /** Max subscript count for chord overlay width sizer (widest chemistry row). */
-export const CHORD_OVERLAY_MAX_CHEM_COUNT = 5;
+export const CHORD_OVERLAY_MAX_CHEM_COUNT = 4;
+
+/** Widest realistic playing-notes row for chord pill height/width sizer. */
+export const CHORD_OVERLAY_MAX_PLAYING_NOTES =
+  'C2 G2 Bb2 D3 F3 A3 C4';

@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ChordManager } from './ChordManager';
-import { DEFAULT_TONAL_CENTER_OFFSET } from './config';
+import { DEFAULT_TONAL_CENTER_OFFSET, NOTE_NAMES_FLAT } from './config';
 
 describe('ChordManager', () => {
   let manager: ChordManager;
@@ -66,5 +66,61 @@ describe('ChordManager', () => {
     const after = manager.getChordByName('Earth')!.pitches;
 
     expect(after).not.toEqual(before);
+  });
+
+  describe('elemental diminished roots', () => {
+    const cases = [
+      {
+        tonalCenter: 0,
+        earth: 6,
+        wind: 4,
+        fire: 11,
+      },
+      {
+        tonalCenter: 2,
+        earth: 8,
+        wind: 6,
+        fire: 1,
+      },
+      {
+        tonalCenter: 10,
+        earth: 4,
+        wind: 2,
+        fire: 9,
+      },
+    ];
+
+    for (const { tonalCenter, earth, wind, fire } of cases) {
+      it(`maps Earth/Wind/Fire to contrary-motion dim7 roots at tonal center ${tonalCenter}`, () => {
+        manager.setTonalCenterOffset(tonalCenter);
+
+        const earthChord = manager.getChordByName('Earth')!;
+        const windChord = manager.getChordByName('Wind')!;
+        const fireChord = manager.getChordByName('Fire')!;
+
+        const earthRoot =
+          earthChord.pitches[earthChord.rootPositionIndex] % 12;
+        const windRoot = windChord.pitches[windChord.rootPositionIndex] % 12;
+        const fireRoot = fireChord.pitches[fireChord.rootPositionIndex] % 12;
+
+        expect(earthRoot).toBe(earth);
+        expect(windRoot).toBe(wind);
+        expect(fireRoot).toBe(fire);
+
+        expect(earthChord.traditionalName).toBe(
+          `${NOTE_NAMES_FLAT[earthRoot]} dim7`
+        );
+        expect(windChord.traditionalName).toBe(
+          `${NOTE_NAMES_FLAT[windRoot]} dim7`
+        );
+        expect(fireChord.traditionalName).toBe(
+          `${NOTE_NAMES_FLAT[fireRoot]} dim7`
+        );
+
+        for (const chord of [earthChord, windChord, fireChord]) {
+          expect(chord.pitches.every(p => p >= 0 && p < 12)).toBe(true);
+        }
+      });
+    }
   });
 });
