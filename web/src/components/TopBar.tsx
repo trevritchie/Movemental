@@ -3,10 +3,10 @@ import { SlidersHorizontal, Square } from 'lucide-react';
 import { NOTE_NAMES_FLAT } from '../music/config';
 import {
   tiltVoicingLevelName,
-  tiltInversionLevelName,
+  tiltPositionLevelName,
   TILT_READOUT_MAX_LABEL,
-  TILT_INVERSION_MAX_LABEL,
-  TILT_INVERSION_DESKTOP_LABELS,
+  TILT_POSITION_MAX_LABEL,
+  TILT_POSITION_DESKTOP_LABELS,
   TILT_VOICING_LEVEL_NAMES,
   TILT_VOICING_OVERLAY_LABELS,
 } from '../music/TiltVoicingEngine';
@@ -18,7 +18,7 @@ export const TopBar: React.FC = () => {
   const {
     tonalCenter, setTonalCenter,
     staticVoicingLevel, setStaticVoicingLevel,
-    staticInversionLevel, setStaticInversionLevel,
+    staticPositionLevel, setStaticPositionLevel,
     octaveRange, setOctaveRange,
     chorusWet, setChorusWet,
     delayWet, setDelayWet,
@@ -157,7 +157,7 @@ export const TopBar: React.FC = () => {
                     {tiltStatus === 'active' && (
                       <span
                         className="tilt-readout"
-                        title="Live tilt: roll sets voicing width, pitch selects inversion"
+                        title="Live tilt: roll sets voicing width, pitch selects position"
                       >
                         {tiltVoicingLevelName(tiltSample)}
                       </span>
@@ -169,13 +169,13 @@ export const TopBar: React.FC = () => {
                       className="voicing-readout-slot__sizer"
                       aria-hidden="true"
                     >
-                      {TILT_INVERSION_MAX_LABEL}
+                      {TILT_POSITION_MAX_LABEL}
                     </span>
                     <span
                       className="tilt-readout"
-                      title="Pitch tilt selects parallel inversion"
+                      title="Pitch tilt selects parallel position"
                     >
-                      {tiltInversionLevelName(tiltSample)}
+                      {tiltPositionLevelName(tiltSample, 'desktop')}
                     </span>
                   </div>
                 </>
@@ -196,13 +196,13 @@ export const TopBar: React.FC = () => {
                   </select>
 
                   <select
-                    value={staticInversionLevel}
+                    value={staticPositionLevel}
                     onChange={(e) =>
-                      setStaticInversionLevel(Number(e.target.value))
+                      setStaticPositionLevel(Number(e.target.value))
                     }
-                    title="Inversion"
+                    title="Position"
                   >
-                    {TILT_INVERSION_DESKTOP_LABELS.map((name, idx) => (
+                    {TILT_POSITION_DESKTOP_LABELS.map((name, idx) => (
                       <option key={name} value={idx}>{name}</option>
                     ))}
                   </select>

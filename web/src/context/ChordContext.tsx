@@ -15,7 +15,7 @@ import {
   DEFAULT_OCTAVE_RANGE,
 } from '../music/config';
 import {
-  DEFAULT_STATIC_INVERSION_LEVEL,
+  DEFAULT_STATIC_POSITION_LEVEL,
   DEFAULT_STATIC_VOICING_LEVEL,
   type TiltSample,
 } from '../music/TiltVoicingEngine';
@@ -33,8 +33,8 @@ interface ChordContextType {
   setTonalCenter: (val: number) => void;
   staticVoicingLevel: number;
   setStaticVoicingLevel: (val: number) => void;
-  staticInversionLevel: number;
-  setStaticInversionLevel: (val: number) => void;
+  staticPositionLevel: number;
+  setStaticPositionLevel: (val: number) => void;
   octaveRange: number;
   setOctaveRange: (val: number) => void;
   selectedChord: Chord | null;
@@ -97,8 +97,8 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
   const [staticVoicingLevel, setStaticVoicingLevel] = useState(
     DEFAULT_STATIC_VOICING_LEVEL
   );
-  const [staticInversionLevel, setStaticInversionLevel] = useState(
-    DEFAULT_STATIC_INVERSION_LEVEL
+  const [staticPositionLevel, setStaticPositionLevel] = useState(
+    DEFAULT_STATIC_POSITION_LEVEL
   );
   const [octaveRange, setOctaveRange] = useState(DEFAULT_OCTAVE_RANGE);
   const [selectedChord, setSelectedChord] = useState<Chord | null>(null);
@@ -131,13 +131,17 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
   const deviceTilt = useDeviceTilt(handleTiltLevelChange);
 
   const staticVoicingLevelRef = useRef(staticVoicingLevel);
-  const staticInversionLevelRef = useRef(staticInversionLevel);
+  const staticPositionLevelRef = useRef(staticPositionLevel);
+  const tonalCenterRef = useRef(tonalCenter);
   useEffect(() => {
     staticVoicingLevelRef.current = staticVoicingLevel;
   }, [staticVoicingLevel]);
   useEffect(() => {
-    staticInversionLevelRef.current = staticInversionLevel;
-  }, [staticInversionLevel]);
+    staticPositionLevelRef.current = staticPositionLevel;
+  }, [staticPositionLevel]);
+  useEffect(() => {
+    tonalCenterRef.current = tonalCenter;
+  }, [tonalCenter]);
 
   const playback = useChordPlayback({
     getBorrowingStateForChord: borrowing.getBorrowingStateForChord,
@@ -146,7 +150,8 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
     setSelectedChord,
     tiltRef: deviceTilt.tiltRef,
     staticVoicingLevelRef,
-    staticInversionLevelRef,
+    staticPositionLevelRef,
+    tonalCenterRef,
   });
 
   useEffect(() => {
@@ -207,7 +212,7 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
     tonalCenter,
     octaveRange,
     staticVoicingLevel,
-    staticInversionLevel,
+    staticPositionLevel,
     getBorrowingStateForChord,
     borrowingStateRef,
     setBorrowingState,
@@ -219,8 +224,8 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
     setTonalCenter,
     staticVoicingLevel,
     setStaticVoicingLevel,
-    staticInversionLevel,
-    setStaticInversionLevel,
+    staticPositionLevel,
+    setStaticPositionLevel,
     octaveRange,
     setOctaveRange,
     selectedChord,

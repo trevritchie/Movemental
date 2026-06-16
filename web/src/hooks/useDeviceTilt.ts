@@ -20,10 +20,17 @@ interface PermissionedOrientationEvent {
 const SMOOTHING_ALPHA = 0.25; // exponential moving average weight per event
 const READOUT_INTERVAL_MS = 150; // throttle for the React-visible sample
 
+const pitchTiltFromBeta = (beta: number): number => {
+  const norm = beta / 90;
+  if (norm > 0) return -Math.min(norm, 1);
+  if (norm < 0) return Math.min(-norm, 1);
+  return 0;
+};
+
 /**
  * Reads device orientation and exposes it as a normalized tilt sample in the
- * engine's coordinate space (see TiltVoicingEngine): both axes in [-1, 0],
- * where 0 is flat.
+ * engine's coordinate space (see TiltVoicingEngine): x in [-1, 0], y in
+ * [-1, 1], where 0 is flat on each axis.
  *
  * deviceorientation angles are used rather than devicemotion acceleration
  * because the angles are sign-consistent across browsers (iOS has a known
@@ -31,8 +38,9 @@ const READOUT_INTERVAL_MS = 150; // throttle for the React-visible sample
  *
  * - x: roll magnitude (|gamma| / 90), so either roll direction narrows the
  *   voicing. Fully vertical maps to -1.
- * - y: chest-ward pitch (beta / 90, positive beta only), selecting parallel
- *   inversions on the chord tone ladder.
+ * - y: chest-ward pitch (beta / 90, positive beta) maps to y in [-1, 0];
+ *   away-from-chest (negative beta) maps to y in (0, 1], selecting lower
+ *   ladder positions in reverse order (4th, 3rd, 2nd).
  *
  * onLevelChange fires whenever the quantized voicing level (the step pair
  * from mapTiltToPositions) changes, e.g. to drive haptic feedback.
@@ -77,13 +85,13 @@ export function useDeviceTilt(onLevelChange?: () => void) {
     smoothed.beta += SMOOTHING_ALPHA * (beta - smoothed.beta);
 
     const x = -Math.min(Math.abs(smoothed.gamma) / 90, 1);
-    const y = -Math.min(Math.max(smoothed.beta / 90, 0), 1);
+    const y = pitchTiltFromBeta(smoothed.beta);
     tiltRef.current = { x, y };
 
     // Level detection uses raw angles so haptic ticks are not delayed by
     // the display smoothing filter.
     const xRaw = -Math.min(Math.abs(gamma) / 90, 1);
-    const yRaw = -Math.min(Math.max(beta / 90, 0), 1);
+    const yRaw = pitchTiltFromBeta(beta);
     rawTiltRef.current = { x: xRaw, y: yRaw };
     const level = mapTiltToPositions(rawTiltRef.current);
     const lastLevel = lastLevelRef.current;

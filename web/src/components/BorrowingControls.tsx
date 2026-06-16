@@ -259,6 +259,7 @@ export const BorrowingControls: React.FC<BorrowingControlsProps> = ({ disabled }
                 className="voice-label-container"
                 onClick={() => handleToggleMute(line)}
                 style={{ cursor: disabled ? 'default' : 'pointer' }}
+                title="Mute removes this pitch class from the entire voicing (all octaves)"
               >
                 <div className={`power-led ${muted ? 'off' : 'on'}`} />
                 <div className="note-label">{getVoiceLabel(line)}</div>

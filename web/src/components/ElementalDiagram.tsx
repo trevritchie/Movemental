@@ -51,6 +51,7 @@ export const ElementalDiagram: React.FC<{ children?: React.ReactNode }> = ({ chi
   const [aspectRatioCorrection, setAspectRatioCorrection] = useState(1);
 
   const {
+    tonalCenter,
     selectedChord,
     borrowingState,
     handleChordPointerDown,
@@ -173,7 +174,11 @@ export const ElementalDiagram: React.FC<{ children?: React.ReactNode }> = ({ chi
     };
 
     return { earth, wind, fire, earthC, windC, fireC, groupCenters, getParentCoords, getGroupParentCoords };
-  }, [getCoords]);
+  }, [getCoords, tonalCenter]);
+
+  const resolveFreshChord = useCallback((chord: Chord) => {
+    return chordManager.getChordByName(chord.name) ?? chord;
+  }, []);
 
   return (
     <div
@@ -382,11 +387,11 @@ export const ElementalDiagram: React.FC<{ children?: React.ReactNode }> = ({ chi
               onPointerDown={(e) => {
                 e.preventDefault();
                 e.currentTarget.releasePointerCapture(e.pointerId);
-                handleChordPointerDown(chord);
+                handleChordPointerDown(resolveFreshChord(chord));
               }}
               onPointerUp={() => handleChordPointerUp()}
               onPointerEnter={() => {
-                handleChordPointerEnter(chord);
+                handleChordPointerEnter(resolveFreshChord(chord));
               }}
               style={{ cursor: 'pointer' }}
             >

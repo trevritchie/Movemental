@@ -289,8 +289,8 @@ body {
   }
 
   .diagram-overlay-pill--bottom-left {
-    padding: 6px 10px;
-    gap: 2px;
+    padding: 8px 10px;
+    gap: 3px;
   }
 
   .diagram-overlay-pill--bottom-left .diagram-overlay-pill__value {
@@ -425,6 +425,20 @@ body {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+
+  .clock-container.mobile-overlay .playing-notes {
+    font-size: var(--overlay-subtitle-size, 12px) !important;
+    color: var(--text-secondary);
+    margin-top: 2px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 100%;
+  }
+
+  .diagram-overlay-pill__sizer--block .playing-notes {
+    font-size: var(--overlay-subtitle-size, 12.5px);
   }
 
   .clock-container.mobile-overlay .chemistry-formula {
@@ -784,7 +798,7 @@ input[type="range"] {
 .clock-svg {
   width: 100%;
   height: 100%;
-  max-height: calc(100% - 60px); /* account for info text */
+  max-height: calc(100% - 72px); /* account for info text */
   min-height: 0;
   margin: 0 auto;
   display: block;
@@ -797,6 +811,12 @@ input[type="range"] {
 }
 
 .traditional-name {
+  color: var(--text-secondary);
+  font-size: 0.88rem;
+  word-break: break-word;
+}
+
+.playing-notes {
   color: var(--text-secondary);
   font-size: 0.88rem;
 }

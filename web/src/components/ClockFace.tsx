@@ -3,8 +3,14 @@ import { NOTE_NAMES_FLAT } from '../music/config';
 import {
   CHORD_OVERLAY_MAX_CHEM_COUNT,
   CHORD_OVERLAY_MAX_NAME,
+  CHORD_OVERLAY_MAX_PLAYING_NOTES,
   mobileChordDisplayName,
 } from '../music/diagramMetadata';
+import {
+  formatChordReadout,
+  formatPlayingNotes,
+} from '../music/formatPlayingNotes';
+import { computeElementFormula } from '../music/elementChemistry';
 import { useChordContext } from '../context/ChordContext';
 import { DiagramOverlayPill } from './DiagramOverlayPill';
 
@@ -26,6 +32,8 @@ const CHORD_PILL_SIZER = (
         Fire<sub>{CHORD_OVERLAY_MAX_CHEM_COUNT}</sub>
       </span>
     </div>
+    <span className="traditional-name">Bb maj6</span>
+    <span className="playing-notes">{CHORD_OVERLAY_MAX_PLAYING_NOTES}</span>
   </>
 );
 
@@ -73,22 +81,15 @@ export const ClockFace: React.FC<{ isMobileOverlay?: boolean }> = ({
     return mobileChordDisplayName(elementalName);
   }, [elementalName, isMobileOverlay]);
 
-  const elementFormula = React.useMemo(() => {
-    const active = activePitches.filter((p): p is number => p !== null);
-    if (active.length === 0) return null;
+  const playingNotes = React.useMemo(
+    () => formatPlayingNotes(activePitches),
+    [activePitches]
+  );
 
-    let earth = 0;
-    let wind = 0;
-    let fire = 0;
-    for (const p of active) {
-      const relPc = ((p % 12) - tonalCenter + 12) % 12;
-      const rem = relPc % 3;
-      if (rem === 0) earth++;
-      else if (rem === 1) wind++;
-      else fire++;
-    }
-    return { earth, wind, fire };
-  }, [activePitches, tonalCenter]);
+  const elementFormula = React.useMemo(
+    () => computeElementFormula(activePitches, tonalCenter),
+    [activePitches, tonalCenter]
+  );
 
   const getElementColor = (relativePitchClass: number) => {
     const rem = ((relativePitchClass % 3) + 3) % 3;
@@ -161,7 +162,14 @@ export const ClockFace: React.FC<{ isMobileOverlay?: boolean }> = ({
           )}
         </div>
       )}
-      <div className="traditional-name">{traditionalName || '---'}</div>
+      <div className="traditional-name">
+        {isMobileOverlay
+          ? traditionalName || '---'
+          : formatChordReadout(traditionalName, activePitches)}
+      </div>
+      {isMobileOverlay && playingNotes && (
+        <div className="playing-notes">{playingNotes}</div>
+      )}
     </>
   );
 

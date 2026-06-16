@@ -76,9 +76,9 @@ describe('Responsive Layout CSS', () => {
     expect(phoneBlock).not.toMatch(/\.diagram-overlay-pill\.clock-pill/);
   });
 
-  it('should anchor voicing and inversion pills to top corners on mobile', () => {
+  it('should anchor voicing and position pills to top corners on mobile', () => {
     const phoneStart = cssContent.search(phoneLayoutPattern);
-    const phoneBlock = cssContent.slice(phoneStart, phoneStart + 6000);
+    const phoneBlock = cssContent.slice(phoneStart, phoneStart + 8000);
     expect(phoneBlock).toMatch(/\.diagram-overlay-pill--top-left\s*\{[^}]*left:/);
     expect(phoneBlock).toMatch(
       /\.diagram-overlay-pill--top-right\s*\{[^}]*right:/,

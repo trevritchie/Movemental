@@ -6,8 +6,8 @@
 // post-borrowing chord, expressed as ascending semitone offsets from the
 // chord root. One ladder step equals one chord tone. Rolling the phone
 // expands the voicing in oblique motion from a pivot (alternating notes
-// above and below); pitching the phone toward the sky cycles parallel
-// inversions (each voice moves up one chord tone on the ladder).
+// above and below); pitching the phone cycles parallel positions on the
+// ladder (chest-ward raises the pivot, away-from-chest lowers it).
 //
 // The roll response is deliberately reversed from the Python original:
 // flat = widest voicing (double octave chord), fully vertical = single note.
@@ -15,9 +15,9 @@
 import { OCTAVE } from './config';
 
 export interface TiltSample {
-  // Normalized tilt, each axis in [-1, 0]. 0 = phone flat.
-  // x: roll toward vertical drives x to -1.
-  // y: pitch toward the sky (camera up) drives y to -1.
+  // Normalized tilt. 0 = phone flat on each axis.
+  // x: roll toward vertical drives x to -1 (range [-1, 0]).
+  // y: chest-ward pitch drives y to -1; away-from-chest drives y to +1.
   x: number;
   y: number;
 }
@@ -28,8 +28,13 @@ export const FLAT_TILT: TiltSample = { x: 0, y: 0 };
 // (Double Octave).
 const MAX_INPUT_STEPS = 8;
 
-// Four parallel levels (root through third inversion) on a 4-tone cycle.
+// Four named positions (1st through 4th) on a 4-tone cycle; static UI uses
+// indices 0..MAX_PARALLEL_STEPS. Tilt pitch adds one extra ladder step each
+// way so full tilt lands on 1st again (one cycle up or down).
 export const MAX_PARALLEL_STEPS = 3;
+
+/** Chest-ward / away-from-chest tilt steps at full pitch (±4 ladder steps). */
+export const MAX_TILT_PITCH_STEPS = MAX_PARALLEL_STEPS + 1;
 
 // Cap matching mnc.py: never build a chain wider than the double octave
 // chord.
@@ -39,7 +44,6 @@ const MAX_CHAIN_WIDTH = 9;
 // max 5 voices). Keyed by chain width; values are 1-indexed chain positions
 // to skip, counted from the bottom.
 const THINNING_RULES: Record<number, number[]> = {
-  5: [3],          // octave chord
   6: [2, 5],       // drop 2
   7: [3, 6],       // drop 3
   8: [2, 4, 7],    // drop 2 and 4
@@ -85,38 +89,66 @@ export function ladderPitch(
 }
 
 /**
- * Quantized parallel inversion level (0 = root position) from pitch tilt.
+ * Signed ladder pivot step from pitch tilt.
+ * Chest-ward (y < 0): +1..+4; away-from-chest (y > 0): -1..-4; flat: 0.
+ * ±4 is one full tone-cycle (octave register) from center 1st.
  */
 export function parallelLevelFromTilt(tilt: TiltSample): number {
-  const y = clamp(tilt.y, -1, 0);
-  return Math.round(Math.abs(y) * MAX_PARALLEL_STEPS);
+  const y = clamp(tilt.y, -1, 1);
+  if (y === 0) return 0;
+  if (y < 0) {
+    return Math.round(Math.abs(y) * MAX_TILT_PITCH_STEPS);
+  }
+  const downSteps = Math.round(y * MAX_TILT_PITCH_STEPS);
+  return downSteps === 0 ? 0 : -downSteps;
 }
 
-export const TILT_INVERSION_LEVEL_NAMES = [
-  'Root',
-  'First',
-  'Second',
-  'Third',
+/** Map signed pivot steps to a 0-based position label index (1st..4th). */
+export function positionLabelIndexFromParallelSteps(steps: number): number {
+  const positionCount = MAX_PARALLEL_STEPS + 1;
+  if (steps >= 0) {
+    return steps % positionCount;
+  }
+  const abs = Math.abs(steps);
+  if (abs >= positionCount) return 0;
+  return MAX_PARALLEL_STEPS - abs + 1;
+}
+
+export const TILT_POSITION_MOBILE_LABELS = [
+  '1st',
+  '2nd',
+  '3rd',
+  '4th',
 ] as const;
 
-/** Desktop top-bar inversion select labels (no separate inversion title). */
-export const TILT_INVERSION_DESKTOP_LABELS = TILT_INVERSION_LEVEL_NAMES.map(
-  (name) => `${name} Inv.`,
+/** Desktop top-bar position select labels (no separate position title). */
+export const TILT_POSITION_DESKTOP_LABELS = TILT_POSITION_MOBILE_LABELS.map(
+  (name) => `${name} Pos.`,
 );
 
-export const TILT_INVERSION_MAX_LABEL = (
-  [...TILT_INVERSION_LEVEL_NAMES] as const
+export const TILT_POSITION_MAX_LABEL = (
+  [...TILT_POSITION_DESKTOP_LABELS] as const
 ).reduce(
   (longest, label) => (label.length > longest.length ? label : longest),
-  '' as (typeof TILT_INVERSION_LEVEL_NAMES)[number],
+  '' as (typeof TILT_POSITION_DESKTOP_LABELS)[number],
 );
 
+export type TiltPositionLabelVariant = 'mobile' | 'desktop';
+
 /**
- * Human-readable parallel inversion for the current pitch tilt.
+ * Human-readable parallel position for the current pitch tilt.
  */
-export function tiltInversionLevelName(tilt: TiltSample): string {
-  const level = parallelLevelFromTilt(tilt);
-  return TILT_INVERSION_LEVEL_NAMES[level] ?? 'Root';
+export function tiltPositionLevelName(
+  tilt: TiltSample,
+  variant: TiltPositionLabelVariant = 'mobile'
+): string {
+  const steps = parallelLevelFromTilt(tilt);
+  const idx = positionLabelIndexFromParallelSteps(steps);
+  const labels =
+    variant === 'desktop'
+      ? TILT_POSITION_DESKTOP_LABELS
+      : TILT_POSITION_MOBILE_LABELS;
+  return labels[idx] ?? TILT_POSITION_MOBILE_LABELS[0];
 }
 
 /**
@@ -124,8 +156,8 @@ export function tiltInversionLevelName(tilt: TiltSample): string {
  *
  * Roll (x) is REVERSED: flat (x = 0) selects the widest oblique voicing,
  * fully vertical (x = -1) selects Unison. Pitch (y) selects the parallel
- * inversion: flat = root (0), full sky tilt = third inversion
- * (MAX_PARALLEL_STEPS).
+ * position: flat = 1st (0); chest-ward = 2nd..4th..1st (+1..+4); away-from-chest
+ * = 4th..2nd..1st (-1..-4).
  */
 export function mapTiltToPositions(tilt: TiltSample): {
   inputSteps: number;
@@ -141,8 +173,8 @@ export function mapTiltToPositions(tilt: TiltSample): {
 /** Default static voicing level index (8 = Double Octave). */
 export const DEFAULT_STATIC_VOICING_LEVEL = MAX_INPUT_STEPS;
 
-/** Default static inversion level index (0 = Root). */
-export const DEFAULT_STATIC_INVERSION_LEVEL = 0;
+/** Default static position level index (0 = 1st). */
+export const DEFAULT_STATIC_POSITION_LEVEL = 0;
 
 /**
  * Build a discrete tilt sample for static mode UI controls.
@@ -155,7 +187,9 @@ export function tiltSampleFromLevels(
   const clampedParallel = clamp(parallelSteps, 0, MAX_PARALLEL_STEPS);
   const x = clampedInput / MAX_INPUT_STEPS - 1;
   const y =
-    clampedParallel === 0 ? 0 : -(clampedParallel / MAX_PARALLEL_STEPS);
+    clampedParallel === 0
+      ? 0
+      : -(clampedParallel / MAX_TILT_PITCH_STEPS);
   return { x, y };
 }
 
@@ -202,7 +236,7 @@ export const TILT_READOUT_MAX_LABEL = (
 );
 
 /**
- * Oblique chain width (1–9) implied by roll tilt. Pitch inversion does not
+ * Oblique chain width (1–9) implied by roll tilt. Pitch position does not
  * change width.
  */
 export function voicingWidthFromTilt(tilt: TiltSample): number {
@@ -265,27 +299,36 @@ export function obliqueMotion(
  * Compute the full tilt voicing for a chord.
  *
  * Parallel and oblique motion compose on the tone ladder: the pitch axis
- * sets the inversion (pivot position); roll selects the oblique chain width.
+ * sets the position (pivot); roll selects the oblique chain width.
  *
  * pitchStructure: pre-voicing pitches from BorrowingLogic (4 slots, nulls
  * for voices toggled off). rootPitchClass: pitch class of the chord root.
  * octaveRange: the app's octave range setting, used to place the register.
+ * tonalCenter: selected root/key pitch class; anchors home register so
+ * elemental chords stay in a continuous register when roots wrap mod 12.
+ * homeMidiOverride: when set, uses this pivot instead of the default formula
+ * (used for elemental contrary-motion anchoring).
  */
 export function computeTiltVoicing(
   pitchStructure: (number | null)[],
   rootPitchClass: number,
   tilt: TiltSample,
-  octaveRange: number
+  octaveRange: number,
+  tonalCenter: number,
+  homeMidiOverride?: number
 ): number[] {
   const cycle = buildToneCycle(pitchStructure, rootPitchClass);
   if (cycle.length === 0) return [];
 
-  // Home register: the chord root two octaves above the octave-range base,
-  // so the double octave chord below it spans the app's normal register.
-  const homeMidi = rootPitchClass + OCTAVE * (octaveRange + 2);
+  const homeMidi =
+    homeMidiOverride ??
+    (tonalCenter +
+      OCTAVE * (octaveRange + 2) +
+      ((rootPitchClass - tonalCenter + OCTAVE) % OCTAVE));
 
   const { parallelSteps } = mapTiltToPositions(tilt);
-  const parallel = Math.min(parallelSteps, cycle.length - 1);
+  const maxPivot = cycle.length;
+  const pivot = clamp(parallelSteps, -maxPivot, maxPivot);
   const width = voicingWidthFromTilt(tilt);
-  return obliqueMotion(parallel, width, cycle, homeMidi);
+  return obliqueMotion(pivot, width, cycle, homeMidi);
 }
