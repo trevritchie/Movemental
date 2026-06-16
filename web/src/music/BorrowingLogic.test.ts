@@ -1,9 +1,13 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { BorrowingLogic, getInitialBorrowingState } from './BorrowingLogic';
 import { chordManager } from './ChordManager';
 
 describe('BorrowingLogic', () => {
   const logic = new BorrowingLogic();
+
+  beforeEach(() => {
+    chordManager.setTonalCenterOffset(0);
+  });
 
   const firePitches = [62, 65, 68, 71]; // D4, F4, Ab4, B4
 
@@ -28,6 +32,103 @@ describe('BorrowingLogic', () => {
     it('wraps to the highest pitch class in the previous octave when none lower', () => {
       // D4 (62) -> B4 in previous octave (59)
       expect(logic.findNextLowerNote(62, firePitches)).toBe(59);
+    });
+  });
+
+  describe('getRootPositionMapping', () => {
+    it('maps Branch at C by harmonic degree', () => {
+      const branch = chordManager.getChordByName('Branch')!;
+      expect(branch.pitches).toEqual([0, 4, 7, 9]);
+      expect(branch.rootPositionIndex).toBe(0);
+      expect(logic.getRootPositionMapping(branch)).toEqual({
+        1: 0,
+        2: 1,
+        3: 2,
+        4: 3,
+      });
+    });
+
+    it('maps Brother Branch at C with root on dictionary first pitch', () => {
+      const bro = chordManager.getChordByName('Brother Branch')!;
+      expect(bro.pitches).toEqual([0, 3, 7, 10]);
+      expect(bro.rootPositionIndex).toBe(1);
+      expect(logic.getRootPositionMapping(bro)).toEqual({
+        1: 1,
+        2: 2,
+        3: 3,
+        4: 0,
+      });
+    });
+  });
+
+  describe('generatePitchStructure', () => {
+    it('nulls exactly one slot when each Branch voice is muted', () => {
+      const branch = chordManager.getChordByName('Branch')!;
+      const allOn = logic.generatePitchStructure(
+        branch,
+        getInitialBorrowingState()
+      );
+      expect(allOn).toEqual([0, 4, 7, 9]);
+
+      const muteRoot = getInitialBorrowingState();
+      muteRoot.noteStates[1] = 'off';
+      expect(logic.generatePitchStructure(branch, muteRoot)).toEqual([
+        null,
+        4,
+        7,
+        9,
+      ]);
+
+      const muteThird = getInitialBorrowingState();
+      muteThird.noteStates[2] = 'off';
+      expect(logic.generatePitchStructure(branch, muteThird)).toEqual([
+        0,
+        null,
+        7,
+        9,
+      ]);
+
+      const muteFifth = getInitialBorrowingState();
+      muteFifth.noteStates[3] = 'off';
+      expect(logic.generatePitchStructure(branch, muteFifth)).toEqual([
+        0,
+        4,
+        null,
+        9,
+      ]);
+
+      const muteSixth = getInitialBorrowingState();
+      muteSixth.noteStates[4] = 'off';
+      expect(logic.generatePitchStructure(branch, muteSixth)).toEqual([
+        0,
+        4,
+        7,
+        null,
+      ]);
+    });
+
+    it('skips borrowing on muted lines in pitch structure', () => {
+      const branch = chordManager.getChordByName('Branch')!;
+      const state = getInitialBorrowingState();
+      state.noteStates[1] = 'off';
+      state.circlePositions[1] = 'up';
+      state.borrowingDirections[1] = 'up';
+
+      const structure = logic.generatePitchStructure(branch, state);
+      expect(structure[0]).toBeNull();
+      expect(structure[1]).toBe(4);
+    });
+
+    it('getMutedPitchClasses uses borrowed pitch when line is muted', () => {
+      const branch = chordManager.getChordByName('Branch')!;
+      const state = getInitialBorrowingState();
+      state.noteStates[1] = 'off';
+      state.circlePositions[1] = 'up';
+      state.borrowingDirections[1] = 'up';
+
+      const muted = logic.getMutedPitchClasses(branch, state);
+      expect(muted.has(0)).toBe(false);
+      expect(muted.has(2)).toBe(true);
     });
   });
 

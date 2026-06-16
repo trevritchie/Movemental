@@ -54,10 +54,18 @@ export function useChordPlayback({
 
   const computeVoicedPitches = useCallback(
     (chord: Chord, state: BorrowingState, tilt: TiltSample): number[] => {
-      const structure = borrowingLogic.generatePitchStructure(chord, state);
+      const structure = borrowingLogic.generatePitchStructureForVoicing(
+        chord,
+        state
+      );
       const tonalCenter = tonalCenterRef.current;
       const octaveRange = chordManager.getOctaveRange();
+      const mutedPitchClasses = borrowingLogic.getMutedPitchClasses(
+        chord,
+        state
+      );
 
+      let voiced: number[];
       if (isElementalName(chord.name)) {
         const resolved = resolveElementalPlayback(
           chord,
@@ -65,7 +73,7 @@ export function useChordPlayback({
           octaveRange,
           previousChordRef.current
         );
-        return computeTiltVoicing(
+        voiced = computeTiltVoicing(
           structure,
           resolved.rootPitchClass,
           tilt,
@@ -73,16 +81,18 @@ export function useChordPlayback({
           tonalCenter,
           resolved.homeMidi
         );
+      } else {
+        const rootPitchClass = chord.pitches[chord.rootPositionIndex] % 12;
+        voiced = computeTiltVoicing(
+          structure,
+          rootPitchClass,
+          tilt,
+          octaveRange,
+          tonalCenter
+        );
       }
 
-      const rootPitchClass = chord.pitches[chord.rootPositionIndex] % 12;
-      return computeTiltVoicing(
-        structure,
-        rootPitchClass,
-        tilt,
-        octaveRange,
-        tonalCenter
-      );
+      return borrowingLogic.filterVoicingMutes(voiced, mutedPitchClasses);
     },
     [tonalCenterRef]
   );
@@ -120,18 +130,38 @@ export function useChordPlayback({
     []
   );
 
+  const resolvePlaybackChord = useCallback(
+    (chord: Chord): Chord => {
+      if (!isElementalName(chord.name)) return chord;
+      return resolveElementalPlayback(
+        chord,
+        tonalCenterRef.current,
+        chordManager.getOctaveRange(),
+        previousChordRef.current
+      ).chord;
+    },
+    [tonalCenterRef]
+  );
+
   const playAndDisplayChord = useCallback(
     (chord: Chord, state: BorrowingState) => {
+      const playbackChord = resolvePlaybackChord(chord);
       if (playStyle === 'tilt') {
-        const pitches = computeTiltPitches(chord, state);
+        const pitches = computeTiltPitches(playbackChord, state);
         playPitches(pitches, playStyle);
         return;
       }
 
-      const pitches = computeStaticPitches(chord, state);
+      const pitches = computeStaticPitches(playbackChord, state);
       playPitches(pitches, playStyle);
     },
-    [playStyle, computeTiltPitches, computeStaticPitches, playPitches]
+    [
+      playStyle,
+      resolvePlaybackChord,
+      computeTiltPitches,
+      computeStaticPitches,
+      playPitches,
+    ]
   );
 
   useEffect(() => {
