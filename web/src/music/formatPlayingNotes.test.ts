@@ -41,12 +41,12 @@ describe('formatChordReadout', () => {
   });
 
   it('returns traditional name only when no active pitches', () => {
-    expect(formatChordReadout('Bb maj6', [])).toBe('Bb maj6');
+    expect(formatChordReadout('Bb maj6 / G min7', [])).toBe('Bb maj6 / G min7');
   });
 
   it('combines traditional name and playing notes', () => {
-    expect(formatChordReadout('Bb maj6', [58, 62, 65, 69])).toBe(
-      'Bb maj6 - Bb3 D4 F4 A4'
+    expect(formatChordReadout('Bb maj6 / G min7', [58, 62, 65, 69])).toBe(
+      'Bb maj6 / G min7 - Bb3 D4 F4 A4'
     );
   });
 });

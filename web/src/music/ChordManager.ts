@@ -2,7 +2,6 @@ import {
   C4, CS4, DF4, D4, EF4, E4, F4, FS4, GF4, G4, GS4, AF4, A4, BF4, B4,
   C5, CF5, CS5, DF5, D5, DS5, EF5, E5, F5, FS5, GF5, G5, GS5, AF5, A5, BF5, B5,
   A3, B3,
-  NOTE_NAMES_FLAT,
   VOICING_TO_INDICES,
   OCTAVE,
   DEFAULT_TONAL_CENTER_OFFSET,
@@ -15,6 +14,7 @@ import {
   findRootPositionIndex,
   elementalTraditionalName,
 } from './elementalRoot';
+import { formatTraditionalName } from './traditionalName';
 
 export interface Chord {
   name: string;
@@ -63,10 +63,10 @@ export class ChordManager {
 
     const chordQualityMap: Record<string, string> = {
       "Earth": " dim7", "Wind": " dim7",
-      "-Fire": "7 b5", "Fire": " dim7",
+      "-Fire": "7b5", "Fire": " dim7",
       "Trunk": " min6", "Smoke": " min6", "Magma": " min6",
       "Branch": " maj6", "Ember": " maj6", "Glass": " maj6",
-      "Sand-Storm": "7 b5", "Fire-Storm": "7 b5",
+      "Sand-Storm": "7b5", "Fire-Storm": "7b5",
       "Leaf": "7", "Flame": "7", "Charcoal": "7"
     };
 
@@ -78,8 +78,10 @@ export class ChordManager {
       }
     }
 
-    const rootNote = NOTE_NAMES_FLAT[transposedPitches[0] % 12];
-    let traditionalName = rootNote + quality;
+    let traditionalName = formatTraditionalName(
+      transposedPitches[0] % 12,
+      quality
+    );
 
     transposedPitches.sort((a, b) => a - b);
 

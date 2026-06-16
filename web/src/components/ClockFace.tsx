@@ -32,7 +32,7 @@ const CHORD_PILL_SIZER = (
         Fire<sub>{CHORD_OVERLAY_MAX_CHEM_COUNT}</sub>
       </span>
     </div>
-    <span className="traditional-name">Bb maj6</span>
+    <span className="traditional-name">Bb maj6 / G min7</span>
     <span className="playing-notes">{CHORD_OVERLAY_MAX_PLAYING_NOTES}</span>
   </>
 );

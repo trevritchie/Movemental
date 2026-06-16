@@ -24,7 +24,17 @@ describe('ChordManager', () => {
   it('resolves quadrant chords by name', () => {
     const trunk = manager.getChordByName('Trunk');
     expect(trunk).toBeDefined();
-    expect(trunk!.traditionalName).toMatch(/min6/);
+    expect(trunk!.traditionalName).toBe('Bb min6 / G min7b5');
+  });
+
+  it('formats maj6 with relative min7 slash chord', () => {
+    const branch = manager.getChordByName('Branch');
+    expect(branch!.traditionalName).toBe('Bb maj6 / G min7');
+  });
+
+  it('formats dom7b5 without a space', () => {
+    const sandStorm = manager.getChordByName('Sand-Storm');
+    expect(sandStorm!.traditionalName).toBe('Bb7b5');
   });
 
   it('finds the nearest chord at diagram coordinates', () => {
