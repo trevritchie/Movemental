@@ -96,20 +96,41 @@ export class BorrowingLogic {
 
   /** Pitch classes to drop from a voiced chord when voice lines are muted. */
   public getMutedPitchClasses(chord: Chord, state: BorrowingState): Set<number> {
+    return this.prepareVoicingInput(chord, state).mutedPitchClasses;
+  }
+
+  /**
+   * Build borrowed 4-slot structure and mute set together.
+   *
+   * Mutes are applied after ladder voicing by pitch class. If borrowing
+   * collapsed two lines to the same PC, muting one line removes every
+   * voiced note with that PC.
+   */
+  public prepareVoicingInput(
+    chord: Chord,
+    state: BorrowingState
+  ): {
+    pitchStructure: (number | null)[];
+    mutedPitchClasses: Set<number>;
+  } {
     const borrowedPitches = this.applyBorrowing(chord, state, true);
     const rootPositionMapping = this.getRootPositionMapping(chord);
-    const muted = new Set<number>();
+    const pitchStructure: (number | null)[] = [null, null, null, null];
+    const mutedPitchClasses = new Set<number>();
 
     for (let line = 1; line <= 4; line++) {
-      if (state.noteStates[line] !== 'off') continue;
-
       const noteIndex = rootPositionMapping[line];
       if (noteIndex < borrowedPitches.length) {
-        muted.add(((borrowedPitches[noteIndex] % 12) + 12) % 12);
+        pitchStructure[noteIndex] = borrowedPitches[noteIndex];
+      }
+      if (state.noteStates[line] === 'off' && noteIndex < borrowedPitches.length) {
+        mutedPitchClasses.add(
+          ((borrowedPitches[noteIndex] % 12) + 12) % 12
+        );
       }
     }
 
-    return muted;
+    return { pitchStructure, mutedPitchClasses };
   }
 
   /** Full 4-slot structure for tilt voicing (borrowing on, all voices on). */
@@ -117,18 +138,7 @@ export class BorrowingLogic {
     chord: Chord,
     state: BorrowingState
   ): (number | null)[] {
-    const borrowedPitches = this.applyBorrowing(chord, state, true);
-    const rootPositionMapping = this.getRootPositionMapping(chord);
-    const fullPitchStructure: (number | null)[] = [null, null, null, null];
-
-    for (let line = 1; line <= 4; line++) {
-      const noteIndex = rootPositionMapping[line];
-      if (noteIndex < borrowedPitches.length) {
-        fullPitchStructure[noteIndex] = borrowedPitches[noteIndex];
-      }
-    }
-
-    return fullPitchStructure;
+    return this.prepareVoicingInput(chord, state).pitchStructure;
   }
 
   public filterVoicingMutes(
@@ -136,6 +146,8 @@ export class BorrowingLogic {
     mutedPitchClasses: Set<number>
   ): number[] {
     if (mutedPitchClasses.size === 0) return voicedPitches;
+    // Mutes by pitch class: if borrowing collapsed two lines to the same
+    // PC, muting one line removes every voiced note with that PC.
     return voicedPitches.filter(
       (pitch) => !mutedPitchClasses.has(((pitch % 12) + 12) % 12)
     );

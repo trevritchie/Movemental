@@ -40,9 +40,9 @@ export const MAX_TILT_PITCH_STEPS = MAX_PARALLEL_STEPS + 1;
 // chord.
 const MAX_CHAIN_WIDTH = 9;
 
-// Thinning rules from mnc.py contraryMotion ("like how I play it on piano",
-// max 5 voices). Keyed by chain width; values are 1-indexed chain positions
-// to skip, counted from the bottom.
+// Thinning rules from mnc.py contraryMotion ("like how I play it on piano").
+// Keyed by chain width; values are 1-indexed chain positions to skip.
+// Width 5 (Octave) is left unthinned; thinning starts at width 6 (Drop 2).
 const THINNING_RULES: Record<number, number[]> = {
   6: [2, 5],       // drop 2
   7: [3, 6],       // drop 3
@@ -92,6 +92,9 @@ export function ladderPitch(
  * Signed ladder pivot step from pitch tilt.
  * Chest-ward (y < 0): +1..+4; away-from-chest (y > 0): -1..-4; flat: 0.
  * ±4 is one full tone-cycle (octave register) from center 1st.
+ *
+ * Static UI only encodes chest-ward 0..3 via tiltSampleFromLevels; full ±4
+ * range is available in live tilt mode only.
  */
 export function parallelLevelFromTilt(tilt: TiltSample): number {
   const y = clamp(tilt.y, -1, 1);
@@ -112,43 +115,6 @@ export function positionLabelIndexFromParallelSteps(steps: number): number {
   const abs = Math.abs(steps);
   if (abs >= positionCount) return 0;
   return MAX_PARALLEL_STEPS - abs + 1;
-}
-
-export const TILT_POSITION_MOBILE_LABELS = [
-  '1st',
-  '2nd',
-  '3rd',
-  '4th',
-] as const;
-
-/** Desktop top-bar position select labels (no separate position title). */
-export const TILT_POSITION_DESKTOP_LABELS = TILT_POSITION_MOBILE_LABELS.map(
-  (name) => `${name} Pos.`,
-);
-
-export const TILT_POSITION_MAX_LABEL = (
-  [...TILT_POSITION_DESKTOP_LABELS] as const
-).reduce(
-  (longest, label) => (label.length > longest.length ? label : longest),
-  '' as (typeof TILT_POSITION_DESKTOP_LABELS)[number],
-);
-
-export type TiltPositionLabelVariant = 'mobile' | 'desktop';
-
-/**
- * Human-readable parallel position for the current pitch tilt.
- */
-export function tiltPositionLevelName(
-  tilt: TiltSample,
-  variant: TiltPositionLabelVariant = 'mobile'
-): string {
-  const steps = parallelLevelFromTilt(tilt);
-  const idx = positionLabelIndexFromParallelSteps(steps);
-  const labels =
-    variant === 'desktop'
-      ? TILT_POSITION_DESKTOP_LABELS
-      : TILT_POSITION_MOBILE_LABELS;
-  return labels[idx] ?? TILT_POSITION_MOBILE_LABELS[0];
 }
 
 /**
@@ -178,6 +144,9 @@ export const DEFAULT_STATIC_POSITION_LEVEL = 0;
 
 /**
  * Build a discrete tilt sample for static mode UI controls.
+ *
+ * Static position selects only chest-ward parallel levels 0..3 (1st through
+ * 4th). Away-from-chest positions are tilt-only.
  */
 export function tiltSampleFromLevels(
   inputSteps: number,
@@ -276,8 +245,11 @@ export function buildThinnedChain(
 }
 
 /**
- * Oblique motion: expand from a pivot anchor, alternating above and below
- * (width 2 adds above, width 3 adds below, and so on).
+ * Build a symmetric voicing chain centered on the parallel pivot.
+ *
+ * Used for contrary roll voicing (width narrows from Double Oct. toward
+ * Unison). Individual ladder steps may be oblique or contrary; stepping
+ * through the ladder with the opposite element gives stepwise contrary motion.
  */
 export function obliqueMotion(
   pivotPosition: number,
@@ -296,10 +268,25 @@ export function obliqueMotion(
 }
 
 /**
+ * How roll width is applied on the tone ladder.
+ *
+ * - contrary: bottom and top move in opposite directions as width narrows
+ *   (Double Oct. down to Drop 3; Drop 2&4 is an oblique intermediary step).
+ * - pivot: bottom stays on the parallel pivot; width only adds notes above
+ *   (static mode position control).
+ */
+export type TiltVoicingAnchor = 'contrary' | 'pivot';
+
+export interface ComputeTiltVoicingOptions {
+  anchor?: TiltVoicingAnchor;
+}
+
+/**
  * Compute the full tilt voicing for a chord.
  *
- * Parallel and oblique motion compose on the tone ladder: the pitch axis
- * sets the position (pivot); roll selects the oblique chain width.
+ * Parallel and roll motion compose on the tone ladder: the pitch axis
+ * sets the parallel pivot; roll selects chain width (contrary by default,
+ * or pivot-anchored for static mode).
  *
  * pitchStructure: pre-voicing pitches from BorrowingLogic (4 slots, nulls
  * for voices toggled off). rootPitchClass: pitch class of the chord root.
@@ -315,7 +302,8 @@ export function computeTiltVoicing(
   tilt: TiltSample,
   octaveRange: number,
   tonalCenter: number,
-  homeMidiOverride?: number
+  homeMidiOverride?: number,
+  options?: ComputeTiltVoicingOptions
 ): number[] {
   const cycle = buildToneCycle(pitchStructure, rootPitchClass);
   if (cycle.length === 0) return [];
@@ -330,5 +318,9 @@ export function computeTiltVoicing(
   const maxPivot = cycle.length;
   const pivot = clamp(parallelSteps, -maxPivot, maxPivot);
   const width = voicingWidthFromTilt(tilt);
+  const anchor = options?.anchor ?? 'contrary';
+  if (anchor === 'pivot') {
+    return buildThinnedChain(pivot, width, cycle, homeMidi);
+  }
   return obliqueMotion(pivot, width, cycle, homeMidi);
 }

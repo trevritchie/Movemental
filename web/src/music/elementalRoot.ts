@@ -56,7 +56,7 @@ export function resolveElementalRoot(
 }
 
 export function elementalTraditionalName(rootPitchClass: number): string {
-  return `${NOTE_NAMES_FLAT[rootPitchClass]} dim7`;
+  return `${NOTE_NAMES_FLAT[rootPitchClass]} diminished`;
 }
 
 export function findRootPositionIndex(
@@ -140,6 +140,8 @@ export function resolveElementalPlayback(
     previousChord
   );
 
+  // Anchor register to the opposite child's home pivot, then offset by the
+  // signed semitone delta to the diminished root (contrary motion).
   let anchorChildRoot: number;
   if (
     previousChord &&

@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { render, waitFor } from '@testing-library/react';
 import { ElementalDiagram } from './ElementalDiagram';
 
@@ -28,19 +28,6 @@ async function flushAnimationFrames(count = 2): Promise<void> {
 }
 
 describe('ElementalDiagram ready gate', () => {
-  beforeEach(() => {
-    class MockResizeObserver {
-      observe = vi.fn();
-      disconnect = vi.fn();
-      unobserve = vi.fn();
-    }
-    vi.stubGlobal('ResizeObserver', MockResizeObserver);
-  });
-
-  afterEach(() => {
-    vi.unstubAllGlobals();
-  });
-
   it('should hide diagram until layout settles after mount', async () => {
     const { container } = render(<ElementalDiagram />);
     const diagram = container.querySelector('.diagram-container');

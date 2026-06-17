@@ -6,14 +6,21 @@ vi.mock('../context/ChordContext', () => ({
   useChordContext: () => ({
     tonalCenter: 10,
     activePitches: [58, 62, 65, 69],
-    selectedChord: { name: 'Branch', traditionalName: 'Bb maj6' },
+    selectedChord: {
+      name: 'Branch',
+      traditionalName: 'Bb maj6 / G min7',
+      quality: ' maj6',
+      pitches: [10, 2, 5, 7],
+      originalPitches: [0, 4, 7, 9],
+      rootPositionIndex: 0,
+    },
   }),
 }));
 
 describe('ClockFace playing notes readout', () => {
   it('shows inline traditional name and notes on desktop', () => {
     const { container } = render(<ClockFace />);
-    expect(screen.getByText('Bb maj6 - Bb3 D4 F4 A4')).toBeInTheDocument();
+    expect(screen.getByText('Bb maj6 / G min7 - Bb3 D4 F4 A4')).toBeInTheDocument();
     expect(container.querySelector('.playing-notes')).toBeNull();
   });
 
@@ -21,7 +28,7 @@ describe('ClockFace playing notes readout', () => {
     const { container } = render(<ClockFace isMobileOverlay />);
     const clockInfo = container.querySelector('.clock-info');
     expect(clockInfo?.querySelector('.traditional-name')?.textContent).toBe(
-      'Bb maj6'
+      'Bb maj6 / G min7'
     );
     expect(clockInfo?.querySelector('.playing-notes')?.textContent).toBe(
       'Bb3 D4 F4 A4'

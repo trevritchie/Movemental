@@ -44,6 +44,17 @@ Object.defineProperty(navigator, 'audioSession', {
   writable: true,
 });
 
+class MockResizeObserver {
+  observe = vi.fn();
+  unobserve = vi.fn();
+  disconnect = vi.fn();
+}
+
+Object.defineProperty(window, 'ResizeObserver', {
+  value: MockResizeObserver,
+  writable: true,
+});
+
 Object.defineProperty(navigator, 'maxTouchPoints', {
   value: 0,
   configurable: true,

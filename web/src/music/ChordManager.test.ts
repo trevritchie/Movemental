@@ -24,7 +24,17 @@ describe('ChordManager', () => {
   it('resolves quadrant chords by name', () => {
     const trunk = manager.getChordByName('Trunk');
     expect(trunk).toBeDefined();
-    expect(trunk!.traditionalName).toMatch(/min6/);
+    expect(trunk!.traditionalName).toBe('Bb min6 / G min7b5');
+  });
+
+  it('formats maj6 with relative min7 slash chord', () => {
+    const branch = manager.getChordByName('Branch');
+    expect(branch!.traditionalName).toBe('Bb maj6 / G min7');
+  });
+
+  it('formats dom7b5 without a space', () => {
+    const sandStorm = manager.getChordByName('Sand-Storm');
+    expect(sandStorm!.traditionalName).toBe('Bb7b5');
   });
 
   it('finds the nearest chord at diagram coordinates', () => {
@@ -37,6 +47,10 @@ describe('ChordManager', () => {
 
   describe('applyVoicing', () => {
     const basePitches: (number | null)[] = [10, 13, 17, 19];
+
+    beforeEach(() => {
+      manager.setOctaveRange(3);
+    });
 
     it('applies Close voicing with octave offset only', () => {
       manager.setVoicing('Close');
@@ -91,7 +105,7 @@ describe('ChordManager', () => {
     ];
 
     for (const { tonalCenter, earth, wind, fire } of cases) {
-      it(`maps Earth/Wind/Fire to contrary-motion dim7 roots at tonal center ${tonalCenter}`, () => {
+      it(`maps Earth/Wind/Fire to contrary-motion diminished roots at tonal center ${tonalCenter}`, () => {
         manager.setTonalCenterOffset(tonalCenter);
 
         const earthChord = manager.getChordByName('Earth')!;
@@ -108,13 +122,13 @@ describe('ChordManager', () => {
         expect(fireRoot).toBe(fire);
 
         expect(earthChord.traditionalName).toBe(
-          `${NOTE_NAMES_FLAT[earthRoot]} dim7`
+          `${NOTE_NAMES_FLAT[earthRoot]} diminished`
         );
         expect(windChord.traditionalName).toBe(
-          `${NOTE_NAMES_FLAT[windRoot]} dim7`
+          `${NOTE_NAMES_FLAT[windRoot]} diminished`
         );
         expect(fireChord.traditionalName).toBe(
-          `${NOTE_NAMES_FLAT[fireRoot]} dim7`
+          `${NOTE_NAMES_FLAT[fireRoot]} diminished`
         );
 
         for (const chord of [earthChord, windChord, fireChord]) {

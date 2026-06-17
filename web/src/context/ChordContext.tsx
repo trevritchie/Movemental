@@ -1,4 +1,11 @@
 /* eslint-disable react-refresh/only-export-components */
+/**
+ * Application-wide chord, playback, borrowing, audio FX, and tilt state.
+ *
+ * Wires useBorrowingMemory, useDeviceTilt, useChordPlayback, and
+ * useAudioSettings into one provider. playAndDisplayChordRef breaks a hook
+ * ordering cycle between borrowing memory and playback.
+ */
 import React, {
   createContext,
   useContext,
@@ -6,6 +13,7 @@ import React, {
   useEffect,
   useRef,
   useCallback,
+  useMemo,
 } from 'react';
 import type { ReactNode } from 'react';
 import { chordManager, type Chord } from '../music/ChordManager';
@@ -40,6 +48,7 @@ interface ChordContextType {
   selectedChord: Chord | null;
   borrowingState: BorrowingState;
   activePitches: (number | null)[];
+  previousPlayedChord: Chord | null;
   handleChordSelect: (chord: Chord) => void;
   handleBorrowingStateChange: (newState: BorrowingState) => void;
   chorusWet: number;
@@ -148,7 +157,7 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
     borrowingStateRef: borrowing.borrowingStateRef,
     setBorrowingState: borrowing.setBorrowingState,
     setSelectedChord,
-    tiltRef: deviceTilt.tiltRef,
+    rawTiltRef: deviceTilt.rawTiltRef,
     staticVoicingLevelRef,
     staticPositionLevelRef,
     tonalCenterRef,
@@ -194,6 +203,12 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
     chordManager.setOctaveRange(octaveRange);
   }, [tonalCenter, octaveRange]);
 
+  /**
+   * Re-voice the selected chord when global register or static voicing
+   * controls change. Skips redundant audio when pitches are unchanged
+   * (playAndDisplayChord -> skipIfUnchanged). Does not run on every tilt
+   * tick; tilt voicing is sampled at tap time only.
+   */
   useEffect(() => {
     const name = selectedChordNameRef.current;
     if (!name) return;
@@ -219,55 +234,104 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
     playAndDisplayChord,
   ]);
 
-  const value: ChordContextType = {
-    tonalCenter,
-    setTonalCenter,
-    staticVoicingLevel,
-    setStaticVoicingLevel,
-    staticPositionLevel,
-    setStaticPositionLevel,
-    octaveRange,
-    setOctaveRange,
-    selectedChord,
-    borrowingState: borrowing.borrowingState,
-    activePitches: playback.activePitches,
-    handleChordSelect,
-    handleBorrowingStateChange: borrowing.handleBorrowingStateChange,
-    chorusWet: audio.chorusWet,
-    setChorusWet: audio.setChorusWet,
-    delayWet: audio.delayWet,
-    setDelayWet: audio.setDelayWet,
-    reverbWet: audio.reverbWet,
-    setReverbWet: audio.setReverbWet,
-    playStyle: playback.playStyle,
-    setPlayStyle: playback.setPlayStyle,
-    handleChordPointerDown: playback.handleChordPointerDown,
-    handleChordPointerUp: playback.handleChordPointerUp,
-    handleChordPointerEnter: playback.handleChordPointerEnter,
-    envelopeAttack: audio.envelopeAttack,
-    setEnvelopeAttack: audio.setEnvelopeAttack,
-    envelopeDecay: audio.envelopeDecay,
-    setEnvelopeDecay: audio.setEnvelopeDecay,
-    envelopeSustain: audio.envelopeSustain,
-    setEnvelopeSustain: audio.setEnvelopeSustain,
-    envelopeRelease: audio.envelopeRelease,
-    setEnvelopeRelease: audio.setEnvelopeRelease,
-    droneAttack: audio.droneAttack,
-    setDroneAttack: audio.setDroneAttack,
-    droneDecay: audio.droneDecay,
-    setDroneDecay: audio.setDroneDecay,
-    droneSustain: audio.droneSustain,
-    setDroneSustain: audio.setDroneSustain,
-    droneRelease: audio.droneRelease,
-    setDroneRelease: audio.setDroneRelease,
-    borrowingMemory: borrowing.borrowingMemory,
-    setBorrowingMemory: borrowing.setBorrowingMemory,
-    lockedVoices: borrowing.lockedVoices,
-    toggleVoiceLock: borrowing.toggleVoiceLock,
-    tiltStatus: deviceTilt.status,
-    tiltSample: deviceTilt.tilt,
-    requestTiltPermission: deviceTilt.requestPermission,
-  };
+  const value: ChordContextType = useMemo(
+    () => ({
+      tonalCenter,
+      setTonalCenter,
+      staticVoicingLevel,
+      setStaticVoicingLevel,
+      staticPositionLevel,
+      setStaticPositionLevel,
+      octaveRange,
+      setOctaveRange,
+      selectedChord,
+      borrowingState: borrowing.borrowingState,
+      activePitches: playback.activePitches,
+      previousPlayedChord: playback.previousPlayedChord,
+      handleChordSelect,
+      handleBorrowingStateChange: borrowing.handleBorrowingStateChange,
+      chorusWet: audio.chorusWet,
+      setChorusWet: audio.setChorusWet,
+      delayWet: audio.delayWet,
+      setDelayWet: audio.setDelayWet,
+      reverbWet: audio.reverbWet,
+      setReverbWet: audio.setReverbWet,
+      playStyle: playback.playStyle,
+      setPlayStyle: playback.setPlayStyle,
+      handleChordPointerDown: playback.handleChordPointerDown,
+      handleChordPointerUp: playback.handleChordPointerUp,
+      handleChordPointerEnter: playback.handleChordPointerEnter,
+      envelopeAttack: audio.envelopeAttack,
+      setEnvelopeAttack: audio.setEnvelopeAttack,
+      envelopeDecay: audio.envelopeDecay,
+      setEnvelopeDecay: audio.setEnvelopeDecay,
+      envelopeSustain: audio.envelopeSustain,
+      setEnvelopeSustain: audio.setEnvelopeSustain,
+      envelopeRelease: audio.envelopeRelease,
+      setEnvelopeRelease: audio.setEnvelopeRelease,
+      droneAttack: audio.droneAttack,
+      setDroneAttack: audio.setDroneAttack,
+      droneDecay: audio.droneDecay,
+      setDroneDecay: audio.setDroneDecay,
+      droneSustain: audio.droneSustain,
+      setDroneSustain: audio.setDroneSustain,
+      droneRelease: audio.droneRelease,
+      setDroneRelease: audio.setDroneRelease,
+      borrowingMemory: borrowing.borrowingMemory,
+      setBorrowingMemory: borrowing.setBorrowingMemory,
+      lockedVoices: borrowing.lockedVoices,
+      toggleVoiceLock: borrowing.toggleVoiceLock,
+      tiltStatus: deviceTilt.status,
+      tiltSample: deviceTilt.tilt,
+      requestTiltPermission: deviceTilt.requestPermission,
+    }),
+    [
+      tonalCenter,
+      staticVoicingLevel,
+      staticPositionLevel,
+      octaveRange,
+      selectedChord,
+      borrowing.borrowingState,
+      borrowing.handleBorrowingStateChange,
+      borrowing.borrowingMemory,
+      borrowing.lockedVoices,
+      borrowing.toggleVoiceLock,
+      borrowing.setBorrowingMemory,
+      playback.activePitches,
+      playback.previousPlayedChord,
+      playback.playStyle,
+      playback.setPlayStyle,
+      playback.handleChordPointerDown,
+      playback.handleChordPointerUp,
+      playback.handleChordPointerEnter,
+      handleChordSelect,
+      audio.chorusWet,
+      audio.setChorusWet,
+      audio.delayWet,
+      audio.setDelayWet,
+      audio.reverbWet,
+      audio.setReverbWet,
+      audio.envelopeAttack,
+      audio.setEnvelopeAttack,
+      audio.envelopeDecay,
+      audio.setEnvelopeDecay,
+      audio.envelopeSustain,
+      audio.setEnvelopeSustain,
+      audio.envelopeRelease,
+      audio.setEnvelopeRelease,
+      audio.droneAttack,
+      audio.setDroneAttack,
+      audio.droneDecay,
+      audio.setDroneDecay,
+      audio.droneSustain,
+      audio.setDroneSustain,
+      audio.droneRelease,
+      audio.setDroneRelease,
+      deviceTilt.status,
+      deviceTilt.tilt,
+      deviceTilt.requestPermission,
+    ]
+  );
 
   return (
     <ChordContext.Provider value={value}>{children}</ChordContext.Provider>

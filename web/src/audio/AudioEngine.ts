@@ -160,6 +160,10 @@ export class AudioEngine {
 
     devLog('[AudioEngine] Playing notes:', noteNames, '(MIDI:', clamped, ')');
 
+    // Timed preview (borrowing sliders). Track names so the next call can
+    // release them even though triggerAttackRelease is not sustained.
+    this.activeNotes = noteNames as string[];
+
     // Add a microscopic 15ms delay to the attack to prevent popping/clicks against the release
     this.synth.triggerAttackRelease(noteNames, duration, now + 0.015);
   }
@@ -192,9 +196,8 @@ export class AudioEngine {
     const noteNames: string[] = clamped.map(n => Tone.Frequency(n, 'midi').toNote() as string);
 
     if (retrigger) {
-      // Explicit re-strike (tilt mode taps): release everything and re-attack
-      // the full voicing, even when the notes are unchanged. The 15ms attack
-      // offset prevents popping against the release, matching playNotes.
+      // Tilt taps: full release + re-attack even when pitches are unchanged
+      // so each tap produces haptic and audible feedback.
       if (this.activeNotes.length > 0) {
         try {
           this.synth.triggerRelease(this.activeNotes, now);
@@ -209,7 +212,7 @@ export class AudioEngine {
     }
 
     // ── Synchronous Legato Diffing ──────────────────────────────────────────
-    // Vital for drone mode: prevents polyphony pile-up by sustaining common notes.
+    // Drone/glissando: sustain overlapping notes, release only what dropped out.
     const notesToRelease = this.activeNotes.filter(n => !noteNames.includes(n));
     const notesToAttack  = noteNames.filter(n => !this.activeNotes.includes(n));
 

@@ -32,7 +32,7 @@ const CHORD_PILL_SIZER = (
         Fire<sub>{CHORD_OVERLAY_MAX_CHEM_COUNT}</sub>
       </span>
     </div>
-    <span className="traditional-name">Bb maj6</span>
+    <span className="traditional-name">Bb maj6 / G min7</span>
     <span className="playing-notes">{CHORD_OVERLAY_MAX_PLAYING_NOTES}</span>
   </>
 );
@@ -82,8 +82,8 @@ export const ClockFace: React.FC<{ isMobileOverlay?: boolean }> = ({
   }, [elementalName, isMobileOverlay]);
 
   const playingNotes = React.useMemo(
-    () => formatPlayingNotes(activePitches),
-    [activePitches]
+    () => formatPlayingNotes(activePitches, selectedChord),
+    [activePitches, selectedChord]
   );
 
   const elementFormula = React.useMemo(
@@ -165,7 +165,7 @@ export const ClockFace: React.FC<{ isMobileOverlay?: boolean }> = ({
       <div className="traditional-name">
         {isMobileOverlay
           ? traditionalName || '---'
-          : formatChordReadout(traditionalName, activePitches)}
+          : formatChordReadout(traditionalName, activePitches, selectedChord)}
       </div>
       {isMobileOverlay && playingNotes && (
         <div className="playing-notes">{playingNotes}</div>

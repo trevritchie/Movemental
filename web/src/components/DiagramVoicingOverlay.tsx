@@ -1,20 +1,23 @@
 import React from 'react';
 import {
-  tiltPositionLevelName,
   tiltVoicingOverlayLabel,
-  TILT_POSITION_MOBILE_LABELS,
   TILT_VOICING_OVERLAY_LABELS,
   TILT_VOICING_OVERLAY_MAX_LABEL,
   TILT_VOICING_LEVEL_NAMES,
 } from '../music/TiltVoicingEngine';
+import {
+  bassDegreeLabelsForSelect,
+  tiltBassDegreeLabel,
+  TILT_BASS_DEGREE_MOBILE_MAX_LABEL,
+} from '../music/voiceDegreeLabel';
 import { useChordContext } from '../context/ChordContext';
 import { DiagramOverlayPill } from './DiagramOverlayPill';
 
-/** Shared sizer so voicing and position pills stay the same width. */
+/** Shared sizer so voicing and bass pills stay the same width. */
 const TOP_PILL_SIZER = TILT_VOICING_OVERLAY_MAX_LABEL;
 
 /**
- * Phone-only overlay: voicing (top left) and position (top right), mirroring
+ * Phone-only overlay: voicing (top left) and bass degree (top right), mirroring
  * the clock/chord info anchored to the diagram bottom corners.
  */
 export const DiagramVoicingOverlay: React.FC = () => {
@@ -24,12 +27,30 @@ export const DiagramVoicingOverlay: React.FC = () => {
     setStaticVoicingLevel,
     staticPositionLevel,
     setStaticPositionLevel,
+    selectedChord,
+    tonalCenter,
+    octaveRange,
+    borrowingState,
+    previousPlayedChord,
     tiltStatus,
     tiltSample,
     requestTiltPermission,
   } = useChordContext();
 
   const isTilt = playStyle === 'tilt';
+  const bassSelectLabels = React.useMemo(
+    () => bassDegreeLabelsForSelect(selectedChord, 'mobile'),
+    [selectedChord]
+  );
+  const tiltBassContext = React.useMemo(
+    () => ({
+      tonalCenter,
+      octaveRange,
+      borrowingState,
+      previousChord: previousPlayedChord,
+    }),
+    [tonalCenter, octaveRange, borrowingState, previousPlayedChord]
+  );
 
   const renderVoicingValue = () => {
     if (!isTilt) {
@@ -94,18 +115,20 @@ export const DiagramVoicingOverlay: React.FC = () => {
     );
   };
 
-  const renderPositionValue = () => {
+  const renderBassValue = () => {
     if (!isTilt) {
       return (
         <select
           className="diagram-overlay-select"
           value={staticPositionLevel}
           onChange={(e) => setStaticPositionLevel(Number(e.target.value))}
-          title="Position"
-          aria-label="Position"
+          title="In the bass"
+          aria-label="In the bass"
         >
-          {TILT_POSITION_MOBILE_LABELS.map((name, idx) => (
-            <option key={name} value={idx}>{name}</option>
+          {bassSelectLabels.map((name, idx) => (
+            <option key={name} value={idx}>
+              {name}
+            </option>
           ))}
         </select>
       );
@@ -114,9 +137,14 @@ export const DiagramVoicingOverlay: React.FC = () => {
     return (
       <span
         className="diagram-overlay-readout"
-        title="Pitch selects position"
+        title="Roll and pitch together set which chord tone is in the bass"
       >
-        {tiltPositionLevelName(tiltSample, 'mobile')}
+        {tiltBassDegreeLabel(
+          tiltSample,
+          selectedChord,
+          'mobile',
+          tiltBassContext
+        )}
       </span>
     );
   };
@@ -131,11 +159,11 @@ export const DiagramVoicingOverlay: React.FC = () => {
         {renderVoicingValue()}
       </DiagramOverlayPill>
       <DiagramOverlayPill
-        label="Position"
+        label="IN THE BASS"
         corner="top-right"
-        sizerText={TOP_PILL_SIZER}
+        sizerText={TILT_BASS_DEGREE_MOBILE_MAX_LABEL}
       >
-        {renderPositionValue()}
+        {renderBassValue()}
       </DiagramOverlayPill>
     </div>
   );
