@@ -56,7 +56,7 @@ export function resolveElementalRoot(
 }
 
 export function elementalTraditionalName(rootPitchClass: number): string {
-  return `${NOTE_NAMES_FLAT[rootPitchClass]} dim7`;
+  return `${NOTE_NAMES_FLAT[rootPitchClass]} diminished`;
 }
 
 export function findRootPositionIndex(

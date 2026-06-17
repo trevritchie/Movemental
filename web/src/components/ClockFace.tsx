@@ -82,8 +82,8 @@ export const ClockFace: React.FC<{ isMobileOverlay?: boolean }> = ({
   }, [elementalName, isMobileOverlay]);
 
   const playingNotes = React.useMemo(
-    () => formatPlayingNotes(activePitches),
-    [activePitches]
+    () => formatPlayingNotes(activePitches, selectedChord),
+    [activePitches, selectedChord]
   );
 
   const elementFormula = React.useMemo(
@@ -165,7 +165,7 @@ export const ClockFace: React.FC<{ isMobileOverlay?: boolean }> = ({
       <div className="traditional-name">
         {isMobileOverlay
           ? traditionalName || '---'
-          : formatChordReadout(traditionalName, activePitches)}
+          : formatChordReadout(traditionalName, activePitches, selectedChord)}
       </div>
       {isMobileOverlay && playingNotes && (
         <div className="playing-notes">{playingNotes}</div>

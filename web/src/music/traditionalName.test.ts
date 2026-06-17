@@ -17,8 +17,8 @@ describe('formatTraditionalName', () => {
     expect(formatTraditionalName(0, '7b5')).toBe('C7b5');
   });
 
-  it('leaves dim7 and dom7 unchanged', () => {
-    expect(formatTraditionalName(0, ' dim7')).toBe('C dim7');
+  it('leaves diminished and dom7 unchanged', () => {
+    expect(formatTraditionalName(0, ' diminished')).toBe('C diminished');
     expect(formatTraditionalName(10, '7')).toBe('Bb7');
   });
 });

@@ -15,12 +15,14 @@ import {
   elementalTraditionalName,
 } from './elementalRoot';
 import { formatTraditionalName } from './traditionalName';
+import { getChordQuality } from './chordQuality';
 
 export interface Chord {
   name: string;
   originalPitches: number[];
   pitches: number[];
   traditionalName: string;
+  quality: string;
   rootPositionIndex: number;
 }
 
@@ -61,22 +63,7 @@ export class ChordManager {
       p => ((p % 12) + (this.tonalCenterOffset % 12)) % 12
     );
 
-    const chordQualityMap: Record<string, string> = {
-      "Earth": " dim7", "Wind": " dim7",
-      "-Fire": "7b5", "Fire": " dim7",
-      "Trunk": " min6", "Smoke": " min6", "Magma": " min6",
-      "Branch": " maj6", "Ember": " maj6", "Glass": " maj6",
-      "Sand-Storm": "7b5", "Fire-Storm": "7b5",
-      "Leaf": "7", "Flame": "7", "Charcoal": "7"
-    };
-
-    let quality = "";
-    for (const [suffix, q] of Object.entries(chordQualityMap)) {
-      if (name.endsWith(suffix)) {
-        quality = q;
-        break;
-      }
-    }
+    const quality = getChordQuality(name);
 
     let traditionalName = formatTraditionalName(
       transposedPitches[0] % 12,
@@ -106,6 +93,7 @@ export class ChordManager {
       originalPitches: pitches,
       pitches: transposedPitches,
       traditionalName,
+      quality,
       rootPositionIndex
     };
   }

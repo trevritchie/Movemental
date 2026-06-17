@@ -1,4 +1,6 @@
 import { NOTE_NAMES_FLAT } from './config';
+import type { Chord } from './ChordManager';
+import { buildDegreeSpellingMap, spellMidiNote } from './chordSpelling';
 
 /** Convert a MIDI note number to flat spelling with octave (e.g. 60 -> C4). */
 export function midiToNoteName(midi: number): string {
@@ -8,11 +10,16 @@ export function midiToNoteName(midi: number): string {
 }
 
 /** Space-separated ascending note names for the currently voiced pitches. */
-export function formatPlayingNotes(pitches: (number | null)[]): string {
+export function formatPlayingNotes(
+  pitches: (number | null)[],
+  chord?: Chord | null
+): string {
+  const degreeSpellings = chord ? buildDegreeSpellingMap(chord) : null;
+
   return pitches
     .filter((p): p is number => p !== null)
     .sort((a, b) => a - b)
-    .map(midiToNoteName)
+    .map((midi) => spellMidiNote(midi, degreeSpellings))
     .join(' ');
 }
 
@@ -22,11 +29,12 @@ export function formatPlayingNotes(pitches: (number | null)[]): string {
  */
 export function formatChordReadout(
   traditionalName: string | null,
-  pitches: (number | null)[]
+  pitches: (number | null)[],
+  chord?: Chord | null
 ): string {
   if (!traditionalName) return '---';
 
-  const notes = formatPlayingNotes(pitches);
+  const notes = formatPlayingNotes(pitches, chord);
   if (!notes) return traditionalName;
 
   return `${traditionalName} - ${notes}`;

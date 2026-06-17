@@ -6,7 +6,14 @@ vi.mock('../context/ChordContext', () => ({
   useChordContext: () => ({
     tonalCenter: 10,
     activePitches: [58, 62, 65, 69],
-    selectedChord: { name: 'Branch', traditionalName: 'Bb maj6 / G min7' },
+    selectedChord: {
+      name: 'Branch',
+      traditionalName: 'Bb maj6 / G min7',
+      quality: ' maj6',
+      pitches: [10, 2, 5, 7],
+      originalPitches: [0, 4, 7, 9],
+      rootPositionIndex: 0,
+    },
   }),
 }));
 

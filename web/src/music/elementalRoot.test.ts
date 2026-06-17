@@ -21,19 +21,19 @@ describe('elementalRoot', () => {
   });
 
   describe('default diminished names at Bb', () => {
-    it('names Earth E dim7, Wind D dim7, Fire A dim7', () => {
+    it('names Earth E diminished, Wind D diminished, Fire A diminished', () => {
       expect(getDefaultElementalRoot('Earth', 10)).toBe(4);
       expect(getDefaultElementalRoot('Wind', 10)).toBe(2);
       expect(getDefaultElementalRoot('Fire', 10)).toBe(9);
 
-      expect(manager.getChordByName('Earth')!.traditionalName).toBe('E dim7');
-      expect(manager.getChordByName('Wind')!.traditionalName).toBe('D dim7');
-      expect(manager.getChordByName('Fire')!.traditionalName).toBe('A dim7');
+      expect(manager.getChordByName('Earth')!.traditionalName).toBe('E diminished');
+      expect(manager.getChordByName('Wind')!.traditionalName).toBe('D diminished');
+      expect(manager.getChordByName('Fire')!.traditionalName).toBe('A diminished');
     });
   });
 
   describe('contextual roots after opposite child', () => {
-    it('roots Fire at A dim7 after Branch (Bb maj6)', () => {
+    it('roots Fire at A diminished after Branch (Bb maj6)', () => {
       const branch = manager.getChordByName('Branch')!;
       expect(resolveElementalRoot('Fire', 10, branch)).toBe(9);
       expect(
@@ -43,10 +43,10 @@ describe('elementalRoot', () => {
           OCTAVE_RANGE,
           branch
         ).chord.traditionalName
-      ).toBe('A dim7');
+      ).toBe('A diminished');
     });
 
-    it('roots Fire at Eb dim7 after Twin Branch (E maj6)', () => {
+    it('roots Fire at Eb diminished after Twin Branch (E maj6)', () => {
       const twinBranch = manager.getChordByName('Twin Branch')!;
       expect(resolveElementalRoot('Fire', 10, twinBranch)).toBe(3);
       expect(
@@ -56,7 +56,7 @@ describe('elementalRoot', () => {
           OCTAVE_RANGE,
           twinBranch
         ).chord.traditionalName
-      ).toBe('Eb dim7');
+      ).toBe('Eb diminished');
     });
   });
 
@@ -120,10 +120,10 @@ describe('elementalRoot', () => {
   });
 
   describe('works at other tonal centers', () => {
-    it('defaults Fire to B dim7 at tonal center C', () => {
+    it('defaults Fire to B diminished at tonal center C', () => {
       manager.setTonalCenterOffset(0);
       expect(getDefaultElementalRoot('Fire', 0)).toBe(11);
-      expect(manager.getChordByName('Fire')!.traditionalName).toBe('B dim7');
+      expect(manager.getChordByName('Fire')!.traditionalName).toBe('B diminished');
     });
 
     it('roots Fire half step below Branch at tonal center D', () => {
@@ -137,7 +137,7 @@ describe('elementalRoot', () => {
           OCTAVE_RANGE,
           branch
         ).chord.traditionalName
-      ).toBe('Db dim7');
+      ).toBe('Db diminished');
     });
   });
 });

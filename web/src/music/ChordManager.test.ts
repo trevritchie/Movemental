@@ -48,6 +48,10 @@ describe('ChordManager', () => {
   describe('applyVoicing', () => {
     const basePitches: (number | null)[] = [10, 13, 17, 19];
 
+    beforeEach(() => {
+      manager.setOctaveRange(3);
+    });
+
     it('applies Close voicing with octave offset only', () => {
       manager.setVoicing('Close');
       const voiced = manager.applyVoicing(basePitches);
@@ -101,7 +105,7 @@ describe('ChordManager', () => {
     ];
 
     for (const { tonalCenter, earth, wind, fire } of cases) {
-      it(`maps Earth/Wind/Fire to contrary-motion dim7 roots at tonal center ${tonalCenter}`, () => {
+      it(`maps Earth/Wind/Fire to contrary-motion diminished roots at tonal center ${tonalCenter}`, () => {
         manager.setTonalCenterOffset(tonalCenter);
 
         const earthChord = manager.getChordByName('Earth')!;
@@ -118,13 +122,13 @@ describe('ChordManager', () => {
         expect(fireRoot).toBe(fire);
 
         expect(earthChord.traditionalName).toBe(
-          `${NOTE_NAMES_FLAT[earthRoot]} dim7`
+          `${NOTE_NAMES_FLAT[earthRoot]} diminished`
         );
         expect(windChord.traditionalName).toBe(
-          `${NOTE_NAMES_FLAT[windRoot]} dim7`
+          `${NOTE_NAMES_FLAT[windRoot]} diminished`
         );
         expect(fireChord.traditionalName).toBe(
-          `${NOTE_NAMES_FLAT[fireRoot]} dim7`
+          `${NOTE_NAMES_FLAT[fireRoot]} diminished`
         );
 
         for (const chord of [earthChord, windChord, fireChord]) {
