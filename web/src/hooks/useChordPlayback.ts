@@ -81,14 +81,18 @@ export function useChordPlayback({
   /** Mirror of activePitches for skipIfUnchanged without re-rendering. */
   const activePitchesRef = useRef<number[]>([]);
 
-  useEffect(() => {
-    playStyleRef.current = playStyle;
+  const changePlayStyle = useCallback((style: PlayStyle) => {
+    if (playStyleRef.current === style) {
+      return;
+    }
+    playStyleRef.current = style;
     audioEngine.releaseActiveNotes();
     isPointerDownRef.current = false;
     previousChordRef.current = null;
     setPreviousPlayedChord(null);
     invalidateVoicingCache();
-  }, [playStyle]);
+    setPlayStyle(style);
+  }, []);
 
   const resolveForPlayback = useCallback(
     (chord: Chord): PlaybackResolution => {
@@ -351,7 +355,7 @@ export function useChordPlayback({
 
   return {
     playStyle,
-    setPlayStyle,
+    setPlayStyle: changePlayStyle,
     activePitches,
     previousPlayedChord,
     playAndDisplayChord,
