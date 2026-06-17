@@ -43,7 +43,7 @@ function rootLetterIndex(rootPitchClass: number, useSharpRoot: boolean): number 
   const rootName = useSharpRoot
     ? NOTE_NAMES_SHARP[rootPitchClass % 12]
     : NOTE_NAMES_FLAT[rootPitchClass % 12];
-  return LETTERS.indexOf(rootName[0]);
+  return LETTERS.indexOf(rootName[0] as (typeof LETTERS)[number]);
 }
 
 function accidentalForLetter(

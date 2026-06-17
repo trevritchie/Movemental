@@ -1,6 +1,7 @@
 import React, { useRef } from 'react';
 import { Lock } from 'lucide-react';
 import type { BorrowingDirection } from '../music/BorrowingLogic';
+import { getVoiceDegreeLabel } from '../music/voiceDegreeLabel';
 import { useChordContext } from '../context/ChordContext';
 import { ELEMENTAL_RELATIONSHIPS } from '../music/config';
 
@@ -8,12 +9,6 @@ interface BorrowingControlsProps {
   disabled: boolean;
 }
 
-const VOICE_NAMES: Record<number, string> = {
-  1: 'Root',
-  2: '3rd',
-  3: '5th',
-  4: '6/7th',
-};
 
 const ELEMENT_COLORS: Record<string, string> = {
   Earth: 'var(--color-earth)',
@@ -142,19 +137,11 @@ export const BorrowingControls: React.FC<BorrowingControlsProps> = ({ disabled }
     tonalCenter,
   } = useChordContext();
 
-  // Dynamic 4th-voice label
-  const getVoiceLabel = React.useCallback((line: number): string => {
-    if (line !== 4) return VOICE_NAMES[line];
-    if (!selectedChord) return '6/7th';
-    const name = selectedChord.name;
-    const ends = (suffixes: string[]) => suffixes.some(s => name.endsWith(s));
-    if (ends(['Trunk', 'Smoke', 'Magma', 'Branch', 'Ember', 'Glass'])) return '6th';
-    if (ends(['Sand-Storm', 'Fire-Storm', '-Fire', 'Leaf', 'Flame', 'Charcoal'])) return '7th';
-    const trad = selectedChord.traditionalName;
-    if (trad.includes('6')) return '6th';
-    if (trad.includes('7')) return '7th';
-    return '6/7th';
-  }, [selectedChord]);
+  const getVoiceLabel = React.useCallback(
+    (line: number): string =>
+      getVoiceDegreeLabel(line as 1 | 2 | 3 | 4, selectedChord),
+    [selectedChord]
+  );
 
   // Color of the chord's opposite (borrowed-from) element
   const oppositeElementName = selectedChord

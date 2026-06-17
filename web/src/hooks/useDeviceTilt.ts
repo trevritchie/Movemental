@@ -20,7 +20,7 @@ interface PermissionedOrientationEvent {
 const SMOOTHING_ALPHA = 0.25; // exponential moving average weight per event
 const READOUT_INTERVAL_MS = 150; // throttle for the React-visible sample
 
-const pitchTiltFromBeta = (beta: number): number => {
+export const pitchTiltFromBeta = (beta: number): number => {
   const norm = beta / 90;
   if (norm > 0) return -Math.min(norm, 1);
   if (norm < 0) return Math.min(-norm, 1);
@@ -44,8 +44,13 @@ const pitchTiltFromBeta = (beta: number): number => {
  *
  * onLevelChange fires whenever the quantized voicing level (the step pair
  * from mapTiltToPositions) changes, e.g. to drive haptic feedback.
+ *
+ * Two tilt refs:
+ * - tiltRef / React `tilt`: smoothed, throttled to ~150 ms for UI readouts
+ * - rawTiltRef: unsmoothed angles for playback sampling at tap time
  */
 export function useDeviceTilt(onLevelChange?: () => void) {
+  /** Smoothed sample for diagram overlay readouts. */
   const tiltRef = useRef<TiltSample>({ ...FLAT_TILT });
   const smoothedRef = useRef({ gamma: 0, beta: 0 });
   const lastReadoutRef = useRef(0);
@@ -88,8 +93,7 @@ export function useDeviceTilt(onLevelChange?: () => void) {
     const y = pitchTiltFromBeta(smoothed.beta);
     tiltRef.current = { x, y };
 
-    // Level detection uses raw angles so haptic ticks are not delayed by
-    // the display smoothing filter.
+    // Haptics and playback use raw angles; UI readout uses smoothed tiltRef.
     const xRaw = -Math.min(Math.abs(gamma) / 90, 1);
     const yRaw = pitchTiltFromBeta(beta);
     rawTiltRef.current = { x: xRaw, y: yRaw };
@@ -168,5 +172,5 @@ export function useDeviceTilt(onLevelChange?: () => void) {
     }
   }, [status]);
 
-  return { tiltRef, tilt, status, requestPermission };
+  return { tiltRef, rawTiltRef, tilt, status, requestPermission };
 }

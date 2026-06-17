@@ -1,6 +1,6 @@
 # Movemental Web: The Elemental Tesseract Audio Engine & Interactive Interface
 
-Movemental Web is a state-of-the-art interactive audio application built on React, TypeScript, and Vite. It implements the **Elemental Tesseract**, a mathematical and music-theoretical system that maps pitch relations to symmetrical coordinates across elemental axes, utilizing an advanced voice borrowing system and an 8-stage laptop-optimized DSP signal chain powered by Tone.js.
+Movemental Web is a state-of-the-art interactive audio application built on React, TypeScript, and Vite. It implements the **Elemental Tesseract**, a mathematical and music-theoretical system that maps pitch relations to symmetrical coordinates across elemental axes, utilizing an advanced voice borrowing system, a **tilt counterpoint voicing engine** (phone play style), and an 8-stage laptop-optimized DSP signal chain powered by Tone.js.
 
 ---
 
@@ -10,48 +10,89 @@ The web application is structured around a unidirectional state flow, managed by
 
 ```mermaid
 graph TD
-    %% User Interactions
-    UI_Diag[ElementalDiagram.tsx <br> Interactive SVG Map] -->|Pointer Events| Context
-    UI_Clock[ClockFace.tsx <br> Symmetrical Pitch Visualizer] -->|Selected Chord Coordinates| Context
-    UI_Sliders[BorrowingControls.tsx <br> Voice Sliders & Locks] -->|Shift/Mute/Lock States| Context
-    UI_TopBar[TopBar.tsx <br> Global Parameters] -->|Tonal Center, Octave, Voicing, ADSR| Context
+    UI_Diag[ElementalDiagram.tsx] -->|Pointer events| Playback[useChordPlayback.ts]
+    UI_Sliders[BorrowingControls.tsx] -->|Borrowing state| Context[ChordContext.tsx]
+    UI_TopBar[TopBar.tsx] -->|Settings / tilt readouts| Context
+    UI_Overlay[DiagramVoicingOverlay.tsx] -->|Static voicing on phone| Context
+    TiltHook[useDeviceTilt.ts] -->|Tilt sample ~150ms| Context
 
-    %% Central Context & Managers
-    subgraph Core Framework [React State & Core Logic]
-        Context[ChordContext.tsx <br> Central State Hub]
-        Manager[ChordManager.ts <br> Coordinate & Chord Dictionary]
-        Logic[BorrowingLogic.ts <br> Pitch Mutation Algorithm]
+    subgraph Core [Core logic]
+        Context
+        Manager[ChordManager.ts]
+        Borrow[BorrowingLogic.ts]
+        Elemental[elementalRoot.ts]
+        TiltEngine[TiltVoicingEngine.ts]
+        TiltPlay[tiltVoicingPlayback.ts]
+        Labels[voiceDegreeLabel.ts]
     end
 
-    Context <-->|Query Coords / Inversions / Voicings| Manager
-    Context <-->|Calculates Altered Pitch Sets| Logic
-    Logic <-->|Fetch Opposite Element Dim7 Chord| Manager
+    Context --> Manager
+    Context --> Borrow
+    Playback --> TiltPlay
+    TiltPlay --> Borrow
+    TiltPlay --> Elemental
+    TiltPlay --> TiltEngine
+    Labels --> TiltPlay
 
-    %% Audio Engine & DSP
-    subgraph DSP Engine [Audio DSP Chain]
-        Engine[AudioEngine.ts <br> Tone.js Orchestrator]
-        ToneSynth[PolySynth <br> fatsawtooth]
-        DSP[8-Stage DSP Signal Chain]
-    end
+    Playback --> Engine[AudioEngine.ts]
+    Engine --> DSP[8-stage Tone.js chain]
+    DSP --> Output[Speakers]
 
-    Context -->|Pitches & Envelope Parameters| Engine
-    Engine -->|Triggers Attack/Release| ToneSynth
-    ToneSynth --> DSP
-    DSP -->|Laptop-speaker Optimized Stereo Audio| Output[Destination / Speakers]
-    
-    %% Styling and layout
-    style Core Framework fill:#161b22,stroke:#30363d,stroke-width:2px
-    style DSP Engine fill:#121820,stroke:#238636,stroke-width:2px
+    Context --> UI_Clock[ClockFace.tsx]
 ```
 
 ### ChordContext React Core (`ChordContext.tsx`)
-At the core of the UI is the `ChordProvider`, which manages:
-*   **Active Configurations**: Tonal Center offset (default: Bb / Offset `10`), Octave Range (default: `3`), and Voicing style (`Close`, `Drop 2`, `Drop 3`, and `Drop 2 & 4`).
-*   **Borrowing State Configurations**: Keeps track of `circlePositions` (`line`, `up`, `down`), `borrowingDirections` (`up`, `down`, `null`), and `noteStates` (`on`, `off`) for the 4 voices.
-*   **Play/Sustain Modes**:
-    *   `click_and_hold` (ADSR Click/Hover Mode): Notes play when clicked/hovered and are instantly released when the pointer is lifted anywhere on the user's OS. A global event listener on `window` bound to `useRef` references guarantees that pointer lifts are successfully captured with zero stale closures.
-    *   `drone` (Infinite Drone Mode): Chords are triggered using sustain (`synth.triggerAttack()`) and ring out indefinitely. When transitioning to a new chord, matching voice pitches are sustained seamlessly, preventing note re-triggering and ensuring a continuous, rich legato drone.
-*   **Memory Modes**: Supports both `global` memory (the borrowing state is locked globally as you navigate chords) and `per-chord` memory (saving and restoring unique voice, shift, and lock settings on a chord-by-chord basis).
+At the core of the UI is the `ChordProvider`, which wires together borrowing memory, device tilt, playback, and audio FX settings.
+
+**Global parameters**
+*   **Tonal center** (default: Bb, offset `10`)
+*   **Octave range** (default `3`)
+*   **Static voicing level** and **position** (desktop TopBar and phone overlay when not in tilt mode): nine roll widths from Unison through Double Octave, plus bass position Root / 3rd / 5th / 6th or 7th
+
+**Borrowing state**
+*   `circlePositions` (`line`, `up`, `down`), `borrowingDirections` (`up`, `down`, `null`), and `noteStates` (`on`, `off`) for four voices
+*   **Memory modes**: `global` (one borrowing state across chords) or `per-chord` (saved per chord name)
+
+**Play styles** (see next section)
+*   `click_and_hold`, `drone`, and `tilt` (phone)
+
+---
+
+## Play Styles and Voicing
+
+Playback lives in [`useChordPlayback.ts`](src/hooks/useChordPlayback.ts). All styles share the same pipeline: resolve elemental roots, build a borrowed pitch structure, run the tilt voicing engine, then dispatch to `AudioEngine`.
+
+| Style | Trigger | Audio behavior |
+|-------|---------|----------------|
+| `click_and_hold` | Diagram pointer down/up | Pointer: sustained notes until release. Borrowing sliders: timed half-note preview via `playNotes`. |
+| `drone` | Diagram tap or glissando | Legato diff: common tones sustain, others crossfade (`triggerAttack`). |
+| `tilt` | Diagram tap (phone) | Samples **raw** device tilt at tap time, re-attacks full voicing with haptic feedback. Voicing does not update continuously while holding (tap-time sampling only). |
+
+**Static vs tilt voicing anchors** ([`TiltVoicingEngine.ts`](src/music/TiltVoicingEngine.ts))
+*   **Tilt mode (`contrary`)**: Roll narrows the voicing symmetrically around the parallel pivot. Bass can shift as width changes (e.g. flat + Drop 3 may put the 3rd in the bass).
+*   **Static controls (`pivot`)**: Position sets the bottom note; voicing width only adds tones above. Changing voicing does not move the bass.
+
+**IN THE BASS readout** ([`voiceDegreeLabel.ts`](src/music/voiceDegreeLabel.ts)): In tilt mode, the label reflects the **lowest sounded pitch**, using the same voicing path as playback. Static position dropdowns still name the parallel pivot (Root, 3rd, 5th, 6th/7th).
+
+---
+
+## Tilt Voicing Engine
+
+Port of the "Movements, Not Chords" counterpoint mechanic. The engine voices each chord on a **tone cycle**: post-borrowing pitch classes as semitone offsets from the root. One ladder step equals one chord tone.
+
+**Roll (phone flat to vertical)**: Nine levels, reversed from the Python prototype. Flat = widest (Double Octave, thinned to five voices). Vertical = unison on the pivot.
+
+**Pitch (chest-ward / away-from-chest)**: Cycles parallel positions on the ladder. Static UI encodes chest-ward positions 1st through 4th only; full tilt on device also supports away-from-chest registers.
+
+**Voicing level names**: Unison, Third, Triad, Close, Octave, Drop 2, Drop 3, Drop 2 and 4, Double Octave.
+
+**Elemental chords** ([`elementalRoot.ts`](src/music/elementalRoot.ts)): Earth, Wind, and Fire use diminished spellings with **contrary-motion anchoring**. The played root and register depend on the previously sounded chord (e.g. Fire after Branch roots a semitone below Branch's pivot). The playback hook stores the last **resolved** chord so chains stay coherent.
+
+Key modules:
+*   [`TiltVoicingEngine.ts`](src/music/TiltVoicingEngine.ts): tone cycle, ladder math, thinning rules, contrary vs pivot anchors
+*   [`tiltVoicingPlayback.ts`](src/music/tiltVoicingPlayback.ts): borrowing + elemental resolution + engine (shared by audio and labels)
+*   [`voicingCache.ts`](src/music/voicingCache.ts): single-entry memo for tilt label readouts (~7 Hz)
+*   [`useDeviceTilt.ts`](src/hooks/useDeviceTilt.ts): `deviceorientation` mapping; smoothed sample for UI, raw sample for playback and haptics
 
 ---
 
@@ -102,14 +143,16 @@ Axis: Wind  <───> Fire  ========> Borrow from: Earth
 Axis: Fire  <───> Earth ========> Borrow from: Wind
 ```
 
-### The 4 Voices & Inversion Mapping
-The 4 voice channels of the synthesizer are mapped to the notes of the active chord based on its **Root Position Index** (`rootPositionIndex`), automatically accounting for chord inversions:
-*   **Line 1** ➔ **Root** note of the chord ($index = rootIdx$)
-*   **Line 2** ➔ **3rd** of the chord ($index = (rootIdx + 1) \bmod 4$)
-*   **Line 3** ➔ **5th** of the chord ($index = (rootIdx + 2) \bmod 4$)
-*   **Line 4** ➔ **6th/7th** of the chord ($index = (rootIdx + 3) \bmod 4$)
-    *   *6th Chords*: Trunk, Smoke, Magma, Branch, Ember, Glass.
-    *   *7th Chords*: Sand-Storm, Fire-Storm, Forest-Fire, Leaf, Flame, Charcoal.
+### The 4 Voices and Position Mapping
+The 4 voice channels are mapped to chord tones via **Root Position Index** (`rootPositionIndex`), which rotates with inversion:
+*   **Line 1**: Root ($index = rootIdx$)
+*   **Line 2**: 3rd ($index = (rootIdx + 1) \bmod 4$)
+*   **Line 3**: 5th ($index = (rootIdx + 2) \bmod 4$)
+*   **Line 4**: 6th or 7th ($index = (rootIdx + 3) \bmod 4$)
+    *   6th chords: Trunk, Smoke, Magma, Branch, Ember, Glass, and related variants
+    *   7th chords: Sand-Storm, Fire-Storm, Forest-Fire, Leaf, Flame, Charcoal, and related variants
+
+UI labels use **IN THE BASS** (Root, 3rd, 5th, 6th/7th) instead of ordinal inversion names.
 
 ### Symmetrical Shift Calculation (`BorrowingLogic.ts`)
 When a user shifts a voice `up` or `down`, the algorithm replaces that note's pitch class with the closest matching pitch class from the opposite element:
@@ -125,12 +168,15 @@ Next higher pitch class relative to C (0) in Fire is D (2).
 Resulting pitch: D4 (62) is borrowed into the chord.
 ```
 
-### Voicing Application
-After borrowing modifications are applied, the resulting pitch array is mapped to a voicing template:
-*   **Close Voicing**: Notes are kept in their original tightly packed intervals.
-*   **Drop 2**: The second highest note is dropped an octave.
-*   **Drop 3**: The third highest note is dropped an octave.
-*   **Drop 2 & 4**: The second and fourth highest notes are dropped an octave.
+### From borrowing to sounded voicing
+After borrowing, [`BorrowingLogic.prepareVoicingInput`](src/music/BorrowingLogic.ts) builds a four-slot pitch structure and a mute set in one pass. [`tiltVoicingPlayback.computeTiltVoicedPitches`](src/music/tiltVoicingPlayback.ts) feeds that structure into the tilt ladder, then filters muted pitch classes from the result.
+
+Muted voices are removed **by pitch class**. If borrowing collapsed two lines to the same pitch class, muting one line can remove every voiced note with that class.
+
+**Legacy note**: `ChordManager.applyVoicing` (Close, Drop 2, Drop 3, Drop 2 and 4) remains for older pitch-structure helpers and tests. **Live playback uses the tilt voicing engine**, not drop templates.
+
+### Traditional names and spelling
+Each chord carries a `traditionalName` (e.g. `Bb maj6`, slash equivalents for maj6/min6 pairs) and a `quality` string used for display. [`chordSpelling.ts`](src/music/chordSpelling.ts) spells played notes with tertian theory where possible; [`formatPlayingNotes.ts`](src/music/formatPlayingNotes.ts) formats the clock-face readout.
 
 ---
 
@@ -218,6 +264,22 @@ graph LR
 
 ---
 
+## Source layout
+
+| Area | Path | Role |
+|------|------|------|
+| UI | `src/components/` | Diagram, clock, borrowing controls, TopBar, voicing overlay |
+| State | `src/context/ChordContext.tsx` | Provider wiring |
+| Playback | `src/hooks/useChordPlayback.ts` | Play styles, voicing dispatch, elemental chain |
+| Tilt sensor | `src/hooks/useDeviceTilt.ts` | Orientation to normalized tilt sample |
+| Voicing | `src/music/TiltVoicingEngine.ts`, `tiltVoicingPlayback.ts` | Ladder counterpoint |
+| Harmony | `src/music/BorrowingLogic.ts`, `ChordManager.ts`, `elementalRoot.ts` | Borrowing, dictionary, elemental roots |
+| Labels | `src/music/voiceDegreeLabel.ts` | IN THE BASS degree readouts |
+| Audio | `src/audio/AudioEngine.ts` | Tone.js synth and FX chain |
+| Tests | `src/test/`, `src/music/*.test.ts` | Vitest unit and component tests |
+
+---
+
 ## Developer Setup & Verification
 
 Follow these instructions to set up, build, and run the project locally.
@@ -245,12 +307,20 @@ Run ESLint to verify code quality and style compliance:
 npm run lint
 ```
 
+### Unit tests
+Run the Vitest suite (voicing engine, borrowing, playback helpers, components):
+```bash
+npm test
+```
+
 ### Production Build
 Type-check the project and compile optimized production assets:
 ```bash
 npm run build
 ```
 Highly optimized, minified assets will be generated in the `web/dist` directory.
+
+On local machines (not CI), `postbuild` deploys `dist/` to Firebase Hosting (`movemental-dev`). CI builds skip deploy.
 
 ### Preview Production Build
 Serve the compiled production files locally to test performance:

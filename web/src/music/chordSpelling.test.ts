@@ -52,10 +52,11 @@ describe('spellChordDegrees', () => {
   it('spells Bb7b5 for Sand-Storm at default tonal center', () => {
     const manager = new ChordManager();
     const sandStorm = manager.getChordByName('Sand-Storm')!;
-    expect(buildDegreeSpellingMap(sandStorm).get(10)).toBe('Bb');
-    expect(buildDegreeSpellingMap(sandStorm).get(2)).toBe('D');
-    expect(buildDegreeSpellingMap(sandStorm).get(4)).toBe('E');
-    expect(buildDegreeSpellingMap(sandStorm).get(8)).toBe('Ab');
+    const map = buildDegreeSpellingMap(sandStorm)!;
+    expect(map.get(10)).toBe('Bb');
+    expect(map.get(2)).toBe('D');
+    expect(map.get(4)).toBe('E');
+    expect(map.get(8)).toBe('Ab');
   });
 });
 

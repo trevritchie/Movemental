@@ -6,6 +6,7 @@
 
 import { describe, it, expect } from 'vitest';
 import {
+  buildThinnedChain,
   buildToneCycle,
   ladderPitch,
   mapTiltToPositions,
@@ -14,11 +15,9 @@ import {
   computeTiltVoicing,
   voicingWidthFromTilt,
   tiltVoicingLevelName,
-  tiltPositionLevelName,
   TILT_VOICING_LEVEL_NAMES,
-  TILT_POSITION_MOBILE_LABELS,
-  TILT_POSITION_DESKTOP_LABELS,
   parallelLevelFromTilt,
+  positionLabelIndexFromParallelSteps,
   FLAT_TILT,
 } from '../music/TiltVoicingEngine';
 
@@ -185,42 +184,36 @@ describe('tiltSampleFromLevels', () => {
   });
 });
 
-describe('tiltPositionLevelName', () => {
-  it('maps chest-ward pitch to ascending position labels', () => {
-    expect(tiltPositionLevelName({ x: 0, y: 0 }, 'mobile')).toBe('1st');
-    expect(tiltPositionLevelName({ x: 0, y: -0.25 }, 'mobile')).toBe('2nd');
-    expect(tiltPositionLevelName({ x: 0, y: -0.5 }, 'mobile')).toBe('3rd');
-    expect(tiltPositionLevelName({ x: 0, y: -0.75 }, 'mobile')).toBe('4th');
-    expect(tiltPositionLevelName({ x: 0, y: -1 }, 'mobile')).toBe('1st');
+describe('positionLabelIndexFromParallelSteps', () => {
+  it('maps chest-ward pitch to ascending position indices', () => {
+    expect(positionLabelIndexFromParallelSteps(0)).toBe(0);
+    expect(positionLabelIndexFromParallelSteps(1)).toBe(1);
+    expect(positionLabelIndexFromParallelSteps(2)).toBe(2);
+    expect(positionLabelIndexFromParallelSteps(3)).toBe(3);
+    expect(positionLabelIndexFromParallelSteps(4)).toBe(0);
   });
 
-  it('maps away-from-chest pitch to reversed position labels', () => {
-    expect(tiltPositionLevelName({ x: 0, y: 0.25 }, 'mobile')).toBe('4th');
-    expect(tiltPositionLevelName({ x: 0, y: 0.5 }, 'mobile')).toBe('3rd');
-    expect(tiltPositionLevelName({ x: 0, y: 0.75 }, 'mobile')).toBe('2nd');
-    expect(tiltPositionLevelName({ x: 0, y: 1 }, 'mobile')).toBe('1st');
+  it('maps away-from-chest pitch to reversed position indices', () => {
+    expect(positionLabelIndexFromParallelSteps(-1)).toBe(3);
+    expect(positionLabelIndexFromParallelSteps(-2)).toBe(2);
+    expect(positionLabelIndexFromParallelSteps(-3)).toBe(1);
+    expect(positionLabelIndexFromParallelSteps(-4)).toBe(0);
   });
 
-  it('lists four position level names', () => {
-    expect(TILT_POSITION_MOBILE_LABELS).toEqual([
-      '1st',
-      '2nd',
-      '3rd',
-      '4th',
-    ]);
-    expect(TILT_POSITION_DESKTOP_LABELS).toEqual([
-      '1st Pos.',
-      '2nd Pos.',
-      '3rd Pos.',
-      '4th Pos.',
-    ]);
-  });
-
-  it('uses desktop labels when requested', () => {
-    expect(tiltPositionLevelName({ x: 0, y: -0.75 }, 'desktop')).toBe('4th Pos.');
-    expect(tiltPositionLevelName({ x: 0, y: -1 }, 'desktop')).toBe('1st Pos.');
-    expect(tiltPositionLevelName({ x: 0, y: 0.75 }, 'desktop')).toBe('2nd Pos.');
-    expect(tiltPositionLevelName({ x: 0, y: 1 }, 'desktop')).toBe('1st Pos.');
+  it('derives indices from tilt pitch', () => {
+    expect(
+      positionLabelIndexFromParallelSteps(parallelLevelFromTilt({ x: 0, y: 0 }))
+    ).toBe(0);
+    expect(
+      positionLabelIndexFromParallelSteps(
+        parallelLevelFromTilt({ x: 0, y: -0.75 })
+      )
+    ).toBe(3);
+    expect(
+      positionLabelIndexFromParallelSteps(
+        parallelLevelFromTilt({ x: 0, y: 0.25 })
+      )
+    ).toBe(3);
   });
 });
 
@@ -241,7 +234,7 @@ describe('obliqueMotion', () => {
     expect(obliqueMotion(0, 4, BRANCH_CYCLE, 60)).toEqual([57, 60, 64, 67]);
   });
 
-  it('plays all five notes at width 5 (Octave) without thinning', () => {
+  it('builds a five-note octave stack at width 5', () => {
     expect(obliqueMotion(0, 5, BRANCH_CYCLE, 60)).toEqual([
       55, 57, 60, 64, 67,
     ]);
@@ -392,7 +385,11 @@ describe('computeTiltVoicing', () => {
     expect(downTiltUnison).toEqual([57]);
     expect(downTiltUnison[0]).toBeLessThan(flatUnison[0]!);
     expect(parallelLevelFromTilt({ x: -1, y: 0.25 })).toBe(-1);
-    expect(tiltPositionLevelName({ x: -1, y: 0.25 }, 'mobile')).toBe('4th');
+    expect(
+      positionLabelIndexFromParallelSteps(
+        parallelLevelFromTilt({ x: -1, y: 0.25 })
+      )
+    ).toBe(3);
   });
 
   it('plays low 1st at full away-from-chest tilt (one cycle below center)', () => {
@@ -405,5 +402,48 @@ describe('computeTiltVoicing', () => {
     expect(
       computeTiltVoicing([null, null, null, null], 0, FLAT_TILT, OCTAVE_RANGE, 0)
     ).toEqual([]);
+  });
+
+  const DROP_3_TILT = { x: -0.25, y: 0 };
+
+  it('puts the 3rd in the bass at Drop 3 with contrary anchor when pitch is flat', () => {
+    const voiced = computeTiltVoicing(
+      BRANCH,
+      0,
+      DROP_3_TILT,
+      OCTAVE_RANGE,
+      0
+    );
+    expect(voiced).toEqual([52, 55, 60, 64, 69]);
+    expect(Math.min(...voiced)).toBe(52);
+  });
+
+  it('keeps the root in the bass at Drop 3 with pivot anchor when pitch is flat', () => {
+    const voiced = computeTiltVoicing(
+      BRANCH,
+      0,
+      DROP_3_TILT,
+      OCTAVE_RANGE,
+      0,
+      undefined,
+      { anchor: 'pivot' }
+    );
+    expect(voiced).toEqual(buildThinnedChain(0, 7, BRANCH_CYCLE, 60));
+    expect(Math.min(...voiced)).toBe(60);
+  });
+
+  it('keeps the root pitch class at Double Octave with pivot anchor when pitch is flat', () => {
+    const contrary = computeTiltVoicing(BRANCH, 0, FLAT_TILT, OCTAVE_RANGE, 0);
+    const pivot = computeTiltVoicing(
+      BRANCH,
+      0,
+      FLAT_TILT,
+      OCTAVE_RANGE,
+      0,
+      undefined,
+      { anchor: 'pivot' }
+    );
+    expect(pivot).toEqual(buildThinnedChain(0, 9, BRANCH_CYCLE, 60));
+    expect(Math.min(...contrary) % 12).toBe(Math.min(...pivot) % 12);
   });
 });

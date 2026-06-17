@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { BorrowingLogic, getInitialBorrowingState } from './BorrowingLogic';
+import { BorrowingLogic, getInitialBorrowingState, type BorrowingState } from './BorrowingLogic';
 import { chordManager } from './ChordManager';
 
 describe('BorrowingLogic', () => {
@@ -129,6 +129,40 @@ describe('BorrowingLogic', () => {
       const muted = logic.getMutedPitchClasses(branch, state);
       expect(muted.has(0)).toBe(false);
       expect(muted.has(2)).toBe(true);
+    });
+  });
+
+  describe('prepareVoicingInput', () => {
+    it('builds structure and mutes in one pass', () => {
+      const branch = chordManager.getChordByName('Branch')!;
+      const state: BorrowingState = {
+        ...getInitialBorrowingState(),
+        active: true,
+        chordName: 'Branch',
+        noteStates: { 1: 'on', 2: 'off', 3: 'on', 4: 'on' },
+      };
+      const { pitchStructure, mutedPitchClasses } =
+        logic.prepareVoicingInput(branch, state);
+      expect(pitchStructure.filter((p) => p !== null).length).toBe(4);
+      expect(mutedPitchClasses.size).toBe(1);
+    });
+
+    it('matches separate structure and mute helpers', () => {
+      const branch = chordManager.getChordByName('Branch')!;
+      const state: BorrowingState = {
+        ...getInitialBorrowingState(),
+        active: true,
+        chordName: 'Branch',
+        circlePositions: { 1: 'up', 2: 'line', 3: 'line', 4: 'line' },
+        borrowingDirections: { 1: 'up', 2: null, 3: null, 4: null },
+      };
+      const combined = logic.prepareVoicingInput(branch, state);
+      expect(combined.pitchStructure).toEqual(
+        logic.generatePitchStructureForVoicing(branch, state)
+      );
+      expect(combined.mutedPitchClasses).toEqual(
+        logic.getMutedPitchClasses(branch, state)
+      );
     });
   });
 

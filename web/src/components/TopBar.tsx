@@ -3,13 +3,15 @@ import { SlidersHorizontal, Square } from 'lucide-react';
 import { NOTE_NAMES_FLAT } from '../music/config';
 import {
   tiltVoicingLevelName,
-  tiltPositionLevelName,
   TILT_READOUT_MAX_LABEL,
-  TILT_POSITION_MAX_LABEL,
-  TILT_POSITION_DESKTOP_LABELS,
   TILT_VOICING_LEVEL_NAMES,
   TILT_VOICING_OVERLAY_LABELS,
 } from '../music/TiltVoicingEngine';
+import {
+  bassDegreeLabelsForSelect,
+  tiltBassDegreeLabel,
+  TILT_BASS_DEGREE_DESKTOP_MAX_LABEL,
+} from '../music/voiceDegreeLabel';
 import { audioEngine } from '../audio/AudioEngine';
 import { useChordContext, type PlayStyle } from '../context/ChordContext';
 import { useLayoutTier } from '../hooks/useLayoutTier';
@@ -32,8 +34,25 @@ export const TopBar: React.FC = () => {
     droneDecay, setDroneDecay,
     droneSustain, setDroneSustain,
     droneRelease, setDroneRelease,
-    tiltStatus, tiltSample, requestTiltPermission
+    tiltStatus, tiltSample, requestTiltPermission,
+    selectedChord,
+    borrowingState,
+    previousPlayedChord,
   } = useChordContext();
+
+  const bassSelectLabels = React.useMemo(
+    () => bassDegreeLabelsForSelect(selectedChord, 'desktop'),
+    [selectedChord]
+  );
+  const tiltBassContext = React.useMemo(
+    () => ({
+      tonalCenter,
+      octaveRange,
+      borrowingState,
+      previousChord: previousPlayedChord,
+    }),
+    [tonalCenter, octaveRange, borrowingState, previousPlayedChord]
+  );
 
   const [showEffects, setShowEffects] = React.useState(false);
   const [showADSR, setShowADSR] = React.useState(false);
@@ -112,7 +131,7 @@ export const TopBar: React.FC = () => {
           >
             {[1, 2, 3, 4, 5, 6].map(o => (
               <option key={o} value={o}>
-                {`Octave ${o}`}
+                {isDesktop ? `Oct. ${o}` : `Octave ${o}`}
               </option>
             ))}
           </select>
@@ -157,7 +176,7 @@ export const TopBar: React.FC = () => {
                     {tiltStatus === 'active' && (
                       <span
                         className="tilt-readout"
-                        title="Live tilt: roll sets voicing width, pitch selects position"
+                        title="Live tilt: roll sets voicing width, pitch sets parallel position"
                       >
                         {tiltVoicingLevelName(tiltSample)}
                       </span>
@@ -169,13 +188,18 @@ export const TopBar: React.FC = () => {
                       className="voicing-readout-slot__sizer"
                       aria-hidden="true"
                     >
-                      {TILT_POSITION_MAX_LABEL}
+                      {TILT_BASS_DEGREE_DESKTOP_MAX_LABEL}
                     </span>
                     <span
                       className="tilt-readout"
-                      title="Pitch tilt selects parallel position"
+                      title="Roll and pitch together set which chord tone is in the bass"
                     >
-                      {tiltPositionLevelName(tiltSample, 'desktop')}
+                      {tiltBassDegreeLabel(
+                        tiltSample,
+                        selectedChord,
+                        'desktop',
+                        tiltBassContext
+                      )}
                     </span>
                   </div>
                 </>
@@ -200,9 +224,9 @@ export const TopBar: React.FC = () => {
                     onChange={(e) =>
                       setStaticPositionLevel(Number(e.target.value))
                     }
-                    title="Position"
+                    title="In the bass"
                   >
-                    {TILT_POSITION_DESKTOP_LABELS.map((name, idx) => (
+                    {bassSelectLabels.map((name, idx) => (
                       <option key={name} value={idx}>{name}</option>
                     ))}
                   </select>

@@ -1,19 +1,35 @@
+/**
+ * Chord playback orchestration.
+ *
+ * Pipeline: resolve chord (elemental contrary root) -> computeTiltVoicedPitches
+ * -> AudioEngine. Voicing is sampled at tap/settings time, not continuously
+ * while the phone moves (see docs/movements-not-chords-tilt.md).
+ *
+ * Entry points:
+ * - Pointer (diagram): applyChordWithBorrowing -> voiceAndPlay(fromPointer)
+ * - Settings/borrowing: playAndDisplayChord -> voiceAndPlay
+ *
+ * Anchor modes (TiltVoicingEngine):
+ * - tilt play style: contrary roll (bass can shift with voicing width)
+ * - drone/static controls: pivot roll (position sets the bass note)
+ */
 import { useState, useEffect, useRef, useCallback, type RefObject } from 'react';
 import { chordManager, type Chord } from '../music/ChordManager';
-import { borrowingLogic, type BorrowingState } from '../music/BorrowingLogic';
+import { type BorrowingState } from '../music/BorrowingLogic';
 import {
-  computeTiltVoicing,
   tiltSampleFromLevels,
   type TiltSample,
 } from '../music/TiltVoicingEngine';
+import {
+  computeTiltVoicedPitches,
+  type ElementalPlaybackResolution,
+} from '../music/tiltVoicingPlayback';
+import { invalidateVoicingCache } from '../music/voicingCache';
 import { triggerHaptic } from '../audio/haptics';
 import { audioEngine } from '../audio/AudioEngine';
 import { unlockIosMediaChannel } from '../audio/iosMediaChannel';
 import type { PlayStyle } from '../context/types';
-import {
-  isElementalName,
-  resolveElementalPlayback,
-} from '../music/elementalRoot';
+import { isElementalName, resolveElementalPlayback } from '../music/elementalRoot';
 
 interface UseChordPlaybackOptions {
   getBorrowingStateForChord: (
@@ -23,10 +39,23 @@ interface UseChordPlaybackOptions {
   borrowingStateRef: RefObject<BorrowingState>;
   setBorrowingState: (state: BorrowingState) => void;
   setSelectedChord: (chord: Chord | null) => void;
-  tiltRef: RefObject<TiltSample>;
+  rawTiltRef: RefObject<TiltSample>;
   staticVoicingLevelRef: RefObject<number>;
   staticPositionLevelRef: RefObject<number>;
   tonalCenterRef: RefObject<number>;
+}
+
+function pitchesEqual(a: number[], b: number[]): boolean {
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) {
+    if (a[i] !== b[i]) return false;
+  }
+  return true;
+}
+
+interface PlaybackResolution {
+  displayChord: Chord;
+  elemental?: ElementalPlaybackResolution;
 }
 
 export function useChordPlayback({
@@ -34,134 +63,233 @@ export function useChordPlayback({
   borrowingStateRef,
   setBorrowingState,
   setSelectedChord,
-  tiltRef,
+  rawTiltRef,
   staticVoicingLevelRef,
   staticPositionLevelRef,
   tonalCenterRef,
 }: UseChordPlaybackOptions) {
   const [playStyle, setPlayStyle] = useState<PlayStyle>('drone');
   const [activePitches, setActivePitches] = useState<(number | null)[]>([]);
+  const [previousPlayedChord, setPreviousPlayedChord] = useState<Chord | null>(
+    null
+  );
 
   const isPointerDownRef = useRef(false);
   const playStyleRef = useRef(playStyle);
+  /** Last *resolved* chord (elemental root applied). Drives contrary-motion chains. */
   const previousChordRef = useRef<Chord | null>(null);
+  /** Mirror of activePitches for skipIfUnchanged without re-rendering. */
+  const activePitchesRef = useRef<number[]>([]);
 
   useEffect(() => {
     playStyleRef.current = playStyle;
     audioEngine.releaseActiveNotes();
     isPointerDownRef.current = false;
+    previousChordRef.current = null;
+    setPreviousPlayedChord(null);
+    invalidateVoicingCache();
   }, [playStyle]);
 
-  const computeVoicedPitches = useCallback(
-    (chord: Chord, state: BorrowingState, tilt: TiltSample): number[] => {
-      const structure = borrowingLogic.generatePitchStructureForVoicing(
-        chord,
-        state
-      );
-      const tonalCenter = tonalCenterRef.current;
-      const octaveRange = chordManager.getOctaveRange();
-      const mutedPitchClasses = borrowingLogic.getMutedPitchClasses(
-        chord,
-        state
-      );
-
-      let voiced: number[];
-      if (isElementalName(chord.name)) {
-        const resolved = resolveElementalPlayback(
-          chord,
-          tonalCenter,
-          octaveRange,
-          previousChordRef.current
-        );
-        voiced = computeTiltVoicing(
-          structure,
-          resolved.rootPitchClass,
-          tilt,
-          octaveRange,
-          tonalCenter,
-          resolved.homeMidi
-        );
-      } else {
-        const rootPitchClass = chord.pitches[chord.rootPositionIndex] % 12;
-        voiced = computeTiltVoicing(
-          structure,
-          rootPitchClass,
-          tilt,
-          octaveRange,
-          tonalCenter
-        );
+  const resolveForPlayback = useCallback(
+    (chord: Chord): PlaybackResolution => {
+      if (!isElementalName(chord.name)) {
+        return { displayChord: chord };
       }
-
-      return borrowingLogic.filterVoicingMutes(voiced, mutedPitchClasses);
-    },
-    [tonalCenterRef]
-  );
-
-  const computeTiltPitches = useCallback(
-    (chord: Chord, state: BorrowingState): number[] =>
-      computeVoicedPitches(chord, state, tiltRef.current),
-    [computeVoicedPitches, tiltRef]
-  );
-
-  const computeStaticPitches = useCallback(
-    (chord: Chord, state: BorrowingState): number[] =>
-      computeVoicedPitches(
-        chord,
-        state,
-        tiltSampleFromLevels(
-          staticVoicingLevelRef.current,
-          staticPositionLevelRef.current
-        )
-      ),
-    [computeVoicedPitches, staticVoicingLevelRef, staticPositionLevelRef]
-  );
-
-  const playPitches = useCallback(
-    (pitches: number[], style: PlayStyle) => {
-      setActivePitches(pitches);
-      if (pitches.length === 0) return;
-
-      if (style === 'click_and_hold') {
-        audioEngine.playNotes(pitches, '2n');
-      } else {
-        audioEngine.triggerAttack(pitches);
-      }
-    },
-    []
-  );
-
-  const resolvePlaybackChord = useCallback(
-    (chord: Chord): Chord => {
-      if (!isElementalName(chord.name)) return chord;
-      return resolveElementalPlayback(
+      const resolved = resolveElementalPlayback(
         chord,
         tonalCenterRef.current,
         chordManager.getOctaveRange(),
         previousChordRef.current
-      ).chord;
+      );
+      return {
+        displayChord: resolved.chord,
+        elemental: {
+          rootPitchClass: resolved.rootPitchClass,
+          homeMidi: resolved.homeMidi,
+        },
+      };
     },
     [tonalCenterRef]
   );
 
-  const playAndDisplayChord = useCallback(
-    (chord: Chord, state: BorrowingState) => {
-      const playbackChord = resolvePlaybackChord(chord);
-      if (playStyle === 'tilt') {
-        const pitches = computeTiltPitches(playbackChord, state);
-        playPitches(pitches, playStyle);
+  const computeVoicedPitches = useCallback(
+    (
+      displayChord: Chord,
+      state: BorrowingState,
+      tilt: TiltSample,
+      anchor: 'contrary' | 'pivot' = 'contrary',
+      elemental?: ElementalPlaybackResolution
+    ): number[] =>
+      computeTiltVoicedPitches(
+        displayChord,
+        state,
+        tilt,
+        tonalCenterRef.current,
+        chordManager.getOctaveRange(),
+        {
+          anchor,
+          previousChord: previousChordRef.current,
+          elemental,
+        }
+      ),
+    [tonalCenterRef]
+  );
+
+  const computeTiltPitches = useCallback(
+    (
+      displayChord: Chord,
+      state: BorrowingState,
+      elemental?: ElementalPlaybackResolution
+    ): number[] =>
+      computeVoicedPitches(
+        displayChord,
+        state,
+        // Raw (unsmoothed) tilt matches haptic level crossings at tap time.
+        rawTiltRef.current,
+        'contrary',
+        elemental
+      ),
+    [computeVoicedPitches, rawTiltRef]
+  );
+
+  const computeStaticPitches = useCallback(
+    (
+      displayChord: Chord,
+      state: BorrowingState,
+      elemental?: ElementalPlaybackResolution
+    ): number[] =>
+      computeVoicedPitches(
+        displayChord,
+        state,
+        tiltSampleFromLevels(
+          staticVoicingLevelRef.current,
+          staticPositionLevelRef.current
+        ),
+        'pivot',
+        elemental
+      ),
+    [computeVoicedPitches, staticVoicingLevelRef, staticPositionLevelRef]
+  );
+
+  /**
+   * Route voiced MIDI to the correct AudioEngine mode.
+   *
+   * click_and_hold splits by source: diagram pointer sustains until pointer-up;
+   * borrowing/settings sliders use timed playNotes previews.
+   */
+  const dispatchAudio = useCallback(
+    (
+      pitches: number[],
+      style: PlayStyle,
+      options: {
+        retrigger?: boolean;
+        skipIfUnchanged?: boolean;
+        fromPointer?: boolean;
+      } = {}
+    ) => {
+      if (pitches.length === 0) return;
+
+      const {
+        retrigger = false,
+        skipIfUnchanged = false,
+        fromPointer = false,
+      } = options;
+      if (
+        skipIfUnchanged &&
+        !retrigger &&
+        pitchesEqual(pitches, activePitchesRef.current)
+      ) {
         return;
       }
 
-      const pitches = computeStaticPitches(playbackChord, state);
-      playPitches(pitches, playStyle);
+      if (style === 'click_and_hold') {
+        if (fromPointer) {
+          audioEngine.triggerAttack(pitches);
+        } else {
+          audioEngine.playNotes(pitches, '2n');
+        }
+        return;
+      }
+
+      if (style === 'tilt') {
+        triggerHaptic();
+        audioEngine.triggerAttack(pitches, retrigger);
+        return;
+      }
+
+      audioEngine.triggerAttack(pitches);
+    },
+    []
+  );
+
+  const commitPlayback = useCallback(
+    (
+      displayChord: Chord,
+      pitches: number[],
+      options: {
+        retrigger?: boolean;
+        skipIfUnchanged?: boolean;
+        fromPointer?: boolean;
+      } = {}
+    ) => {
+      previousChordRef.current = displayChord;
+      setPreviousPlayedChord(displayChord);
+      setSelectedChord(displayChord);
+      activePitchesRef.current = pitches;
+      setActivePitches(pitches);
+      invalidateVoicingCache();
+      dispatchAudio(pitches, playStyleRef.current, options);
+    },
+    [dispatchAudio, setSelectedChord]
+  );
+
+  const voiceAndPlay = useCallback(
+    (
+      chord: Chord,
+      state: BorrowingState,
+      options: {
+        retrigger?: boolean;
+        skipIfUnchanged?: boolean;
+        fromPointer?: boolean;
+      } = {}
+    ) => {
+      const { displayChord, elemental } = resolveForPlayback(chord);
+      const style = playStyleRef.current;
+      const pitches =
+        style === 'tilt'
+          ? computeTiltPitches(displayChord, state, elemental)
+          : computeStaticPitches(displayChord, state, elemental);
+
+      if (pitches.length === 0) {
+        previousChordRef.current = displayChord;
+        setPreviousPlayedChord(displayChord);
+        setSelectedChord(displayChord);
+        activePitchesRef.current = [];
+        setActivePitches([]);
+        invalidateVoicingCache();
+        return;
+      }
+
+      commitPlayback(displayChord, pitches, options);
     },
     [
-      playStyle,
-      resolvePlaybackChord,
+      resolveForPlayback,
       computeTiltPitches,
       computeStaticPitches,
-      playPitches,
+      commitPlayback,
+      setSelectedChord,
     ]
+  );
+
+  const playAndDisplayChord = useCallback(
+    (chord: Chord, state: BorrowingState) => {
+      voiceAndPlay(chord, state, {
+        retrigger: playStyle === 'tilt',
+        // Avoid re-attacking drone when tonal center wraps but pitches are identical.
+        skipIfUnchanged: playStyle !== 'tilt',
+      });
+    },
+    [voiceAndPlay, playStyle]
   );
 
   useEffect(() => {
@@ -181,46 +309,26 @@ export function useChordPlayback({
     };
   }, []);
 
-  const applyChordWithBorrowing = (chord: Chord) => {
-    const newState = getBorrowingStateForChord(
-      chord.name,
-      borrowingStateRef.current
-    );
-    setBorrowingState(newState);
-
-    const tonalCenter = tonalCenterRef.current;
-    const octaveRange = chordManager.getOctaveRange();
-    const displayChord = isElementalName(chord.name)
-      ? resolveElementalPlayback(
-          chord,
-          tonalCenter,
-          octaveRange,
-          previousChordRef.current
-        ).chord
-      : chord;
-
-    if (playStyle === 'tilt') {
-      const pitches = computeTiltPitches(displayChord, newState);
-      previousChordRef.current = chord;
-      setSelectedChord(displayChord);
-      setActivePitches(pitches);
-      if (pitches.length > 0) {
-        triggerHaptic();
-        audioEngine.triggerAttack(pitches, true);
-      }
+  const applyChordWithBorrowing = useCallback(
+    (chord: Chord) => {
+      const newState = getBorrowingStateForChord(
+        chord.name,
+        borrowingStateRef.current
+      );
+      setBorrowingState(newState);
+      voiceAndPlay(chord, newState, {
+        retrigger: playStyleRef.current === 'tilt',
+        fromPointer: true,
+      });
       return newState;
-    }
-
-    const pitches = computeStaticPitches(displayChord, newState);
-    previousChordRef.current = chord;
-    setSelectedChord(displayChord);
-    setActivePitches(pitches);
-    if (pitches.length > 0) {
-      audioEngine.triggerAttack(pitches);
-    }
-
-    return newState;
-  };
+    },
+    [
+      getBorrowingStateForChord,
+      borrowingStateRef,
+      setBorrowingState,
+      voiceAndPlay,
+    ]
+  );
 
   const handleChordPointerDown = (chord: Chord) => {
     unlockIosMediaChannel();
@@ -245,10 +353,10 @@ export function useChordPlayback({
     playStyle,
     setPlayStyle,
     activePitches,
+    previousPlayedChord,
     playAndDisplayChord,
     handleChordPointerDown,
     handleChordPointerUp,
     handleChordPointerEnter,
   };
 }
-
