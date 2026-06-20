@@ -1,40 +1,30 @@
 import React, { useMemo } from 'react';
 import { NOTE_NAMES_FLAT } from '../music/config';
-import {
-  CHORD_OVERLAY_MAX_CHEM_COUNT,
-  CHORD_OVERLAY_MAX_NAME,
-  CHORD_OVERLAY_MAX_PLAYING_NOTES,
-  mobileChordDisplayName,
-} from '../music/diagramMetadata';
+import { mobileChordDisplayName, CHORD_READOUT_MAX_CHEM_COUNT } from '../music/diagramMetadata';
 import {
   formatChordReadout,
   formatPlayingNotes,
 } from '../music/formatPlayingNotes';
 import { computeElementFormula } from '../music/elementChemistry';
 import { useChordContext } from '../context/ChordContext';
-import { DiagramOverlayPill } from './DiagramOverlayPill';
 
 const CLOCK_RADIUS = 108;
 const CLOCK_CX = 150;
 const CLOCK_CY = 155;
 
-const CHORD_PILL_SIZER = (
-  <>
-    <span className="elemental-name">{CHORD_OVERLAY_MAX_NAME}</span>
-    <div className="chemistry-formula">
-      <span className="chem-element chem-earth">
-        Earth<sub>{CHORD_OVERLAY_MAX_CHEM_COUNT}</sub>
-      </span>
-      <span className="chem-element chem-wind">
-        Wind<sub>{CHORD_OVERLAY_MAX_CHEM_COUNT}</sub>
-      </span>
-      <span className="chem-element chem-fire">
-        Fire<sub>{CHORD_OVERLAY_MAX_CHEM_COUNT}</sub>
-      </span>
-    </div>
-    <span className="traditional-name">Bb maj6 / G min7</span>
-    <span className="playing-notes">{CHORD_OVERLAY_MAX_PLAYING_NOTES}</span>
-  </>
+/** Invisible width anchor: widest chemistry row on mobile chord readout. */
+const CHORD_READOUT_WIDTH_SIZER = (
+  <div className="chemistry-formula" aria-hidden="true">
+    <span className="chem-element chem-earth">
+      Earth<sub>{CHORD_READOUT_MAX_CHEM_COUNT}</sub>
+    </span>
+    <span className="chem-element chem-wind">
+      Wind<sub>{CHORD_READOUT_MAX_CHEM_COUNT}</sub>
+    </span>
+    <span className="chem-element chem-fire">
+      Fire<sub>{CHORD_READOUT_MAX_CHEM_COUNT}</sub>
+    </span>
+  </div>
 );
 
 // Precompute static geometry for clock face background
@@ -245,14 +235,15 @@ export const ClockFace: React.FC<{ isMobileOverlay?: boolean }> = ({
     return (
       <div className="clock-container mobile-overlay">
         {clockSvg}
-        <DiagramOverlayPill
-          label="Chord"
-          corner="bottom-left"
-          sizerContent={CHORD_PILL_SIZER}
+        <div
+          className="diagram-chord-readout"
           title={elementalName ?? undefined}
         >
+          <div className="diagram-chord-readout__sizer" aria-hidden="true">
+            {CHORD_READOUT_WIDTH_SIZER}
+          </div>
           <div className="clock-info">{chordInfo}</div>
-        </DiagramOverlayPill>
+        </div>
       </div>
     );
   }

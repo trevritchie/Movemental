@@ -271,17 +271,56 @@ body.scroll-locked {
     z-index: 2;
   }
 
+  .clock-container.mobile-overlay .diagram-chord-readout {
+    position: absolute;
+    bottom: max(var(--overlay-inset-y, 4px), env(safe-area-inset-bottom, 0px));
+    left: max(var(--overlay-inset-x, 2px), env(safe-area-inset-left, 0px));
+    z-index: 2;
+    pointer-events: auto;
+    display: grid;
+    width: max-content;
+    max-width: calc(
+      100% - clamp(96px, 38vw, 148px) - 2 * var(--overlay-inset-x, 2px) - 8px
+    );
+    padding: 0;
+    background: none;
+    border: none;
+    box-shadow: none;
+  }
+
+  .clock-container.mobile-overlay .diagram-chord-readout__sizer,
+  .clock-container.mobile-overlay .diagram-chord-readout .clock-info {
+    grid-area: 1 / 1;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .clock-container.mobile-overlay .diagram-chord-readout__sizer {
+    visibility: hidden;
+    pointer-events: none;
+  }
+
+  .clock-container.mobile-overlay .diagram-chord-readout__sizer .chemistry-formula {
+    justify-content: center;
+    gap: 3px;
+    margin: 0;
+    flex-wrap: nowrap;
+  }
+
   .clock-container.mobile-overlay .clock-info {
     position: static;
     pointer-events: auto;
     margin: 0;
     padding: 0;
-    width: auto;
     min-height: 0;
     text-align: center;
     display: flex;
     flex-direction: column;
-    align-items: center;
+    align-items: stretch;
+  }
+
+  .clock-container.mobile-overlay .clock-info > * {
+    width: 100%;
   }
 
   .clock-container.mobile-overlay .elemental-name {

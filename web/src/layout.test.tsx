@@ -96,6 +96,19 @@ describe('Responsive Layout CSS', () => {
     );
   });
 
+  it('should use a plain centered chord readout on mobile without a pill', () => {
+    expect(cssContent).toMatch(/\.diagram-chord-readout\s*\{/);
+    expect(cssContent).toMatch(
+      /\.diagram-chord-readout[\s\S]*background:\s*none/,
+    );
+    expect(cssContent).toMatch(
+      /\.clock-container\.mobile-overlay \.clock-info[\s\S]*text-align:\s*center/,
+    );
+    expect(cssContent).toMatch(
+      /\.diagram-chord-readout__sizer[\s\S]*visibility:\s*hidden/,
+    );
+  });
+
   it('should define diagram corner actions and bottom-right overlay positioning', () => {
     expect(cssContent).toMatch(/\.diagram-corner-actions\s*\{/);
     expect(cssContent).toMatch(/\.diagram-corner-actions--bottom-left\s*\{/);

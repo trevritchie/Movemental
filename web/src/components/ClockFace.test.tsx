@@ -26,6 +26,9 @@ describe('ClockFace playing notes readout', () => {
 
   it('shows playing notes on a separate row on mobile overlay', () => {
     const { container } = render(<ClockFace isMobileOverlay />);
+    expect(container.querySelector('.diagram-chord-readout')).toBeInTheDocument();
+    expect(container.querySelector('.diagram-chord-readout__sizer')).toBeInTheDocument();
+    expect(container.querySelector('.diagram-overlay-pill')).toBeNull();
     const clockInfo = container.querySelector('.clock-info');
     expect(clockInfo?.querySelector('.traditional-name')?.textContent).toBe(
       'Bb maj6 / G min7'
