@@ -8,7 +8,6 @@ import {
 import {
   bassDegreeLabelsForSelect,
   tiltBassDegreeLabel,
-  TILT_BASS_DEGREE_DESKTOP_MAX_LABEL,
   TILT_BASS_DEGREE_MOBILE_MAX_LABEL,
 } from '../music/voiceDegreeLabel';
 import { useChordContext } from '../context/ChordContext';
@@ -24,9 +23,7 @@ const TOP_PILL_SIZER = TILT_VOICING_OVERLAY_MAX_LABEL;
 export const DiagramVoicingOverlay: React.FC = () => {
   const layoutTier = useLayoutTier();
   const labelVariant = layoutTier === 'phone' ? 'mobile' : 'desktop';
-  const bassMaxLabel = labelVariant === 'desktop'
-    ? TILT_BASS_DEGREE_DESKTOP_MAX_LABEL
-    : TILT_BASS_DEGREE_MOBILE_MAX_LABEL;
+  const bassMaxLabel = TILT_BASS_DEGREE_MOBILE_MAX_LABEL;
 
   const {
     playStyle,

@@ -57,10 +57,10 @@ describe('getFourthVoiceDegreeLabel', () => {
 });
 
 describe('formatBassDegreeLabel', () => {
-  it('appends Bass on desktop only', () => {
+  it('returns the degree name on mobile and desktop', () => {
     expect(formatBassDegreeLabel('Root', 'mobile')).toBe('Root');
-    expect(formatBassDegreeLabel('Root', 'desktop')).toBe('Root Bass');
-    expect(formatBassDegreeLabel('7th', 'desktop')).toBe('7th Bass');
+    expect(formatBassDegreeLabel('Root', 'desktop')).toBe('Root');
+    expect(formatBassDegreeLabel('7th', 'desktop')).toBe('7th');
   });
 });
 
@@ -71,7 +71,7 @@ describe('tiltBassDegreeLabel', () => {
     manager = new ChordManager();
   });
 
-  it('maps flat Double Octave Branch to Root on mobile and Root Bass on desktop', () => {
+  it('maps flat Double Octave Branch to Root on mobile and desktop', () => {
     const branch = manager.getChordByName('Branch')!;
     const context = labelContext();
     expect(
@@ -79,7 +79,7 @@ describe('tiltBassDegreeLabel', () => {
     ).toBe('Root');
     expect(
       tiltBassDegreeLabel({ x: 0, y: 0 }, branch, 'desktop', context)
-    ).toBe('Root Bass');
+    ).toBe('Root');
   });
 
   it('maps flat Drop 3 Branch to 3rd when roll narrows the voicing', () => {
@@ -90,7 +90,7 @@ describe('tiltBassDegreeLabel', () => {
     ).toBe('3rd');
     expect(
       tiltBassDegreeLabel({ x: -0.25, y: 0 }, branch, 'desktop', context)
-    ).toBe('3rd Bass');
+    ).toBe('3rd');
   });
 
   it('maps chest-ward tilt to 3rd labels at Double Octave width', () => {
@@ -101,7 +101,7 @@ describe('tiltBassDegreeLabel', () => {
     ).toBe('3rd');
     expect(
       tiltBassDegreeLabel({ x: 0, y: -0.25 }, branch, 'desktop', context)
-    ).toBe('3rd Bass');
+    ).toBe('3rd');
   });
 
   it('maps 4th pivot on Twin Branch to 6th', () => {
@@ -112,7 +112,7 @@ describe('tiltBassDegreeLabel', () => {
     ).toBe('6th');
     expect(
       tiltBassDegreeLabel({ x: 0, y: -0.75 }, twinBranch, 'desktop', context)
-    ).toBe('6th Bass');
+    ).toBe('6th');
   });
 
   it('maps 4th pivot on Sand-Storm to 7th', () => {
@@ -123,7 +123,7 @@ describe('tiltBassDegreeLabel', () => {
     ).toBe('7th');
     expect(
       tiltBassDegreeLabel({ x: 0, y: -0.75 }, sandStorm, 'desktop', context)
-    ).toBe('7th Bass');
+    ).toBe('7th');
   });
 
   it('falls back to pitch-only labels when context is omitted', () => {
@@ -149,14 +149,14 @@ describe('resolveTiltBassVoiceLine', () => {
 });
 
 describe('bassDegreeLabelsForSelect', () => {
-  it('lists desktop bass labels for dom7 chords', () => {
+  it('lists the same bass labels on desktop as mobile for dom7 chords', () => {
     const manager = new ChordManager();
     const sandStorm = manager.getChordByName('Sand-Storm')!;
     expect(bassDegreeLabelsForSelect(sandStorm, 'desktop')).toEqual([
-      'Root Bass',
-      '3rd Bass',
-      '5th Bass',
-      '7th Bass',
+      'Root',
+      '3rd',
+      '5th',
+      '7th',
     ]);
   });
 

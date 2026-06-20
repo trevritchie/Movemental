@@ -136,8 +136,8 @@ export function mapTiltToPositions(tilt: TiltSample): {
   };
 }
 
-/** Default static voicing level index (8 = Double Octave). */
-export const DEFAULT_STATIC_VOICING_LEVEL = MAX_INPUT_STEPS;
+/** Default static voicing level index (5 = Drop 2). */
+export const DEFAULT_STATIC_VOICING_LEVEL = 5;
 
 /** Default static position level index (0 = 1st). */
 export const DEFAULT_STATIC_POSITION_LEVEL = 0;

@@ -18,7 +18,7 @@ export type BassDegreeLabelVariant = 'mobile' | 'desktop';
 export type VoiceLine = 1 | 2 | 3 | 4;
 
 export const TILT_BASS_DEGREE_MOBILE_MAX_LABEL = 'Root';
-export const TILT_BASS_DEGREE_DESKTOP_MAX_LABEL = 'Root Bass';
+export const TILT_BASS_DEGREE_DESKTOP_MAX_LABEL = TILT_BASS_DEGREE_MOBILE_MAX_LABEL;
 
 const DEFAULT_FOURTH_DEGREE = '6th';
 
@@ -69,11 +69,8 @@ export function getVoiceDegreeLabel(
 
 export function formatBassDegreeLabel(
   degree: string,
-  variant: BassDegreeLabelVariant
+  _variant: BassDegreeLabelVariant = 'mobile'
 ): string {
-  if (variant === 'desktop') {
-    return `${degree} Bass`;
-  }
   return degree;
 }
 
