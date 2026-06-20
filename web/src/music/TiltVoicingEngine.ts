@@ -93,8 +93,7 @@ export function ladderPitch(
  * Chest-ward (y < 0): +1..+4; away-from-chest (y > 0): -1..-4; flat: 0.
  * ±4 is one full tone-cycle (octave register) from center 1st.
  *
- * Static UI only encodes chest-ward 0..3 via tiltSampleFromLevels; full ±4
- * range is available in live tilt mode only.
+ * Static UI encodes the full ±4 range via tiltSampleFromLevels.
  */
 export function parallelLevelFromTilt(tilt: TiltSample): number {
   const y = clamp(tilt.y, -1, 1);
@@ -139,26 +138,49 @@ export function mapTiltToPositions(tilt: TiltSample): {
 /** Default static voicing level index (5 = Drop 2). */
 export const DEFAULT_STATIC_VOICING_LEVEL = 5;
 
-/** Default static position level index (0 = 1st). */
-export const DEFAULT_STATIC_POSITION_LEVEL = 0;
+/** Static position UI indices span parallelSteps -4..+4 (9 options). */
+export const STATIC_POSITION_LEVEL_COUNT = MAX_TILT_PITCH_STEPS * 2 + 1;
+
+/** Default static position index (4 = 1st / parallelSteps 0). */
+export const DEFAULT_STATIC_POSITION_LEVEL = MAX_TILT_PITCH_STEPS;
+
+/** Map a static position dropdown index to signed parallel ladder steps. */
+export function parallelStepsFromStaticPositionLevel(level: number): number {
+  const idx = clamp(level, 0, STATIC_POSITION_LEVEL_COUNT - 1);
+  return idx - MAX_TILT_PITCH_STEPS;
+}
+
+/** Map signed parallel ladder steps to a static position dropdown index. */
+export function staticPositionLevelFromParallelSteps(steps: number): number {
+  return (
+    clamp(steps, -MAX_TILT_PITCH_STEPS, MAX_TILT_PITCH_STEPS) +
+    MAX_TILT_PITCH_STEPS
+  );
+}
 
 /**
  * Build a discrete tilt sample for static mode UI controls.
  *
- * Static position selects only chest-ward parallel levels 0..3 (1st through
- * 4th). Away-from-chest positions are tilt-only.
+ * parallelSteps may be signed (-4..+4): chest-ward positive, away-from-chest
+ * negative, flat = 0 (1st).
  */
 export function tiltSampleFromLevels(
   inputSteps: number,
   parallelSteps: number
 ): TiltSample {
   const clampedInput = clamp(inputSteps, 0, MAX_INPUT_STEPS);
-  const clampedParallel = clamp(parallelSteps, 0, MAX_PARALLEL_STEPS);
+  const clampedParallel = clamp(
+    parallelSteps,
+    -MAX_TILT_PITCH_STEPS,
+    MAX_TILT_PITCH_STEPS
+  );
   const x = clampedInput / MAX_INPUT_STEPS - 1;
-  const y =
-    clampedParallel === 0
-      ? 0
-      : -(clampedParallel / MAX_TILT_PITCH_STEPS);
+  let y = 0;
+  if (clampedParallel > 0) {
+    y = -(clampedParallel / MAX_TILT_PITCH_STEPS);
+  } else if (clampedParallel < 0) {
+    y = Math.abs(clampedParallel) / MAX_TILT_PITCH_STEPS;
+  }
   return { x, y };
 }
 

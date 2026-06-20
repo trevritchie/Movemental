@@ -15,7 +15,7 @@ vi.mock('../context/ChordContext', () => ({
     playStyle: 'drone',
     staticVoicingLevel: 0,
     setStaticVoicingLevel: vi.fn(),
-    staticPositionLevel: 0,
+    staticPositionLevel: 4,
     setStaticPositionLevel: vi.fn(),
     tonalCenter: 0,
     octaveRange: 3,

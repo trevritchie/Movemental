@@ -6,7 +6,9 @@ import {
   OCTAVE,
   DEFAULT_TONAL_CENTER_OFFSET,
   DEFAULT_OCTAVE_RANGE,
-  DEFAULT_VOICING
+  DEFAULT_VOICING,
+  MIN_OCTAVE_RANGE,
+  MAX_OCTAVE_RANGE,
 } from './config';
 import {
   isElementalName,
@@ -44,7 +46,10 @@ export class ChordManager {
   }
 
   public setOctaveRange(range: number) {
-    this.octaveRange = range;
+    this.octaveRange = Math.min(
+      MAX_OCTAVE_RANGE,
+      Math.max(MIN_OCTAVE_RANGE, range)
+    );
     this.initializeChordDictionary(); // Re-evaluate voicings
   }
 

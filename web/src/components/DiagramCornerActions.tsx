@@ -3,7 +3,7 @@ import { Settings, Square, Maximize2, Minimize2 } from 'lucide-react';
 import { audioEngine } from '../audio/AudioEngine';
 import { useLayoutTier } from '../hooks/useLayoutTier';
 import { useFullscreen } from '../hooks/useFullscreen';
-import { SettingsSheet, useSettingsMenu } from './SettingsMenu';
+import { SettingsModal, useSettingsMenu } from './SettingsMenu';
 import { IosInstallHintPortal } from './IosInstallHintPortal';
 
 /** Panic, settings, and fullscreen controls for desktop/tablet diagram corners. */
@@ -14,7 +14,7 @@ export const DiagramCornerActions: React.FC = () => {
     isOpen,
     menuId,
     triggerRef,
-    sheetRef,
+    modalRef,
     openMenu,
     closeMenu,
   } = useSettingsMenu();
@@ -77,11 +77,11 @@ export const DiagramCornerActions: React.FC = () => {
         onDismiss={dismissIosInstallHint}
       />
 
-      <SettingsSheet
+      <SettingsModal
         isOpen={isOpen}
         onClose={closeMenu}
         menuId={menuId}
-        sheetRef={sheetRef}
+        modalRef={modalRef}
       />
     </>
   );

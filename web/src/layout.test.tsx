@@ -107,21 +107,16 @@ describe('Responsive Layout CSS', () => {
     expect(cssContent).not.toMatch(/\.top-bar\s*\{/);
   });
 
-  it('should use flat edge-to-edge phone panels without rounded borrowing sheet', () => {
-    const phoneStart = cssContent.search(phoneLayoutPattern);
-    const phoneBlock = cssContent.slice(phoneStart, phoneStart + 6000);
-    expect(phoneBlock).toMatch(
-      /\.unified-side-panel\s*\{[^}]*border-radius:\s*0/,
-    );
-    expect(phoneBlock).not.toMatch(
-      /\.unified-side-panel\s*\{[^}]*border-radius:\s*20px\s*20px\s*0\s*0/,
-    );
-    expect(cssContent).toMatch(
-      /\.settings-menu-sheet[\s\S]*border-radius:\s*20px\s*20px\s*0\s*0/,
-    );
-    expect(cssContent).toMatch(
-      /@media\s*\(orientation:\s*portrait\)[\s\S]*?\.unified-side-panel\s*\{[^}]*border-top:\s*1px\s*solid\s*var\(--panel-border\)/,
-    );
+  it('should lock document scroll at the root level', () => {
+    expect(cssContent).toMatch(/html\s*\{[^}]*overflow:\s*hidden/);
+    expect(cssContent).toMatch(/body\s*\{[^}]*overflow:\s*hidden/);
+  });
+
+  it('should use a centered settings modal on all tiers', () => {
+    expect(cssContent).toMatch(/\.settings-modal-backdrop[\s\S]*align-items:\s*center/);
+    expect(cssContent).toMatch(/\.settings-modal[\s\S]*border-radius:\s*16px/);
+    expect(cssContent).toMatch(/\.settings-modal[\s\S]*max-width:\s*420px/);
+    expect(cssContent).not.toMatch(/\.settings-menu-sheet__handle/);
   });
 
   it('should flatten diagram container on phone after base panel styles', () => {

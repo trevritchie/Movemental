@@ -4,6 +4,8 @@ import { getInitialBorrowingState } from './BorrowingLogic';
 import {
   bassDegreeLabelsForSelect,
   formatBassDegreeLabel,
+  formatBassDegreeWithDirection,
+  getBassDegreeLabelForParallelSteps,
   getBassDegreeLabelForPositionIndex,
   getFourthVoiceDegreeLabel,
   getVoiceDegreeLabel,
@@ -64,6 +66,14 @@ describe('formatBassDegreeLabel', () => {
   });
 });
 
+describe('formatBassDegreeWithDirection', () => {
+  it('prefixes higher and lower parallel positions', () => {
+    expect(formatBassDegreeWithDirection('3rd', 1)).toBe('\u2191 3rd');
+    expect(formatBassDegreeWithDirection('6th', -1)).toBe('\u2193 6th');
+    expect(formatBassDegreeWithDirection('Root', 0)).toBe('Root');
+  });
+});
+
 describe('tiltBassDegreeLabel', () => {
   let manager: ChordManager;
 
@@ -93,37 +103,48 @@ describe('tiltBassDegreeLabel', () => {
     ).toBe('3rd');
   });
 
-  it('maps chest-ward tilt to 3rd labels at Double Octave width', () => {
+  it('maps chest-ward tilt to ↑ 3rd at Double Octave width', () => {
     const branch = manager.getChordByName('Branch')!;
     const context = labelContext();
     expect(
       tiltBassDegreeLabel({ x: 0, y: -0.25 }, branch, 'mobile', context)
-    ).toBe('3rd');
+    ).toBe('\u2191 3rd');
     expect(
       tiltBassDegreeLabel({ x: 0, y: -0.25 }, branch, 'desktop', context)
-    ).toBe('3rd');
+    ).toBe('\u2191 3rd');
   });
 
-  it('maps 4th pivot on Twin Branch to 6th', () => {
+  it('maps away-from-chest tilt to ↓ 6th at Double Octave width', () => {
+    const branch = manager.getChordByName('Branch')!;
+    const context = labelContext();
+    expect(
+      tiltBassDegreeLabel({ x: 0, y: 0.25 }, branch, 'mobile', context)
+    ).toBe('\u2193 6th');
+    expect(
+      tiltBassDegreeLabel({ x: 0, y: 0.25 }, branch, 'desktop', context)
+    ).toBe('\u2193 6th');
+  });
+
+  it('maps 4th pivot on Twin Branch to ↑ 6th', () => {
     const twinBranch = manager.getChordByName('Twin Branch')!;
     const context = labelContext();
     expect(
       tiltBassDegreeLabel({ x: 0, y: -0.75 }, twinBranch, 'mobile', context)
-    ).toBe('6th');
+    ).toBe('\u2191 6th');
     expect(
       tiltBassDegreeLabel({ x: 0, y: -0.75 }, twinBranch, 'desktop', context)
-    ).toBe('6th');
+    ).toBe('\u2191 6th');
   });
 
-  it('maps 4th pivot on Sand-Storm to 7th', () => {
+  it('maps 4th pivot on Sand-Storm to ↑ 7th', () => {
     const sandStorm = manager.getChordByName('Sand-Storm')!;
     const context = labelContext();
     expect(
       tiltBassDegreeLabel({ x: 0, y: -0.75 }, sandStorm, 'mobile', context)
-    ).toBe('7th');
+    ).toBe('\u2191 7th');
     expect(
       tiltBassDegreeLabel({ x: 0, y: -0.75 }, sandStorm, 'desktop', context)
-    ).toBe('7th');
+    ).toBe('\u2191 7th');
   });
 
   it('falls back to pitch-only labels when context is omitted', () => {
@@ -149,23 +170,33 @@ describe('resolveTiltBassVoiceLine', () => {
 });
 
 describe('bassDegreeLabelsForSelect', () => {
-  it('lists the same bass labels on desktop as mobile for dom7 chords', () => {
+  it('lists nine signed position labels for dom7 chords', () => {
     const manager = new ChordManager();
     const sandStorm = manager.getChordByName('Sand-Storm')!;
     expect(bassDegreeLabelsForSelect(sandStorm, 'desktop')).toEqual([
+      '\u2193 Root',
+      '\u2193 3rd',
+      '\u2193 5th',
+      '\u2193 7th',
       'Root',
-      '3rd',
-      '5th',
-      '7th',
+      '\u2191 3rd',
+      '\u2191 5th',
+      '\u2191 7th',
+      '\u2191 Root',
     ]);
   });
 
   it('lists mobile labels with 6th when no chord is selected', () => {
     expect(bassDegreeLabelsForSelect(null, 'mobile')).toEqual([
+      '\u2193 Root',
+      '\u2193 3rd',
+      '\u2193 5th',
+      '\u2193 6th',
       'Root',
-      '3rd',
-      '5th',
-      '6th',
+      '\u2191 3rd',
+      '\u2191 5th',
+      '\u2191 6th',
+      '\u2191 Root',
     ]);
   });
 });
@@ -177,7 +208,11 @@ describe('getVoiceDegreeLabel', () => {
     expect(getVoiceDegreeLabel(3, null)).toBe('5th');
   });
 
-  it('maps position index 3 to 6th when no chord is selected', () => {
-    expect(getBassDegreeLabelForPositionIndex(3, null, 'mobile')).toBe('6th');
+  it('maps parallel step +3 to ↑ 6th when no chord is selected', () => {
+    expect(getBassDegreeLabelForParallelSteps(3, null, 'mobile')).toBe('\u2191 6th');
+  });
+
+  it('maps legacy position index 3 to ↑ 6th when no chord is selected', () => {
+    expect(getBassDegreeLabelForPositionIndex(3, null, 'mobile')).toBe('\u2191 6th');
   });
 });

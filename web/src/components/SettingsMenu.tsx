@@ -1,28 +1,29 @@
 import React, { useCallback, useEffect, useId, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Settings, Square, Maximize2, Minimize2, X } from 'lucide-react';
-import { NOTE_NAMES_FLAT } from '../music/config';
+import { NOTE_NAMES_FLAT, OCTAVE_RANGE_OPTIONS } from '../music/config';
 import { audioEngine } from '../audio/AudioEngine';
 import { useChordContext, type PlayStyle } from '../context/ChordContext';
 import { useLayoutTier } from '../hooks/useLayoutTier';
+import { useBodyScrollLock } from '../hooks/useBodyScrollLock';
 import { useFullscreen } from '../hooks/useFullscreen';
 import { AdsrPanelContent } from './settings/AdsrPanelContent';
 import { EffectsPanelContent } from './settings/EffectsPanelContent';
 import { BorrowingMemoryToggle } from './settings/BorrowingMemoryToggle';
 import { IosInstallHintPortal } from './IosInstallHintPortal';
 
-interface SettingsSheetProps {
+interface SettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
   menuId: string;
-  sheetRef: React.RefObject<HTMLDivElement | null>;
+  modalRef: React.RefObject<HTMLDivElement | null>;
 }
 
 export function useSettingsMenu() {
   const [isOpen, setIsOpen] = React.useState(false);
   const menuId = useId();
   const triggerRef = useRef<HTMLButtonElement>(null);
-  const sheetRef = useRef<HTMLDivElement>(null);
+  const modalRef = useRef<HTMLDivElement>(null);
 
   const openMenu = useCallback(() => setIsOpen(true), []);
 
@@ -35,17 +36,17 @@ export function useSettingsMenu() {
     isOpen,
     menuId,
     triggerRef,
-    sheetRef,
+    modalRef,
     openMenu,
     closeMenu,
   };
 }
 
-export const SettingsSheet: React.FC<SettingsSheetProps> = ({
+export const SettingsModal: React.FC<SettingsModalProps> = ({
   isOpen,
   onClose,
   menuId,
-  sheetRef,
+  modalRef,
 }) => {
   const {
     tonalCenter,
@@ -64,67 +65,65 @@ export const SettingsSheet: React.FC<SettingsSheetProps> = ({
 
   const idPrefix = `${menuId}-`;
 
-  const closeSheet = useCallback(() => {
+  const closeModal = useCallback(() => {
     setShowAdsr(false);
     setShowEffects(false);
     onClose();
   }, [onClose]);
 
+  useBodyScrollLock(isOpen);
+
   useEffect(() => {
     if (!isOpen) return;
 
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') closeSheet();
+      if (e.key === 'Escape') closeModal();
     };
     document.addEventListener('keydown', onKeyDown);
     return () => document.removeEventListener('keydown', onKeyDown);
-  }, [isOpen, closeSheet]);
+  }, [isOpen, closeModal]);
 
   useEffect(() => {
     if (isOpen) {
-      sheetRef.current?.focus();
+      modalRef.current?.focus();
     }
-  }, [isOpen, sheetRef]);
+  }, [isOpen, modalRef]);
 
   if (!isOpen) return null;
 
   const handleBackdropClick = (e: React.MouseEvent) => {
-    if (e.target === e.currentTarget) closeSheet();
+    if (e.target === e.currentTarget) closeModal();
   };
 
-  // Portal to body: the voice panel uses glass-panel (backdrop-filter), which
-  // traps position:fixed descendants inside the bottom pane.
   return createPortal(
     <div
-      className="settings-menu-backdrop"
+      className="settings-modal-backdrop"
       onClick={handleBackdropClick}
       role="presentation"
     >
       <div
-        ref={sheetRef}
+        ref={modalRef}
         id={menuId}
-        className="settings-menu-sheet glass-panel"
+        className="settings-modal glass-panel"
         role="dialog"
         aria-modal="true"
         aria-label="Settings"
         tabIndex={-1}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="settings-menu-sheet__handle" aria-hidden="true" />
-
-        <div className="settings-menu-sheet__header">
-          <h2 className="settings-menu-sheet__title">Settings</h2>
+        <div className="settings-modal__header">
+          <h2 className="settings-modal__title">Settings</h2>
           <button
             type="button"
-            className="settings-menu-sheet__close"
-            onClick={closeSheet}
+            className="settings-modal__close"
+            onClick={closeModal}
             aria-label="Close settings"
           >
             <X size={20} />
           </button>
         </div>
 
-        <div className="settings-menu-sheet__body">
+        <div className="settings-modal__body">
           <section className="settings-menu-section">
             <h3 className="settings-menu-section__title">General</h3>
             <div className="settings-menu-fields">
@@ -152,7 +151,7 @@ export const SettingsSheet: React.FC<SettingsSheetProps> = ({
                   value={octaveRange}
                   onChange={(e) => setOctaveRange(Number(e.target.value))}
                 >
-                  {[1, 2, 3, 4, 5, 6].map((o) => (
+                  {OCTAVE_RANGE_OPTIONS.map((o) => (
                     <option key={o} value={o}>
                       Octave {o}
                     </option>
@@ -237,7 +236,7 @@ export const MobileActionButtons: React.FC = () => {
     isOpen,
     menuId,
     triggerRef,
-    sheetRef,
+    modalRef,
     openMenu,
     closeMenu,
   } = useSettingsMenu();
@@ -295,11 +294,11 @@ export const MobileActionButtons: React.FC = () => {
         onDismiss={dismissIosInstallHint}
       />
 
-      <SettingsSheet
+      <SettingsModal
         isOpen={isOpen}
         onClose={closeMenu}
         menuId={menuId}
-        sheetRef={sheetRef}
+        modalRef={modalRef}
       />
     </>
   );

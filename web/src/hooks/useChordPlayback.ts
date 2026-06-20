@@ -18,6 +18,7 @@ import { chordManager, type Chord } from '../music/ChordManager';
 import { type BorrowingState } from '../music/BorrowingLogic';
 import {
   mapTiltToPositions,
+  parallelStepsFromStaticPositionLevel,
   tiltSampleFromLevels,
   type TiltSample,
 } from '../music/TiltVoicingEngine';
@@ -144,7 +145,9 @@ export function useChordPlayback({
       if (style !== 'tilt') {
         return tiltSampleFromLevels(
           staticVoicingLevelRef.current,
-          staticPositionLevelRef.current
+          parallelStepsFromStaticPositionLevel(
+            staticPositionLevelRef.current
+          )
         );
       }
       if (fromPointer) {

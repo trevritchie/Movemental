@@ -35,10 +35,27 @@ body {
   font-family: 'Inter', sans-serif;
   background-color: var(--bg-dark);
   color: var(--text-primary);
-  overflow-x: hidden;
-  min-height: 100vh;
-  width: 100vw;
+  overflow: hidden;
+  height: 100%;
+  width: 100%;
   background-image: radial-gradient(circle at 50% 0%, rgba(255,255,255,0.03) 0%, transparent 70%);
+}
+
+html {
+  overflow: hidden;
+  height: 100%;
+}
+
+html.scroll-locked,
+body.scroll-locked {
+  overflow: hidden !important;
+  overscroll-behavior: none;
+  touch-action: none;
+}
+
+.settings-modal,
+.settings-modal * {
+  touch-action: auto;
 }
 
 #root {
@@ -390,17 +407,22 @@ body {
   --overlay-inset-y: 12px;
 }
 
-/* Settings menu overlay (portaled to body on all tiers) */
-.settings-menu-backdrop {
+/* Settings modal overlay (portaled to body on all tiers) */
+.settings-modal-backdrop {
   position: fixed;
   inset: 0;
   z-index: 9000;
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: center;
-  background: rgba(0, 0, 0, 0.45);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  padding: 16px;
+  padding-top: max(16px, env(safe-area-inset-top, 0px));
+  padding-bottom: max(16px, env(safe-area-inset-bottom, 0px));
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  overflow: hidden;
+  overscroll-behavior: none;
   animation: settingsBackdropIn 0.2s ease forwards;
 }
 
@@ -409,53 +431,45 @@ body {
   to { opacity: 1; }
 }
 
-.settings-menu-sheet {
+.settings-modal {
   width: 100%;
-  max-height: 85dvh;
-  border-radius: 20px 20px 0 0;
-  border-bottom: none;
+  max-width: 420px;
+  max-height: min(85dvh, 640px);
+  border-radius: 16px;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  animation: settingsSheetUp 0.28s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-  padding-bottom: env(safe-area-inset-bottom, 0px);
+  animation: settingsModalIn 0.22s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.45);
 }
 
-@keyframes settingsSheetUp {
+@keyframes settingsModalIn {
   from {
     opacity: 0;
-    transform: translateY(100%);
+    transform: scale(0.96) translateY(8px);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
+    transform: scale(1) translateY(0);
   }
 }
 
-.settings-menu-sheet__handle {
-  width: 36px;
-  height: 4px;
-  border-radius: 2px;
-  background: rgba(255, 255, 255, 0.2);
-  margin: 10px auto 0;
-  flex-shrink: 0;
-}
-
-.settings-menu-sheet__header {
+.settings-modal__header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 20px 8px;
+  padding: 16px 20px 12px;
   flex-shrink: 0;
+  border-bottom: 1px solid var(--panel-border);
 }
 
-.settings-menu-sheet__title {
+.settings-modal__title {
   font-size: 1.05rem;
   font-weight: 700;
   letter-spacing: -0.01em;
 }
 
-.settings-menu-sheet__close {
+.settings-modal__close {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -468,15 +482,16 @@ body {
   border-radius: 8px;
 }
 
-.settings-menu-sheet__close:hover {
+.settings-modal__close:hover {
   color: var(--text-primary);
   background: rgba(255, 255, 255, 0.06);
 }
 
-.settings-menu-sheet__body {
+.settings-modal__body {
   overflow-y: auto;
   overscroll-behavior: contain;
-  padding: 0 20px 24px;
+  -webkit-overflow-scrolling: touch;
+  padding: 16px 20px 24px;
   display: flex;
   flex-direction: column;
   gap: 16px;
