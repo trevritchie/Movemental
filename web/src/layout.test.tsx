@@ -50,61 +50,75 @@ describe('Responsive Layout CSS', () => {
     expect(phoneBlock).toMatch(/input[\s\S]*user-select:\s*text/);
   });
 
-  it('should use a single-row full-width toolbar on mobile', () => {
+  it('should use a 3-column mobile voice panel grid with action buttons', () => {
     const phoneStart = cssContent.search(phoneLayoutPattern);
-    const phoneBlock = cssContent.slice(phoneStart, phoneStart + 3500);
+    const phoneBlock = cssContent.slice(phoneStart, phoneStart + 5000);
+    expect(phoneBlock).toMatch(/\.mobile-voice-grid\s*\{/);
+    expect(phoneBlock).toMatch(/grid-template-columns:\s*auto 1fr auto/);
+    expect(phoneBlock).toMatch(/\.mobile-action-column\s*\{/);
+    expect(phoneBlock).toMatch(/\.mobile-action-buttons\s*\{/);
     expect(phoneBlock).toMatch(
-      /\.controls-group\s*\{[^}]*flex-wrap:\s*nowrap/,
+      /\.mobile-voice-slider-cell[\s\S]*justify-content:\s*center/,
     );
-    expect(phoneBlock).toMatch(
-      /\.top-bar--phone\s+\.controls-group\s*>\s*select[\s\S]*flex:\s*1\s*1\s*0/,
-    );
-    expect(phoneBlock).not.toMatch(/overflow-x:\s*auto/);
+    expect(phoneBlock).not.toMatch(/\.mobile-voice-lock-cell/);
+    expect(phoneBlock).not.toMatch(/\.mobile-top-toolbar/);
   });
 
   it('should use fluid Gemini-style diagram overlay pills on mobile', () => {
-    const phoneStart = cssContent.search(phoneLayoutPattern);
-    const phoneBlock = cssContent.slice(phoneStart, phoneStart + 8000);
-    expect(phoneBlock).toMatch(/\.diagram-overlay-pill\s*\{/);
-    expect(phoneBlock).toMatch(
+    expect(cssContent).toMatch(/\.diagram-overlay-pill\s*\{/);
+    expect(cssContent).toMatch(
       /\.diagram-overlay-pill--bottom-left[\s\S]*width:\s*max-content/,
     );
-    expect(phoneBlock).toMatch(
+    expect(cssContent).toMatch(
       /max-width:\s*var\(--overlay-corner-max-w/,
     );
-    expect(phoneBlock).not.toMatch(/width:\s*110px/);
-    expect(phoneBlock).not.toMatch(/\.diagram-overlay-pill\.clock-pill/);
+    expect(cssContent).not.toMatch(/width:\s*110px/);
+    expect(cssContent).not.toMatch(/\.diagram-overlay-pill\.clock-pill/);
   });
 
-  it('should anchor voicing and position pills to top corners on mobile', () => {
-    const phoneStart = cssContent.search(phoneLayoutPattern);
-    const phoneBlock = cssContent.slice(phoneStart, phoneStart + 8000);
-    expect(phoneBlock).toMatch(/\.diagram-overlay-pill--top-left\s*\{[^}]*left:/);
-    expect(phoneBlock).toMatch(
+  it('should anchor voicing and position pills to top corners', () => {
+    expect(cssContent).toMatch(
+      /\.diagram-overlay-pill--top-left\s*\{[^}]*left:/,
+    );
+    expect(cssContent).toMatch(
       /\.diagram-overlay-pill--top-right\s*\{[^}]*right:/,
     );
-    expect(phoneBlock).not.toMatch(/\.diagram-voicing-overlay__top-row/);
+    expect(cssContent).not.toMatch(/\.diagram-voicing-overlay__top-row/);
   });
 
-  it('should center overlay pill text on mobile', () => {
-    const phoneStart = cssContent.search(phoneLayoutPattern);
-    const phoneBlock = cssContent.slice(phoneStart, phoneStart + 8000);
-    expect(phoneBlock).toMatch(
+  it('should center overlay pill text', () => {
+    expect(cssContent).toMatch(
       /\.diagram-overlay-pill\s*\{[^}]*text-align:\s*center/,
     );
-    expect(phoneBlock).toMatch(/\.diagram-overlay-pill__sizer--block/);
-    expect(phoneBlock).toMatch(
-      /--overlay-inset-x,\s*2px/,
+    expect(cssContent).toMatch(/\.diagram-overlay-pill__sizer--block/);
+    expect(cssContent).toMatch(
+      /\(max-width: 767px\)[\s\S]*?\.diagram-container\s*\{[^}]*--overlay-inset-x:\s*2px/,
     );
+  });
+
+  it('should define diagram corner actions and bottom-right overlay positioning', () => {
+    expect(cssContent).toMatch(/\.diagram-corner-actions\s*\{/);
+    expect(cssContent).toMatch(/\.diagram-corner-actions--bottom-left\s*\{/);
+    expect(cssContent).toMatch(/\.diagram-corner-actions--bottom-right\s*\{/);
+    expect(cssContent).toMatch(
+      /\.diagram-overlay-pill--bottom-right\s*\{[^}]*right:/,
+    );
+    expect(cssContent).toMatch(/\.diagram-toolbar-btn\s*\{/);
+    expect(cssContent).not.toMatch(/\.top-bar\s*\{/);
   });
 
   it('should use flat edge-to-edge phone panels without rounded borrowing sheet', () => {
     const phoneStart = cssContent.search(phoneLayoutPattern);
-    const phoneBlock = cssContent.slice(phoneStart, phoneStart + 9000);
+    const phoneBlock = cssContent.slice(phoneStart, phoneStart + 6000);
     expect(phoneBlock).toMatch(
       /\.unified-side-panel\s*\{[^}]*border-radius:\s*0/,
     );
-    expect(cssContent).not.toMatch(/border-radius:\s*20px\s*20px\s*0\s*0/);
+    expect(phoneBlock).not.toMatch(
+      /\.unified-side-panel\s*\{[^}]*border-radius:\s*20px\s*20px\s*0\s*0/,
+    );
+    expect(cssContent).toMatch(
+      /\.settings-menu-sheet[\s\S]*border-radius:\s*20px\s*20px\s*0\s*0/,
+    );
     expect(cssContent).toMatch(
       /@media\s*\(orientation:\s*portrait\)[\s\S]*?\.unified-side-panel\s*\{[^}]*border-top:\s*1px\s*solid\s*var\(--panel-border\)/,
     );
@@ -124,14 +138,13 @@ describe('Responsive Layout CSS', () => {
     );
   });
 
-  it('should ensure accessible touch targets (min 44px) for compactly stacked controls on mobile', () => {
-    const mobileTouchTargetMatch = cssContent.match(
-      /\(max-width: 767px\)[\s\S]*?\.borrowing-row\s*\{[^}]*min-height:\s*44px/,
+  it('should ensure accessible touch targets in the mobile voice panel grid', () => {
+    const phoneStart = cssContent.search(phoneLayoutPattern);
+    const phoneBlock = cssContent.slice(phoneStart, phoneStart + 5000);
+    expect(phoneBlock).toMatch(
+      /grid-template-rows:\s*repeat\(4,\s*minmax\(44px/,
     );
-    expect(
-      mobileTouchTargetMatch,
-      'Mobile .borrowing-row should have min-height: 44px for accessibility',
-    ).not.toBeNull();
+    expect(phoneBlock).toMatch(/\.mobile-toolbar-btn\s*\{/);
   });
 
   it('should ensure the diagram container overrides the 450px min-height on mobile to maximize space', () => {

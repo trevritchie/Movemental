@@ -80,8 +80,6 @@ interface ChordContextType {
   setDroneRelease: (val: number) => void;
   borrowingMemory: 'global' | 'per-chord';
   setBorrowingMemory: (mode: 'global' | 'per-chord') => void;
-  lockedVoices: Record<string, Record<number, boolean>>;
-  toggleVoiceLock: (chordName: string, line: number) => void;
   tiltStatus: TiltStatus;
   tiltSample: TiltSample;
   requestTiltPermission: () => Promise<void>;
@@ -279,8 +277,6 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
       setDroneRelease: audio.setDroneRelease,
       borrowingMemory: borrowing.borrowingMemory,
       setBorrowingMemory: borrowing.setBorrowingMemory,
-      lockedVoices: borrowing.lockedVoices,
-      toggleVoiceLock: borrowing.toggleVoiceLock,
       tiltStatus: deviceTilt.status,
       tiltSample: deviceTilt.tilt,
       requestTiltPermission: deviceTilt.requestPermission,
@@ -294,8 +290,6 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
       borrowing.borrowingState,
       borrowing.handleBorrowingStateChange,
       borrowing.borrowingMemory,
-      borrowing.lockedVoices,
-      borrowing.toggleVoiceLock,
       borrowing.setBorrowingMemory,
       playback.activePitches,
       playback.previousPlayedChord,

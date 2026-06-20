@@ -12,11 +12,36 @@ vi.mock('../context/ChordContext', () => ({
     handleChordPointerDown: vi.fn(),
     handleChordPointerUp: vi.fn(),
     handleChordPointerEnter: vi.fn(),
+    playStyle: 'drone',
+    staticVoicingLevel: 0,
+    setStaticVoicingLevel: vi.fn(),
+    staticPositionLevel: 0,
+    setStaticPositionLevel: vi.fn(),
+    tonalCenter: 0,
+    octaveRange: 3,
+    previousPlayedChord: null,
+    tiltStatus: 'unsupported',
+    tiltSample: { roll: 0, pitch: 0 },
+    requestTiltPermission: vi.fn(),
   }),
 }));
 
+import type { LayoutTier } from '../layout/breakpoints';
+
+const mockUseLayoutTier = vi.fn((): LayoutTier => 'phone');
+
 vi.mock('../hooks/useLayoutTier', () => ({
-  useLayoutTier: () => 'phone',
+  useLayoutTier: () => mockUseLayoutTier(),
+}));
+
+vi.mock('../hooks/useFullscreen', () => ({
+  useFullscreen: () => ({
+    isFullscreen: false,
+    canFullscreen: true,
+    showIosInstallHint: false,
+    toggleFullscreen: vi.fn(),
+    dismissIosInstallHint: vi.fn(),
+  }),
 }));
 
 async function flushAnimationFrames(count = 2): Promise<void> {
@@ -29,6 +54,7 @@ async function flushAnimationFrames(count = 2): Promise<void> {
 
 describe('ElementalDiagram ready gate', () => {
   it('should hide diagram until layout settles after mount', async () => {
+    mockUseLayoutTier.mockReturnValue('phone');
     const { container } = render(<ElementalDiagram />);
     const diagram = container.querySelector('.diagram-container');
 
@@ -40,5 +66,32 @@ describe('ElementalDiagram ready gate', () => {
     await waitFor(() => {
       expect(diagram).toHaveStyle({ opacity: '1' });
     });
+  });
+
+  it('should render voicing overlay on all layout tiers', async () => {
+    mockUseLayoutTier.mockReturnValue('phone');
+    const { container, unmount } = render(<ElementalDiagram />);
+    await flushAnimationFrames(2);
+    await waitFor(() => {
+      expect(
+        container.querySelector('.diagram-voicing-overlay'),
+      ).not.toBeNull();
+    });
+    unmount();
+
+    mockUseLayoutTier.mockReturnValue('desktop');
+    const desktop = render(<ElementalDiagram />);
+    await flushAnimationFrames(2);
+    await waitFor(() => {
+      expect(
+        desktop.container.querySelector('.diagram-voicing-overlay'),
+      ).not.toBeNull();
+      expect(
+        desktop.container.querySelector('.diagram-corner-actions'),
+      ).not.toBeNull();
+    });
+    expect(
+      desktop.container.querySelector('.mobile-action-buttons'),
+    ).toBeNull();
   });
 });

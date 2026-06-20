@@ -8,19 +8,26 @@ import {
 import {
   bassDegreeLabelsForSelect,
   tiltBassDegreeLabel,
+  TILT_BASS_DEGREE_DESKTOP_MAX_LABEL,
   TILT_BASS_DEGREE_MOBILE_MAX_LABEL,
 } from '../music/voiceDegreeLabel';
 import { useChordContext } from '../context/ChordContext';
+import { useLayoutTier } from '../hooks/useLayoutTier';
 import { DiagramOverlayPill } from './DiagramOverlayPill';
 
 /** Shared sizer so voicing and bass pills stay the same width. */
 const TOP_PILL_SIZER = TILT_VOICING_OVERLAY_MAX_LABEL;
 
 /**
- * Phone-only overlay: voicing (top left) and bass degree (top right), mirroring
- * the clock/chord info anchored to the diagram bottom corners.
+ * Diagram overlay: voicing (top left) and bass degree (top right).
  */
 export const DiagramVoicingOverlay: React.FC = () => {
+  const layoutTier = useLayoutTier();
+  const labelVariant = layoutTier === 'phone' ? 'mobile' : 'desktop';
+  const bassMaxLabel = labelVariant === 'desktop'
+    ? TILT_BASS_DEGREE_DESKTOP_MAX_LABEL
+    : TILT_BASS_DEGREE_MOBILE_MAX_LABEL;
+
   const {
     playStyle,
     staticVoicingLevel,
@@ -39,8 +46,8 @@ export const DiagramVoicingOverlay: React.FC = () => {
 
   const isTilt = playStyle === 'tilt';
   const bassSelectLabels = React.useMemo(
-    () => bassDegreeLabelsForSelect(selectedChord, 'mobile'),
-    [selectedChord]
+    () => bassDegreeLabelsForSelect(selectedChord, labelVariant),
+    [selectedChord, labelVariant]
   );
   const tiltBassContext = React.useMemo(
     () => ({
@@ -142,7 +149,7 @@ export const DiagramVoicingOverlay: React.FC = () => {
         {tiltBassDegreeLabel(
           tiltSample,
           selectedChord,
-          'mobile',
+          labelVariant,
           tiltBassContext
         )}
       </span>
@@ -161,7 +168,7 @@ export const DiagramVoicingOverlay: React.FC = () => {
       <DiagramOverlayPill
         label="IN THE BASS"
         corner="top-right"
-        sizerText={TILT_BASS_DEGREE_MOBILE_MAX_LABEL}
+        sizerText={bassMaxLabel}
       >
         {renderBassValue()}
       </DiagramOverlayPill>
