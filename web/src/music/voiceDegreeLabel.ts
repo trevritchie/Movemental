@@ -16,7 +16,6 @@ import {
 } from './TiltVoicingEngine';
 import { getCachedTiltVoicedPitches } from './voicingCache';
 
-export type BassDegreeLabelVariant = 'mobile' | 'desktop';
 export type VoiceLine = 1 | 2 | 3 | 4;
 
 export const TILT_BASS_DEGREE_MOBILE_MAX_LABEL = '\u2191 Root';
@@ -69,10 +68,7 @@ export function getVoiceDegreeLabel(
   }
 }
 
-export function formatBassDegreeLabel(
-  degree: string,
-  _variant: BassDegreeLabelVariant = 'mobile'
-): string {
+export function formatBassDegreeLabel(degree: string): string {
   return degree;
 }
 
@@ -97,25 +93,20 @@ export function voiceLineForParallelSteps(parallelSteps: number): VoiceLine {
 
 export function getBassDegreeLabelForParallelSteps(
   parallelSteps: number,
-  chord: Chord | null,
-  variant: BassDegreeLabelVariant = 'mobile'
+  chord: Chord | null
 ): string {
   const voiceLine = voiceLineForParallelSteps(parallelSteps);
   const degree = getVoiceDegreeLabel(voiceLine, chord);
-  return formatBassDegreeWithDirection(
-    formatBassDegreeLabel(degree, variant),
-    parallelSteps
-  );
+  return formatBassDegreeWithDirection(formatBassDegreeLabel(degree), parallelSteps);
 }
 
 /** @deprecated Use getBassDegreeLabelForParallelSteps with unsigned steps 0..3. */
 export function getBassDegreeLabelForPositionIndex(
   positionIndex: number,
-  chord: Chord | null,
-  variant: BassDegreeLabelVariant = 'mobile'
+  chord: Chord | null
 ): string {
   const clampedIndex = Math.max(0, Math.min(3, positionIndex));
-  return getBassDegreeLabelForParallelSteps(clampedIndex, chord, variant);
+  return getBassDegreeLabelForParallelSteps(clampedIndex, chord);
 }
 
 function voiceLineForLowestPitch(
@@ -181,7 +172,6 @@ export function resolveTiltBassVoiceLine(
 export function tiltBassDegreeLabel(
   tilt: TiltSample,
   chord: Chord | null,
-  variant: BassDegreeLabelVariant = 'mobile',
   context?: TiltBassLabelContext
 ): string {
   const parallelSteps = parallelLevelFromTilt(tilt);
@@ -190,23 +180,16 @@ export function tiltBassDegreeLabel(
       ? resolveTiltBassVoiceLine(tilt, chord, context) ??
         pitchOnlyVoiceLine(tilt)
       : pitchOnlyVoiceLine(tilt);
-  const degree = formatBassDegreeLabel(
-    getVoiceDegreeLabel(voiceLine, chord),
-    variant
-  );
+  const degree = formatBassDegreeLabel(getVoiceDegreeLabel(voiceLine, chord));
   return formatBassDegreeWithDirection(degree, parallelSteps);
 }
 
 /** All bass degree labels for static position selects (-4..+4 parallel steps). */
-export function bassDegreeLabelsForSelect(
-  chord: Chord | null,
-  variant: BassDegreeLabelVariant
-): string[] {
+export function bassDegreeLabelsForSelect(chord: Chord | null): string[] {
   return Array.from({ length: STATIC_POSITION_LEVEL_COUNT }, (_, idx) =>
     getBassDegreeLabelForParallelSteps(
       parallelStepsFromStaticPositionLevel(idx),
-      chord,
-      variant
+      chord
     )
   );
 }

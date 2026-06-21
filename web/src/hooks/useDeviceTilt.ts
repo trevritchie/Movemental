@@ -1,10 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   FLAT_TILT,
-  mapTiltToPositions,
   type TiltSample,
 } from '../music/TiltVoicingEngine';
-import { isIOSPlatform } from '../audio/haptics';
 
 export type TiltStatus =
   | 'unsupported'
@@ -42,33 +40,16 @@ export const pitchTiltFromBeta = (beta: number): number => {
  *   away-from-chest (negative beta) maps to y in (0, 1], selecting lower
  *   ladder positions in reverse order (4th, 3rd, 2nd).
  *
- * onLevelChange fires whenever the quantized voicing level (the step pair
- * from mapTiltToPositions) changes, e.g. to drive haptic feedback.
- *
  * Two tilt refs:
  * - tiltRef / React `tilt`: smoothed, throttled to ~150 ms for UI readouts
  * - rawTiltRef: unsmoothed angles for playback sampling at tap time
  */
-export function useDeviceTilt(onLevelChange?: () => void) {
+export function useDeviceTilt() {
   /** Smoothed sample for diagram overlay readouts. */
   const tiltRef = useRef<TiltSample>({ ...FLAT_TILT });
   const smoothedRef = useRef({ gamma: 0, beta: 0 });
   const lastReadoutRef = useRef(0);
-  const lastLevelRef = useRef<{ inputSteps: number; parallelSteps: number } | null>(
-    null
-  );
-  // iOS switch haptics require a user gesture. Track the latest sensed level
-  // from orientation separately from the last level that actually fired a
-  // haptic, so touchmove can deliver ticks while the user is touching the
-  // screen.
-  const lastHapticLevelRef = useRef<{ inputSteps: number; parallelSteps: number } | null>(
-    null
-  );
   const rawTiltRef = useRef<TiltSample>({ ...FLAT_TILT });
-  const onLevelChangeRef = useRef(onLevelChange);
-  useEffect(() => {
-    onLevelChangeRef.current = onLevelChange;
-  }, [onLevelChange]);
 
   const [tilt, setTilt] = useState<TiltSample>({ ...FLAT_TILT });
   const [status, setStatus] = useState<TiltStatus>(() => {
@@ -93,25 +74,10 @@ export function useDeviceTilt(onLevelChange?: () => void) {
     const y = pitchTiltFromBeta(smoothed.beta);
     tiltRef.current = { x, y };
 
-    // Haptics and playback use raw angles; UI readout uses smoothed tiltRef.
+    // Playback uses raw angles; UI readout uses smoothed tiltRef.
     const xRaw = -Math.min(Math.abs(gamma) / 90, 1);
     const yRaw = pitchTiltFromBeta(beta);
     rawTiltRef.current = { x: xRaw, y: yRaw };
-    const level = mapTiltToPositions(rawTiltRef.current);
-    const lastLevel = lastLevelRef.current;
-    if (
-      lastLevel !== null &&
-      (level.inputSteps !== lastLevel.inputSteps ||
-        level.parallelSteps !== lastLevel.parallelSteps)
-    ) {
-      // Android: vibrate works from sensor callbacks. iOS: defer to touch
-      // handlers below, which run inside a user gesture.
-      if (!isIOSPlatform()) {
-        onLevelChangeRef.current?.();
-        lastHapticLevelRef.current = level;
-      }
-    }
-    lastLevelRef.current = level;
 
     const now = performance.now();
     if (now - lastReadoutRef.current >= READOUT_INTERVAL_MS) {
@@ -127,34 +93,6 @@ export function useDeviceTilt(onLevelChange?: () => void) {
       window.removeEventListener('deviceorientation', handleOrientation);
     };
   }, [status, handleOrientation]);
-
-  // iOS: deliver haptic ticks during touch events when a level crossing was
-  // sensed from orientation but could not fire haptics without a gesture.
-  useEffect(() => {
-    if (status !== 'active' || !isIOSPlatform()) return;
-
-    const maybeHapticFromTouch = () => {
-      const sensed = lastLevelRef.current;
-      const lastHaptic = lastHapticLevelRef.current;
-      if (!sensed) return;
-      if (
-        lastHaptic !== null &&
-        sensed.inputSteps === lastHaptic.inputSteps &&
-        sensed.parallelSteps === lastHaptic.parallelSteps
-      ) {
-        return;
-      }
-      onLevelChangeRef.current?.();
-      lastHapticLevelRef.current = sensed;
-    };
-
-    window.addEventListener('touchstart', maybeHapticFromTouch, { passive: true });
-    window.addEventListener('touchmove', maybeHapticFromTouch, { passive: true });
-    return () => {
-      window.removeEventListener('touchstart', maybeHapticFromTouch);
-      window.removeEventListener('touchmove', maybeHapticFromTouch);
-    };
-  }, [status]);
 
   const requestPermission = useCallback(async () => {
     if (status !== 'needs-permission' && status !== 'denied') return;

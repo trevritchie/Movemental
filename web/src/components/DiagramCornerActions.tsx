@@ -3,7 +3,8 @@ import { Settings, Square, Maximize2, Minimize2 } from 'lucide-react';
 import { audioEngine } from '../audio/AudioEngine';
 import { useLayoutTier } from '../hooks/useLayoutTier';
 import { useFullscreen } from '../hooks/useFullscreen';
-import { SettingsModal, useSettingsMenu } from './SettingsMenu';
+import { SettingsModal } from './SettingsMenu';
+import { useSettingsMenu } from '../hooks/useSettingsMenu';
 import { IosInstallHintPortal } from './IosInstallHintPortal';
 
 /** Panic, settings, and fullscreen controls for desktop/tablet diagram corners. */

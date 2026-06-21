@@ -28,7 +28,6 @@ import {
   type ElementalPlaybackResolution,
 } from '../music/tiltVoicingPlayback';
 import { invalidateVoicingCache } from '../music/voicingCache';
-import { triggerHaptic } from '../audio/haptics';
 import { audioEngine } from '../audio/AudioEngine';
 import { unlockIosMediaChannel } from '../audio/iosMediaChannel';
 import type { PlayStyle } from '../context/types';
@@ -253,7 +252,6 @@ export function useChordPlayback({
       }
 
       if (style === 'tilt') {
-        triggerHaptic();
         audioEngine.triggerAttack(pitches, retrigger);
         return;
       }

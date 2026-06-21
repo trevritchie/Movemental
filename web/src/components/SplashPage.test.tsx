@@ -8,8 +8,6 @@ import {
 } from '../audio/iosMediaChannel';
 import { audioEngine } from '../audio/AudioEngine';
 import { useLayoutTier } from '../hooks/useLayoutTier';
-import { primeHaptics } from '../audio/haptics';
-
 vi.mock('../audio/iosMediaChannel', () => ({
   unlockIosMediaChannel: vi.fn(),
   waitForIosMediaChannel: vi.fn().mockResolvedValue(undefined),
@@ -30,10 +28,6 @@ vi.mock('../context/ChordContext', () => ({
 
 vi.mock('../hooks/useLayoutTier', () => ({
   useLayoutTier: vi.fn(() => 'desktop'),
-}));
-
-vi.mock('../audio/haptics', () => ({
-  primeHaptics: vi.fn(),
 }));
 
 describe('SplashPage', () => {
@@ -104,7 +98,6 @@ describe('SplashPage', () => {
 
     expect(requestTiltPermission).toHaveBeenCalledTimes(1);
     expect(setPlayStyle).toHaveBeenCalledWith('tilt');
-    expect(primeHaptics).toHaveBeenCalledTimes(1);
     expect(unlockIosMediaChannel).toHaveBeenCalled();
 
     await act(async () => {

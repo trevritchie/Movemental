@@ -66,7 +66,7 @@ Playback lives in [`useChordPlayback.ts`](src/hooks/useChordPlayback.ts). All st
 |-------|---------|----------------|
 | `click_and_hold` | Diagram pointer down/up | Pointer: sustained notes until release. Borrowing sliders: timed half-note preview via `playNotes`. |
 | `drone` | Diagram tap or glissando | Legato diff: common tones sustain, others crossfade (`triggerAttack`). |
-| `tilt` | Diagram tap (phone) | Samples **raw** device tilt at tap time, re-attacks full voicing with haptic feedback. Voicing does not update continuously while holding (tap-time sampling only). |
+| `tilt` | Diagram tap (phone) | Samples **raw** device tilt at tap time, re-attacks full voicing. Voicing does not update continuously while holding (tap-time sampling only). |
 
 **Static vs tilt voicing anchors** ([`TiltVoicingEngine.ts`](src/music/TiltVoicingEngine.ts))
 *   **Tilt mode (`contrary`)**: Roll narrows the voicing symmetrically around the parallel pivot. Bass can shift as width changes (e.g. flat + Drop 3 may put the 3rd in the bass).
@@ -92,7 +92,7 @@ Key modules:
 *   [`TiltVoicingEngine.ts`](src/music/TiltVoicingEngine.ts): tone cycle, ladder math, thinning rules, contrary vs pivot anchors
 *   [`tiltVoicingPlayback.ts`](src/music/tiltVoicingPlayback.ts): borrowing + elemental resolution + engine (shared by audio and labels)
 *   [`voicingCache.ts`](src/music/voicingCache.ts): single-entry memo for tilt label readouts (~7 Hz)
-*   [`useDeviceTilt.ts`](src/hooks/useDeviceTilt.ts): `deviceorientation` mapping; smoothed sample for UI, raw sample for playback and haptics
+*   [`useDeviceTilt.ts`](src/hooks/useDeviceTilt.ts): `deviceorientation` mapping; smoothed sample for UI, raw sample for playback
 
 ---
 

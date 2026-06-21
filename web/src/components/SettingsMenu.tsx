@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useId, useRef } from 'react';
+import React, { useCallback, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Settings, Square, Maximize2, Minimize2, X } from 'lucide-react';
 import { NOTE_NAMES_FLAT, OCTAVE_RANGE_OPTIONS } from '../music/config';
@@ -13,6 +13,8 @@ import { BorrowingMemoryToggle } from './settings/BorrowingMemoryToggle';
 import { IosInstallHintPortal } from './IosInstallHintPortal';
 import { isIphone } from '../utils/devicePlatform';
 
+import { useSettingsMenu } from '../hooks/useSettingsMenu';
+
 const FOCUSABLE_SELECTOR =
   'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
@@ -21,29 +23,6 @@ interface SettingsModalProps {
   onClose: () => void;
   menuId: string;
   modalRef: React.RefObject<HTMLDivElement | null>;
-}
-
-export function useSettingsMenu() {
-  const [isOpen, setIsOpen] = React.useState(false);
-  const menuId = useId();
-  const triggerRef = useRef<HTMLButtonElement>(null);
-  const modalRef = useRef<HTMLDivElement>(null);
-
-  const openMenu = useCallback(() => setIsOpen(true), []);
-
-  const closeMenu = useCallback(() => {
-    setIsOpen(false);
-    triggerRef.current?.focus();
-  }, []);
-
-  return {
-    isOpen,
-    menuId,
-    triggerRef,
-    modalRef,
-    openMenu,
-    closeMenu,
-  };
 }
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({
