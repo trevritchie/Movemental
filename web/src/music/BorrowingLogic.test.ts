@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { BorrowingLogic, getInitialBorrowingState, type BorrowingState } from './BorrowingLogic';
+import { BorrowingLogic, getInitialBorrowingState, type BorrowingState, closestMidiWithPitchClass } from './BorrowingLogic';
 import { chordManager } from './ChordManager';
 
 describe('BorrowingLogic', () => {
@@ -166,8 +166,22 @@ describe('BorrowingLogic', () => {
     });
   });
 
+  describe('closestMidiWithPitchClass', () => {
+    it('places B one semitone below C4 when borrowing down across the octave', () => {
+      expect(closestMidiWithPitchClass(60, 11)).toBe(59);
+    });
+
+    it('places D two semitones above C4 when borrowing up', () => {
+      expect(closestMidiWithPitchClass(60, 2)).toBe(62);
+    });
+
+    it('places C one semitone above B4 when borrowing up across the octave', () => {
+      expect(closestMidiWithPitchClass(71, 0)).toBe(72);
+    });
+  });
+
   describe('applyBorrowingOverlay', () => {
-    it('replaces natural pitch class at the same octave', () => {
+    it('replaces natural pitch class at the closest MIDI octave', () => {
       chordManager.setTonalCenterOffset(10);
       const branch = chordManager.getChordByName('Branch')!;
       const neutral = [70, 79, 86, 89, 94];
@@ -187,8 +201,24 @@ describe('BorrowingLogic', () => {
       expect(gIndex).toBeGreaterThanOrEqual(0);
 
       const overlaid = logic.applyBorrowingOverlay(neutral, branch, state);
-      expect(overlaid[gIndex]).toBe(neutral[gIndex]! - 7 + effectivePc);
+      expect(overlaid[gIndex]).toBe(
+        closestMidiWithPitchClass(neutral[gIndex]!, effectivePc)
+      );
       expect(overlaid.filter((n, i) => n !== neutral[i]).length).toBe(1);
+    });
+
+    it('borrows root down to the nearest B, not an octave above C', () => {
+      const branch = chordManager.getChordByName('Branch')!;
+      const neutral = [60, 64, 67, 69];
+      const state = getInitialBorrowingState();
+      state.circlePositions[1] = 'down';
+      state.borrowingDirections[1] = 'down';
+
+      const overlaid = logic.applyBorrowingOverlay(neutral, branch, state);
+      const cIndex = neutral.findIndex((n) => n % 12 === 0);
+      expect(cIndex).toBeGreaterThanOrEqual(0);
+      expect(overlaid[cIndex]).toBe(59);
+      expect(Math.abs(overlaid[cIndex]! - neutral[cIndex]!)).toBe(1);
     });
 
     it('returns neutral voicing when all lines are on neutral', () => {

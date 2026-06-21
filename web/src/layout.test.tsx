@@ -54,14 +54,30 @@ describe('Responsive Layout CSS', () => {
     const phoneStart = cssContent.search(phoneLayoutPattern);
     const phoneBlock = cssContent.slice(phoneStart, phoneStart + 5000);
     expect(phoneBlock).toMatch(/\.mobile-voice-grid\s*\{/);
-    expect(phoneBlock).toMatch(/grid-template-columns:\s*auto 1fr auto/);
+    expect(phoneBlock).toMatch(/grid-template-columns:\s*1fr min\(168px,\s*100%\) 1fr/);
     expect(phoneBlock).toMatch(/\.mobile-action-column\s*\{/);
     expect(phoneBlock).toMatch(/\.mobile-action-buttons\s*\{/);
     expect(phoneBlock).toMatch(
+      /\.mobile-voice-label-cell[\s\S]*justify-content:\s*flex-start/,
+    );
+    expect(phoneBlock).toMatch(
       /\.mobile-voice-slider-cell[\s\S]*justify-content:\s*center/,
     );
+    expect(phoneBlock).toMatch(/\.controls-section[\s\S]*padding:\s*4px/);
     expect(phoneBlock).not.toMatch(/\.mobile-voice-lock-cell/);
     expect(phoneBlock).not.toMatch(/\.mobile-top-toolbar/);
+  });
+
+  it('should center borrow slider nodes on equal thirds', () => {
+    expect(cssContent).toMatch(
+      /\.borrow-slider\s*\{[\s\S]*grid-template-columns:\s*repeat\(3,\s*1fr\)/,
+    );
+    expect(cssContent).toMatch(
+      /\.borrow-slider-track\s*\{[\s\S]*left:\s*calc\(100%\s*\/\s*6\)/,
+    );
+    expect(cssContent).toMatch(
+      /\.borrow-slider-track\s*\{[\s\S]*right:\s*calc\(100%\s*\/\s*6\)/,
+    );
   });
 
   it('should use fluid Gemini-style diagram overlay pills on mobile', () => {

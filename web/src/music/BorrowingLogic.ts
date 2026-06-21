@@ -24,6 +24,28 @@ const pitchClass = (pitch: number): number => ((pitch % 12) + 12) % 12;
 
 const clampMidi = (pitch: number): number => Math.max(21, Math.min(108, pitch));
 
+/** Nearest MIDI note matching targetPc to referenceMidi. */
+export function closestMidiWithPitchClass(
+  referenceMidi: number,
+  targetPc: number
+): number {
+  const pc = pitchClass(targetPc);
+  const center = Math.round((referenceMidi - pc) / 12);
+  let best = clampMidi(pc + 12 * center);
+  let bestDist = Math.abs(best - referenceMidi);
+
+  for (const octave of [center - 1, center + 1]) {
+    const candidate = clampMidi(pc + 12 * octave);
+    const dist = Math.abs(candidate - referenceMidi);
+    if (dist < bestDist) {
+      best = candidate;
+      bestDist = dist;
+    }
+  }
+
+  return best;
+}
+
 export class BorrowingLogic {
   public getRootPositionMapping(chord: Chord): Record<number, number> {
     if (chord.rootPositionIndex === undefined) return NOTE_POSITION_MAPPING;
@@ -177,7 +199,7 @@ export class BorrowingLogic {
 
   /**
    * Substitute borrowed pitch classes on an anchored neutral voicing.
-   * Each active borrow replaces that voice's natural PC at the same octave.
+   * Each active borrow replaces natural PCs with the closest MIDI match.
    */
   public applyBorrowingOverlay(
     neutralVoicing: number[],
@@ -199,7 +221,7 @@ export class BorrowingLogic {
 
       result = result.map((note) => {
         if (pitchClass(note) !== naturalPc) return note;
-        return clampMidi(note - naturalPc + borrowedPc);
+        return closestMidiWithPitchClass(note, borrowedPc);
       });
     }
 

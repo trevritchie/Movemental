@@ -216,6 +216,41 @@ describe('borrowing overlay integration', () => {
     );
   });
 
+  it('Branch at C: borrowing root down moves one semitone, not an octave', () => {
+    chordManager.setTonalCenterOffset(0);
+    const branch = chordManager.getChordByName('Branch')!;
+    const neutral = computeVoicedWithOverlays(
+      branch,
+      getInitialBorrowingState(),
+      DOUBLE_OCTAVE,
+      0
+    );
+    const cIndices = neutral
+      .map((n, i) => (n % 12 === 0 ? i : -1))
+      .filter((i) => i >= 0);
+    expect(cIndices.length).toBeGreaterThan(0);
+
+    const borrowed = computeVoicedWithOverlays(
+      branch,
+      borrowLine(1, 'down'),
+      DOUBLE_OCTAVE,
+      0,
+      neutral
+    );
+
+    expect(borrowed.length).toBe(neutral.length);
+    const changed = borrowed
+      .map((n, i) => ({ n, i, prev: neutral[i]! }))
+      .filter(({ n, prev }) => n !== prev);
+    expect(changed.length).toBeGreaterThan(0);
+    for (const { n, prev } of changed) {
+      expect(prev % 12).toBe(0);
+      expect(n % 12).toBe(11);
+      expect(Math.abs(n - prev)).toBeLessThanOrEqual(6);
+      expect(Math.abs(n - prev)).not.toBe(11);
+    }
+  });
+
   it('returning borrowed line to neutral restores exact anchored voicing', () => {
     const branch = chordManager.getChordByName('Branch')!;
     const neutral = computeVoicedWithOverlays(
