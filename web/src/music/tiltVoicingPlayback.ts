@@ -38,6 +38,41 @@ function neutralPitchStructure(chord: Chord): (number | null)[] {
   return structure;
 }
 
+export interface VoicingRootResolution {
+  pitchStructure: (number | null)[];
+  rootPitchClass: number;
+  homeMidi?: number;
+}
+
+/**
+ * Resolve tone-cycle root and optional homeMidi for ladder voicing.
+ */
+export function resolveVoicingRoot(
+  chord: Chord,
+  tonalCenter: number,
+  octaveRange: number,
+  previousChord: Chord | null,
+  elemental?: ElementalPlaybackResolution
+): VoicingRootResolution {
+  const pitchStructure = neutralPitchStructure(chord);
+
+  if (isElementalName(chord.name)) {
+    const resolved =
+      elemental ??
+      resolveElementalPlayback(chord, tonalCenter, octaveRange, previousChord);
+    return {
+      pitchStructure,
+      rootPitchClass: resolved.rootPitchClass,
+      homeMidi: resolved.homeMidi,
+    };
+  }
+
+  return {
+    pitchStructure,
+    rootPitchClass: chord.pitches[chord.rootPositionIndex] % 12,
+  };
+}
+
 /**
  * Full ladder voicing with all voices on and no borrowing (anchor base).
  */

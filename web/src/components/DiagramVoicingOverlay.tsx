@@ -33,6 +33,9 @@ export const DiagramVoicingOverlay: React.FC = () => {
     octaveRange,
     borrowingState,
     previousPlayedChord,
+    voiceLeadingMode,
+    lastTapTilt,
+    smoothBaseParallel,
     tiltStatus,
     tiltSample,
     requestTiltPermission,
@@ -49,8 +52,19 @@ export const DiagramVoicingOverlay: React.FC = () => {
       octaveRange,
       borrowingState,
       previousChord: previousPlayedChord,
+      voiceLeadingMode,
+      smoothBaseParallel,
+      lastTapTilt,
     }),
-    [tonalCenter, octaveRange, borrowingState, previousPlayedChord]
+    [
+      tonalCenter,
+      octaveRange,
+      borrowingState,
+      previousPlayedChord,
+      voiceLeadingMode,
+      smoothBaseParallel,
+      lastTapTilt,
+    ]
   );
 
   const renderVoicingValue = () => {

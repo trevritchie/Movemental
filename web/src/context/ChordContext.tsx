@@ -21,6 +21,7 @@ import type { BorrowingState } from '../music/BorrowingLogic';
 import {
   DEFAULT_TONAL_CENTER_OFFSET,
   DEFAULT_OCTAVE_RANGE,
+  DEFAULT_VOICE_LEADING_MODE,
 } from '../music/config';
 import {
   DEFAULT_STATIC_POSITION_LEVEL,
@@ -31,9 +32,9 @@ import { useAudioSettings } from '../hooks/useAudioSettings';
 import { useBorrowingMemory } from '../hooks/useBorrowingMemory';
 import { useChordPlayback } from '../hooks/useChordPlayback';
 import { useDeviceTilt, type TiltStatus } from '../hooks/useDeviceTilt';
-import type { PlayStyle } from './types';
+import type { PlayStyle, VoiceLeadingMode } from './types';
 
-export type { PlayStyle } from './types';
+export type { PlayStyle, VoiceLeadingMode } from './types';
 
 interface ChordContextType {
   tonalCenter: number;
@@ -79,6 +80,10 @@ interface ChordContextType {
   setDroneRelease: (val: number) => void;
   borrowingMemory: 'global' | 'per-chord';
   setBorrowingMemory: (mode: 'global' | 'per-chord') => void;
+  voiceLeadingMode: VoiceLeadingMode;
+  setVoiceLeadingMode: (mode: VoiceLeadingMode) => void;
+  lastTapTilt: TiltSample;
+  smoothBaseParallel: number;
   tiltStatus: TiltStatus;
   tiltSample: TiltSample;
   requestTiltPermission: () => Promise<void>;
@@ -108,6 +113,9 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
   );
   const [octaveRange, setOctaveRange] = useState(DEFAULT_OCTAVE_RANGE);
   const [selectedChord, setSelectedChord] = useState<Chord | null>(null);
+  const [voiceLeadingMode, setVoiceLeadingMode] = useState<VoiceLeadingMode>(
+    DEFAULT_VOICE_LEADING_MODE
+  );
 
   const selectedChordNameRef = useRef<string | null>(null);
   useEffect(() => {
@@ -129,6 +137,7 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
   const staticVoicingLevelRef = useRef(staticVoicingLevel);
   const staticPositionLevelRef = useRef(staticPositionLevel);
   const tonalCenterRef = useRef(tonalCenter);
+  const voiceLeadingModeRef = useRef(voiceLeadingMode);
   useEffect(() => {
     staticVoicingLevelRef.current = staticVoicingLevel;
   }, [staticVoicingLevel]);
@@ -138,6 +147,9 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
   useEffect(() => {
     tonalCenterRef.current = tonalCenter;
   }, [tonalCenter]);
+  useEffect(() => {
+    voiceLeadingModeRef.current = voiceLeadingMode;
+  }, [voiceLeadingMode]);
 
   const playback = useChordPlayback({
     getBorrowingStateForChord: borrowing.getBorrowingStateForChord,
@@ -148,6 +160,8 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
     staticVoicingLevelRef,
     staticPositionLevelRef,
     tonalCenterRef,
+    voiceLeadingModeRef,
+    setStaticPositionLevel,
   });
 
   useEffect(() => {
@@ -211,6 +225,7 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
     octaveRange,
     staticVoicingLevel,
     staticPositionLevel,
+    voiceLeadingMode,
     getBorrowingStateForChord,
     borrowingStateRef,
     setBorrowingState,
@@ -262,6 +277,10 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
       setDroneRelease: audio.setDroneRelease,
       borrowingMemory: borrowing.borrowingMemory,
       setBorrowingMemory: borrowing.setBorrowingMemory,
+      voiceLeadingMode,
+      setVoiceLeadingMode,
+      lastTapTilt: playback.lastTapTilt,
+      smoothBaseParallel: playback.smoothBaseParallel,
       tiltStatus: deviceTilt.status,
       tiltSample: deviceTilt.tilt,
       requestTiltPermission: deviceTilt.requestPermission,
@@ -306,6 +325,9 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
       audio.setDroneSustain,
       audio.droneRelease,
       audio.setDroneRelease,
+      voiceLeadingMode,
+      playback.lastTapTilt,
+      playback.smoothBaseParallel,
       deviceTilt.status,
       deviceTilt.tilt,
       deviceTilt.requestPermission,

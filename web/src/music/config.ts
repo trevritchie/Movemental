@@ -1,6 +1,8 @@
 // config.ts
 // Ported configuration from Movemental config.py
 
+import type { VoiceLeadingMode } from '../context/types';
+
 export const NOTE_NAMES_FLAT = [
   "C", "Db", "D", "Eb", "E", "F", "Gb", "G", "Ab", "A", "Bb", "B"
 ];
@@ -19,6 +21,7 @@ export const OCTAVE_RANGE_OPTIONS = Array.from(
   (_, i) => MIN_OCTAVE_RANGE + i
 );
 export const DEFAULT_VOICING = "Drop 2 & 4";
+export const DEFAULT_VOICE_LEADING_MODE: VoiceLeadingMode = 'root_position';
 export const DEFAULT_CHORD_DURATION = "2n"; // Half note in Tone.js
 
 export const VOICING_TO_INDICES: Record<string, number[]> = {
