@@ -11,6 +11,10 @@ import { AdsrPanelContent } from './settings/AdsrPanelContent';
 import { EffectsPanelContent } from './settings/EffectsPanelContent';
 import { BorrowingMemoryToggle } from './settings/BorrowingMemoryToggle';
 import { IosInstallHintPortal } from './IosInstallHintPortal';
+import { isIphone } from '../utils/devicePlatform';
+
+const FOCUSABLE_SELECTOR =
+  'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -77,11 +81,37 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     if (!isOpen) return;
 
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') closeModal();
+      if (e.key === 'Escape') {
+        closeModal();
+        return;
+      }
+
+      if (e.key !== 'Tab') return;
+
+      const modal = modalRef.current;
+      if (!modal) return;
+
+      const focusable = modal.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR);
+      if (focusable.length === 0) return;
+
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      const active = document.activeElement;
+
+      if (e.shiftKey) {
+        if (active === first || !modal.contains(active)) {
+          e.preventDefault();
+          last.focus();
+        }
+      } else if (active === last) {
+        e.preventDefault();
+        first.focus();
+      }
     };
+
     document.addEventListener('keydown', onKeyDown);
     return () => document.removeEventListener('keydown', onKeyDown);
-  }, [isOpen, closeModal]);
+  }, [isOpen, closeModal, modalRef]);
 
   useEffect(() => {
     if (isOpen) {
@@ -290,7 +320,7 @@ export const MobileActionButtons: React.FC = () => {
       </div>
 
       <IosInstallHintPortal
-        isOpen={showIosInstallHint}
+        isOpen={showIosInstallHint && isIphone()}
         onDismiss={dismissIosInstallHint}
       />
 

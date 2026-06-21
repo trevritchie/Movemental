@@ -132,4 +132,19 @@ describe('DiagramCornerActions', () => {
     expect(screen.getByText(/Share button, then Add to Home Screen/i)).toBeInTheDocument();
     expect(screen.queryByText(/Safari/i)).not.toBeInTheDocument();
   });
+
+  it('does not show iOS install hint on desktop tier when enabled', () => {
+    vi.mocked(useLayoutTier).mockReturnValue('desktop');
+    vi.mocked(useFullscreen).mockReturnValue({
+      isFullscreen: false,
+      canFullscreen: true,
+      showIosInstallHint: true,
+      toggleFullscreen,
+      dismissIosInstallHint,
+    });
+
+    render(<DiagramCornerActions />);
+
+    expect(screen.queryByText(/Full Screen on iPhone/i)).not.toBeInTheDocument();
+  });
 });

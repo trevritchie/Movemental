@@ -44,11 +44,17 @@ vi.mock('../hooks/useFullscreen', () => ({
   })),
 }));
 
+vi.mock('../utils/devicePlatform', () => ({
+  isIphone: vi.fn(() => true),
+}));
+
 import { useFullscreen } from '../hooks/useFullscreen';
+import { isIphone } from '../utils/devicePlatform';
 
 describe('MobileActionButtons', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(isIphone).mockReturnValue(true);
     vi.mocked(useFullscreen).mockReturnValue({
       isFullscreen: false,
       canFullscreen: true,
@@ -119,7 +125,29 @@ describe('MobileActionButtons', () => {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
+  it('keeps keyboard focus inside the settings dialog on Tab', () => {
+    render(<MobileActionButtons />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Settings' }));
+    const dialog = screen.getByRole('dialog', { name: 'Settings' });
+    const focusable = dialog.querySelectorAll(
+      'button:not([disabled]), select:not([disabled])',
+    );
+    const first = focusable[0] as HTMLElement;
+    const last = focusable[focusable.length - 1] as HTMLElement;
+
+    last.focus();
+    fireEvent.keyDown(document, { key: 'Tab' });
+    expect(document.activeElement).toBe(first);
+
+    first.focus();
+    fireEvent.keyDown(document, { key: 'Tab', shiftKey: true });
+    expect(document.activeElement).toBe(last);
+    expect(dialog.contains(document.activeElement)).toBe(true);
+  });
+
   it('shows iOS install hint near the action column on iPhone', () => {
+    vi.mocked(isIphone).mockReturnValue(true);
     vi.mocked(useFullscreen).mockReturnValue({
       isFullscreen: false,
       canFullscreen: true,
@@ -132,5 +160,20 @@ describe('MobileActionButtons', () => {
 
     expect(screen.getByText(/Full Screen on iPhone/i)).toBeInTheDocument();
     expect(screen.getByText(/Share button, then Add to Home Screen/i)).toBeInTheDocument();
+  });
+
+  it('does not show iOS install hint when not on iPhone', () => {
+    vi.mocked(isIphone).mockReturnValue(false);
+    vi.mocked(useFullscreen).mockReturnValue({
+      isFullscreen: false,
+      canFullscreen: true,
+      showIosInstallHint: true,
+      toggleFullscreen,
+      dismissIosInstallHint,
+    });
+
+    render(<MobileActionButtons />);
+
+    expect(screen.queryByText(/Full Screen on iPhone/i)).not.toBeInTheDocument();
   });
 });

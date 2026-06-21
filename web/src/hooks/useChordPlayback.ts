@@ -321,6 +321,7 @@ export function useChordPlayback({
         activePitchesRef.current = [];
         setActivePitches([]);
         invalidateVoicingCache();
+        audioEngine.releaseActiveNotes();
         return;
       }
 

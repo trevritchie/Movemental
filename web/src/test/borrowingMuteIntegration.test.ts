@@ -181,6 +181,24 @@ describe('borrowing mute integration', () => {
       expect(muted.length).toBeGreaterThan(0);
     }
   });
+
+  it('muting all four lines yields no voiced pitches', () => {
+    const branch = chordManager.getChordByName('Branch')!;
+    const state = getInitialBorrowingState();
+    state.noteStates[1] = 'off';
+    state.noteStates[2] = 'off';
+    state.noteStates[3] = 'off';
+    state.noteStates[4] = 'off';
+
+    const voiced = computeVoicedWithOverlays(
+      branch,
+      state,
+      DRONE_SECOND_POSITION,
+      0
+    );
+
+    expect(voiced).toHaveLength(0);
+  });
 });
 
 describe('borrowing overlay integration', () => {
