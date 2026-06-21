@@ -84,6 +84,8 @@ interface ChordContextType {
   setVoiceLeadingMode: (mode: VoiceLeadingMode) => void;
   lastTapTilt: TiltSample;
   smoothBaseParallel: number;
+  lastPlayedVoicingLabel: string | null;
+  lastPlayedBassLabel: string | null;
   tiltStatus: TiltStatus;
   tiltSample: TiltSample;
   requestTiltPermission: () => Promise<void>;
@@ -281,6 +283,8 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
       setVoiceLeadingMode,
       lastTapTilt: playback.lastTapTilt,
       smoothBaseParallel: playback.smoothBaseParallel,
+      lastPlayedVoicingLabel: playback.lastPlayedVoicingLabel,
+      lastPlayedBassLabel: playback.lastPlayedBassLabel,
       tiltStatus: deviceTilt.status,
       tiltSample: deviceTilt.tilt,
       requestTiltPermission: deviceTilt.requestPermission,
@@ -328,6 +332,8 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
       voiceLeadingMode,
       playback.lastTapTilt,
       playback.smoothBaseParallel,
+      playback.lastPlayedVoicingLabel,
+      playback.lastPlayedBassLabel,
       deviceTilt.status,
       deviceTilt.tilt,
       deviceTilt.requestPermission,

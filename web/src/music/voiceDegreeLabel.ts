@@ -7,7 +7,7 @@
  */
 import type { Chord } from './ChordManager';
 import { borrowingLogic, type BorrowingState } from './BorrowingLogic';
-import type { VoiceLeadingMode } from '../context/types';
+import type { PlayStyle, VoiceLeadingMode } from '../context/types';
 import { computeEffectiveParallelSteps } from './smoothVoiceLeading';
 import {
   mapTiltToPositions,
@@ -16,7 +16,9 @@ import {
   positionLabelIndexFromParallelSteps,
   STATIC_POSITION_LEVEL_COUNT,
   tiltSampleFromLevels,
+  tiltVoicingLevelName,
   type TiltSample,
+  type TiltVoicingAnchor,
 } from './TiltVoicingEngine';
 import { getCachedTiltVoicedPitches } from './voicingCache';
 
@@ -35,6 +37,7 @@ export interface TiltBassLabelContext {
   voiceLeadingMode?: VoiceLeadingMode;
   smoothBaseParallel?: number;
   lastTapTilt?: TiltSample;
+  playStyle?: PlayStyle;
 }
 
 function resolveEffectiveTilt(
@@ -57,6 +60,13 @@ function resolveEffectiveTilt(
   );
   const { inputSteps } = mapTiltToPositions(tilt);
   return tiltSampleFromLevels(inputSteps, effectiveParallel);
+}
+
+function voicingAnchorForPlayStyle(playStyle?: PlayStyle): TiltVoicingAnchor {
+  if (playStyle === 'drone' || playStyle === 'click_and_hold') {
+    return 'pivot';
+  }
+  return 'contrary';
 }
 
 export function getFourthVoiceDegreeLabel(chord: Chord | null): string {
@@ -190,7 +200,7 @@ export function resolveTiltBassVoiceLine(
     context.tonalCenter,
     context.octaveRange,
     {
-      anchor: 'contrary',
+      anchor: voicingAnchorForPlayStyle(context.playStyle),
       previousChord: context.previousChord,
       voiceLeadingMode: context.voiceLeadingMode,
       smoothBaseParallel: context.smoothBaseParallel,
@@ -203,6 +213,45 @@ export function resolveTiltBassVoiceLine(
   ).pitchStructure;
   const line = voiceLineForLowestPitch(voiced, structure, chord);
   return line ?? pitchOnlyVoiceLine(effectiveTilt);
+}
+
+/** Live tilt parallel position for the IN THE BASS pill (pitch axis). */
+export function tiltBassPositionLabel(
+  tilt: TiltSample,
+  chord: Chord | null,
+  context?: TiltBassLabelContext
+): string {
+  const effectiveTilt = resolveEffectiveTilt(tilt, context);
+  const parallelSteps = parallelLevelFromTilt(effectiveTilt);
+  return getBassDegreeLabelForParallelSteps(parallelSteps, chord);
+}
+
+/** Voicing width committed at the last diagram tap. */
+export function lastPlayedVoicingReadout(playbackTilt: TiltSample): string {
+  return tiltVoicingLevelName(playbackTilt);
+}
+
+/** Bass degree committed at the last diagram tap (no direction arrow). */
+export function lastPlayedBassReadout(
+  playbackTilt: TiltSample,
+  chord: Chord | null
+): string {
+  const parallelSteps = parallelLevelFromTilt(playbackTilt);
+  return getVoiceDegreeLabel(
+    voiceLineForParallelSteps(parallelSteps),
+    chord
+  );
+}
+
+/** Committed voicing at last tap, e.g. "Drop 2 / 3rd". */
+export function formatLastPlayedTiltReadout(
+  playbackTilt: TiltSample,
+  chord: Chord | null
+): string {
+  return `${lastPlayedVoicingReadout(playbackTilt)} / ${lastPlayedBassReadout(
+    playbackTilt,
+    chord
+  )}`;
 }
 
 export function tiltBassDegreeLabel(

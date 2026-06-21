@@ -7,7 +7,7 @@ import {
 } from '../music/TiltVoicingEngine';
 import {
   bassDegreeLabelsForSelect,
-  tiltBassDegreeLabel,
+  tiltBassPositionLabel,
   TILT_BASS_DEGREE_MOBILE_MAX_LABEL,
 } from '../music/voiceDegreeLabel';
 import { useChordContext } from '../context/ChordContext';
@@ -15,6 +15,34 @@ import { DiagramOverlayPill } from './DiagramOverlayPill';
 
 /** Shared sizer so voicing and bass pills stay the same width. */
 const TOP_PILL_SIZER = TILT_VOICING_OVERLAY_MAX_LABEL;
+
+interface SoundingReadoutProps {
+  value: string;
+}
+
+/** Gray sub-label for the voicing committed at the last diagram tap. */
+const SoundingReadout: React.FC<SoundingReadoutProps> = ({ value }) => (
+  <span className="diagram-overlay-sounding">{value}</span>
+);
+
+interface TiltReadoutStackProps {
+  showSounding: boolean;
+  soundingLabel: string | null;
+  children: React.ReactNode;
+}
+
+const TiltReadoutStack: React.FC<TiltReadoutStackProps> = ({
+  showSounding,
+  soundingLabel,
+  children,
+}) => (
+  <div className="diagram-overlay-readout-stack">
+    {children}
+    {showSounding && soundingLabel && (
+      <SoundingReadout value={soundingLabel} />
+    )}
+  </div>
+);
 
 /**
  * Diagram overlay: voicing (top left) and bass degree (top right).
@@ -36,6 +64,8 @@ export const DiagramVoicingOverlay: React.FC = () => {
     voiceLeadingMode,
     lastTapTilt,
     smoothBaseParallel,
+    lastPlayedVoicingLabel,
+    lastPlayedBassLabel,
     tiltStatus,
     tiltSample,
     requestTiltPermission,
@@ -55,6 +85,7 @@ export const DiagramVoicingOverlay: React.FC = () => {
       voiceLeadingMode,
       smoothBaseParallel,
       lastTapTilt,
+      playStyle,
     }),
     [
       tonalCenter,
@@ -64,6 +95,7 @@ export const DiagramVoicingOverlay: React.FC = () => {
       voiceLeadingMode,
       smoothBaseParallel,
       lastTapTilt,
+      playStyle,
     ]
   );
 
@@ -121,12 +153,17 @@ export const DiagramVoicingOverlay: React.FC = () => {
     }
 
     return (
-      <span
-        className="diagram-overlay-readout"
-        title="Roll sets voicing width"
+      <TiltReadoutStack
+        showSounding={isTilt}
+        soundingLabel={lastPlayedVoicingLabel}
       >
-        {tiltVoicingOverlayLabel(tiltSample)}
-      </span>
+        <span
+          className="diagram-overlay-readout"
+          title="Roll sets voicing width"
+        >
+          {tiltVoicingOverlayLabel(tiltSample)}
+        </span>
+      </TiltReadoutStack>
     );
   };
 
@@ -150,12 +187,17 @@ export const DiagramVoicingOverlay: React.FC = () => {
     }
 
     return (
-      <span
-        className="diagram-overlay-readout"
-        title="Roll and pitch together set which chord tone is in the bass"
+      <TiltReadoutStack
+        showSounding={isTilt}
+        soundingLabel={lastPlayedBassLabel}
       >
-        {tiltBassDegreeLabel(tiltSample, selectedChord, tiltBassContext)}
-      </span>
+        <span
+          className="diagram-overlay-readout"
+          title="Pitch tilt sets which chord tone is in the bass"
+        >
+          {tiltBassPositionLabel(tiltSample, selectedChord, tiltBassContext)}
+        </span>
+      </TiltReadoutStack>
     );
   };
 

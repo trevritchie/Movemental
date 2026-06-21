@@ -189,7 +189,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
           <section className="settings-menu-section">
             <h3 className="settings-menu-section__title">
-              Voice Leading Settings
+              Voice Leading
             </h3>
             <p className="settings-menu-section__hint">
               Choose how parallel position is set when you move between chords.

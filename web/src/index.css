@@ -836,6 +836,35 @@ body.scroll-locked {
   z-index: 2;
 }
 
+.diagram-overlay-readout-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  min-width: 0;
+}
+
+.diagram-overlay-sounding {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  padding-top: 2px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  font-size: var(--overlay-label-size, 10.5px);
+  font-weight: 500;
+  line-height: 1.25;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.diagram-overlay-pill--top-left .diagram-overlay-pill__value,
+.diagram-overlay-pill--top-right .diagram-overlay-pill__value {
+  height: auto;
+}
+
 .diagram-corner-actions {
   position: absolute;
   inset: 0;
