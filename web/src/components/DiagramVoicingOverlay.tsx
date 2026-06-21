@@ -17,10 +17,11 @@ import { DiagramOverlayPill } from './DiagramOverlayPill';
 const TOP_PILL_SIZER = TILT_VOICING_OVERLAY_MAX_LABEL;
 
 /**
- * Phone-only overlay: voicing (top left) and bass degree (top right), mirroring
- * the clock/chord info anchored to the diagram bottom corners.
+ * Diagram overlay: voicing (top left) and bass degree (top right).
  */
 export const DiagramVoicingOverlay: React.FC = () => {
+  const bassMaxLabel = TILT_BASS_DEGREE_MOBILE_MAX_LABEL;
+
   const {
     playStyle,
     staticVoicingLevel,
@@ -39,7 +40,7 @@ export const DiagramVoicingOverlay: React.FC = () => {
 
   const isTilt = playStyle === 'tilt';
   const bassSelectLabels = React.useMemo(
-    () => bassDegreeLabelsForSelect(selectedChord, 'mobile'),
+    () => bassDegreeLabelsForSelect(selectedChord),
     [selectedChord]
   );
   const tiltBassContext = React.useMemo(
@@ -139,12 +140,7 @@ export const DiagramVoicingOverlay: React.FC = () => {
         className="diagram-overlay-readout"
         title="Roll and pitch together set which chord tone is in the bass"
       >
-        {tiltBassDegreeLabel(
-          tiltSample,
-          selectedChord,
-          'mobile',
-          tiltBassContext
-        )}
+        {tiltBassDegreeLabel(tiltSample, selectedChord, tiltBassContext)}
       </span>
     );
   };
@@ -161,7 +157,7 @@ export const DiagramVoicingOverlay: React.FC = () => {
       <DiagramOverlayPill
         label="IN THE BASS"
         corner="top-right"
-        sizerText={TILT_BASS_DEGREE_MOBILE_MAX_LABEL}
+        sizerText={bassMaxLabel}
       >
         {renderBassValue()}
       </DiagramOverlayPill>

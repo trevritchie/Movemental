@@ -15,6 +15,7 @@ import {
   computeDiagramOverlayMetrics,
 } from '../hooks/useDiagramOverlayMetrics';
 import { DiagramVoicingOverlay } from './DiagramVoicingOverlay';
+import { DiagramCornerActions } from './DiagramCornerActions';
 
 function piePath(r: number, slice: number): string {
   const d = r / Math.SQRT2;
@@ -186,7 +187,8 @@ export const ElementalDiagram: React.FC<{ children?: React.ReactNode }> = ({ chi
       style={{ opacity: isDiagramReady ? 1 : 0 }}
       data-layout-tier={layoutTier === 'phone' ? 'phone' : undefined}
     >
-      {layoutTier === 'phone' && <DiagramVoicingOverlay />}
+      <DiagramVoicingOverlay />
+      {layoutTier !== 'phone' && <DiagramCornerActions />}
       <svg
         viewBox={viewBox}
         className="diagram-svg"

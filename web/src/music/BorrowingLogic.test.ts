@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { BorrowingLogic, getInitialBorrowingState, type BorrowingState } from './BorrowingLogic';
+import { BorrowingLogic, getInitialBorrowingState, type BorrowingState, closestMidiWithPitchClass } from './BorrowingLogic';
 import { chordManager } from './ChordManager';
 
 describe('BorrowingLogic', () => {
@@ -119,7 +119,7 @@ describe('BorrowingLogic', () => {
       expect(structure[1]).toBe(4);
     });
 
-    it('getMutedPitchClasses uses borrowed pitch when line is muted', () => {
+    it('getMutedPitchClasses mutes natural and borrowed PC when line is off', () => {
       const branch = chordManager.getChordByName('Branch')!;
       const state = getInitialBorrowingState();
       state.noteStates[1] = 'off';
@@ -127,7 +127,7 @@ describe('BorrowingLogic', () => {
       state.borrowingDirections[1] = 'up';
 
       const muted = logic.getMutedPitchClasses(branch, state);
-      expect(muted.has(0)).toBe(false);
+      expect(muted.has(0)).toBe(true);
       expect(muted.has(2)).toBe(true);
     });
   });
@@ -163,6 +163,74 @@ describe('BorrowingLogic', () => {
       expect(combined.mutedPitchClasses).toEqual(
         logic.getMutedPitchClasses(branch, state)
       );
+    });
+  });
+
+  describe('closestMidiWithPitchClass', () => {
+    it('places B one semitone below C4 when borrowing down across the octave', () => {
+      expect(closestMidiWithPitchClass(60, 11)).toBe(59);
+    });
+
+    it('places D two semitones above C4 when borrowing up', () => {
+      expect(closestMidiWithPitchClass(60, 2)).toBe(62);
+    });
+
+    it('places C one semitone above B4 when borrowing up across the octave', () => {
+      expect(closestMidiWithPitchClass(71, 0)).toBe(72);
+    });
+  });
+
+  describe('applyBorrowingOverlay', () => {
+    it('replaces natural pitch class at the closest MIDI octave', () => {
+      chordManager.setTonalCenterOffset(10);
+      const branch = chordManager.getChordByName('Branch')!;
+      const neutral = [70, 79, 86, 89, 94];
+      const state = getInitialBorrowingState();
+      state.circlePositions[4] = 'up';
+      state.borrowingDirections[4] = 'up';
+
+      const { naturalPc, effectivePc } = logic.getVoicePitchClasses(
+        branch,
+        state,
+        4
+      );
+      expect(naturalPc).toBe(7);
+      expect(effectivePc).not.toBe(7);
+
+      const gIndex = neutral.findIndex((n) => n % 12 === 7);
+      expect(gIndex).toBeGreaterThanOrEqual(0);
+
+      const overlaid = logic.applyBorrowingOverlay(neutral, branch, state);
+      expect(overlaid[gIndex]).toBe(
+        closestMidiWithPitchClass(neutral[gIndex]!, effectivePc)
+      );
+      expect(overlaid.filter((n, i) => n !== neutral[i]).length).toBe(1);
+    });
+
+    it('borrows root down to the nearest B, not an octave above C', () => {
+      const branch = chordManager.getChordByName('Branch')!;
+      const neutral = [60, 64, 67, 69];
+      const state = getInitialBorrowingState();
+      state.circlePositions[1] = 'down';
+      state.borrowingDirections[1] = 'down';
+
+      const overlaid = logic.applyBorrowingOverlay(neutral, branch, state);
+      const cIndex = neutral.findIndex((n) => n % 12 === 0);
+      expect(cIndex).toBeGreaterThanOrEqual(0);
+      expect(overlaid[cIndex]).toBe(59);
+      expect(Math.abs(overlaid[cIndex]! - neutral[cIndex]!)).toBe(1);
+    });
+
+    it('returns neutral voicing when all lines are on neutral', () => {
+      const branch = chordManager.getChordByName('Branch')!;
+      const neutral = [58, 67, 74, 77, 82];
+      expect(
+        logic.applyBorrowingOverlay(
+          neutral,
+          branch,
+          getInitialBorrowingState()
+        )
+      ).toEqual(neutral);
     });
   });
 

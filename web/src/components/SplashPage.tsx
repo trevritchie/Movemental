@@ -6,8 +6,6 @@ import {
 } from '../audio/iosMediaChannel';
 import { useChordContext } from '../context/ChordContext';
 import { useLayoutTier } from '../hooks/useLayoutTier';
-import { primeHaptics } from '../audio/haptics';
-
 interface SplashPageProps {
   onEnter: () => void;
 }
@@ -42,10 +40,9 @@ export const SplashPage: React.FC<SplashPageProps> = ({ onEnter }) => {
   const handleStartTilt = () => {
     if (isStarting) return;
     // Must run inside the tap gesture: iOS only grants motion access from a
-    // user-initiated call, and switch haptics require a user gesture too.
+    // user-initiated call.
     void requestTiltPermission();
     setPlayStyle('tilt');
-    primeHaptics();
     handleStart();
   };
 

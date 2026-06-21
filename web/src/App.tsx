@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { TopBar } from './components/TopBar';
 import { ElementalDiagram } from './components/ElementalDiagram';
 import { ClockFace } from './components/ClockFace';
 import { BorrowingControls } from './components/BorrowingControls';
@@ -19,8 +18,6 @@ function AppContent() {
 
   return (
     <div className="app-container">
-      <TopBar />
-
       <div className="main-content">
         {isPhoneLayout ? (
           <ElementalDiagram>

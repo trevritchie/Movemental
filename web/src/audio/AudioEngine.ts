@@ -197,7 +197,7 @@ export class AudioEngine {
 
     if (retrigger) {
       // Tilt taps: full release + re-attack even when pitches are unchanged
-      // so each tap produces haptic and audible feedback.
+      // so each tap produces clear audible feedback.
       if (this.activeNotes.length > 0) {
         try {
           this.synth.triggerRelease(this.activeNotes, now);

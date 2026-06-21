@@ -1,12 +1,14 @@
 /**
  * Pure voicing path shared by playback and UI labels.
  *
- * Order: borrowing structure -> ladder voicing (TiltVoicingEngine) ->
- * post-filter mutes. Elemental chords need a resolved homeMidi anchor;
- * callers that already resolved once can pass `elemental` to avoid duplicate work.
+ * Neutral ladder voicing is computed once per anchor (tap or settings change).
+ * Borrowing and mutes are overlays on that MIDI spread, not tone-cycle rebuilds.
  */
 import type { Chord } from './ChordManager';
-import { borrowingLogic, type BorrowingState } from './BorrowingLogic';
+import {
+  borrowingLogic,
+  type BorrowingState,
+} from './BorrowingLogic';
 import {
   computeTiltVoicing,
   type TiltSample,
@@ -24,6 +26,76 @@ export interface ComputeTiltVoicedPitchesOptions {
   previousChord?: Chord | null;
   /** When set, skips a second resolveElementalPlayback call. */
   elemental?: ElementalPlaybackResolution;
+  /** When set, skip ladder voicing and apply borrow/mute overlays only. */
+  neutralVoicing?: number[];
+}
+
+function neutralPitchStructure(chord: Chord): (number | null)[] {
+  const structure: (number | null)[] = [null, null, null, null];
+  for (let i = 0; i < chord.pitches.length && i < 4; i++) {
+    structure[i] = chord.pitches[i];
+  }
+  return structure;
+}
+
+/**
+ * Full ladder voicing with all voices on and no borrowing (anchor base).
+ */
+export function computeNeutralTiltVoicing(
+  chord: Chord,
+  tilt: TiltSample,
+  tonalCenter: number,
+  octaveRange: number,
+  options: ComputeTiltVoicedPitchesOptions = {}
+): number[] {
+  const { anchor = 'contrary', previousChord = null, elemental } = options;
+  const pitchStructure = neutralPitchStructure(chord);
+
+  if (isElementalName(chord.name)) {
+    const resolved =
+      elemental ??
+      resolveElementalPlayback(
+        chord,
+        tonalCenter,
+        octaveRange,
+        previousChord
+      );
+    return computeTiltVoicing(
+      pitchStructure,
+      resolved.rootPitchClass,
+      tilt,
+      octaveRange,
+      tonalCenter,
+      resolved.homeMidi,
+      { anchor }
+    );
+  }
+
+  const rootPitchClass = chord.pitches[chord.rootPositionIndex] % 12;
+  return computeTiltVoicing(
+    pitchStructure,
+    rootPitchClass,
+    tilt,
+    octaveRange,
+    tonalCenter,
+    undefined,
+    { anchor }
+  );
+}
+
+/**
+ * Apply borrow/mute overlays to a precomputed neutral voicing.
+ */
+export function applyVoicingOverlays(
+  neutralVoicing: number[],
+  chord: Chord,
+  borrowingState: BorrowingState
+): number[] {
+  return borrowingLogic.applyVoicingOverlays(
+    neutralVoicing,
+    chord,
+    borrowingState
+  );
 }
 
 /**
@@ -37,41 +109,15 @@ export function computeTiltVoicedPitches(
   octaveRange: number,
   options: ComputeTiltVoicedPitchesOptions = {}
 ): number[] {
-  const { anchor = 'contrary', previousChord = null, elemental } = options;
-  const { pitchStructure, mutedPitchClasses } =
-    borrowingLogic.prepareVoicingInput(chord, borrowingState);
-
-  let voiced: number[];
-  if (isElementalName(chord.name)) {
-    const resolved =
-      elemental ??
-      resolveElementalPlayback(
-        chord,
-        tonalCenter,
-        octaveRange,
-        previousChord
-      );
-    voiced = computeTiltVoicing(
-      pitchStructure,
-      resolved.rootPitchClass,
+  const neutral =
+    options.neutralVoicing ??
+    computeNeutralTiltVoicing(
+      chord,
       tilt,
-      octaveRange,
       tonalCenter,
-      resolved.homeMidi,
-      { anchor }
-    );
-  } else {
-    const rootPitchClass = chord.pitches[chord.rootPositionIndex] % 12;
-    voiced = computeTiltVoicing(
-      pitchStructure,
-      rootPitchClass,
-      tilt,
       octaveRange,
-      tonalCenter,
-      undefined,
-      { anchor }
+      options
     );
-  }
 
-  return borrowingLogic.filterVoicingMutes(voiced, mutedPitchClasses);
+  return applyVoicingOverlays(neutral, chord, borrowingState);
 }

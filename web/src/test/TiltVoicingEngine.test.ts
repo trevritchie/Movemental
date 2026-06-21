@@ -6,6 +6,10 @@
 
 import { describe, it, expect } from 'vitest';
 import {
+  DEFAULT_TONAL_CENTER_OFFSET,
+  MIN_OCTAVE_RANGE,
+} from '../music/config';
+import {
   buildThinnedChain,
   buildToneCycle,
   ladderPitch,
@@ -18,6 +22,7 @@ import {
   TILT_VOICING_LEVEL_NAMES,
   parallelLevelFromTilt,
   positionLabelIndexFromParallelSteps,
+  MAX_TILT_PITCH_STEPS,
   FLAT_TILT,
 } from '../music/TiltVoicingEngine';
 
@@ -173,7 +178,11 @@ describe('tiltVoicingLevelName', () => {
 describe('tiltSampleFromLevels', () => {
   it('round-trips discrete voicing and position levels', () => {
     for (let inputSteps = 0; inputSteps <= 8; inputSteps++) {
-      for (let parallelSteps = 0; parallelSteps <= 3; parallelSteps++) {
+      for (
+        let parallelSteps = -MAX_TILT_PITCH_STEPS;
+        parallelSteps <= MAX_TILT_PITCH_STEPS;
+        parallelSteps++
+      ) {
         const sample = tiltSampleFromLevels(inputSteps, parallelSteps);
         expect(mapTiltToPositions(sample)).toEqual({
           inputSteps,
@@ -445,5 +454,55 @@ describe('computeTiltVoicing', () => {
     );
     expect(pivot).toEqual(buildThinnedChain(0, 9, BRANCH_CYCLE, 60));
     expect(Math.min(...contrary) % 12).toBe(Math.min(...pivot) % 12);
+  });
+});
+
+describe('octave range vs voicing ladder', () => {
+  const AUDIO_MIN_MIDI = 21;
+
+  it('transposes the full ladder down as octave range decreases', () => {
+    const low = computeTiltVoicing(BRANCH, 0, FLAT_TILT, MIN_OCTAVE_RANGE, 0);
+    const mid = computeTiltVoicing(BRANCH, 0, FLAT_TILT, OCTAVE_RANGE, 0);
+    expect(low).toEqual(mid.map((n) => n - 24));
+  });
+
+  it('still reaches Double Octave at the minimum octave range setting', () => {
+    const voiced = computeTiltVoicing(
+      BRANCH,
+      0,
+      FLAT_TILT,
+      MIN_OCTAVE_RANGE,
+      0
+    );
+    expect(voicingWidthFromTilt(FLAT_TILT)).toBe(9);
+    expect(voiced).toEqual([24, 33, 40, 43, 48]);
+    expect(Math.min(...voiced)).toBeGreaterThanOrEqual(AUDIO_MIN_MIDI);
+  });
+
+  it('exposes all nine roll widths at the minimum octave range setting', () => {
+    for (let inputSteps = 0; inputSteps <= 8; inputSteps++) {
+      const tilt = tiltSampleFromLevels(inputSteps, 0);
+      const voiced = computeTiltVoicing(
+        BRANCH,
+        0,
+        tilt,
+        MIN_OCTAVE_RANGE,
+        0
+      );
+      expect(voicingWidthFromTilt(tilt)).toBe(inputSteps + 1);
+      expect(tiltVoicingLevelName(tilt)).toBe(TILT_VOICING_LEVEL_NAMES[inputSteps]);
+      expect(voiced.length).toBeGreaterThan(0);
+    }
+  });
+
+  it('keeps default-register Double Octave within the audio engine floor', () => {
+    const voiced = computeTiltVoicing(
+      BRANCH,
+      0,
+      FLAT_TILT,
+      MIN_OCTAVE_RANGE,
+      DEFAULT_TONAL_CENTER_OFFSET
+    );
+    expect(Math.min(...voiced)).toBeGreaterThanOrEqual(AUDIO_MIN_MIDI);
   });
 });

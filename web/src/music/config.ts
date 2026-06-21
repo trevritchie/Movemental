@@ -12,6 +12,12 @@ export const NOTE_NAMES_SHARP = [
 // Default configurations
 export const DEFAULT_TONAL_CENTER_OFFSET = 10; // Bb
 export const DEFAULT_OCTAVE_RANGE = 2;
+export const MIN_OCTAVE_RANGE = 1;
+export const MAX_OCTAVE_RANGE = 4;
+export const OCTAVE_RANGE_OPTIONS = Array.from(
+  { length: MAX_OCTAVE_RANGE - MIN_OCTAVE_RANGE + 1 },
+  (_, i) => MIN_OCTAVE_RANGE + i
+);
 export const DEFAULT_VOICING = "Drop 2 & 4";
 export const DEFAULT_CHORD_DURATION = "2n"; // Half note in Tone.js
 
