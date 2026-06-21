@@ -17,6 +17,10 @@ export type DiagramOverlayCssVars = {
   '--overlay-title-size': string;
   '--overlay-subtitle-size': string;
   '--overlay-corner-max-w': string;
+  '--overlay-clock-size': string;
+  '--overlay-readout-max-w': string;
+  '--overlay-pill-padding-y': string;
+  '--overlay-pill-padding-x': string;
 };
 
 const clamp = (value: number, min: number, max: number): number =>
@@ -32,10 +36,17 @@ export const DEFAULT_OVERLAY_METRICS: DiagramOverlayCssVars = {
   '--overlay-title-size': '15px',
   '--overlay-subtitle-size': '12.5px',
   '--overlay-corner-max-w': '140px',
+  '--overlay-clock-size': '120px',
+  '--overlay-readout-max-w': '180px',
+  '--overlay-pill-padding-y': '6px',
+  '--overlay-pill-padding-x': '10px',
 };
 
 /**
  * Map diagram container dimensions to overlay sizing CSS variables.
+ *
+ * Bottom overlays may overlap the diagram vertically; sizing keeps each
+ * corner within half the width minus a center gutter for Fire and nodes.
  */
 export function computeDiagramOverlayMetrics(
   input: DiagramOverlayMetricsInput,
@@ -48,14 +59,37 @@ export function computeDiagramOverlayMetrics(
   const shortSide = Math.min(width, height);
   const insetX = clamp(Math.round(shortSide * 0.006), 2, 4);
   const insetY = clamp(Math.round(shortSide * 0.012), 4, 8);
-  const valueSize = clamp(shortSide * 0.034, 14, 17);
-  const labelSize = clamp(valueSize * 0.72, 10, 12);
-  const titleSize = valueSize;
-  const subtitleSize = clamp(valueSize * 0.82, 11.5, 14.5);
-  const cornerMaxW = Math.max(
-    80,
-    Math.round(width / 2 - insetX * 2),
+
+  const layoutScale = clamp(
+    Math.min(height / 480, width / 360),
+    0.78,
+    1,
   );
+
+  const valueSize = clamp(shortSide * 0.034 * layoutScale, 12, 17);
+  const labelSize = clamp(valueSize * 0.72, 9, 12);
+  const titleSize = valueSize;
+  const subtitleSize = clamp(valueSize * 0.82, 10.5, 14.5);
+
+  const centerGutter = clamp(Math.round(width * 0.14), 36, 56);
+  const maxCornerSpan = Math.max(
+    72,
+    Math.round((width - centerGutter) / 2 - insetX - 4),
+  );
+
+  const clockSize = Math.round(
+    clamp(width * 0.34, 72, Math.min(132, maxCornerSpan)),
+  );
+
+  const readoutMaxW = maxCornerSpan;
+
+  const cornerMaxW = Math.max(
+    72,
+    Math.round(Math.min(width * 0.44, maxCornerSpan)),
+  );
+
+  const pillPadY = clamp(Math.round(4 + layoutScale * 2), 4, 6);
+  const pillPadX = clamp(Math.round(7 + layoutScale * 3), 7, 10);
 
   return {
     '--overlay-inset': `${insetY}px`,
@@ -66,6 +100,10 @@ export function computeDiagramOverlayMetrics(
     '--overlay-title-size': `${titleSize.toFixed(1)}px`,
     '--overlay-subtitle-size': `${subtitleSize.toFixed(1)}px`,
     '--overlay-corner-max-w': `${cornerMaxW}px`,
+    '--overlay-clock-size': `${clockSize}px`,
+    '--overlay-readout-max-w': `${readoutMaxW}px`,
+    '--overlay-pill-padding-y': `${pillPadY}px`,
+    '--overlay-pill-padding-x': `${pillPadX}px`,
   };
 }
 

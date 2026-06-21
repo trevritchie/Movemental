@@ -283,9 +283,7 @@ body.scroll-locked {
     pointer-events: auto;
     display: grid;
     width: max-content;
-    max-width: calc(
-      100% - clamp(96px, 38vw, 148px) - 2 * var(--overlay-inset-x, 2px) - 8px
-    );
+    max-width: var(--overlay-readout-max-w, 180px);
     padding: 0;
     background: none;
     border: none;
@@ -374,8 +372,8 @@ body.scroll-locked {
     position: absolute;
     bottom: max(var(--overlay-inset-y, 4px), env(safe-area-inset-bottom, 0px));
     right: max(var(--overlay-inset-x, 2px), env(safe-area-inset-right, 0px));
-    width: clamp(96px, 38vw, 148px);
-    height: clamp(96px, 38vw, 148px);
+    width: var(--overlay-clock-size, 120px);
+    height: var(--overlay-clock-size, 120px);
     max-height: none;
     margin: 0;
     pointer-events: none;
@@ -632,7 +630,8 @@ body.scroll-locked {
   align-items: center;
   gap: 2px;
   max-width: var(--overlay-corner-max-w, 140px);
-  padding: 6px 10px;
+  padding: var(--overlay-pill-padding-y, 6px)
+           var(--overlay-pill-padding-x, 10px);
   border-radius: 12px;
   background: var(--overlay-pill-bg);
   backdrop-filter: blur(12px);

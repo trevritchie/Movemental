@@ -46,12 +46,33 @@ describe('computeDiagramOverlayMetrics', () => {
     );
   });
 
-  it('sets corner max width from diagram width without clock reservation', () => {
+  it('sizes clock from width with a center gutter for Fire', () => {
+    const metrics = computeDiagramOverlayMetrics({ width: 320, height: 379 });
+    const clock = parseInt(metrics['--overlay-clock-size'], 10);
+
+    expect(clock).toBeGreaterThanOrEqual(72);
+    expect(clock).toBeLessThanOrEqual(132);
+    expect(clock).toBeGreaterThan(90);
+  });
+
+  it('keeps readout and clock within horizontal corner spans', () => {
+    const metrics = computeDiagramOverlayMetrics({ width: 320, height: 379 });
+    const clock = parseInt(metrics['--overlay-clock-size'], 10);
+    const readoutMax = parseInt(metrics['--overlay-readout-max-w'], 10);
+    const insetX = parseInt(metrics['--overlay-inset-x'], 10);
+    const centerGutter = 45;
+    const maxHalf = (320 - centerGutter) / 2 - insetX - 4;
+
+    expect(readoutMax).toBeLessThanOrEqual(Math.ceil(maxHalf) + 1);
+    expect(clock).toBeLessThanOrEqual(Math.ceil(maxHalf) + 1);
+    expect(readoutMax + clock + centerGutter).toBeLessThanOrEqual(320 + 8);
+  });
+
+  it('sets corner max width from diagram width for top pills', () => {
     const metrics = computeDiagramOverlayMetrics({ width: 320, height: 480 });
     const cornerMax = parseInt(metrics['--overlay-corner-max-w'], 10);
-    const insetX = parseInt(metrics['--overlay-inset-x'], 10);
 
-    expect(cornerMax).toBeGreaterThanOrEqual(80);
-    expect(cornerMax).toBeLessThanOrEqual(320 - insetX * 2);
+    expect(cornerMax).toBeGreaterThanOrEqual(72);
+    expect(cornerMax).toBeLessThanOrEqual(160);
   });
 });

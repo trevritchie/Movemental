@@ -121,6 +121,15 @@ describe('Responsive Layout CSS', () => {
       /\.clock-container\.mobile-overlay \.clock-info[\s\S]*text-align:\s*center/,
     );
     expect(cssContent).toMatch(
+      /\.clock-container\.mobile-overlay \.clock-svg[\s\S]*var\(--overlay-clock-size/,
+    );
+    expect(cssContent).toMatch(
+      /\.clock-container\.mobile-overlay \.diagram-chord-readout[\s\S]*var\(--overlay-readout-max-w/,
+    );
+    expect(cssContent).toMatch(
+      /\.diagram-overlay-pill[\s\S]*var\(--overlay-pill-padding-y/,
+    );
+    expect(cssContent).toMatch(
       /\.diagram-chord-readout__sizer[\s\S]*visibility:\s*hidden/,
     );
   });
