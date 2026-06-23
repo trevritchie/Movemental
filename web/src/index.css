@@ -1966,3 +1966,203 @@ input[type="range"] {
     padding-right: env(safe-area-inset-right);
   }
 }
+
+/* Session recording controls */
+.record-control-root {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.record-control {
+  position: relative;
+}
+
+.record-control--active {
+  border-color: rgba(251, 191, 36, 0.45);
+  box-shadow: 0 0 12px rgba(251, 191, 36, 0.2);
+}
+
+.record-control__dot {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #ef4444;
+  box-shadow: 0 0 8px rgba(239, 68, 68, 0.65);
+  animation: record-dot-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes record-dot-pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.55;
+    transform: scale(0.85);
+  }
+}
+
+.record-control__rec-label {
+  position: absolute;
+  bottom: -2px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.55rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: #f87171;
+  line-height: 1;
+  pointer-events: none;
+}
+
+.record-control__timer {
+  font-size: 0.65rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-secondary);
+  line-height: 1;
+  pointer-events: none;
+}
+
+.record-control__hint {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 0;
+  width: min(240px, 70vw);
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: rgba(24, 24, 27, 0.92);
+  border: 1px solid var(--panel-border);
+  font-size: 0.72rem;
+  line-height: 1.4;
+  color: var(--text-secondary);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+  z-index: 5;
+  pointer-events: none;
+}
+
+.record-control__error {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 0;
+  width: min(240px, 70vw);
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  font-size: 0.72rem;
+  line-height: 1.4;
+  color: #fca5a5;
+  z-index: 5;
+}
+
+.record-review {
+  position: absolute;
+  bottom: calc(100% + 10px);
+  left: 0;
+  width: min(280px, 85vw);
+  padding: 12px;
+  border-radius: 12px;
+  background: rgba(24, 24, 27, 0.95);
+  border: 1px solid var(--panel-border);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  z-index: 6;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.record-control-root--mobile .record-review {
+  right: 0;
+  left: auto;
+}
+
+.record-review__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.record-review__title {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.record-review__close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  min-height: 32px;
+  padding: 4px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.record-review__close:hover,
+.record-review__close:focus-visible {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-primary);
+}
+
+.record-review__player {
+  width: 100%;
+  height: 36px;
+}
+
+.record-review__actions {
+  display: flex;
+  gap: 8px;
+}
+
+.record-review__download,
+.record-review__new {
+  flex: 1;
+  min-height: 36px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.record-review__download {
+  background: rgba(155, 114, 248, 0.12);
+  border: 1px solid rgba(155, 114, 248, 0.35);
+  color: #c084fc;
+}
+
+.record-review__new {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--panel-border);
+  color: var(--text-primary);
+}
+
+.record-review__download:hover,
+.record-review__download:focus-visible {
+  background: rgba(155, 114, 248, 0.2);
+}
+
+.record-review__new:hover,
+.record-review__new:focus-visible {
+  background: rgba(255, 255, 255, 0.1);
+}
+

@@ -3,6 +3,7 @@ import {
   unlockIosMediaChannel,
   waitForIosMediaChannel,
 } from './iosMediaChannel';
+import { SessionRecorder } from './SessionRecorder';
 
 const devLog = (...args: unknown[]) => {
   if (import.meta.env.DEV) {
@@ -25,6 +26,7 @@ export class AudioEngine {
   private eq: Tone.EQ3 | null = null;
   private compressor: Tone.Compressor | null = null;
   private limiter: Tone.Limiter | null = null;
+  private sessionRecorder: SessionRecorder | null = null;
   private isReady: boolean = false;
   private activeNotes: string[] = [];
   private isPointerDown: boolean = false;
@@ -127,8 +129,55 @@ export class AudioEngine {
     this.synth.maxPolyphony = 12; // perfectly sized for 4-note voicing + release overlaps
     this.synth.connect(this.filter);
 
+    this.ensureSessionRecorder();
+
     this.isReady = true;
     devLog('[AudioEngine] Optimized Premium PolySynth (Synth) & Master Filter ready');
+  }
+
+  private ensureSessionRecorder(): void {
+    if (!this.limiter || this.sessionRecorder) {
+      return;
+    }
+
+    const recorder = SessionRecorder.create();
+    if (!recorder) {
+      devWarn('[AudioEngine] Session recording is not supported in this browser');
+      return;
+    }
+
+    recorder.attachSource(this.limiter);
+    this.sessionRecorder = recorder;
+    devLog('[AudioEngine] Session recorder attached to master bus');
+  }
+
+  public isRecordingSupported(): boolean {
+    return SessionRecorder.isSupported();
+  }
+
+  public async startRecording(): Promise<void> {
+    if (!this.isReady || !this.limiter) {
+      await this.startContext();
+    }
+
+    this.ensureSessionRecorder();
+
+    if (!this.sessionRecorder) {
+      throw new Error('Session recording is not supported in this browser');
+    }
+
+    await this.sessionRecorder.start();
+    devLog('[AudioEngine] Session recording started');
+  }
+
+  public async stopRecording(): Promise<Blob> {
+    if (!this.sessionRecorder) {
+      throw new Error('Session recorder is not initialized');
+    }
+
+    const blob = await this.sessionRecorder.stop();
+    devLog('[AudioEngine] Session recording stopped');
+    return blob;
   }
 
   public async startContext() {

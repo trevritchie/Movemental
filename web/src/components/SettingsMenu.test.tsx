@@ -14,7 +14,18 @@ const dismissIosInstallHint = vi.fn();
 vi.mock('../audio/AudioEngine', () => ({
   audioEngine: {
     releaseActiveNotes: vi.fn(),
+    isRecordingSupported: vi.fn(() => true),
+    startRecording: vi.fn(async () => undefined),
+    stopRecording: vi.fn(async () => new Blob(['test'], { type: 'audio/webm' })),
   },
+}));
+
+vi.mock('./RecordControl', () => ({
+  RecordControl: () => (
+    <button type="button" aria-label="Start recording">
+      Record
+    </button>
+  ),
 }));
 
 vi.mock('../context/ChordContext', () => ({

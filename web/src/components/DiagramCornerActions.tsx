@@ -6,6 +6,7 @@ import { useFullscreen } from '../hooks/useFullscreen';
 import { SettingsModal } from './SettingsMenu';
 import { useSettingsMenu } from '../hooks/useSettingsMenu';
 import { IosInstallHintPortal } from './IosInstallHintPortal';
+import { RecordControl } from './RecordControl';
 
 /** Panic, settings, and fullscreen controls for desktop/tablet diagram corners. */
 export const DiagramCornerActions: React.FC = () => {
@@ -32,6 +33,7 @@ export const DiagramCornerActions: React.FC = () => {
     <>
       <div className="diagram-corner-actions" aria-label="Diagram controls">
         <div className="diagram-corner-actions--bottom-left">
+          <RecordControl variant="diagram" />
           <button
             ref={triggerRef}
             type="button"

@@ -15,6 +15,7 @@ import { IosInstallHintPortal } from './IosInstallHintPortal';
 import { isIphone } from '../utils/devicePlatform';
 
 import { useSettingsMenu } from '../hooks/useSettingsMenu';
+import { RecordControl } from './RecordControl';
 
 const FOCUSABLE_SELECTOR =
   'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
@@ -281,6 +282,7 @@ export const MobileActionButtons: React.FC = () => {
         >
           <Square size={14} fill="currentColor" />
         </button>
+        <RecordControl variant="mobile" />
         <button
           ref={triggerRef}
           type="button"
