@@ -17,20 +17,35 @@ import { useState, useEffect, useRef, useCallback, type RefObject } from 'react'
 import { chordManager, type Chord } from '../music/ChordManager';
 import { type BorrowingState } from '../music/BorrowingLogic';
 import {
+  DEFAULT_STATIC_POSITION_LEVEL,
+  DEFAULT_STATIC_VOICING_LEVEL,
+  FLAT_TILT,
   mapTiltToPositions,
+  MAX_TILT_PITCH_STEPS,
+  parallelLevelFromTilt,
   parallelStepsFromStaticPositionLevel,
+  staticLevelsFromTilt,
+  staticPositionLevelFromParallelSteps,
   tiltSampleFromLevels,
   type TiltSample,
 } from '../music/TiltVoicingEngine';
 import {
   applyVoicingOverlays,
   computeNeutralTiltVoicing,
+  resolveVoicingRoot,
   type ElementalPlaybackResolution,
 } from '../music/tiltVoicingPlayback';
+import {
+  resolveSmoothParallelSteps,
+} from '../music/smoothVoiceLeading';
 import { invalidateVoicingCache } from '../music/voicingCache';
+import {
+  lastPlayedBassReadout,
+  lastPlayedVoicingReadout,
+} from '../music/voiceDegreeLabel';
 import { audioEngine } from '../audio/AudioEngine';
 import { unlockIosMediaChannel } from '../audio/iosMediaChannel';
-import type { PlayStyle } from '../context/types';
+import type { PlayStyle, VoiceLeadingMode } from '../context/types';
 import { isElementalName, resolveElementalPlayback } from '../music/elementalRoot';
 
 interface UseChordPlaybackOptions {
@@ -45,6 +60,8 @@ interface UseChordPlaybackOptions {
   staticVoicingLevelRef: RefObject<number>;
   staticPositionLevelRef: RefObject<number>;
   tonalCenterRef: RefObject<number>;
+  voiceLeadingModeRef: RefObject<VoiceLeadingMode>;
+  setStaticPositionLevel: (level: number) => void;
 }
 
 function pitchesEqual(a: number[], b: number[]): boolean {
@@ -55,9 +72,22 @@ function pitchesEqual(a: number[], b: number[]): boolean {
   return true;
 }
 
+const clamp = (value: number, min: number, max: number): number =>
+  Math.min(max, Math.max(min, value));
+
 interface PlaybackResolution {
   displayChord: Chord;
   elemental?: ElementalPlaybackResolution;
+}
+
+function tiltFromStaticLevels(
+  voicingLevel: number,
+  positionLevel: number
+): TiltSample {
+  return tiltSampleFromLevels(
+    voicingLevel,
+    parallelStepsFromStaticPositionLevel(positionLevel)
+  );
 }
 
 export function useChordPlayback({
@@ -69,12 +99,22 @@ export function useChordPlayback({
   staticVoicingLevelRef,
   staticPositionLevelRef,
   tonalCenterRef,
+  voiceLeadingModeRef,
+  setStaticPositionLevel,
 }: UseChordPlaybackOptions) {
   const [playStyle, setPlayStyle] = useState<PlayStyle>('drone');
   const [activePitches, setActivePitches] = useState<(number | null)[]>([]);
   const [previousPlayedChord, setPreviousPlayedChord] = useState<Chord | null>(
     null
   );
+  const [lastTapTilt, setLastTapTilt] = useState<TiltSample>(FLAT_TILT);
+  const [smoothBaseParallel, setSmoothBaseParallel] = useState(0);
+  const [lastPlayedVoicingLabel, setLastPlayedVoicingLabel] = useState<
+    string | null
+  >(null);
+  const [lastPlayedBassLabel, setLastPlayedBassLabel] = useState<
+    string | null
+  >(null);
 
   const isPointerDownRef = useRef(false);
   const playStyleRef = useRef(playStyle);
@@ -83,11 +123,18 @@ export function useChordPlayback({
   /** Mirror of activePitches for skipIfUnchanged without re-rendering. */
   const activePitchesRef = useRef<number[]>([]);
   /** Tilt sample locked at last diagram pointer trigger (tilt mode). */
-  const playbackTiltRef = useRef<TiltSample>({ x: 0, y: 0 });
+  const playbackTiltRef = useRef<TiltSample>(FLAT_TILT);
   /** Neutral voiced MIDI spread for overlay borrow/mute edits. */
   const neutralVoicingRef = useRef<number[]>([]);
   /** Detect stale anchors when chord or register settings change. */
   const anchorKeyRef = useRef<string>('');
+  /** Raw tilt at the tap that committed the previous chord. */
+  const lastTapTiltRef = useRef<TiltSample>(FLAT_TILT);
+  /** Winning parallel steps from smooth search (before pitch delta). */
+  const smoothBaseParallelRef = useRef(0);
+  /** Static control levels at the previous chord commit. */
+  const lastStaticVoicingLevelRef = useRef(DEFAULT_STATIC_VOICING_LEVEL);
+  const lastStaticPositionLevelRef = useRef(DEFAULT_STATIC_POSITION_LEVEL);
 
   const buildAnchorKey = useCallback(
     (displayChord: Chord, style: PlayStyle, tilt: TiltSample): string => {
@@ -104,16 +151,17 @@ export function useChordPlayback({
           parallelSteps,
         ].join('|');
       }
+      const { voicingLevel, positionLevel } = staticLevelsFromTilt(tilt);
       return [
         displayChord.name,
         tonalCenter,
         octaveRange,
         'static',
-        staticVoicingLevelRef.current,
-        staticPositionLevelRef.current,
+        voicingLevel,
+        positionLevel,
       ].join('|');
     },
-    [tonalCenterRef, staticVoicingLevelRef, staticPositionLevelRef]
+    [tonalCenterRef]
   );
 
   const computeNeutralVoicing = useCallback(
@@ -142,11 +190,9 @@ export function useChordPlayback({
   const resolvePlaybackTilt = useCallback(
     (style: PlayStyle, fromPointer: boolean): TiltSample => {
       if (style !== 'tilt') {
-        return tiltSampleFromLevels(
+        return tiltFromStaticLevels(
           staticVoicingLevelRef.current,
-          parallelStepsFromStaticPositionLevel(
-            staticPositionLevelRef.current
-          )
+          staticPositionLevelRef.current
         );
       }
       if (fromPointer) {
@@ -156,6 +202,139 @@ export function useChordPlayback({
     },
     [rawTiltRef, staticVoicingLevelRef, staticPositionLevelRef]
   );
+
+  const getBaselineTilt = useCallback((style: PlayStyle): TiltSample => {
+    if (style === 'tilt') {
+      return lastTapTiltRef.current;
+    }
+    return tiltFromStaticLevels(
+      lastStaticVoicingLevelRef.current,
+      lastStaticPositionLevelRef.current
+    );
+  }, []);
+
+  const getCurrentControlTilt = useCallback(
+    (style: PlayStyle): TiltSample => {
+      if (style === 'tilt') {
+        return { ...rawTiltRef.current };
+      }
+      return tiltFromStaticLevels(
+        staticVoicingLevelRef.current,
+        staticPositionLevelRef.current
+      );
+    },
+    [rawTiltRef, staticVoicingLevelRef, staticPositionLevelRef]
+  );
+
+  const syncStaticPositionLevel = useCallback(
+    (effectiveParallel: number) => {
+      const newLevel = staticPositionLevelFromParallelSteps(effectiveParallel);
+      staticPositionLevelRef.current = newLevel;
+      setStaticPositionLevel(newLevel);
+    },
+    [setStaticPositionLevel, staticPositionLevelRef]
+  );
+
+  const applySmoothVoiceLeading = useCallback(
+    (
+      displayChord: Chord,
+      style: PlayStyle,
+      elemental?: ElementalPlaybackResolution
+    ): TiltSample => {
+      const baselineTilt = getBaselineTilt(style);
+      const currentTilt = getCurrentControlTilt(style);
+      const anchor = style === 'tilt' ? 'contrary' : 'pivot';
+      const { rootPitchClass, homeMidi, pitchStructure } = resolveVoicingRoot(
+        displayChord,
+        tonalCenterRef.current,
+        chordManager.getOctaveRange(),
+        previousChordRef.current,
+        elemental
+      );
+
+      const smoothParallel = resolveSmoothParallelSteps(
+        neutralVoicingRef.current,
+        pitchStructure,
+        rootPitchClass,
+        baselineTilt,
+        tonalCenterRef.current,
+        chordManager.getOctaveRange(),
+        anchor,
+        homeMidi
+      );
+
+      const parallelDelta =
+        parallelLevelFromTilt(currentTilt) -
+        parallelLevelFromTilt(baselineTilt);
+      const effectiveParallel = clamp(
+        smoothParallel + parallelDelta,
+        -MAX_TILT_PITCH_STEPS,
+        MAX_TILT_PITCH_STEPS
+      );
+
+      const { inputSteps: currentWidth } = mapTiltToPositions(currentTilt);
+      const effectiveTilt = tiltSampleFromLevels(
+        currentWidth,
+        effectiveParallel
+      );
+
+      smoothBaseParallelRef.current = effectiveParallel;
+      setSmoothBaseParallel(effectiveParallel);
+
+      if (style !== 'tilt') {
+        syncStaticPositionLevel(effectiveParallel);
+      }
+
+      return effectiveTilt;
+    },
+    [
+      getBaselineTilt,
+      getCurrentControlTilt,
+      syncStaticPositionLevel,
+      tonalCenterRef,
+    ]
+  );
+
+  /**
+   * Keep the smooth voicing layout when re-tapping the same chord.
+   * Applies pitch/roll delta since the last commit on top of smoothBase.
+   */
+  const preserveSameChordSmoothTilt = useCallback(
+    (style: PlayStyle): TiltSample => {
+      const currentTilt = getCurrentControlTilt(style);
+      const parallelDelta =
+        parallelLevelFromTilt(currentTilt) -
+        parallelLevelFromTilt(lastTapTiltRef.current);
+      const effectiveParallel = clamp(
+        smoothBaseParallelRef.current + parallelDelta,
+        -MAX_TILT_PITCH_STEPS,
+        MAX_TILT_PITCH_STEPS
+      );
+      const { inputSteps } = mapTiltToPositions(currentTilt);
+      const effectiveTilt = tiltSampleFromLevels(
+        inputSteps,
+        effectiveParallel
+      );
+
+      if (style !== 'tilt') {
+        syncStaticPositionLevel(effectiveParallel);
+      }
+
+      return effectiveTilt;
+    },
+    [getCurrentControlTilt, syncStaticPositionLevel]
+  );
+
+  const resetVoiceLeadingSession = useCallback(() => {
+    lastTapTiltRef.current = FLAT_TILT;
+    setLastTapTilt(FLAT_TILT);
+    smoothBaseParallelRef.current = 0;
+    setSmoothBaseParallel(0);
+    setLastPlayedVoicingLabel(null);
+    setLastPlayedBassLabel(null);
+    lastStaticVoicingLevelRef.current = DEFAULT_STATIC_VOICING_LEVEL;
+    lastStaticPositionLevelRef.current = DEFAULT_STATIC_POSITION_LEVEL;
+  }, []);
 
   const changePlayStyle = useCallback((style: PlayStyle) => {
     if (playStyleRef.current === style) {
@@ -169,8 +348,9 @@ export function useChordPlayback({
     anchorKeyRef.current = '';
     neutralVoicingRef.current = [];
     invalidateVoicingCache();
+    resetVoiceLeadingSession();
     setPlayStyle(style);
-  }, []);
+  }, [resetVoiceLeadingSession]);
 
   const resolveForPlayback = useCallback(
     (chord: Chord): PlaybackResolution => {
@@ -211,12 +391,6 @@ export function useChordPlayback({
     []
   );
 
-  /**
-   * Route voiced MIDI to the correct AudioEngine mode.
-   *
-   * click_and_hold splits by source: diagram pointer sustains until pointer-up;
-   * borrowing/settings sliders use timed playNotes previews.
-   */
   const dispatchAudio = useCallback(
     (
       pitches: number[],
@@ -261,10 +435,34 @@ export function useChordPlayback({
     []
   );
 
+  const updateVoiceLeadingBaseline = useCallback(
+    (style: PlayStyle, playbackTilt: TiltSample) => {
+      if (style === 'tilt') {
+        lastTapTiltRef.current = { ...rawTiltRef.current };
+        setLastTapTilt(lastTapTiltRef.current);
+      } else {
+        const { voicingLevel, positionLevel } =
+          staticLevelsFromTilt(playbackTilt);
+        lastStaticVoicingLevelRef.current = voicingLevel;
+        lastStaticPositionLevelRef.current = positionLevel;
+        lastTapTiltRef.current = playbackTilt;
+        setLastTapTilt(playbackTilt);
+      }
+
+      if (voiceLeadingModeRef.current === 'smooth') {
+        const committedParallel = parallelLevelFromTilt(playbackTilt);
+        smoothBaseParallelRef.current = committedParallel;
+        setSmoothBaseParallel(committedParallel);
+      }
+    },
+    [rawTiltRef, voiceLeadingModeRef]
+  );
+
   const commitPlayback = useCallback(
     (
       displayChord: Chord,
       pitches: number[],
+      playbackTilt: TiltSample,
       options: {
         retrigger?: boolean;
         skipIfUnchanged?: boolean;
@@ -277,9 +475,16 @@ export function useChordPlayback({
       activePitchesRef.current = pitches;
       setActivePitches(pitches);
       invalidateVoicingCache();
+      updateVoiceLeadingBaseline(playStyleRef.current, playbackTilt);
+      if (playStyleRef.current === 'tilt') {
+        setLastPlayedVoicingLabel(lastPlayedVoicingReadout(playbackTilt));
+        setLastPlayedBassLabel(
+          lastPlayedBassReadout(playbackTilt, displayChord)
+        );
+      }
       dispatchAudio(pitches, playStyleRef.current, options);
     },
-    [dispatchAudio, setSelectedChord]
+    [dispatchAudio, setSelectedChord, updateVoiceLeadingBaseline]
   );
 
   const voiceAndPlay = useCallback(
@@ -295,10 +500,47 @@ export function useChordPlayback({
       const { displayChord, elemental } = resolveForPlayback(chord);
       const style = playStyleRef.current;
       const fromPointer = options.fromPointer ?? false;
-      const playbackTilt = resolvePlaybackTilt(style, fromPointer);
+      let playbackTilt = resolvePlaybackTilt(style, fromPointer);
       const anchorKey = buildAnchorKey(displayChord, style, playbackTilt);
       const needsReanchor =
         fromPointer || anchorKeyRef.current !== anchorKey;
+      const isChordChange =
+        previousChordRef.current !== null &&
+        previousChordRef.current.name !== displayChord.name;
+
+      if (
+        needsReanchor &&
+        voiceLeadingModeRef.current === 'smooth' &&
+        isChordChange &&
+        neutralVoicingRef.current.length > 0
+      ) {
+        playbackTilt = applySmoothVoiceLeading(
+          displayChord,
+          style,
+          elemental
+        );
+        if (style === 'tilt') {
+          playbackTiltRef.current = playbackTilt;
+        }
+      } else if (
+        needsReanchor &&
+        voiceLeadingModeRef.current === 'smooth' &&
+        !isChordChange &&
+        neutralVoicingRef.current.length > 0
+      ) {
+        playbackTilt = preserveSameChordSmoothTilt(style);
+        if (style === 'tilt') {
+          playbackTiltRef.current = playbackTilt;
+        }
+      } else if (
+        needsReanchor &&
+        voiceLeadingModeRef.current === 'smooth' &&
+        neutralVoicingRef.current.length === 0
+      ) {
+        const baseParallel = parallelLevelFromTilt(playbackTilt);
+        smoothBaseParallelRef.current = baseParallel;
+        setSmoothBaseParallel(baseParallel);
+      }
 
       if (needsReanchor) {
         neutralVoicingRef.current = computeNeutralVoicing(
@@ -307,7 +549,11 @@ export function useChordPlayback({
           playbackTilt,
           elemental
         );
-        anchorKeyRef.current = anchorKey;
+        anchorKeyRef.current = buildAnchorKey(
+          displayChord,
+          style,
+          playbackTilt
+        );
       }
 
       const pitches = computeVoicedPitchesFromAnchor(displayChord, state);
@@ -319,20 +565,25 @@ export function useChordPlayback({
         activePitchesRef.current = [];
         setActivePitches([]);
         invalidateVoicingCache();
+        updateVoiceLeadingBaseline(style, playbackTilt);
         audioEngine.releaseActiveNotes();
         return;
       }
 
-      commitPlayback(displayChord, pitches, options);
+      commitPlayback(displayChord, pitches, playbackTilt, options);
     },
     [
       resolveForPlayback,
       resolvePlaybackTilt,
       buildAnchorKey,
+      applySmoothVoiceLeading,
+      preserveSameChordSmoothTilt,
       computeNeutralVoicing,
       computeVoicedPitchesFromAnchor,
       commitPlayback,
       setSelectedChord,
+      updateVoiceLeadingBaseline,
+      voiceLeadingModeRef,
     ]
   );
 
@@ -408,6 +659,10 @@ export function useChordPlayback({
     setPlayStyle: changePlayStyle,
     activePitches,
     previousPlayedChord,
+    lastTapTilt,
+    smoothBaseParallel,
+    lastPlayedVoicingLabel,
+    lastPlayedBassLabel,
     playAndDisplayChord,
     handleChordPointerDown,
     handleChordPointerUp,

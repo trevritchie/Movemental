@@ -10,6 +10,7 @@ import { useFullscreen } from '../hooks/useFullscreen';
 import { AdsrPanelContent } from './settings/AdsrPanelContent';
 import { EffectsPanelContent } from './settings/EffectsPanelContent';
 import { BorrowingMemoryToggle } from './settings/BorrowingMemoryToggle';
+import { VoiceLeadingToggle } from './settings/VoiceLeadingToggle';
 import { IosInstallHintPortal } from './IosInstallHintPortal';
 import { isIphone } from '../utils/devicePlatform';
 
@@ -184,6 +185,16 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 </select>
               </label>
             </div>
+          </section>
+
+          <section className="settings-menu-section">
+            <h3 className="settings-menu-section__title">
+              Voice Leading
+            </h3>
+            <p className="settings-menu-section__hint">
+              Choose how parallel position is set when you move between chords.
+            </p>
+            <VoiceLeadingToggle />
           </section>
 
           <section className="settings-menu-section">

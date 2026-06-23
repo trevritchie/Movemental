@@ -5,10 +5,12 @@
  * within the same voicing level hits the cache. Invalidated on every chord
  * commit because previousPlayedChord affects elemental resolution.
  */
+import type { VoiceLeadingMode } from '../context/types';
 import type { BorrowingState } from './BorrowingLogic';
 import type { Chord } from './ChordManager';
 import {
   mapTiltToPositions,
+  parallelLevelFromTilt,
   type TiltSample,
   type TiltVoicingAnchor,
 } from './TiltVoicingEngine';
@@ -37,9 +39,14 @@ function cacheKey(
   tonalCenter: number,
   octaveRange: number,
   anchor: TiltVoicingAnchor,
-  previousChordName: string | null
+  previousChordName: string | null,
+  voiceLeadingMode: VoiceLeadingMode | undefined,
+  smoothBaseParallel: number | undefined,
+  lastTapTilt: TiltSample | undefined
 ): string {
   const { inputSteps, parallelSteps } = mapTiltToPositions(tilt);
+  const lastTapParallel =
+    lastTapTilt !== undefined ? parallelLevelFromTilt(lastTapTilt) : '';
   return [
     chord.name,
     chord.rootPositionIndex,
@@ -50,6 +57,9 @@ function cacheKey(
     octaveRange,
     anchor,
     previousChordName ?? '',
+    voiceLeadingMode ?? '',
+    smoothBaseParallel ?? '',
+    lastTapParallel,
   ].join('|');
 }
 
@@ -70,6 +80,9 @@ export function getCachedTiltVoicedPitches(
     anchor?: TiltVoicingAnchor;
     previousChord?: Chord | null;
     elemental?: ElementalPlaybackResolution;
+    voiceLeadingMode?: VoiceLeadingMode;
+    smoothBaseParallel?: number;
+    lastTapTilt?: TiltSample;
   } = {}
 ): number[] {
   const anchor = options.anchor ?? 'contrary';
@@ -80,7 +93,10 @@ export function getCachedTiltVoicedPitches(
     tonalCenter,
     octaveRange,
     anchor,
-    options.previousChord?.name ?? null
+    options.previousChord?.name ?? null,
+    options.voiceLeadingMode,
+    options.smoothBaseParallel,
+    options.lastTapTilt
   );
   if (key === lastKey) {
     return lastPitches;
