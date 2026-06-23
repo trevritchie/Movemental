@@ -17,6 +17,31 @@ import {
 const clamp = (value: number, min: number, max: number): number =>
   Math.min(max, Math.max(min, value));
 
+/** Total-cost tolerance for preferring upward semitone bass resolution. */
+export const LEADING_TONE_COST_SLACK = 2;
+
+export function bassDelta(
+  previousBass: number,
+  candidateBass: number
+): number {
+  return candidateBass - previousBass;
+}
+
+/** Higher is better. +1 leading tone beats common tone, then other motion. */
+export function bassPreferenceScore(
+  previousBass: number,
+  candidateBass: number
+): number {
+  const delta = bassDelta(previousBass, candidateBass);
+  if (delta === 1) {
+    return 3;
+  }
+  if (delta === 0) {
+    return 2;
+  }
+  return 1;
+}
+
 function computeHomeMidi(
   tonalCenter: number,
   octaveRange: number,
@@ -159,6 +184,78 @@ function buildCandidateVoicing(
   return obliqueMotion(pivot, width, cycle, homeMidi);
 }
 
+interface PivotEvaluation {
+  pivot: number;
+  cost: number;
+  registerBreak: number;
+  candidateBass: number;
+  bassPref: number;
+  bassDistance: number;
+  pivotDistance: number;
+}
+
+function isBetterOverallCandidate(
+  candidate: PivotEvaluation,
+  best: PivotEvaluation
+): boolean {
+  if (candidate.cost < best.cost) {
+    return true;
+  }
+  if (candidate.cost > best.cost) {
+    return false;
+  }
+  if (candidate.registerBreak > best.registerBreak) {
+    return true;
+  }
+  if (candidate.registerBreak < best.registerBreak) {
+    return false;
+  }
+  if (candidate.bassPref > best.bassPref) {
+    return true;
+  }
+  if (candidate.bassPref < best.bassPref) {
+    return false;
+  }
+  if (candidate.bassDistance < best.bassDistance) {
+    return true;
+  }
+  if (candidate.bassDistance > best.bassDistance) {
+    return false;
+  }
+  if (candidate.pivotDistance < best.pivotDistance) {
+    return true;
+  }
+  if (candidate.pivotDistance > best.pivotDistance) {
+    return false;
+  }
+  return candidate.pivot < best.pivot;
+}
+
+function isBetterLeadingToneCandidate(
+  candidate: PivotEvaluation,
+  best: PivotEvaluation
+): boolean {
+  if (candidate.cost < best.cost) {
+    return true;
+  }
+  if (candidate.cost > best.cost) {
+    return false;
+  }
+  if (candidate.registerBreak > best.registerBreak) {
+    return true;
+  }
+  if (candidate.registerBreak < best.registerBreak) {
+    return false;
+  }
+  if (candidate.pivotDistance < best.pivotDistance) {
+    return true;
+  }
+  if (candidate.pivotDistance > best.pivotDistance) {
+    return false;
+  }
+  return candidate.pivot < best.pivot;
+}
+
 /**
  * Find parallel ladder steps that yield the nearest voicing to previousPitches.
  *
@@ -194,14 +291,9 @@ export function resolveSmoothParallelSteps(
   const referenceMidi = registerReferenceMidi(tonalCenter, octaveRange);
   const baselineParallel = parallelLevelFromTilt(baselineTilt);
   const maxPivot = cycle.length;
+  const previousBass = Math.min(...previousPitches);
 
-  let bestPivot = clamp(baselineParallel, -maxPivot, maxPivot);
-  let bestCost = Infinity;
-  let bestRegisterBreak = -Infinity;
-  let bestBassDistance = Infinity;
-
-  const previousBass =
-    previousPitches.length > 0 ? Math.min(...previousPitches) : 0;
+  const evaluated: PivotEvaluation[] = [];
 
   for (let pivot = -maxPivot; pivot <= maxPivot; pivot++) {
     const candidate = buildCandidateVoicing(
@@ -216,42 +308,53 @@ export function resolveSmoothParallelSteps(
     }
 
     const score = scoreAssignment(previousPitches, candidate);
-    const registerBreak = registerTieBreak(
-      previousPitches,
-      score,
-      referenceMidi
-    );
-    const bassDistance = Math.abs(
-      Math.min(...candidate) - previousBass
-    );
+    const candidateBass = Math.min(...candidate);
+    evaluated.push({
+      pivot,
+      cost: score.cost,
+      registerBreak: registerTieBreak(
+        previousPitches,
+        score,
+        referenceMidi
+      ),
+      candidateBass,
+      bassPref: bassPreferenceScore(previousBass, candidateBass),
+      bassDistance: Math.abs(candidateBass - previousBass),
+      pivotDistance: Math.abs(pivot - baselineParallel),
+    });
+  }
 
-    const pivotDistance = Math.abs(pivot - baselineParallel);
-    const bestPivotDistance = Math.abs(bestPivot - baselineParallel);
+  if (evaluated.length === 0) {
+    return clamp(baselineParallel, -maxPivot, maxPivot);
+  }
 
-    if (
-      score.cost < bestCost ||
-      (score.cost === bestCost && registerBreak > bestRegisterBreak) ||
-      (score.cost === bestCost &&
-        registerBreak === bestRegisterBreak &&
-        bassDistance < bestBassDistance) ||
-      (score.cost === bestCost &&
-        registerBreak === bestRegisterBreak &&
-        bassDistance === bestBassDistance &&
-        pivotDistance < bestPivotDistance) ||
-      (score.cost === bestCost &&
-        registerBreak === bestRegisterBreak &&
-        bassDistance === bestBassDistance &&
-        pivotDistance === bestPivotDistance &&
-        pivot < bestPivot)
-    ) {
-      bestCost = score.cost;
-      bestRegisterBreak = registerBreak;
-      bestBassDistance = bassDistance;
-      bestPivot = pivot;
+  let bestOverall = evaluated[0];
+  for (let i = 1; i < evaluated.length; i++) {
+    if (isBetterOverallCandidate(evaluated[i], bestOverall)) {
+      bestOverall = evaluated[i];
     }
   }
 
-  return bestPivot;
+  const bestCost = bestOverall.cost;
+  const slackLimit = bestCost + LEADING_TONE_COST_SLACK;
+  let bestLeadingTone: PivotEvaluation | null = null;
+
+  for (const candidate of evaluated) {
+    if (bassDelta(previousBass, candidate.candidateBass) !== 1) {
+      continue;
+    }
+    if (candidate.cost > slackLimit) {
+      continue;
+    }
+    if (
+      bestLeadingTone === null ||
+      isBetterLeadingToneCandidate(candidate, bestLeadingTone)
+    ) {
+      bestLeadingTone = candidate;
+    }
+  }
+
+  return (bestLeadingTone ?? bestOverall).pivot;
 }
 
 /**

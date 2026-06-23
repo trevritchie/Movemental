@@ -24,6 +24,7 @@ import {
   MAX_TILT_PITCH_STEPS,
   parallelLevelFromTilt,
   parallelStepsFromStaticPositionLevel,
+  staticLevelsFromTilt,
   staticPositionLevelFromParallelSteps,
   tiltSampleFromLevels,
   type TiltSample,
@@ -150,16 +151,17 @@ export function useChordPlayback({
           parallelSteps,
         ].join('|');
       }
+      const { voicingLevel, positionLevel } = staticLevelsFromTilt(tilt);
       return [
         displayChord.name,
         tonalCenter,
         octaveRange,
         'static',
-        staticVoicingLevelRef.current,
-        staticPositionLevelRef.current,
+        voicingLevel,
+        positionLevel,
       ].join('|');
     },
-    [tonalCenterRef, staticVoicingLevelRef, staticPositionLevelRef]
+    [tonalCenterRef]
   );
 
   const computeNeutralVoicing = useCallback(
@@ -224,6 +226,15 @@ export function useChordPlayback({
     [rawTiltRef, staticVoicingLevelRef, staticPositionLevelRef]
   );
 
+  const syncStaticPositionLevel = useCallback(
+    (effectiveParallel: number) => {
+      const newLevel = staticPositionLevelFromParallelSteps(effectiveParallel);
+      staticPositionLevelRef.current = newLevel;
+      setStaticPositionLevel(newLevel);
+    },
+    [setStaticPositionLevel, staticPositionLevelRef]
+  );
+
   const applySmoothVoiceLeading = useCallback(
     (
       displayChord: Chord,
@@ -271,9 +282,7 @@ export function useChordPlayback({
       setSmoothBaseParallel(effectiveParallel);
 
       if (style !== 'tilt') {
-        setStaticPositionLevel(
-          staticPositionLevelFromParallelSteps(effectiveParallel)
-        );
+        syncStaticPositionLevel(effectiveParallel);
       }
 
       return effectiveTilt;
@@ -281,7 +290,7 @@ export function useChordPlayback({
     [
       getBaselineTilt,
       getCurrentControlTilt,
-      setStaticPositionLevel,
+      syncStaticPositionLevel,
       tonalCenterRef,
     ]
   );
@@ -308,14 +317,12 @@ export function useChordPlayback({
       );
 
       if (style !== 'tilt') {
-        setStaticPositionLevel(
-          staticPositionLevelFromParallelSteps(effectiveParallel)
-        );
+        syncStaticPositionLevel(effectiveParallel);
       }
 
       return effectiveTilt;
     },
-    [getCurrentControlTilt, setStaticPositionLevel]
+    [getCurrentControlTilt, syncStaticPositionLevel]
   );
 
   const resetVoiceLeadingSession = useCallback(() => {
@@ -434,13 +441,12 @@ export function useChordPlayback({
         lastTapTiltRef.current = { ...rawTiltRef.current };
         setLastTapTilt(lastTapTiltRef.current);
       } else {
-        lastStaticVoicingLevelRef.current = staticVoicingLevelRef.current;
-        lastStaticPositionLevelRef.current = staticPositionLevelRef.current;
-        lastTapTiltRef.current = tiltFromStaticLevels(
-          lastStaticVoicingLevelRef.current,
-          lastStaticPositionLevelRef.current
-        );
-        setLastTapTilt(lastTapTiltRef.current);
+        const { voicingLevel, positionLevel } =
+          staticLevelsFromTilt(playbackTilt);
+        lastStaticVoicingLevelRef.current = voicingLevel;
+        lastStaticPositionLevelRef.current = positionLevel;
+        lastTapTiltRef.current = playbackTilt;
+        setLastTapTilt(playbackTilt);
       }
 
       if (voiceLeadingModeRef.current === 'smooth') {
@@ -449,7 +455,7 @@ export function useChordPlayback({
         setSmoothBaseParallel(committedParallel);
       }
     },
-    [rawTiltRef, staticVoicingLevelRef, staticPositionLevelRef, voiceLeadingModeRef]
+    [rawTiltRef, voiceLeadingModeRef]
   );
 
   const commitPlayback = useCallback(

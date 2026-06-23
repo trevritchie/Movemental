@@ -184,6 +184,18 @@ export function tiltSampleFromLevels(
   return { x, y };
 }
 
+/** Map a tilt sample back to static UI voicing and position indices. */
+export function staticLevelsFromTilt(tilt: TiltSample): {
+  voicingLevel: number;
+  positionLevel: number;
+} {
+  const { inputSteps, parallelSteps } = mapTiltToPositions(tilt);
+  return {
+    voicingLevel: inputSteps,
+    positionLevel: staticPositionLevelFromParallelSteps(parallelSteps),
+  };
+}
+
 export const TILT_VOICING_LEVEL_NAMES = [
   'Unison',
   'Third',
