@@ -2095,13 +2095,14 @@ input[type="range"] {
 }
 
 .record-review__actions {
+  /* Row 1: two half-width downloads; row 2: full-width New recording. */
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
 }
 
 .record-review__download,
 .record-review__new {
-  flex: 1;
   min-height: 36px;
   padding: 8px 10px;
   border-radius: 8px;
@@ -2116,12 +2117,15 @@ input[type="range"] {
 }
 
 .record-review__download {
+  flex: 1 1 calc(50% - 4px);
+  min-width: 0;
   background: rgba(155, 114, 248, 0.12);
   border: 1px solid rgba(155, 114, 248, 0.35);
   color: #c084fc;
 }
 
 .record-review__new {
+  flex: 1 1 100%;
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid var(--panel-border);
   color: var(--text-primary);

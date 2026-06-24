@@ -16,7 +16,10 @@ vi.mock('../audio/AudioEngine', () => ({
     releaseActiveNotes: vi.fn(),
     isRecordingSupported: vi.fn(() => true),
     startRecording: vi.fn(async () => undefined),
-    stopRecording: vi.fn(async () => new Blob(['test'], { type: 'audio/webm' })),
+    stopRecording: vi.fn(async () => ({
+      audio: new Blob(['test'], { type: 'audio/webm' }),
+      midi: new Blob(['midi'], { type: 'audio/midi' }),
+    })),
   },
 }));
 

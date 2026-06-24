@@ -3,6 +3,9 @@ import { pickRecordingMimeType } from './recordingMimeTypes';
 
 /**
  * Wraps Tone.Recorder with MIME probing and safe restart after each take.
+ *
+ * Audio is tapped in parallel from the master bus (limiter -> recordTailGain
+ * -> recorder). Speakers still receive limiter -> destination unchanged.
  */
 export class SessionRecorder {
   private recorder: Tone.Recorder | null = null;
@@ -62,6 +65,7 @@ export class SessionRecorder {
     }
 
     const blob = await this.recorder.stop();
+    // Tone.Recorder cannot be restarted after stop(); recreate for the next take.
     this.disposeRecorder();
     this.ensureRecorder();
     return blob;

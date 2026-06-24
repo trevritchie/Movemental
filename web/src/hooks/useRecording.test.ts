@@ -8,7 +8,10 @@ vi.mock('../audio/AudioEngine', () => ({
   audioEngine: {
     isRecordingSupported: vi.fn(() => true),
     startRecording: vi.fn(async () => undefined),
-    stopRecording: vi.fn(async () => new Blob(['test'], { type: 'audio/webm' })),
+    stopRecording: vi.fn(async () => ({
+      audio: new Blob(['test'], { type: 'audio/webm' }),
+      midi: new Blob(['midi'], { type: 'audio/midi' }),
+    })),
     fadeOutRecordingTap: vi.fn(async () => undefined),
     resetRecordingTailGain: vi.fn(),
     releaseActiveNotes: vi.fn(),
@@ -69,6 +72,7 @@ describe('useRecording', () => {
 
     expect(result.current.objectUrl).toBe('blob:mock-url');
     expect(result.current.downloadFilename).toMatch(/^movemental-.*\.webm$/);
+    expect(result.current.midiDownloadFilename).toMatch(/^movemental-.*\.mid$/);
   });
 
   it('revokes blob URL on dismiss', async () => {
@@ -89,6 +93,7 @@ describe('useRecording', () => {
 
     expect(result.current.status).toBe('idle');
     expect(revokeObjectURL).toHaveBeenCalledWith('blob:mock-url');
+    expect(result.current.midiDownloadFilename).toBeNull();
   });
 
   it('revokes previous blob URL when starting a new recording', async () => {
@@ -127,6 +132,29 @@ describe('useRecording', () => {
     expect(result.current.status).toBe('recording');
     expect(audioEngine.stopRecording).not.toHaveBeenCalled();
     expect(audioEngine.fadeOutRecordingTap).not.toHaveBeenCalled();
+  });
+
+  it('downloadMidi saves a .mid file from the stored blob', async () => {
+    const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click')
+      .mockImplementation(() => undefined);
+    const { result } = renderHook(() => useRecording());
+
+    await act(async () => {
+      await result.current.start();
+      await result.current.stop();
+    });
+
+    await waitFor(() => {
+      expect(result.current.status).toBe('ready');
+    });
+
+    await act(async () => {
+      result.current.downloadMidi();
+    });
+
+    expect(createObjectURL).toHaveBeenCalledTimes(2);
+    expect(clickSpy).toHaveBeenCalled();
+    expect(result.current.midiDownloadFilename).toMatch(/^movemental-.*\.mid$/);
   });
 
   it('resets recorder tail gain when stop fails', async () => {

@@ -7,8 +7,10 @@ interface RecordingReviewPortalProps {
   objectUrl: string;
   mimeType: string | null;
   downloadExtension: string | null;
+  midiDownloadExtension: string | null;
   onDismiss: () => void;
   onDownload: () => void;
+  onDownloadMidi: () => void;
   onNewRecording: () => void;
 }
 
@@ -18,8 +20,10 @@ export const RecordingReviewPortal: React.FC<RecordingReviewPortalProps> = ({
   objectUrl,
   mimeType,
   downloadExtension,
+  midiDownloadExtension,
   onDismiss,
   onDownload,
+  onDownloadMidi,
   onNewRecording,
 }) => {
   if (!isOpen) return null;
@@ -38,8 +42,10 @@ export const RecordingReviewPortal: React.FC<RecordingReviewPortalProps> = ({
         objectUrl={objectUrl}
         mimeType={mimeType}
         downloadExtension={downloadExtension}
+        midiDownloadExtension={midiDownloadExtension}
         onDismiss={onDismiss}
         onDownload={onDownload}
+        onDownloadMidi={onDownloadMidi}
         onNewRecording={onNewRecording}
         className="record-review record-review--portal"
       />

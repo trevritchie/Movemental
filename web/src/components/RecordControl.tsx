@@ -8,6 +8,7 @@ interface RecordControlProps {
   variant: 'diagram' | 'mobile';
 }
 
+/** Record toggle plus post-stop review (WebM playback + WebM/MIDI download). */
 export const RecordControl: React.FC<RecordControlProps> = ({ variant }) => {
   const {
     status,
@@ -16,11 +17,13 @@ export const RecordControl: React.FC<RecordControlProps> = ({ variant }) => {
     objectUrl,
     mimeType,
     downloadExtension,
+    midiDownloadExtension,
     error,
     start,
     stop,
     dismiss,
     download,
+    downloadMidi,
   } = useRecording();
 
   const btnClass =
@@ -62,8 +65,10 @@ export const RecordControl: React.FC<RecordControlProps> = ({ variant }) => {
         objectUrl,
         mimeType,
         downloadExtension,
+        midiDownloadExtension,
         onDismiss: dismiss,
         onDownload: download,
+        onDownloadMidi: downloadMidi,
         onNewRecording: handleNewRecording,
       }
     : null;
@@ -106,6 +111,7 @@ export const RecordControl: React.FC<RecordControlProps> = ({ variant }) => {
         <RecordingReviewPanel {...reviewProps} />
       )}
 
+      {/* Portal avoids mobile panel overflow clipping the review player. */}
       {reviewProps && variant === 'mobile' && (
         <RecordingReviewPortal isOpen {...reviewProps} />
       )}

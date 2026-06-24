@@ -1,5 +1,5 @@
 /// <reference types="node" />
-import { render } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { RecordingReviewPanel } from './RecordingReviewPanel';
 
@@ -21,8 +21,10 @@ describe('RecordingReviewPanel', () => {
         objectUrl="blob:mock-recording"
         mimeType="audio/webm"
         downloadExtension="webm"
+        midiDownloadExtension="mid"
         onDismiss={vi.fn()}
         onDownload={vi.fn()}
+        onDownloadMidi={vi.fn()}
         onNewRecording={vi.fn()}
       />,
     );
@@ -36,5 +38,27 @@ describe('RecordingReviewPanel', () => {
     expect(pauseSpy).toHaveBeenCalled();
     expect(player.getAttribute('src')).toBeNull();
     expect(loadSpy).toHaveBeenCalled();
+  });
+
+  it('renders a MIDI download button', () => {
+    const onDownloadMidi = vi.fn();
+
+    render(
+      <RecordingReviewPanel
+        objectUrl="blob:mock-recording"
+        mimeType="audio/webm"
+        downloadExtension="webm"
+        midiDownloadExtension="mid"
+        onDismiss={vi.fn()}
+        onDownload={vi.fn()}
+        onDownloadMidi={onDownloadMidi}
+        onNewRecording={vi.fn()}
+      />,
+    );
+
+    const midiButton = screen.getByRole('button', { name: 'Download .mid' });
+    fireEvent.click(midiButton);
+
+    expect(onDownloadMidi).toHaveBeenCalledTimes(1);
   });
 });

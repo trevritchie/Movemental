@@ -4,6 +4,7 @@ import {
   waitForIosMediaChannel,
 } from './iosMediaChannel';
 import { SessionRecorder } from './SessionRecorder';
+import { SessionMidiRecorder } from './SessionMidiRecorder';
 
 const devLog = (...args: unknown[]) => {
   if (import.meta.env.DEV) {
@@ -19,7 +20,9 @@ const devWarn = (...args: unknown[]) => {
 
 export const RECORDING_STOP_FADE_MS = 300;
 
+/** Extra wait after the scheduled ramp so stop() never clips the fade tail. */
 const RECORDING_FADE_SAFETY_MS = 50;
+/** Near-silence target for the recorder-only tap during stop fade. */
 const RECORDING_TAP_MIN_GAIN = 0.001;
 
 export class AudioEngine {
@@ -31,9 +34,12 @@ export class AudioEngine {
   private eq: Tone.EQ3 | null = null;
   private compressor: Tone.Compressor | null = null;
   private limiter: Tone.Limiter | null = null;
+  /** Recorder-only tap; faded before stop so live speakers are unaffected. */
   private recordTailGain: Tone.Gain | null = null;
   private recordingFadeTimer: ReturnType<typeof setTimeout> | null = null;
   private sessionRecorder: SessionRecorder | null = null;
+  /** Parallel note log; no Web Audio nodes, negligible runtime cost. */
+  private sessionMidiRecorder = new SessionMidiRecorder();
   private isReady: boolean = false;
   private activeNotes: string[] = [];
   private isPointerDown: boolean = false;
@@ -154,6 +160,7 @@ export class AudioEngine {
     }
 
     if (!this.recordTailGain) {
+      // Branch off the limiter so fade/stop only affects the recorder tap.
       this.recordTailGain = new Tone.Gain(1);
       this.limiter.connect(this.recordTailGain);
     }
@@ -179,17 +186,31 @@ export class AudioEngine {
     }
 
     await this.sessionRecorder.start();
+    // Align MIDI timeline with the audio session start (Tone transport clock).
+    this.sessionMidiRecorder.start(Tone.now());
     devLog('[AudioEngine] Session recording started');
   }
 
-  public async stopRecording(): Promise<Blob> {
+  /**
+   * Finalize audio and MIDI in parallel. encode() flushes any held MIDI notes
+   * at endTime (instant panic, not synth ADSR length).
+   */
+  public async stopRecording(): Promise<{ audio: Blob; midi: Blob }> {
     if (!this.sessionRecorder) {
       throw new Error('Session recorder is not initialized');
     }
 
-    const blob = await this.sessionRecorder.stop();
+    const endTime = Tone.now();
+    const [audio, midi] = await Promise.all([
+      this.sessionRecorder.stop(),
+      this.sessionMidiRecorder.encode(endTime),
+    ]);
     devLog('[AudioEngine] Session recording stopped');
-    return blob;
+    return { audio, midi };
+  }
+
+  private noteNamesToMidi(noteNames: string[]): number[] {
+    return noteNames.map((note) => Tone.Frequency(note).toMidi());
   }
 
   /**
@@ -289,7 +310,18 @@ export class AudioEngine {
     this.activeNotes = noteNames as string[];
 
     // Add a microscopic 15ms delay to the attack to prevent popping/clicks against the release
-    this.synth.triggerAttackRelease(noteNames, duration, now + 0.015);
+    const attackTime = now + 0.015;
+    this.synth.triggerAttackRelease(noteNames, duration, attackTime);
+
+    if (this.sessionMidiRecorder.isRecording()) {
+      const durationSec = Tone.Time(duration).toSeconds();
+      // Mirror triggerAttackRelease timing for DAW-importable note spans.
+      this.sessionMidiRecorder.logNoteOns(clamped, undefined, attackTime);
+      this.sessionMidiRecorder.logNoteOffs(
+        clamped,
+        attackTime + durationSec,
+      );
+    }
   }
 
   public triggerAttack(midiNotes: number[], retrigger: boolean = false) {
@@ -328,10 +360,20 @@ export class AudioEngine {
         } catch (err) {
           devWarn('[AudioEngine] Retrigger release error:', err);
         }
+        if (this.sessionMidiRecorder.isRecording()) {
+          this.sessionMidiRecorder.logNoteOffs(
+            this.noteNamesToMidi(this.activeNotes),
+            now,
+          );
+        }
       }
       this.activeNotes = noteNames;
       devLog('[AudioEngine] Retriggering:', noteNames);
-      this.synth.triggerAttack(noteNames, now + 0.015);
+      const attackTime = now + 0.015;
+      this.synth.triggerAttack(noteNames, attackTime);
+      if (this.sessionMidiRecorder.isRecording()) {
+        this.sessionMidiRecorder.logNoteOns(clamped, undefined, attackTime);
+      }
       return;
     }
 
@@ -349,6 +391,12 @@ export class AudioEngine {
       } catch (err) {
         devWarn('[AudioEngine] Transition release error:', err);
       }
+      if (this.sessionMidiRecorder.isRecording()) {
+        this.sessionMidiRecorder.logNoteOffs(
+          this.noteNamesToMidi(notesToRelease),
+          now,
+        );
+      }
     }
 
     if (notesToAttack.length > 0) {
@@ -356,6 +404,13 @@ export class AudioEngine {
       // Schedule immediately at `now`. Removing the arbitrary delay prevents
       // chronological inversions from rapid subsequent clicks.
       this.synth.triggerAttack(notesToAttack, now);
+      if (this.sessionMidiRecorder.isRecording()) {
+        this.sessionMidiRecorder.logNoteOns(
+          this.noteNamesToMidi(notesToAttack),
+          undefined,
+          now,
+        );
+      }
     }
   }
 
@@ -368,6 +423,10 @@ export class AudioEngine {
     this.isPointerDown = false;
     if (this.synth && this.isReady) {
       devLog('[AudioEngine] Hard stop — releasing all voices.');
+      if (this.sessionMidiRecorder.isRecording()) {
+        // Match synth panic: instant MIDI offs, not envelope release length.
+        this.sessionMidiRecorder.logAllNotesOff(Tone.now());
+      }
       try {
         // Redundancy: release specific tracked notes, then trigger releaseAll
         if (this.activeNotes.length > 0) {
@@ -387,6 +446,12 @@ export class AudioEngine {
    */
   private releasePreviousNotes(time: number) {
     if (this.synth && this.isReady && this.activeNotes.length > 0) {
+      if (this.sessionMidiRecorder.isRecording()) {
+        this.sessionMidiRecorder.logNoteOffs(
+          this.noteNamesToMidi(this.activeNotes),
+          time,
+        );
+      }
       try {
         this.synth.triggerRelease(this.activeNotes, time);
       } catch (err) {

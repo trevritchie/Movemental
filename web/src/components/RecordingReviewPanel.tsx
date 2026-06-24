@@ -5,8 +5,10 @@ interface RecordingReviewPanelProps {
   objectUrl: string;
   mimeType: string | null;
   downloadExtension: string | null;
+  midiDownloadExtension: string | null;
   onDismiss: () => void;
   onDownload: () => void;
+  onDownloadMidi: () => void;
   onNewRecording: () => void;
   className?: string;
 }
@@ -27,8 +29,10 @@ export const RecordingReviewPanel: React.FC<RecordingReviewPanelProps> = ({
   objectUrl,
   mimeType,
   downloadExtension,
+  midiDownloadExtension,
   onDismiss,
   onDownload,
+  onDownloadMidi,
   onNewRecording,
   className = 'record-review',
 }) => {
@@ -44,6 +48,9 @@ export const RecordingReviewPanel: React.FC<RecordingReviewPanelProps> = ({
   const downloadLabel = downloadExtension
     ? `Download .${downloadExtension}`
     : 'Download';
+  const midiDownloadLabel = midiDownloadExtension
+    ? `Download .${midiDownloadExtension}`
+    : 'Download MIDI';
 
   return (
     <div className={className} role="region" aria-label="Recording review">
@@ -67,6 +74,7 @@ export const RecordingReviewPanel: React.FC<RecordingReviewPanelProps> = ({
       >
         {mimeType && <source src={objectUrl} type={mimeType} />}
       </audio>
+      {/* WebM + MIDI downloads; wrapped layout keeps buttons inside narrow popups. */}
       <div className="record-review__actions">
         <button
           type="button"
@@ -75,6 +83,14 @@ export const RecordingReviewPanel: React.FC<RecordingReviewPanelProps> = ({
         >
           <Download size={16} />
           {downloadLabel}
+        </button>
+        <button
+          type="button"
+          className="record-review__download"
+          onClick={onDownloadMidi}
+        >
+          <Download size={16} />
+          {midiDownloadLabel}
         </button>
         <button
           type="button"
