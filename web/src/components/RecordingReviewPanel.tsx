@@ -6,6 +6,7 @@ interface RecordingReviewPanelProps {
   mimeType: string | null;
   downloadExtension: string | null;
   midiDownloadExtension: string | null;
+  isExportingAudio?: boolean;
   onDismiss: () => void;
   onDownload: () => void;
   onDownloadMidi: () => void;
@@ -14,13 +15,20 @@ interface RecordingReviewPanelProps {
 }
 
 /** Release the review player element before the blob URL is revoked. */
-function releaseReviewPlayer(audio: HTMLAudioElement | null): void {
+function releaseReviewPlayer(
+  audio: HTMLAudioElement | null,
+  source: HTMLSourceElement | null,
+): void {
   if (!audio) {
     return;
   }
 
   audio.pause();
   audio.removeAttribute('src');
+  if (source) {
+    source.removeAttribute('src');
+    source.removeAttribute('type');
+  }
   audio.load();
 }
 
@@ -30,6 +38,7 @@ export const RecordingReviewPanel: React.FC<RecordingReviewPanelProps> = ({
   mimeType,
   downloadExtension,
   midiDownloadExtension,
+  isExportingAudio = false,
   onDismiss,
   onDownload,
   onDownloadMidi,
@@ -37,17 +46,38 @@ export const RecordingReviewPanel: React.FC<RecordingReviewPanelProps> = ({
   className = 'record-review',
 }) => {
   const audioRef = useRef<HTMLAudioElement>(null);
+  const sourceRef = useRef<HTMLSourceElement>(null);
 
   useEffect(() => {
     const audio = audioRef.current;
+    const source = sourceRef.current;
+    if (!audio || !source) {
+      return;
+    }
+
+    // iOS WebKit: blob URL on <source>, not <audio src>, then load().
+    source.src = objectUrl;
+    if (mimeType) {
+      source.type = mimeType;
+    } else {
+      source.removeAttribute('type');
+    }
+    audio.load();
+  }, [objectUrl, mimeType]);
+
+  useEffect(() => {
+    const audio = audioRef.current;
+    const source = sourceRef.current;
     return () => {
-      releaseReviewPlayer(audio);
+      releaseReviewPlayer(audio, source);
     };
   }, [objectUrl]);
 
-  const downloadLabel = downloadExtension
-    ? `Download .${downloadExtension}`
-    : 'Download';
+  const downloadLabel = isExportingAudio
+    ? 'Preparing download...'
+    : downloadExtension
+      ? `Download .${downloadExtension}`
+      : 'Download';
   const midiDownloadLabel = midiDownloadExtension
     ? `Download .${midiDownloadExtension}`
     : 'Download MIDI';
@@ -69,17 +99,17 @@ export const RecordingReviewPanel: React.FC<RecordingReviewPanelProps> = ({
         ref={audioRef}
         className="record-review__player"
         controls
-        src={objectUrl}
-        preload="metadata"
+        playsInline
+        preload="auto"
       >
-        {mimeType && <source src={objectUrl} type={mimeType} />}
+        <source ref={sourceRef} />
       </audio>
-      {/* WebM + MIDI downloads; wrapped layout keeps buttons inside narrow popups. */}
       <div className="record-review__actions">
         <button
           type="button"
           className="record-review__download"
           onClick={onDownload}
+          disabled={isExportingAudio}
         >
           <Download size={16} />
           {downloadLabel}

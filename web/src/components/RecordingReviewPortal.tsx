@@ -8,6 +8,7 @@ interface RecordingReviewPortalProps {
   mimeType: string | null;
   downloadExtension: string | null;
   midiDownloadExtension: string | null;
+  isExportingAudio?: boolean;
   onDismiss: () => void;
   onDownload: () => void;
   onDownloadMidi: () => void;
@@ -21,6 +22,7 @@ export const RecordingReviewPortal: React.FC<RecordingReviewPortalProps> = ({
   mimeType,
   downloadExtension,
   midiDownloadExtension,
+  isExportingAudio,
   onDismiss,
   onDownload,
   onDownloadMidi,
@@ -43,6 +45,7 @@ export const RecordingReviewPortal: React.FC<RecordingReviewPortalProps> = ({
         mimeType={mimeType}
         downloadExtension={downloadExtension}
         midiDownloadExtension={midiDownloadExtension}
+        isExportingAudio={isExportingAudio}
         onDismiss={onDismiss}
         onDownload={onDownload}
         onDownloadMidi={onDownloadMidi}

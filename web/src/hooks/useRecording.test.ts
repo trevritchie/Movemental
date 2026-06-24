@@ -2,6 +2,7 @@ import { renderHook, act, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { useRecording } from './useRecording';
 import { audioEngine, RECORDING_STOP_FADE_MS } from '../audio/AudioEngine';
+import { exportM4a } from '../audio/SessionAudioExporter';
 
 vi.mock('../audio/AudioEngine', () => ({
   RECORDING_STOP_FADE_MS: 300,
@@ -16,6 +17,12 @@ vi.mock('../audio/AudioEngine', () => ({
     resetRecordingTailGain: vi.fn(),
     releaseActiveNotes: vi.fn(),
   },
+}));
+
+vi.mock('../audio/SessionAudioExporter', () => ({
+  exportM4a: vi.fn(async (blob: Blob) =>
+    new Blob([blob], { type: 'audio/mp4' }),
+  ),
 }));
 
 describe('useRecording', () => {
@@ -71,7 +78,8 @@ describe('useRecording', () => {
     expect(fadeOrder).toBeLessThan(stopOrder);
 
     expect(result.current.objectUrl).toBe('blob:mock-url');
-    expect(result.current.downloadFilename).toMatch(/^movemental-.*\.webm$/);
+    expect(result.current.downloadFilename).toMatch(/^movemental-.*\.m4a$/);
+    expect(result.current.downloadExtension).toBe('m4a');
     expect(result.current.midiDownloadFilename).toMatch(/^movemental-.*\.mid$/);
   });
 
@@ -132,6 +140,33 @@ describe('useRecording', () => {
     expect(result.current.status).toBe('recording');
     expect(audioEngine.stopRecording).not.toHaveBeenCalled();
     expect(audioEngine.fadeOutRecordingTap).not.toHaveBeenCalled();
+  });
+
+  it('download exports M4A and saves a .m4a file', async () => {
+    const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click')
+      .mockImplementation(() => undefined);
+    const { result } = renderHook(() => useRecording());
+
+    await act(async () => {
+      await result.current.start();
+      await result.current.stop();
+    });
+
+    await waitFor(() => {
+      expect(result.current.status).toBe('ready');
+    });
+
+    await act(async () => {
+      result.current.download();
+    });
+
+    await waitFor(() => {
+      expect(exportM4a).toHaveBeenCalledTimes(1);
+    });
+
+    expect(createObjectURL).toHaveBeenCalledTimes(2);
+    expect(clickSpy).toHaveBeenCalled();
+    expect(result.current.downloadFilename).toMatch(/^movemental-.*\.m4a$/);
   });
 
   it('downloadMidi saves a .mid file from the stored blob', async () => {

@@ -1,9 +1,23 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import {
+  CHROMIUM_MIME_CANDIDATES,
   extensionForMimeType,
+  FIREFOX_MIME_CANDIDATES,
+  getRecordingMimeCandidates,
+  isM4aCompatibleBlob,
+  MP4_MIME_CANDIDATES,
   pickRecordingMimeType,
-  RECORDING_MIME_CANDIDATES,
 } from './recordingMimeTypes';
+
+vi.mock('../utils/devicePlatform', () => ({
+  isAppleRecordingPlatform: vi.fn(() => false),
+  isChromium: vi.fn(() => false),
+}));
+
+import {
+  isAppleRecordingPlatform,
+  isChromium,
+} from '../utils/devicePlatform';
 
 function mockMediaRecorder(
   isSupported: (type: string) => boolean,
@@ -19,6 +33,8 @@ describe('pickRecordingMimeType', () => {
   const originalMediaRecorder = globalThis.MediaRecorder;
 
   beforeEach(() => {
+    vi.mocked(isAppleRecordingPlatform).mockReturnValue(false);
+    vi.mocked(isChromium).mockReturnValue(false);
     globalThis.MediaRecorder = mockMediaRecorder(
       (type) => type === 'audio/webm;codecs=opus' || type === 'audio/mp4',
     );
@@ -28,8 +44,22 @@ describe('pickRecordingMimeType', () => {
     globalThis.MediaRecorder = originalMediaRecorder;
   });
 
-  it('returns the first supported candidate in order', () => {
+  it('returns the first supported Firefox-order candidate by default', () => {
     expect(pickRecordingMimeType()).toBe('audio/webm;codecs=opus');
+  });
+
+  it('prefers MP4 on Apple platforms', () => {
+    vi.mocked(isAppleRecordingPlatform).mockReturnValue(true);
+
+    expect(pickRecordingMimeType()).toBe('audio/mp4');
+    expect(getRecordingMimeCandidates()).toEqual([...MP4_MIME_CANDIDATES]);
+  });
+
+  it('prefers MP4 before WebM on Chromium when both are supported', () => {
+    vi.mocked(isChromium).mockReturnValue(true);
+
+    expect(pickRecordingMimeType()).toBe('audio/mp4');
+    expect(getRecordingMimeCandidates()).toEqual([...CHROMIUM_MIME_CANDIDATES]);
   });
 
   it('falls through to later candidates when early ones fail', () => {
@@ -52,7 +82,7 @@ describe('pickRecordingMimeType', () => {
     expect(pickRecordingMimeType()).toBeNull();
   });
 
-  it('probes candidates in the documented order', () => {
+  it('probes Firefox-order candidates on default platforms', () => {
     const probed: string[] = [];
     globalThis.MediaRecorder = mockMediaRecorder((type) => {
       probed.push(type);
@@ -60,7 +90,7 @@ describe('pickRecordingMimeType', () => {
     });
 
     pickRecordingMimeType();
-    expect(probed).toEqual([...RECORDING_MIME_CANDIDATES]);
+    expect(probed).toEqual([...FIREFOX_MIME_CANDIDATES]);
   });
 });
 
@@ -69,5 +99,19 @@ describe('extensionForMimeType', () => {
     expect(extensionForMimeType('audio/webm;codecs=opus')).toBe('webm');
     expect(extensionForMimeType('audio/mp4')).toBe('m4a');
     expect(extensionForMimeType('audio/aac')).toBe('aac');
+  });
+});
+
+describe('isM4aCompatibleBlob', () => {
+  it('detects mp4 and aac blobs', () => {
+    expect(isM4aCompatibleBlob(new Blob([], { type: 'audio/mp4' }))).toBe(
+      true,
+    );
+    expect(isM4aCompatibleBlob(new Blob([], { type: 'audio/aac' }))).toBe(
+      true,
+    );
+    expect(isM4aCompatibleBlob(new Blob([], { type: 'audio/webm' }))).toBe(
+      false,
+    );
   });
 });

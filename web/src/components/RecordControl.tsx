@@ -8,7 +8,7 @@ interface RecordControlProps {
   variant: 'diagram' | 'mobile';
 }
 
-/** Record toggle plus post-stop review (WebM playback + WebM/MIDI download). */
+/** Record toggle plus post-stop review (playback + M4A/MIDI download). */
 export const RecordControl: React.FC<RecordControlProps> = ({ variant }) => {
   const {
     status,
@@ -18,6 +18,7 @@ export const RecordControl: React.FC<RecordControlProps> = ({ variant }) => {
     mimeType,
     downloadExtension,
     midiDownloadExtension,
+    isExportingAudio,
     error,
     start,
     stop,
@@ -66,6 +67,7 @@ export const RecordControl: React.FC<RecordControlProps> = ({ variant }) => {
         mimeType,
         downloadExtension,
         midiDownloadExtension,
+        isExportingAudio,
         onDismiss: dismiss,
         onDownload: download,
         onDownloadMidi: downloadMidi,

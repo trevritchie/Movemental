@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { audioEngine, RECORDING_STOP_FADE_MS } from '../audio/AudioEngine';
-import { extensionForMimeType } from '../audio/recordingMimeTypes';
+import { exportM4a } from '../audio/SessionAudioExporter';
 
 export type RecordingStatus = 'idle' | 'recording' | 'ready';
 
@@ -36,6 +36,7 @@ export interface UseRecordingResult {
   downloadExtension: string | null;
   midiDownloadFilename: string | null;
   midiDownloadExtension: string | null;
+  isExportingAudio: boolean;
   error: string | null;
   start: () => Promise<void>;
   stop: () => Promise<void>;
@@ -48,7 +49,7 @@ export interface UseRecordingResult {
  * Session recording state: idle, actively capturing, or review-ready.
  *
  * Stop order matters: release live synth voices, fade the recorder tap, then
- * finalize WebM + MIDI blobs so playback is not masked by ongoing audio.
+ * finalize audio + MIDI blobs so playback is not masked by ongoing audio.
  */
 export function useRecording(): UseRecordingResult {
   const [status, setStatus] = useState<RecordingStatus>('idle');
@@ -67,9 +68,12 @@ export function useRecording(): UseRecordingResult {
   const [midiDownloadExtension, setMidiDownloadExtension] = useState<
     string | null
   >(null);
+  const [isExportingAudio, setIsExportingAudio] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const blobRef = useRef<Blob | null>(null);
+  /** Cached M4A after first export; avoids re-running ffmpeg on repeat downloads. */
+  const m4aBlobRef = useRef<Blob | null>(null);
   /** MIDI blob kept in memory only; no preview object URL until download. */
   const midiBlobRef = useRef<Blob | null>(null);
   const objectUrlRef = useRef<string | null>(null);
@@ -77,6 +81,7 @@ export function useRecording(): UseRecordingResult {
   const timerRef = useRef<number | null>(null);
   const maxDurationTimerRef = useRef<number | null>(null);
   const stopInFlightRef = useRef(false);
+  const exportInFlightRef = useRef(false);
   const statusRef = useRef<RecordingStatus>(status);
 
   const isSupported = audioEngine.isRecordingSupported();
@@ -96,6 +101,7 @@ export function useRecording(): UseRecordingResult {
     revokeObjectUrl(objectUrlRef.current);
     objectUrlRef.current = null;
     blobRef.current = null;
+    m4aBlobRef.current = null;
     midiBlobRef.current = null;
     setObjectUrl(null);
     setMimeType(null);
@@ -103,6 +109,7 @@ export function useRecording(): UseRecordingResult {
     setDownloadExtension(null);
     setMidiDownloadFilename(null);
     setMidiDownloadExtension(null);
+    setIsExportingAudio(false);
   }, []);
 
   const dismiss = useCallback(() => {
@@ -131,16 +138,17 @@ export function useRecording(): UseRecordingResult {
       const resolvedMime = audio.type || 'audio/webm';
       const url = URL.createObjectURL(audio);
       const timestamp = formatRecordingTimestamp(new Date());
-      const ext = extensionForMimeType(resolvedMime);
 
       revokeObjectUrl(objectUrlRef.current);
       blobRef.current = audio;
+      m4aBlobRef.current = null;
       midiBlobRef.current = midi;
       objectUrlRef.current = url;
       setObjectUrl(url);
       setMimeType(resolvedMime);
-      setDownloadFilename(`movemental-${timestamp}.${ext}`);
-      setDownloadExtension(ext);
+      // Review plays the native recording MIME; download always offers .m4a.
+      setDownloadFilename(`movemental-${timestamp}.m4a`);
+      setDownloadExtension('m4a');
       setMidiDownloadFilename(`movemental-${timestamp}.mid`);
       setMidiDownloadExtension('mid');
       statusRef.current = 'ready';
@@ -195,14 +203,35 @@ export function useRecording(): UseRecordingResult {
   }, [clearTimers, isSupported, resetReview, stop]);
 
   const download = useCallback(() => {
-    if (!objectUrlRef.current || !downloadFilename) {
+    if (!blobRef.current || !downloadFilename || exportInFlightRef.current) {
       return;
     }
 
-    const anchor = document.createElement('a');
-    anchor.href = objectUrlRef.current;
-    anchor.download = downloadFilename;
-    anchor.click();
+    exportInFlightRef.current = true;
+    setIsExportingAudio(true);
+
+    void (async () => {
+      try {
+        if (!m4aBlobRef.current) {
+          // Passthrough on Safari/iOS M4A; lazy ffmpeg for WebM sources.
+          m4aBlobRef.current = await exportM4a(blobRef.current!);
+        }
+
+        const url = URL.createObjectURL(m4aBlobRef.current);
+        const anchor = document.createElement('a');
+        anchor.href = url;
+        anchor.download = downloadFilename;
+        anchor.click();
+        URL.revokeObjectURL(url);
+      } catch (err) {
+        const message =
+          err instanceof Error ? err.message : 'Failed to export recording';
+        setError(message);
+      } finally {
+        exportInFlightRef.current = false;
+        setIsExportingAudio(false);
+      }
+    })();
   }, [downloadFilename]);
 
   const downloadMidi = useCallback(() => {
@@ -240,6 +269,7 @@ export function useRecording(): UseRecordingResult {
     downloadExtension,
     midiDownloadFilename,
     midiDownloadExtension,
+    isExportingAudio,
     error,
     start,
     stop,
