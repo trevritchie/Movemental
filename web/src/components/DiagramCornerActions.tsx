@@ -1,5 +1,5 @@
 import React from 'react';
-import { Settings, Square, Maximize2, Minimize2 } from 'lucide-react';
+import { Settings, VolumeX, Maximize2, Minimize2 } from 'lucide-react';
 import { audioEngine } from '../audio/AudioEngine';
 import { useLayoutTier } from '../hooks/useLayoutTier';
 import { useFullscreen } from '../hooks/useFullscreen';
@@ -33,7 +33,6 @@ export const DiagramCornerActions: React.FC = () => {
     <>
       <div className="diagram-corner-actions" aria-label="Diagram controls">
         <div className="diagram-corner-actions--bottom-left">
-          <RecordControl variant="diagram" />
           <button
             ref={triggerRef}
             type="button"
@@ -43,7 +42,7 @@ export const DiagramCornerActions: React.FC = () => {
             aria-expanded={isOpen}
             aria-controls={menuId}
           >
-            <Settings size={18} />
+            <Settings size={22} />
           </button>
           {canFullscreen && (
             <button
@@ -54,9 +53,9 @@ export const DiagramCornerActions: React.FC = () => {
               aria-label={isFullscreen ? 'Exit Full Screen' : 'Full Screen'}
             >
               {isFullscreen ? (
-                <Minimize2 size={16} />
+                <Minimize2 size={20} />
               ) : (
-                <Maximize2 size={16} />
+                <Maximize2 size={20} />
               )}
             </button>
           )}
@@ -70,8 +69,9 @@ export const DiagramCornerActions: React.FC = () => {
             title="Panic Switch"
             aria-label="Panic Switch: stop all notes"
           >
-            <Square size={14} fill="currentColor" />
+            <VolumeX size={22} />
           </button>
+          <RecordControl variant="diagram" />
         </div>
       </div>
 

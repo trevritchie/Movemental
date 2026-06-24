@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { audioEngine } from '../audio/AudioEngine';
+import { audioEngine, RECORDING_STOP_FADE_MS } from '../audio/AudioEngine';
 import { extensionForMimeType } from '../audio/recordingMimeTypes';
 
 export type RecordingStatus = 'idle' | 'recording' | 'ready';
@@ -32,6 +32,7 @@ export interface UseRecordingResult {
   objectUrl: string | null;
   mimeType: string | null;
   downloadFilename: string | null;
+  downloadExtension: string | null;
   error: string | null;
   start: () => Promise<void>;
   stop: () => Promise<void>;
@@ -45,6 +46,9 @@ export function useRecording(): UseRecordingResult {
   const [objectUrl, setObjectUrl] = useState<string | null>(null);
   const [mimeType, setMimeType] = useState<string | null>(null);
   const [downloadFilename, setDownloadFilename] = useState<string | null>(
+    null,
+  );
+  const [downloadExtension, setDownloadExtension] = useState<string | null>(
     null,
   );
   const [error, setError] = useState<string | null>(null);
@@ -78,6 +82,7 @@ export function useRecording(): UseRecordingResult {
     setObjectUrl(null);
     setMimeType(null);
     setDownloadFilename(null);
+    setDownloadExtension(null);
   }, []);
 
   const dismiss = useCallback(() => {
@@ -98,7 +103,10 @@ export function useRecording(): UseRecordingResult {
     clearTimers();
 
     try {
+      audioEngine.releaseActiveNotes();
+      await audioEngine.fadeOutRecordingTap(RECORDING_STOP_FADE_MS);
       const blob = await audioEngine.stopRecording();
+      audioEngine.resetRecordingTailGain();
       const resolvedMime = blob.type || 'audio/webm';
       const url = URL.createObjectURL(blob);
       const timestamp = formatRecordingTimestamp(new Date());
@@ -110,12 +118,14 @@ export function useRecording(): UseRecordingResult {
       setObjectUrl(url);
       setMimeType(resolvedMime);
       setDownloadFilename(`movemental-${timestamp}.${ext}`);
+      setDownloadExtension(ext);
       statusRef.current = 'ready';
       setStatus('ready');
       setError(null);
     } catch (err) {
       const message =
         err instanceof Error ? err.message : 'Failed to stop recording';
+      audioEngine.resetRecordingTailGain();
       setError(message);
       statusRef.current = 'idle';
       setStatus('idle');
@@ -185,6 +195,7 @@ export function useRecording(): UseRecordingResult {
     objectUrl,
     mimeType,
     downloadFilename,
+    downloadExtension,
     error,
     start,
     stop,

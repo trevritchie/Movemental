@@ -1,6 +1,8 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { Mic, CircleStop, Download, X } from 'lucide-react';
+import React from 'react';
+import { Mic, CircleStop } from 'lucide-react';
 import { formatElapsed, useRecording } from '../hooks/useRecording';
+import { RecordingReviewPanel } from './RecordingReviewPanel';
+import { RecordingReviewPortal } from './RecordingReviewPortal';
 
 interface RecordControlProps {
   variant: 'diagram' | 'mobile';
@@ -13,6 +15,7 @@ export const RecordControl: React.FC<RecordControlProps> = ({ variant }) => {
     elapsedMs,
     objectUrl,
     mimeType,
+    downloadExtension,
     error,
     start,
     stop,
@@ -20,37 +23,20 @@ export const RecordControl: React.FC<RecordControlProps> = ({ variant }) => {
     download,
   } = useRecording();
 
-  const [showHint, setShowHint] = useState(false);
-  const hintTimerRef = useRef<number | null>(null);
-  const rootRef = useRef<HTMLDivElement>(null);
-
   const btnClass =
     variant === 'diagram'
       ? 'diagram-toolbar-btn record-control'
       : 'mobile-toolbar-btn record-control';
-
-  useEffect(() => {
-    return () => {
-      if (hintTimerRef.current !== null) {
-        window.clearTimeout(hintTimerRef.current);
-      }
-    };
-  }, []);
 
   if (!isSupported) {
     return null;
   }
 
   const isRecording = status === 'recording';
-  const isReady = status === 'ready';
+  const isReady = status === 'ready' && objectUrl !== null;
 
   const handleToggle = () => {
     if (isRecording) {
-      if (hintTimerRef.current !== null) {
-        window.clearTimeout(hintTimerRef.current);
-        hintTimerRef.current = null;
-      }
-      setShowHint(false);
       void stop();
       return;
     }
@@ -59,58 +45,56 @@ export const RecordControl: React.FC<RecordControlProps> = ({ variant }) => {
       dismiss();
     }
 
-    void start().then(() => {
-      setShowHint(true);
-      hintTimerRef.current = window.setTimeout(() => {
-        setShowHint(false);
-        hintTimerRef.current = null;
-      }, 5000);
-    });
+    void start();
+  };
+
+  const handleNewRecording = () => {
+    dismiss();
+    void start();
   };
 
   const ariaLabel = isRecording
     ? 'Stop recording and save'
     : 'Start recording';
 
+  const reviewProps = isReady
+    ? {
+        objectUrl,
+        mimeType,
+        downloadExtension,
+        onDismiss: dismiss,
+        onDownload: download,
+        onNewRecording: handleNewRecording,
+      }
+    : null;
+
   return (
-    <div
-      ref={rootRef}
-      className={`record-control-root record-control-root--${variant}`}
-    >
+    <div className={`record-control-root record-control-root--${variant}`}>
       <button
         type="button"
         className={`${btnClass}${isRecording ? ' record-control--active' : ''}`}
         onClick={handleToggle}
-        title={isRecording ? 'Stop recording' : 'Record session'}
+        title={isRecording ? 'Stop recording' : 'Record audio'}
         aria-label={ariaLabel}
         aria-pressed={isRecording}
       >
         {isRecording ? (
           <>
             <span className="record-control__dot" aria-hidden="true" />
-            <CircleStop size={18} />
+            <CircleStop size={22} />
           </>
         ) : (
-          <Mic size={18} />
+          <Mic size={22} />
         )}
-        {variant === 'mobile' && isRecording && (
-          <span className="record-control__rec-label" aria-hidden="true">
-            REC
+        {isRecording && (
+          <span
+            className="record-control__elapsed-inset"
+            aria-live="polite"
+          >
+            {formatElapsed(elapsedMs)}
           </span>
         )}
       </button>
-
-      {isRecording && (
-        <span className="record-control__timer" aria-live="polite">
-          {formatElapsed(elapsedMs)}
-        </span>
-      )}
-
-      {showHint && isRecording && (
-        <p className="record-control__hint" role="status">
-          Use Panic to silence notes; tap here when finished to save.
-        </p>
-      )}
 
       {error && (
         <p className="record-control__error" role="alert">
@@ -118,52 +102,12 @@ export const RecordControl: React.FC<RecordControlProps> = ({ variant }) => {
         </p>
       )}
 
-      {isReady && objectUrl && (
-        <div
-          className="record-review"
-          role="region"
-          aria-label="Recording review"
-        >
-          <div className="record-review__header">
-            <span className="record-review__title">Recording ready</span>
-            <button
-              type="button"
-              className="record-review__close"
-              onClick={dismiss}
-              aria-label="Dismiss recording review"
-            >
-              <X size={16} />
-            </button>
-          </div>
-          <audio
-            className="record-review__player"
-            controls
-            src={objectUrl}
-            preload="metadata"
-          >
-            {mimeType && <source src={objectUrl} type={mimeType} />}
-          </audio>
-          <div className="record-review__actions">
-            <button
-              type="button"
-              className="record-review__download"
-              onClick={download}
-            >
-              <Download size={16} />
-              Download
-            </button>
-            <button
-              type="button"
-              className="record-review__new"
-              onClick={() => {
-                dismiss();
-                void start();
-              }}
-            >
-              New recording
-            </button>
-          </div>
-        </div>
+      {reviewProps && variant === 'diagram' && (
+        <RecordingReviewPanel {...reviewProps} />
+      )}
+
+      {reviewProps && variant === 'mobile' && (
+        <RecordingReviewPortal isOpen {...reviewProps} />
       )}
     </div>
   );

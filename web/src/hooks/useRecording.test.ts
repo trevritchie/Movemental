@@ -1,13 +1,16 @@
 import { renderHook, act, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { useRecording } from './useRecording';
-import { audioEngine } from '../audio/AudioEngine';
+import { audioEngine, RECORDING_STOP_FADE_MS } from '../audio/AudioEngine';
 
 vi.mock('../audio/AudioEngine', () => ({
+  RECORDING_STOP_FADE_MS: 300,
   audioEngine: {
     isRecordingSupported: vi.fn(() => true),
     startRecording: vi.fn(async () => undefined),
     stopRecording: vi.fn(async () => new Blob(['test'], { type: 'audio/webm' })),
+    fadeOutRecordingTap: vi.fn(async () => undefined),
+    resetRecordingTailGain: vi.fn(),
     releaseActiveNotes: vi.fn(),
   },
 }));
@@ -28,7 +31,7 @@ describe('useRecording', () => {
     vi.unstubAllGlobals();
   });
 
-  it('transitions idle -> recording -> ready on immediate stop', async () => {
+  it('transitions idle -> recording -> ready on stop with recorder fade', async () => {
     const { result } = renderHook(() => useRecording());
 
     expect(result.current.status).toBe('idle');
@@ -48,7 +51,22 @@ describe('useRecording', () => {
       expect(result.current.status).toBe('ready');
     });
 
+    expect(audioEngine.fadeOutRecordingTap).toHaveBeenCalledWith(
+      RECORDING_STOP_FADE_MS,
+    );
     expect(audioEngine.stopRecording).toHaveBeenCalledTimes(1);
+    expect(audioEngine.resetRecordingTailGain).toHaveBeenCalledTimes(1);
+    expect(audioEngine.releaseActiveNotes).toHaveBeenCalledTimes(1);
+
+    const panicOrder =
+      vi.mocked(audioEngine.releaseActiveNotes).mock.invocationCallOrder[0];
+    const fadeOrder =
+      vi.mocked(audioEngine.fadeOutRecordingTap).mock.invocationCallOrder[0];
+    const stopOrder =
+      vi.mocked(audioEngine.stopRecording).mock.invocationCallOrder[0];
+    expect(panicOrder).toBeLessThan(fadeOrder);
+    expect(fadeOrder).toBeLessThan(stopOrder);
+
     expect(result.current.objectUrl).toBe('blob:mock-url');
     expect(result.current.downloadFilename).toMatch(/^movemental-.*\.webm$/);
   });
@@ -73,6 +91,28 @@ describe('useRecording', () => {
     expect(revokeObjectURL).toHaveBeenCalledWith('blob:mock-url');
   });
 
+  it('revokes previous blob URL when starting a new recording', async () => {
+    const { result } = renderHook(() => useRecording());
+
+    await act(async () => {
+      await result.current.start();
+      await result.current.stop();
+    });
+
+    await waitFor(() => {
+      expect(result.current.status).toBe('ready');
+    });
+
+    createObjectURL.mockReturnValueOnce('blob:second-url');
+
+    await act(async () => {
+      await result.current.start();
+    });
+
+    expect(revokeObjectURL).toHaveBeenCalledWith('blob:mock-url');
+    expect(result.current.status).toBe('recording');
+  });
+
   it('does not stop recording when panic release is unrelated', async () => {
     const { result } = renderHook(() => useRecording());
 
@@ -86,5 +126,30 @@ describe('useRecording', () => {
 
     expect(result.current.status).toBe('recording');
     expect(audioEngine.stopRecording).not.toHaveBeenCalled();
+    expect(audioEngine.fadeOutRecordingTap).not.toHaveBeenCalled();
+  });
+
+  it('resets recorder tail gain when stop fails', async () => {
+    vi.mocked(audioEngine.stopRecording).mockRejectedValueOnce(
+      new Error('stop failed'),
+    );
+
+    const { result } = renderHook(() => useRecording());
+
+    await act(async () => {
+      await result.current.start();
+    });
+
+    await act(async () => {
+      await result.current.stop();
+    });
+
+    await waitFor(() => {
+      expect(result.current.status).toBe('idle');
+    });
+
+    expect(audioEngine.fadeOutRecordingTap).toHaveBeenCalledTimes(1);
+    expect(audioEngine.releaseActiveNotes).toHaveBeenCalledTimes(1);
+    expect(audioEngine.resetRecordingTailGain).toHaveBeenCalledTimes(1);
   });
 });

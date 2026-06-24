@@ -50,33 +50,42 @@ describe('Responsive Layout CSS', () => {
     expect(phoneBlock).toMatch(/input[\s\S]*user-select:\s*text/);
   });
 
-  it('should use a 3-column mobile voice panel grid with action buttons', () => {
+  it('should use a flanked vertical-slider mobile voice panel', () => {
     const phoneStart = cssContent.search(phoneLayoutPattern);
     const phoneBlock = cssContent.slice(phoneStart, phoneStart + 5000);
-    expect(phoneBlock).toMatch(/\.mobile-voice-grid\s*\{/);
-    expect(phoneBlock).toMatch(/grid-template-columns:\s*1fr min\(168px,\s*100%\) 1fr/);
+    expect(phoneBlock).toMatch(/\.mobile-voice-panel\s*\{/);
+    expect(phoneBlock).toMatch(/\.mobile-voice-sliders\s*\{/);
+    expect(phoneBlock).toMatch(/\.mobile-voice-slider-col\s*\{/);
     expect(phoneBlock).toMatch(/\.mobile-action-column\s*\{/);
-    expect(phoneBlock).toMatch(/\.mobile-action-buttons\s*\{/);
-    expect(phoneBlock).toMatch(
-      /\.mobile-voice-label-cell[\s\S]*justify-content:\s*flex-start/,
-    );
-    expect(phoneBlock).toMatch(
-      /\.mobile-voice-slider-cell[\s\S]*justify-content:\s*center/,
-    );
+    expect(phoneBlock).toMatch(/\.mobile-action-column--left/);
+    expect(phoneBlock).toMatch(/\.mobile-action-column--right/);
+    expect(phoneBlock).not.toMatch(/\.mobile-voice-grid/);
+    expect(phoneBlock).not.toMatch(/\.mobile-voice-label-cell/);
+    expect(phoneBlock).not.toMatch(/\.voice-label-container--phone/);
     expect(phoneBlock).toMatch(/\.controls-section[\s\S]*padding:\s*4px/);
     expect(phoneBlock).not.toMatch(/\.mobile-voice-lock-cell/);
     expect(phoneBlock).not.toMatch(/\.mobile-top-toolbar/);
   });
 
-  it('should center borrow slider nodes on equal thirds', () => {
+  it('should lay out desktop borrowing controls as a row of vertical sliders', () => {
     expect(cssContent).toMatch(
+      /\.borrowing-controls\s*\{[\s\S]*flex-direction:\s*row/,
+    );
+    expect(cssContent).toMatch(/\.borrowing-slider-col\s*\{/);
+  });
+
+  it('should lay out borrow sliders vertically on equal thirds', () => {
+    expect(cssContent).toMatch(
+      /\.borrow-slider\s*\{[\s\S]*grid-template-rows:\s*repeat\(3,\s*1fr\)/,
+    );
+    expect(cssContent).toMatch(
+      /\.borrow-slider-track\s*\{[\s\S]*top:\s*calc\(100%\s*\/\s*6\)/,
+    );
+    expect(cssContent).toMatch(
+      /\.borrow-slider-track\s*\{[\s\S]*bottom:\s*calc\(100%\s*\/\s*6\)/,
+    );
+    expect(cssContent).not.toMatch(
       /\.borrow-slider\s*\{[\s\S]*grid-template-columns:\s*repeat\(3,\s*1fr\)/,
-    );
-    expect(cssContent).toMatch(
-      /\.borrow-slider-track\s*\{[\s\S]*left:\s*calc\(100%\s*\/\s*6\)/,
-    );
-    expect(cssContent).toMatch(
-      /\.borrow-slider-track\s*\{[\s\S]*right:\s*calc\(100%\s*\/\s*6\)/,
     );
   });
 
@@ -171,13 +180,12 @@ describe('Responsive Layout CSS', () => {
     );
   });
 
-  it('should ensure accessible touch targets in the mobile voice panel grid', () => {
+  it('should ensure accessible touch targets in the mobile voice panel', () => {
     const phoneStart = cssContent.search(phoneLayoutPattern);
     const phoneBlock = cssContent.slice(phoneStart, phoneStart + 5000);
-    expect(phoneBlock).toMatch(
-      /grid-template-rows:\s*repeat\(4,\s*minmax\(44px/,
-    );
     expect(phoneBlock).toMatch(/\.mobile-toolbar-btn\s*\{/);
+    expect(phoneBlock).toMatch(/min-width:\s*48px/);
+    expect(phoneBlock).toMatch(/min-height:\s*48px/);
   });
 
   it('should ensure the diagram container overrides the 450px min-height on mobile to maximize space', () => {

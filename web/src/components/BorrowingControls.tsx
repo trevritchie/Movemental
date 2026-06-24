@@ -1,6 +1,5 @@
 import React, { useRef } from 'react';
 import type { BorrowingDirection } from '../music/BorrowingLogic';
-import { getVoiceDegreeLabel } from '../music/voiceDegreeLabel';
 import { useChordContext } from '../context/ChordContext';
 import { useLayoutTier } from '../hooks/useLayoutTier';
 import { ELEMENTAL_RELATIONSHIPS } from '../music/config';
@@ -10,14 +9,15 @@ interface BorrowingControlsProps {
   disabled: boolean;
 }
 
-
 const ELEMENT_COLORS: Record<string, string> = {
   Earth: 'var(--color-earth)',
   Wind:  'var(--color-wind)',
   Fire:  'var(--color-fire)',
 };
 
-// ─── 3-node slider ───────────────────────────────────────────────────────────
+const VOICE_LINES = [1, 2, 3, 4] as const;
+
+// ─── 3-node vertical slider ───────────────────────────────────────────────────
 
 interface BorrowSliderProps {
   activeSlot: 'up' | 'neutral' | 'down';
@@ -25,11 +25,11 @@ interface BorrowSliderProps {
   disabled: boolean;
   onChange: (slot: 'up' | 'neutral' | 'down') => void;
   onToggleMute: () => void;
-  neutralColor: string;  // color of the voice's own natural note
-  oppositeColor: string; // color of the chord's opposite element
+  neutralColor: string;
+  oppositeColor: string;
 }
 
-const SLOTS: ('down' | 'neutral' | 'up')[] = ['down', 'neutral', 'up'];
+const SLOTS: ('up' | 'neutral' | 'down')[] = ['up', 'neutral', 'down'];
 
 const BorrowSlider: React.FC<BorrowSliderProps> = ({
   activeSlot, muted, disabled, onChange, onToggleMute, neutralColor, oppositeColor,
@@ -40,12 +40,12 @@ const BorrowSlider: React.FC<BorrowSliderProps> = ({
   const initialSlotOnDown = useRef<'up' | 'neutral' | 'down' | null>(null);
   const clickedActiveNode = useRef(false);
 
-  const getSlotFromX = (clientX: number): 'down' | 'neutral' | 'up' => {
+  const getSlotFromY = (clientY: number): 'down' | 'neutral' | 'up' => {
     if (!trackRef.current) return 'neutral';
-    const { left, width } = trackRef.current.getBoundingClientRect();
-    const ratio = (clientX - left) / width;
-    if (ratio < 0.33) return 'down';
-    if (ratio > 0.67) return 'up';
+    const { top, height } = trackRef.current.getBoundingClientRect();
+    const ratio = (clientY - top) / height;
+    if (ratio < 0.33) return 'up';
+    if (ratio > 0.67) return 'down';
     return 'neutral';
   };
 
@@ -57,7 +57,7 @@ const BorrowSlider: React.FC<BorrowSliderProps> = ({
     isDragging.current = true;
     didMove.current = false;
 
-    const slot = getSlotFromX(e.clientX);
+    const slot = getSlotFromY(e.clientY);
     initialSlotOnDown.current = slot;
     clickedActiveNode.current = (!muted && slot === activeSlot);
 
@@ -70,7 +70,7 @@ const BorrowSlider: React.FC<BorrowSliderProps> = ({
 
   const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
     if (!isDragging.current || disabled) return;
-    const slot = getSlotFromX(e.clientX);
+    const slot = getSlotFromY(e.clientY);
 
     if (slot !== initialSlotOnDown.current) {
       didMove.current = true;
@@ -81,7 +81,7 @@ const BorrowSlider: React.FC<BorrowSliderProps> = ({
   const stopDrag = (e: React.PointerEvent<HTMLDivElement>) => {
     if (!isDragging.current || disabled) return;
 
-    const endSlot = getSlotFromX(e.clientX);
+    const endSlot = getSlotFromY(e.clientY);
 
     if (
       clickedActiveNode.current &&
@@ -120,8 +120,6 @@ const BorrowSlider: React.FC<BorrowSliderProps> = ({
   );
 };
 
-const ROWS = [4, 3, 2, 1];
-
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export const BorrowingControls: React.FC<BorrowingControlsProps> = ({
@@ -135,12 +133,6 @@ export const BorrowingControls: React.FC<BorrowingControlsProps> = ({
   } = useChordContext();
 
   const isPhone = useLayoutTier() === 'phone';
-
-  const getVoiceLabel = React.useCallback(
-    (line: number): string =>
-      getVoiceDegreeLabel(line as 1 | 2 | 3 | 4, selectedChord),
-    [selectedChord]
-  );
 
   const oppositeElementName = selectedChord
     ? (ELEMENTAL_RELATIONSHIPS[selectedChord.name]?.[0] ?? null)
@@ -218,53 +210,39 @@ export const BorrowingControls: React.FC<BorrowingControlsProps> = ({
   );
 
   const rowOpacity = disabled ? 0.5 : 1;
+  const sliderColClass = isPhone ? 'mobile-voice-slider-col' : 'borrowing-slider-col';
+
+  const renderSliderColumn = (line: number) => {
+    const muted = state.noteStates[line] === 'off';
+
+    return (
+      <div
+        key={line}
+        className={sliderColClass}
+        style={{ opacity: rowOpacity }}
+      >
+        <BorrowSlider
+          activeSlot={getSliderSlot(line)}
+          muted={muted}
+          disabled={disabled}
+          onChange={(slot) => handleSliderChange(line, slot)}
+          onToggleMute={() => handleToggleMute(line)}
+          neutralColor={getNeutralColor(line)}
+          oppositeColor={oppositeColor}
+        />
+      </div>
+    );
+  };
 
   if (isPhone) {
     return (
       <div className="borrowing-controls borrowing-controls--phone">
-        <div className="mobile-voice-grid">
-          {ROWS.map((line, rowIndex) => {
-            const muted = state.noteStates[line] === 'off';
-            const gridRow = rowIndex + 1;
-
-            return (
-              <React.Fragment key={line}>
-                <div
-                  className={`mobile-voice-label-cell${muted ? ' muted' : ''}`}
-                  style={{ gridRow, opacity: rowOpacity }}
-                >
-                  <div
-                    className="voice-label-container voice-label-container--phone"
-                    onClick={() => handleToggleMute(line)}
-                    style={{ cursor: disabled ? 'default' : 'pointer' }}
-                    title="Mute removes this pitch class from the entire voicing (all octaves)"
-                  >
-                    <div className={`power-led ${muted ? 'off' : 'on'}`} />
-                    <div className="note-label">{getVoiceLabel(line)}</div>
-                  </div>
-                </div>
-
-                <div
-                  className={`mobile-voice-slider-cell${muted ? ' muted' : ''}`}
-                  style={{ gridRow, opacity: rowOpacity }}
-                >
-                  <BorrowSlider
-                    activeSlot={getSliderSlot(line)}
-                    muted={muted}
-                    disabled={disabled}
-                    onChange={(slot) => handleSliderChange(line, slot)}
-                    onToggleMute={() => handleToggleMute(line)}
-                    neutralColor={getNeutralColor(line)}
-                    oppositeColor={oppositeColor}
-                  />
-                </div>
-              </React.Fragment>
-            );
-          })}
-
-          <div className="mobile-action-column">
-            <MobileActionButtons />
+        <div className="mobile-voice-panel">
+          <MobileActionButtons side="left" />
+          <div className="mobile-voice-sliders">
+            {VOICE_LINES.map((line) => renderSliderColumn(line))}
           </div>
+          <MobileActionButtons side="right" />
         </div>
       </div>
     );
@@ -272,41 +250,7 @@ export const BorrowingControls: React.FC<BorrowingControlsProps> = ({
 
   return (
     <div className="borrowing-controls">
-      {ROWS.map(line => {
-        const muted = state.noteStates[line] === 'off';
-
-        return (
-          <div
-            key={line}
-            className={`borrowing-row${muted ? ' muted' : ''}`}
-            style={{ opacity: rowOpacity }}
-          >
-            <div className="voice-label-wrapper">
-              <div
-                className="voice-label-container"
-                onClick={() => handleToggleMute(line)}
-                style={{ cursor: disabled ? 'default' : 'pointer' }}
-                title="Mute removes this pitch class from the entire voicing (all octaves)"
-              >
-                <div className={`power-led ${muted ? 'off' : 'on'}`} />
-                <div className="note-label">{getVoiceLabel(line)}</div>
-              </div>
-            </div>
-
-            <div className="slider-wrapper">
-              <BorrowSlider
-                activeSlot={getSliderSlot(line)}
-                muted={muted}
-                disabled={disabled}
-                onChange={(slot) => handleSliderChange(line, slot)}
-                onToggleMute={() => handleToggleMute(line)}
-                neutralColor={getNeutralColor(line)}
-                oppositeColor={oppositeColor}
-              />
-            </div>
-          </div>
-        );
-      })}
+      {VOICE_LINES.map((line) => renderSliderColumn(line))}
     </div>
   );
 };

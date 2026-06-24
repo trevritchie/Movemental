@@ -17,6 +17,11 @@ const devWarn = (...args: unknown[]) => {
   }
 };
 
+export const RECORDING_STOP_FADE_MS = 300;
+
+const RECORDING_FADE_SAFETY_MS = 50;
+const RECORDING_TAP_MIN_GAIN = 0.001;
+
 export class AudioEngine {
   private synth: Tone.PolySynth | null = null;
   private filter: Tone.Filter | null = null;
@@ -26,6 +31,8 @@ export class AudioEngine {
   private eq: Tone.EQ3 | null = null;
   private compressor: Tone.Compressor | null = null;
   private limiter: Tone.Limiter | null = null;
+  private recordTailGain: Tone.Gain | null = null;
+  private recordingFadeTimer: ReturnType<typeof setTimeout> | null = null;
   private sessionRecorder: SessionRecorder | null = null;
   private isReady: boolean = false;
   private activeNotes: string[] = [];
@@ -146,9 +153,14 @@ export class AudioEngine {
       return;
     }
 
-    recorder.attachSource(this.limiter);
+    if (!this.recordTailGain) {
+      this.recordTailGain = new Tone.Gain(1);
+      this.limiter.connect(this.recordTailGain);
+    }
+
+    recorder.attachSource(this.recordTailGain);
     this.sessionRecorder = recorder;
-    devLog('[AudioEngine] Session recorder attached to master bus');
+    devLog('[AudioEngine] Session recorder attached via record tail gain');
   }
 
   public isRecordingSupported(): boolean {
@@ -178,6 +190,69 @@ export class AudioEngine {
     const blob = await this.sessionRecorder.stop();
     devLog('[AudioEngine] Session recording stopped');
     return blob;
+  }
+
+  /**
+   * Ramp the recorder-only tap to silence before stop() to avoid end-of-file clicks.
+   */
+  public async fadeOutRecordingTap(
+    durationMs: number = RECORDING_STOP_FADE_MS,
+  ): Promise<void> {
+    if (!this.isReady || !this.limiter) {
+      await this.startContext();
+    }
+
+    this.ensureSessionRecorder();
+
+    if (!this.recordTailGain) {
+      return;
+    }
+
+    await this.scheduleRecordingTapFade(1, RECORDING_TAP_MIN_GAIN, durationMs);
+  }
+
+  private scheduleRecordingTapFade(
+    fromGain: number,
+    toGain: number,
+    durationMs: number,
+  ): Promise<void> {
+    return new Promise((resolve) => {
+      this.clearRecordingFadeTimer();
+
+      const durationSec = durationMs / 1000;
+      const now = Tone.now();
+      const gainParam = this.recordTailGain!.gain;
+
+      gainParam.cancelScheduledValues(now);
+      gainParam.setValueAtTime(fromGain, now);
+      gainParam.exponentialRampToValueAtTime(toGain, now + durationSec);
+
+      this.recordingFadeTimer = setTimeout(() => {
+        this.recordingFadeTimer = null;
+        resolve();
+      }, durationMs + RECORDING_FADE_SAFETY_MS);
+    });
+  }
+
+  /** Restore recorder tap gain after a stop fade. */
+  public resetRecordingTailGain(): void {
+    this.clearRecordingFadeTimer();
+
+    if (!this.recordTailGain) {
+      return;
+    }
+
+    const now = Tone.now();
+    const gainParam = this.recordTailGain.gain;
+    gainParam.cancelScheduledValues(now);
+    gainParam.setValueAtTime(1, now);
+  }
+
+  private clearRecordingFadeTimer(): void {
+    if (this.recordingFadeTimer !== null) {
+      clearTimeout(this.recordingFadeTimer);
+      this.recordingFadeTimer = null;
+    }
   }
 
   public async startContext() {
