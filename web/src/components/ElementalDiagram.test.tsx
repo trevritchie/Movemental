@@ -44,6 +44,10 @@ vi.mock('../hooks/useFullscreen', () => ({
   }),
 }));
 
+vi.mock('./RecordControl', () => ({
+  RecordControl: () => null,
+}));
+
 async function flushAnimationFrames(count = 2): Promise<void> {
   for (let i = 0; i < count; i += 1) {
     await new Promise<void>((resolve) => {

@@ -11,7 +11,21 @@ const dismissIosInstallHint = vi.fn();
 vi.mock('../audio/AudioEngine', () => ({
   audioEngine: {
     releaseActiveNotes: vi.fn(),
+    isRecordingSupported: vi.fn(() => true),
+    startRecording: vi.fn(async () => undefined),
+    stopRecording: vi.fn(async () => ({
+      audio: new Blob(['test'], { type: 'audio/webm' }),
+      midi: new Blob(['midi'], { type: 'audio/midi' }),
+    })),
   },
+}));
+
+vi.mock('./RecordControl', () => ({
+  RecordControl: () => (
+    <button type="button" aria-label="Start recording">
+      Record
+    </button>
+  ),
 }));
 
 vi.mock('../context/ChordContext', () => ({
@@ -60,6 +74,9 @@ describe('DiagramCornerActions', () => {
   it('renders panic, settings, and fullscreen in diagram corners', () => {
     render(<DiagramCornerActions />);
 
+    expect(
+      screen.getByRole('button', { name: /start recording/i }),
+    ).toBeInTheDocument();
     expect(
       screen.getByRole('button', { name: /panic switch/i }),
     ).toBeInTheDocument();

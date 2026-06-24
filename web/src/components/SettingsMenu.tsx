@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Settings, Square, Maximize2, Minimize2, X } from 'lucide-react';
+import { Settings, VolumeX, Maximize2, Minimize2, X } from 'lucide-react';
 import { NOTE_NAMES_FLAT, OCTAVE_RANGE_OPTIONS } from '../music/config';
 import { audioEngine } from '../audio/AudioEngine';
 import { useChordContext, type PlayStyle } from '../context/ChordContext';
@@ -15,6 +15,7 @@ import { IosInstallHintPortal } from './IosInstallHintPortal';
 import { isIphone } from '../utils/devicePlatform';
 
 import { useSettingsMenu } from '../hooks/useSettingsMenu';
+import { RecordControl } from './RecordControl';
 
 const FOCUSABLE_SELECTOR =
   'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
@@ -250,8 +251,14 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   );
 };
 
-/** Stop, settings, and fullscreen buttons for the phone voice panel. */
-export const MobileActionButtons: React.FC = () => {
+interface MobileActionButtonsProps {
+  side?: 'left' | 'right' | 'both';
+}
+
+/** Settings, record, panic, and fullscreen for the phone voice panel. */
+export const MobileActionButtons: React.FC<MobileActionButtonsProps> = ({
+  side = 'both',
+}) => {
   const {
     isOpen,
     menuId,
@@ -269,46 +276,60 @@ export const MobileActionButtons: React.FC = () => {
     dismissIosInstallHint,
   } = useFullscreen();
 
-  return (
-    <>
-      <div className="mobile-action-buttons" aria-label="Quick controls">
+  const leftColumn = (
+    <div
+      className="mobile-action-column mobile-action-column--left"
+      aria-label="Settings and display"
+    >
+      <button
+        ref={triggerRef}
+        type="button"
+        className="mobile-toolbar-btn mobile-toolbar-btn--settings"
+        onClick={openMenu}
+        aria-label="Settings"
+        aria-expanded={isOpen}
+        aria-controls={menuId}
+      >
+        <Settings size={22} />
+      </button>
+      {canFullscreen && (
         <button
           type="button"
-          className="mobile-toolbar-btn stop-btn mobile-toolbar-btn--panic"
-          onClick={() => audioEngine.releaseActiveNotes()}
-          title="Panic Switch"
-          aria-label="Panic Switch: stop all notes"
+          className="mobile-toolbar-btn mobile-toolbar-btn--fullscreen"
+          onClick={() => void toggleFullscreen()}
+          title={isFullscreen ? 'Exit Full Screen' : 'Full Screen'}
+          aria-label={isFullscreen ? 'Exit Full Screen' : 'Full Screen'}
         >
-          <Square size={14} fill="currentColor" />
+          {isFullscreen ? (
+            <Minimize2 size={20} />
+          ) : (
+            <Maximize2 size={20} />
+          )}
         </button>
-        <button
-          ref={triggerRef}
-          type="button"
-          className="mobile-toolbar-btn mobile-toolbar-btn--settings"
-          onClick={openMenu}
-          aria-label="Settings"
-          aria-expanded={isOpen}
-          aria-controls={menuId}
-        >
-          <Settings size={18} />
-        </button>
-        {canFullscreen && (
-          <button
-            type="button"
-            className="mobile-toolbar-btn mobile-toolbar-btn--fullscreen"
-            onClick={() => void toggleFullscreen()}
-            title={isFullscreen ? 'Exit Full Screen' : 'Full Screen'}
-            aria-label={isFullscreen ? 'Exit Full Screen' : 'Full Screen'}
-          >
-            {isFullscreen ? (
-              <Minimize2 size={16} />
-            ) : (
-              <Maximize2 size={16} />
-            )}
-          </button>
-        )}
-      </div>
+      )}
+    </div>
+  );
 
+  const rightColumn = (
+    <div
+      className="mobile-action-column mobile-action-column--right"
+      aria-label="Playback controls"
+    >
+      <button
+        type="button"
+        className="mobile-toolbar-btn stop-btn mobile-toolbar-btn--panic"
+        onClick={() => audioEngine.releaseActiveNotes()}
+        title="Panic Switch"
+        aria-label="Panic Switch: stop all notes"
+      >
+        <VolumeX size={22} />
+      </button>
+      <RecordControl variant="mobile" />
+    </div>
+  );
+
+  const sharedPortals = side !== 'right' ? (
+    <>
       <IosInstallHintPortal
         isOpen={showIosInstallHint && isIphone()}
         onDismiss={dismissIosInstallHint}
@@ -320,6 +341,29 @@ export const MobileActionButtons: React.FC = () => {
         menuId={menuId}
         modalRef={modalRef}
       />
+    </>
+  ) : null;
+
+  if (side === 'left') {
+    return (
+      <>
+        {leftColumn}
+        {sharedPortals}
+      </>
+    );
+  }
+
+  if (side === 'right') {
+    return rightColumn;
+  }
+
+  return (
+    <>
+      <div className="mobile-action-buttons" aria-label="Quick controls">
+        {leftColumn}
+        {rightColumn}
+      </div>
+      {sharedPortals}
     </>
   );
 };

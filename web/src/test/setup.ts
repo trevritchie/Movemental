@@ -64,11 +64,26 @@ Object.defineProperty(navigator, 'maxTouchPoints', {
 // Mock Tone.js
 vi.mock('tone', () => {
   const mockNow = vi.fn(() => 0);
-  const mockFrequency = vi.fn((n) => ({
+  const mockFrequency = vi.fn((value: number | string) => ({
     toNote: () => {
-      const notes = ["C", "Db", "D", "Eb", "E", "F", "Gb", "G", "Ab", "A", "Bb", "B"];
-      return notes[n % 12] + Math.floor(n / 12 - 1);
-    }
+      if (typeof value === 'string') {
+        return value;
+      }
+
+      const notes = [
+        'C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B',
+      ];
+      return notes[value % 12] + Math.floor(value / 12 - 1);
+    },
+    toMidi: () => (typeof value === 'number' ? value : 60),
+  }));
+
+  class Gain {
+    connect = vi.fn().mockReturnThis();
+  }
+
+  const Time = vi.fn((duration: string) => ({
+    toSeconds: () => (duration === '2n' ? 1 : 0.5),
   }));
 
   class PolySynth {
@@ -133,6 +148,8 @@ vi.mock('tone', () => {
     start: vi.fn().mockResolvedValue(undefined),
     now: mockNow,
     Frequency: mockFrequency,
+    Time,
+    Gain,
     PolySynth,
     Synth,
     Filter,
