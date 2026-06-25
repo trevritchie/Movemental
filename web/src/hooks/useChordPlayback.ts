@@ -44,7 +44,7 @@ import {
   resolveSmoothestReanchorTilt,
   resolveSmoothPlaybackTiltForNavigation as resolveSmoothNavTilt,
 } from '../music/playbackTiltResolution';
-import { invalidateVoicingCache } from '../music/voicingCache';
+import { invalidateVoicingCache, invalidateVoicingCacheForCommit } from '../music/voicingCache';
 import {
   lastPlayedBassReadout,
   lastPlayedVoicingReadout,
@@ -585,6 +585,8 @@ export function useChordPlayback({
         fromPointer?: boolean;
       } = {}
     ) => {
+      dispatchAudio(pitches, playStyleRef.current, options);
+
       previousChordRef.current = displayChord;
       setPreviousPlayedChord(displayChord);
       setSelectedChord(displayChord);
@@ -595,7 +597,11 @@ export function useChordPlayback({
       }
       activePitchesRef.current = pitches;
       setActivePitches(pitches);
-      invalidateVoicingCache();
+      invalidateVoicingCacheForCommit(
+        displayChord.name,
+        state,
+        voiceLeadingModeRef.current
+      );
       updateVoiceLeadingBaseline(playStyleRef.current, playbackTilt);
       if (playStyleRef.current === 'tilt') {
         setLastPlayedVoicingLabel(lastPlayedVoicingReadout(playbackTilt));
@@ -606,7 +612,6 @@ export function useChordPlayback({
           })
         );
       }
-      dispatchAudio(pitches, playStyleRef.current, options);
     },
     [dispatchAudio, setSelectedChord, updateVoiceLeadingBaseline]
   );

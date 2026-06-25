@@ -35,6 +35,9 @@ interface BorrowSliderProps {
 
 const SLOTS: ('up' | 'neutral' | 'down')[] = ['up', 'neutral', 'down'];
 
+/** Throttle borrowing preview re-voice during slider drag (ms). */
+const SLIDER_PREVIEW_THROTTLE_MS = 60;
+
 const BorrowSlider = React.memo(function BorrowSlider({
   activeSlot, muted, disabled, onChange, onToggleMute, neutralColor, oppositeColor,
 }: BorrowSliderProps) {
@@ -43,6 +46,27 @@ const BorrowSlider = React.memo(function BorrowSlider({
   const didMove = useRef(false);
   const initialSlotOnDown = useRef<'up' | 'neutral' | 'down' | null>(null);
   const clickedActiveNode = useRef(false);
+  const lastPreviewAtRef = useRef(0);
+  const pendingSlotRef = useRef<'up' | 'neutral' | 'down' | null>(null);
+
+  const emitChange = (slot: 'up' | 'neutral' | 'down') => {
+    const now = performance.now();
+    if (now - lastPreviewAtRef.current >= SLIDER_PREVIEW_THROTTLE_MS) {
+      lastPreviewAtRef.current = now;
+      pendingSlotRef.current = null;
+      emitChange(slot);
+      return;
+    }
+    pendingSlotRef.current = slot;
+  };
+
+  const flushPendingChange = () => {
+    if (pendingSlotRef.current !== null) {
+      onChange(pendingSlotRef.current);
+      pendingSlotRef.current = null;
+      lastPreviewAtRef.current = performance.now();
+    }
+  };
 
   const getSlotFromY = (clientY: number): 'down' | 'neutral' | 'up' => {
     if (!trackRef.current) return 'neutral';
@@ -68,7 +92,7 @@ const BorrowSlider = React.memo(function BorrowSlider({
     e.currentTarget.setPointerCapture(e.pointerId);
 
     if (slot !== activeSlot || muted) {
-      onChange(slot);
+      emitChange(slot);
     }
   };
 
@@ -79,13 +103,14 @@ const BorrowSlider = React.memo(function BorrowSlider({
     if (slot !== initialSlotOnDown.current) {
       didMove.current = true;
     }
-    onChange(slot);
+    emitChange(slot);
   };
 
   const stopDrag = (e: React.PointerEvent<HTMLDivElement>) => {
     if (!isDragging.current || disabled) return;
 
     const endSlot = getSlotFromY(e.clientY);
+    flushPendingChange();
 
     if (
       clickedActiveNode.current &&

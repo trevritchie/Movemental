@@ -2,8 +2,8 @@
  * Single-entry memo for tilt label voicing (~7 Hz UI updates).
  *
  * Key uses quantized tilt steps (not raw floats) so nearby sensor noise
- * within the same voicing level hits the cache. Invalidated on every chord
- * commit because previousPlayedChord affects elemental resolution.
+ * within the same voicing level hits the cache. Commit invalidation is
+ * selective: only when chord, borrowing, or voice-leading mode changes.
  */
 import type { VoiceLeadingMode } from '../context/types';
 import { isElementalName } from './elementalRoot';
@@ -73,6 +73,7 @@ function cacheKey(
 
 let lastKey = '';
 let lastPitches: number[] = [];
+let lastCommitInvalidationKey = '';
 
 /**
  * Memoize voiced pitches for UI readouts (tilt label updates ~7 Hz).
@@ -129,8 +130,26 @@ export function getCachedTiltVoicedPitches(
   return lastPitches;
 }
 
+/** Clear memo when chord, borrowing, or voice-leading mode changes on commit. */
+export function invalidateVoicingCacheForCommit(
+  chordName: string,
+  borrowingState: BorrowingState,
+  voiceLeadingMode: VoiceLeadingMode | undefined
+): void {
+  const key = `${chordName}|${borrowingKey(borrowingState)}|${
+    voiceLeadingMode ?? ''
+  }`;
+  if (key === lastCommitInvalidationKey) {
+    return;
+  }
+  lastCommitInvalidationKey = key;
+  lastKey = '';
+  lastPitches = [];
+}
+
 /** Clear memo when chord or settings change outside tilt quantization. */
 export function invalidateVoicingCache(): void {
   lastKey = '';
   lastPitches = [];
+  lastCommitInvalidationKey = '';
 }

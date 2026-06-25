@@ -138,7 +138,7 @@ export class AudioEngine {
       preDelay: REVERB_PRE_DELAY_SEC,
     });
     this.reverb.connect(this.eq);
-    await this.reverb.generate();
+    void this.reverb.generate();
 
     // 4. Ping-Pong Delay - subtle bouncing ambient delay tail
     this.delay = new Tone.PingPongDelay({
