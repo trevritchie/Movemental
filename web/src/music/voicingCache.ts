@@ -20,14 +20,16 @@ import {
   type ElementalPlaybackResolution,
 } from './tiltVoicingPlayback';
 
+const BORROWING_LINES = [1, 2, 3, 4] as const;
+
 function borrowingKey(state: BorrowingState): string {
-  const positions = [1, 2, 3, 4]
+  const positions = BORROWING_LINES
     .map((line) => state.circlePositions[line])
     .join('');
-  const directions = [1, 2, 3, 4]
+  const directions = BORROWING_LINES
     .map((line) => state.borrowingDirections[line] ?? '_')
     .join('');
-  const notes = [1, 2, 3, 4]
+  const notes = BORROWING_LINES
     .map((line) => state.noteStates[line])
     .join('');
   return `${state.active ? 1 : 0}:${positions}:${directions}:${notes}`;

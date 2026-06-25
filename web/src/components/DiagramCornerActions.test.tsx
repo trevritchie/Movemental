@@ -58,17 +58,24 @@ vi.mock('../hooks/useFullscreen', () => ({
 import { useLayoutTier } from '../hooks/useLayoutTier';
 import { useFullscreen } from '../hooks/useFullscreen';
 
+function mockFullscreenState(
+  overrides: Partial<ReturnType<typeof useFullscreen>> = {},
+) {
+  return {
+    isFullscreen: false,
+    canFullscreen: true,
+    showIosInstallHint: false,
+    toggleFullscreen,
+    dismissIosInstallHint,
+    ...overrides,
+  };
+}
+
 describe('DiagramCornerActions', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(useLayoutTier).mockReturnValue('desktop');
-    vi.mocked(useFullscreen).mockReturnValue({
-      isFullscreen: false,
-      canFullscreen: true,
-      showIosInstallHint: false,
-      toggleFullscreen,
-      dismissIosInstallHint,
-    });
+    vi.mocked(useFullscreen).mockReturnValue(mockFullscreenState());
   });
 
   it('renders panic, settings, and fullscreen in diagram corners', () => {
@@ -135,13 +142,9 @@ describe('DiagramCornerActions', () => {
 
   it('shows iOS install hint on tablet when enabled', () => {
     vi.mocked(useLayoutTier).mockReturnValue('tablet');
-    vi.mocked(useFullscreen).mockReturnValue({
-      isFullscreen: false,
-      canFullscreen: true,
-      showIosInstallHint: true,
-      toggleFullscreen,
-      dismissIosInstallHint,
-    });
+    vi.mocked(useFullscreen).mockReturnValue(
+      mockFullscreenState({ showIosInstallHint: true }),
+    );
 
     render(<DiagramCornerActions />);
 
@@ -152,13 +155,9 @@ describe('DiagramCornerActions', () => {
 
   it('does not show iOS install hint on desktop tier when enabled', () => {
     vi.mocked(useLayoutTier).mockReturnValue('desktop');
-    vi.mocked(useFullscreen).mockReturnValue({
-      isFullscreen: false,
-      canFullscreen: true,
-      showIosInstallHint: true,
-      toggleFullscreen,
-      dismissIosInstallHint,
-    });
+    vi.mocked(useFullscreen).mockReturnValue(
+      mockFullscreenState({ showIosInstallHint: true }),
+    );
 
     render(<DiagramCornerActions />);
 

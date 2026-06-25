@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { ChordManager } from './ChordManager';
+import { ChordManager, type Chord } from './ChordManager';
 import { OCTAVE } from './config';
 import { computeNeutralTiltVoicing } from './tiltVoicingPlayback';
 import {
@@ -22,11 +22,16 @@ import {
 
 const TONAL_CENTER_BB = 10;
 const OCTAVE_RANGE = 2;
+// Flat double-octave roll at parallel 0 (smooth mode starting tilt).
 const DOUBLE_OCTAVE_FLAT = tiltSampleFromLevels(8, 0);
 const PITCH_UP_TWO = tiltSampleFromLevels(8, 2);
 
 function pitchClass(midi: number): number {
   return ((midi % OCTAVE) + OCTAVE) % OCTAVE;
+}
+
+function pitchStructureFrom(chord: Chord): number[] {
+  return [chord.pitches[0], chord.pitches[1], chord.pitches[2], chord.pitches[3]];
 }
 
 describe('resolveSmoothParallelSteps', () => {
@@ -53,12 +58,7 @@ describe('resolveSmoothParallelSteps', () => {
     expect(previousPitches.length).toBeGreaterThan(0);
     expect(pitchClass(Math.min(...previousPitches))).toBe(TONAL_CENTER_BB);
 
-    const pitchStructure = [
-      glass.pitches[0],
-      glass.pitches[1],
-      glass.pitches[2],
-      glass.pitches[3],
-    ];
+    const pitchStructure = pitchStructureFrom(glass);
     const rootPitchClass = glass.pitches[glass.rootPositionIndex] % OCTAVE;
 
     const smoothParallel = resolveSmoothParallelSteps(
@@ -90,12 +90,7 @@ describe('resolveSmoothParallelSteps', () => {
 
   it('returns baseline parallel when there is no previous voicing', () => {
     const glass = manager.getChordByName('Glass')!;
-    const pitchStructure = [
-      glass.pitches[0],
-      glass.pitches[1],
-      glass.pitches[2],
-      glass.pitches[3],
-    ];
+    const pitchStructure = pitchStructureFrom(glass);
     const rootPitchClass = glass.pitches[glass.rootPositionIndex] % OCTAVE;
 
     const smoothParallel = resolveSmoothParallelSteps(
@@ -123,12 +118,7 @@ describe('resolveSmoothParallelSteps', () => {
       { anchor: 'contrary' }
     );
 
-    const pitchStructure = [
-      glass.pitches[0],
-      glass.pitches[1],
-      glass.pitches[2],
-      glass.pitches[3],
-    ];
+    const pitchStructure = pitchStructureFrom(glass);
     const rootPitchClass = glass.pitches[glass.rootPositionIndex] % OCTAVE;
 
     const pivotParallel = resolveSmoothParallelSteps(
@@ -215,12 +205,7 @@ describe('inter-tap roll change', () => {
       { anchor: 'pivot' }
     );
 
-    const pitchStructure = [
-      glass.pitches[0],
-      glass.pitches[1],
-      glass.pitches[2],
-      glass.pitches[3],
-    ];
+    const pitchStructure = pitchStructureFrom(glass);
     const rootPitchClass = glass.pitches[glass.rootPositionIndex] % OCTAVE;
 
     const smoothParallel = resolveSmoothParallelSteps(

@@ -19,7 +19,7 @@ To change Smooth mode defaults, edit `CHORD_FLAT_PARALLEL` in
 | Wind | -1 | 6th |
 | Fire | 0 | Root |
 
-### Earth-Wind — Trunk
+### Earth-Wind, Trunk
 
 | Chord | Parallel steps | Bass degree at flat |
 |-------|----------------|---------------------|
@@ -28,7 +28,7 @@ To change Smooth mode defaults, edit `CHORD_FLAT_PARALLEL` in
 | Twin Trunk | -2 | 5th |
 | Brother Trunk | -1 | 6th |
 
-### Earth-Wind — Branch
+### Earth-Wind, Branch
 
 | Chord | Parallel steps | Bass degree at flat |
 |-------|----------------|---------------------|
@@ -37,7 +37,7 @@ To change Smooth mode defaults, edit `CHORD_FLAT_PARALLEL` in
 | Twin Branch | -2 | 5th |
 | Brother Branch | -1 | 6th |
 
-### Earth-Wind — Sand-Storm
+### Earth-Wind, Sand-Storm
 
 | Chord | Parallel steps | Bass degree at flat |
 |-------|----------------|---------------------|
@@ -46,7 +46,7 @@ To change Smooth mode defaults, edit `CHORD_FLAT_PARALLEL` in
 | Twin Sand-Storm | -2 | 5th |
 | Brother Sand-Storm | -1 | 7th |
 
-### Earth-Wind — Leaf
+### Earth-Wind, Leaf
 
 | Chord | Parallel steps | Bass degree at flat |
 |-------|----------------|---------------------|
@@ -55,7 +55,7 @@ To change Smooth mode defaults, edit `CHORD_FLAT_PARALLEL` in
 | Twin Leaf | -2 | 5th |
 | Brother Leaf | -1 | 7th |
 
-### Wind-Fire — Smoke
+### Wind-Fire, Smoke
 
 | Chord | Parallel steps | Bass degree at flat |
 |-------|----------------|---------------------|
@@ -64,7 +64,7 @@ To change Smooth mode defaults, edit `CHORD_FLAT_PARALLEL` in
 | Twin Smoke | 0 | Root |
 | Brother Smoke | -3 | 3rd |
 
-### Wind-Fire — Ember
+### Wind-Fire, Ember
 
 | Chord | Parallel steps | Bass degree at flat |
 |-------|----------------|---------------------|
@@ -73,7 +73,7 @@ To change Smooth mode defaults, edit `CHORD_FLAT_PARALLEL` in
 | Twin Ember | 0 | Root |
 | Brother Ember | -3 | 3rd |
 
-### Wind-Fire — Fire-Storm
+### Wind-Fire, Fire-Storm
 
 | Chord | Parallel steps | Bass degree at flat |
 |-------|----------------|---------------------|
@@ -82,7 +82,7 @@ To change Smooth mode defaults, edit `CHORD_FLAT_PARALLEL` in
 | Twin Fire-Storm | 0 | Root |
 | Brother Fire-Storm | -3 | 3rd |
 
-### Wind-Fire — Flame
+### Wind-Fire, Flame
 
 | Chord | Parallel steps | Bass degree at flat |
 |-------|----------------|---------------------|
@@ -91,7 +91,7 @@ To change Smooth mode defaults, edit `CHORD_FLAT_PARALLEL` in
 | Twin Flame | 0 | Root |
 | Brother Flame | -3 | 3rd |
 
-### Fire-Earth — Magma
+### Fire-Earth, Magma
 
 | Chord | Parallel steps | Bass degree at flat |
 |-------|----------------|---------------------|
@@ -100,7 +100,7 @@ To change Smooth mode defaults, edit `CHORD_FLAT_PARALLEL` in
 | Twin Magma | -3 | 3rd |
 | Brother Magma | -2 | 5th |
 
-### Fire-Earth — Glass
+### Fire-Earth, Glass
 
 | Chord | Parallel steps | Bass degree at flat |
 |-------|----------------|---------------------|
@@ -109,7 +109,7 @@ To change Smooth mode defaults, edit `CHORD_FLAT_PARALLEL` in
 | Twin Glass | -4 | Root |
 | Brother Glass | -3 | 3rd |
 
-### Fire-Earth — Forest-Fire
+### Fire-Earth, Forest-Fire
 
 | Chord | Parallel steps | Bass degree at flat |
 |-------|----------------|---------------------|
@@ -118,7 +118,7 @@ To change Smooth mode defaults, edit `CHORD_FLAT_PARALLEL` in
 | Twin Forest-Fire | -4 | Root |
 | Brother Forest-Fire | -3 | 3rd |
 
-### Fire-Earth — Charcoal
+### Fire-Earth, Charcoal
 
 | Chord | Parallel steps | Bass degree at flat |
 |-------|----------------|---------------------|

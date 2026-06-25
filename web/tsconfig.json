@@ -1,3 +1,4 @@
+// Root TypeScript project references (app and Node tooling).
 {
   "files": [],
   "references": [

@@ -49,8 +49,6 @@ const TiltReadoutStack: React.FC<TiltReadoutStackProps> = ({
  * Diagram overlay: voicing (top left) and bass degree (top right).
  */
 export const DiagramVoicingOverlay: React.FC = () => {
-  const bassMaxLabel = TILT_BASS_DEGREE_MOBILE_MAX_LABEL;
-
   const {
     playStyle,
     noTiltVoicingLevel,
@@ -258,7 +256,7 @@ export const DiagramVoicingOverlay: React.FC = () => {
       <DiagramOverlayPill
         label="IN THE BASS"
         corner="top-right"
-        sizerText={bassMaxLabel}
+        sizerText={TILT_BASS_DEGREE_MOBILE_MAX_LABEL}
         className={
           !isTilt && isNoTiltBassLocked
             ? 'diagram-overlay-pill--locked'

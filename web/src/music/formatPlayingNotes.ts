@@ -1,3 +1,7 @@
+/**
+ * MIDI and spelled note strings for the playing-notes and chord readout UI.
+ */
+
 import { NOTE_NAMES_FLAT } from './config';
 import type { Chord } from './ChordManager';
 import { buildDegreeSpellingMap, spellMidiNote } from './chordSpelling';

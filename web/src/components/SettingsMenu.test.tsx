@@ -65,17 +65,24 @@ vi.mock('../utils/devicePlatform', () => ({
 import { useFullscreen } from '../hooks/useFullscreen';
 import { isIphone } from '../utils/devicePlatform';
 
+function mockFullscreenState(
+  overrides: Partial<ReturnType<typeof useFullscreen>> = {},
+) {
+  return {
+    isFullscreen: false,
+    canFullscreen: true,
+    showIosInstallHint: false,
+    toggleFullscreen,
+    dismissIosInstallHint,
+    ...overrides,
+  };
+}
+
 describe('MobileActionButtons', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(isIphone).mockReturnValue(true);
-    vi.mocked(useFullscreen).mockReturnValue({
-      isFullscreen: false,
-      canFullscreen: true,
-      showIosInstallHint: false,
-      toggleFullscreen,
-      dismissIosInstallHint,
-    });
+    vi.mocked(useFullscreen).mockReturnValue(mockFullscreenState());
   });
 
   it('renders stop, settings, and fullscreen in the action column', () => {
@@ -162,13 +169,9 @@ describe('MobileActionButtons', () => {
 
   it('shows iOS install hint near the action column on iPhone', () => {
     vi.mocked(isIphone).mockReturnValue(true);
-    vi.mocked(useFullscreen).mockReturnValue({
-      isFullscreen: false,
-      canFullscreen: true,
-      showIosInstallHint: true,
-      toggleFullscreen,
-      dismissIosInstallHint,
-    });
+    vi.mocked(useFullscreen).mockReturnValue(
+      mockFullscreenState({ showIosInstallHint: true }),
+    );
 
     render(<MobileActionButtons />);
 
@@ -178,13 +181,9 @@ describe('MobileActionButtons', () => {
 
   it('does not show iOS install hint when not on iPhone', () => {
     vi.mocked(isIphone).mockReturnValue(false);
-    vi.mocked(useFullscreen).mockReturnValue({
-      isFullscreen: false,
-      canFullscreen: true,
-      showIosInstallHint: true,
-      toggleFullscreen,
-      dismissIosInstallHint,
-    });
+    vi.mocked(useFullscreen).mockReturnValue(
+      mockFullscreenState({ showIosInstallHint: true }),
+    );
 
     render(<MobileActionButtons />);
 

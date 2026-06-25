@@ -8,73 +8,73 @@ export const CHORD_FLAT_PARALLEL = {
   'Wind': -1,
   'Fire': 0,
 
-  // Earth-Wind — Trunk (min6)
+  // Earth-Wind, Trunk (min6)
   'Trunk': 0,
   'Sister Trunk': -3,
   'Twin Trunk': -2,
   'Brother Trunk': -1,
 
-  // Earth-Wind — Branch (maj6)
+  // Earth-Wind, Branch (maj6)
   'Branch': 0,
   'Sister Branch': -3,
   'Twin Branch': -2,
   'Brother Branch': -1,
 
-  // Earth-Wind — Sand-Storm (7b5)
+  // Earth-Wind, Sand-Storm (7b5)
   'Sand-Storm': 0,
   'Sister Sand-Storm': -3,
   'Twin Sand-Storm': -2,
   'Brother Sand-Storm': -1,
 
-  // Earth-Wind — Leaf (7)
+  // Earth-Wind, Leaf (7)
   'Leaf': 0,
   'Sister Leaf': -3,
   'Twin Leaf': -2,
   'Brother Leaf': -1,
 
-  // Wind-Fire — Smoke (min6)
+  // Wind-Fire, Smoke (min6)
   'Smoke': -2,
   'Sister Smoke': -1,
   'Twin Smoke': 0,
   'Brother Smoke': -3,
 
-  // Wind-Fire — Ember (maj6)
+  // Wind-Fire, Ember (maj6)
   'Ember': -2,
   'Sister Ember': -1,
   'Twin Ember': 0,
   'Brother Ember': -3,
 
-  // Wind-Fire — Fire-Storm (7b5)
+  // Wind-Fire, Fire-Storm (7b5)
   'Fire-Storm': -2,
   'Sister Fire-Storm': -1,
   'Twin Fire-Storm': 0,
   'Brother Fire-Storm': -3,
 
-  // Wind-Fire — Flame (7)
+  // Wind-Fire, Flame (7)
   'Flame': -2,
   'Sister Flame': -1,
   'Twin Flame': 0,
   'Brother Flame': -3,
 
-  // Fire-Earth — Magma (min6)
+  // Fire-Earth, Magma (min6)
   'Magma': -1,
   'Sister Magma': -4,
   'Twin Magma': -3,
   'Brother Magma': -2,
 
-  // Fire-Earth — Glass (maj6)
+  // Fire-Earth, Glass (maj6)
   'Glass': -2,
   'Sister Glass': -1,
   'Twin Glass': -4,
   'Brother Glass': -3,
 
-  // Fire-Earth — Forest-Fire (7b5)
+  // Fire-Earth, Forest-Fire (7b5)
   'Forest-Fire': -2,
   'Sister Forest-Fire': -1,
   'Twin Forest-Fire': -4,
   'Brother Forest-Fire': -3,
 
-  // Fire-Earth — Charcoal (7)
+  // Fire-Earth, Charcoal (7)
   'Charcoal': -2,
   'Sister Charcoal': -1,
   'Twin Charcoal': -4,

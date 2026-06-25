@@ -1,3 +1,6 @@
+/**
+ * Reactive layout tier (phone, tablet, desktop) from breakpoints.
+ */
 import { useEffect, useState } from 'react';
 import { resolveLayoutTier, type LayoutTier } from '../layout/breakpoints';
 

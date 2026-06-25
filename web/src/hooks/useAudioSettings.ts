@@ -1,3 +1,6 @@
+/**
+ * Effect wet/dry and envelope settings synced to AudioEngine.
+ */
 import { useState, useEffect } from 'react';
 import { audioEngine } from '../audio/AudioEngine';
 import type { PlayStyle } from '../context/types';

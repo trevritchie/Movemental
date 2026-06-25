@@ -1,3 +1,10 @@
+/**
+ * PolySynth master bus: filter, modulation, EQ, dynamics, and session capture.
+ *
+ * Signal chain (synth to speakers):
+ * PolySynth -> Filter -> Chorus -> Delay -> Reverb -> EQ3 -> Compressor ->
+ * Limiter -> Destination. SessionRecorder taps Limiter -> recordTailGain.
+ */
 import * as Tone from 'tone';
 import {
   unlockIosMediaChannel,
@@ -5,6 +12,43 @@ import {
 } from './iosMediaChannel';
 import { SessionRecorder } from './SessionRecorder';
 import { SessionMidiRecorder } from './SessionMidiRecorder';
+
+/** Final peak limiter ceiling (dB). */
+const LIMITER_CEILING_DB = -1.5;
+/** Master bus compressor. */
+const COMPRESSOR_THRESHOLD_DB = -16;
+const COMPRESSOR_RATIO = 4.0;
+const COMPRESSOR_ATTACK_SEC = 0.03;
+const COMPRESSOR_RELEASE_SEC = 0.08;
+/** EQ3 laptop-speaker translation (dB and crossover Hz). */
+const EQ_LOW_DB = -6;
+const EQ_MID_DB = 2.5;
+const EQ_HIGH_DB = -2.5;
+const EQ_LOW_FREQ_HZ = 180;
+const EQ_HIGH_FREQ_HZ = 2400;
+/** Reverb tail. */
+const REVERB_DECAY_SEC = 3.5;
+const REVERB_PRE_DELAY_SEC = 0.02;
+/** Ping-pong delay (dotted quarter, feedback 0-1). */
+const DELAY_TIME = '4n.';
+const DELAY_FEEDBACK = 0.25;
+/** Chorus LFO and wet mix. */
+const CHORUS_LFO_HZ = 1.5;
+const CHORUS_DELAY_MS = 3.5;
+const CHORUS_DEPTH = 0.7;
+/** Post-synth lowpass warmth. */
+const FILTER_CUTOFF_HZ = 900;
+const FILTER_ROLLOFF_DB = -12;
+/** PolySynth voice stack. */
+const SYNTH_DETUNE_COUNT = 3;
+const SYNTH_DETUNE_SPREAD = 15;
+const SYNTH_VOLUME_DB = -12;
+const SYNTH_MAX_POLYPHONY = 12;
+/** Piano MIDI range (A0 through C8). */
+const MIDI_NOTE_MIN = 21;
+const MIDI_NOTE_MAX = 108;
+/** Micro-delay before attack to avoid release/attack clicks. */
+const ATTACK_SCHEDULE_OFFSET_SEC = 0.015;
 
 const devLog = (...args: unknown[]) => {
   if (import.meta.env.DEV) {
@@ -63,14 +107,14 @@ export class AudioEngine {
     // Signal chain: PolySynth -> Filter -> Chorus -> Delay -> Reverb -> EQ3 -> Compressor -> Limiter -> Destination
 
     // 8. Limiter - final peak control to guarantee no digital clipping
-    this.limiter = new Tone.Limiter(-1.5).toDestination();
+    this.limiter = new Tone.Limiter(LIMITER_CEILING_DB).toDestination();
 
     // 7. Compressor - glues the polyphonic voices and smooths out transient spikes
     this.compressor = new Tone.Compressor({
-      threshold: -16,
-      ratio: 4.0,
-      attack: 0.03,
-      release: 0.08,
+      threshold: COMPRESSOR_THRESHOLD_DB,
+      ratio: COMPRESSOR_RATIO,
+      attack: COMPRESSOR_ATTACK_SEC,
+      release: COMPRESSOR_RELEASE_SEC,
     });
     this.compressor.connect(this.limiter);
 
@@ -79,36 +123,36 @@ export class AudioEngine {
     // - Presence boost (+2.5dB between 250Hz and 2400Hz) to bring out mid-range warmth and body.
     // - High shelf cut (-2.5dB) to smooth out synth brightness and tame high-register beeps.
     this.eq = new Tone.EQ3({
-      low: -6,
-      mid: 2.5,
-      high: -2.5,
-      lowFrequency: 180,
-      highFrequency: 2400,
+      low: EQ_LOW_DB,
+      mid: EQ_MID_DB,
+      high: EQ_HIGH_DB,
+      lowFrequency: EQ_LOW_FREQ_HZ,
+      highFrequency: EQ_HIGH_FREQ_HZ,
     });
     this.eq.connect(this.compressor);
 
     // 5. Reverb - creates a lush, diffuse, expensive space (async generation)
     this.reverb = new Tone.Reverb({
-      decay: 3.5,
+      decay: REVERB_DECAY_SEC,
       wet: this.reverbWetVal,
-      preDelay: 0.02,
+      preDelay: REVERB_PRE_DELAY_SEC,
     });
     this.reverb.connect(this.eq);
     await this.reverb.generate();
 
     // 4. Ping-Pong Delay - subtle bouncing ambient delay tail
     this.delay = new Tone.PingPongDelay({
-      delayTime: "4n.", // dotted quarter note for rhythmic interest
-      feedback: 0.25,
+      delayTime: DELAY_TIME,
+      feedback: DELAY_FEEDBACK,
       wet: this.delayWetVal,
     });
     this.delay.connect(this.reverb);
 
     // 3. Chorus - adds high-end shimmer and incredible stereo width
     this.chorus = new Tone.Chorus({
-      frequency: 1.5,
-      delayTime: 3.5,
-      depth: 0.7,
+      frequency: CHORUS_LFO_HZ,
+      delayTime: CHORUS_DELAY_MS,
+      depth: CHORUS_DEPTH,
       wet: this.chorusWetVal,
     });
     this.chorus.connect(this.delay);
@@ -116,9 +160,9 @@ export class AudioEngine {
 
     // 2. Master Lowpass Filter - analog warmth sweep applied to all voices collectively
     this.filter = new Tone.Filter({
-      frequency: 900,       // low cutoff to keep fundamental warm and prevent harsh brightness
+      frequency: FILTER_CUTOFF_HZ,
       type: 'lowpass',
-      rolloff: -12,
+      rolloff: FILTER_ROLLOFF_DB,
     });
     this.filter.connect(this.chorus);
 
@@ -128,8 +172,8 @@ export class AudioEngine {
     this.synth = new Tone.PolySynth(Tone.Synth, {
       oscillator: {
         type: 'fatsawtooth',
-        count: 3,            // 3 detuned oscillators per voice
-        spread: 15,          // tight detuning to maintain clear, focused harmonic body
+        count: SYNTH_DETUNE_COUNT,
+        spread: SYNTH_DETUNE_SPREAD,
       },
       envelope: {
         attack: this.envelopeAttackVal,        // prevents zero-crossing popping clicks
@@ -137,9 +181,9 @@ export class AudioEngine {
         sustain: this.envelopeSustainVal,      // sits beautifully in the drone background
         release: this.envelopeReleaseVal,      // generous release for smooth legato transitions
       },
-      volume: -12,           // balanced default volume to prevent summing distortion
+      volume: SYNTH_VOLUME_DB,
     });
-    this.synth.maxPolyphony = 12; // perfectly sized for 4-note voicing + release overlaps
+    this.synth.maxPolyphony = SYNTH_MAX_POLYPHONY;
     this.synth.connect(this.filter);
 
     this.ensureSessionRecorder();
@@ -298,7 +342,9 @@ export class AudioEngine {
     this.releasePreviousNotes(now);
 
     // Clamp MIDI to piano range (A0=21, C8=108) to avoid Tone.js errors
-    const clamped = midiNotes.map(n => Math.max(21, Math.min(108, n)));
+    const clamped = midiNotes.map(
+      (n) => Math.max(MIDI_NOTE_MIN, Math.min(MIDI_NOTE_MAX, n)),
+    );
 
     // Convert MIDI → note names (e.g. 60 → "C4")
     const noteNames = clamped.map(n => Tone.Frequency(n, 'midi').toNote());
@@ -310,7 +356,7 @@ export class AudioEngine {
     this.activeNotes = noteNames as string[];
 
     // Add a microscopic 15ms delay to the attack to prevent popping/clicks against the release
-    const attackTime = now + 0.015;
+    const attackTime = now + ATTACK_SCHEDULE_OFFSET_SEC;
     this.synth.triggerAttackRelease(noteNames, duration, attackTime);
 
     if (this.sessionMidiRecorder.isRecording()) {
@@ -346,7 +392,9 @@ export class AudioEngine {
     const now = Tone.now();
 
     // Clamp MIDI to piano range (A0=21, C8=108) to avoid Tone.js errors
-    const clamped = midiNotes.map(n => Math.max(21, Math.min(108, n)));
+    const clamped = midiNotes.map(
+      (n) => Math.max(MIDI_NOTE_MIN, Math.min(MIDI_NOTE_MAX, n)),
+    );
     // Cast to string[] — Tone internally accepts note name strings; the strict union
     // type on toNote() is overly narrow for filter/includes operations.
     const noteNames: string[] = clamped.map(n => Tone.Frequency(n, 'midi').toNote() as string);
@@ -369,7 +417,7 @@ export class AudioEngine {
       }
       this.activeNotes = noteNames;
       devLog('[AudioEngine] Retriggering:', noteNames);
-      const attackTime = now + 0.015;
+      const attackTime = now + ATTACK_SCHEDULE_OFFSET_SEC;
       this.synth.triggerAttack(noteNames, attackTime);
       if (this.sessionMidiRecorder.isRecording()) {
         this.sessionMidiRecorder.logNoteOns(clamped, undefined, attackTime);
@@ -377,8 +425,7 @@ export class AudioEngine {
       return;
     }
 
-    // ── Synchronous Legato Diffing ──────────────────────────────────────────
-    // Drone/glissando: sustain overlapping notes, release only what dropped out.
+    // Synchronous legato diffing: sustain overlaps, release only dropped pitches.
     const notesToRelease = this.activeNotes.filter(n => !noteNames.includes(n));
     const notesToAttack  = noteNames.filter(n => !this.activeNotes.includes(n));
 
@@ -422,7 +469,7 @@ export class AudioEngine {
   public releaseActiveNotes() {
     this.isPointerDown = false;
     if (this.synth && this.isReady) {
-      devLog('[AudioEngine] Hard stop — releasing all voices.');
+      devLog('[AudioEngine] Hard stop. Releasing all voices.');
       if (this.sessionMidiRecorder.isRecording()) {
         // Match synth panic: instant MIDI offs, not envelope release length.
         this.sessionMidiRecorder.logAllNotesOff(Tone.now());

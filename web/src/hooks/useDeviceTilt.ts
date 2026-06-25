@@ -1,3 +1,9 @@
+/**
+ * Device orientation for tilt voicing and diagram overlay readouts.
+ *
+ * Exposes smoothed tilt for UI (~150 ms) and raw tilt sampled at chord tap.
+ * See docs/movements-not-chords-tilt.md for the coordinate mapping.
+ */
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   FLAT_TILT,
@@ -15,11 +21,12 @@ interface PermissionedOrientationEvent {
   requestPermission?: () => Promise<'granted' | 'denied'>;
 }
 
+const PITCH_NORMALIZER = 90; // degrees: flat phone maps tilt axes to [-1, 1]
 const SMOOTHING_ALPHA = 0.25; // exponential moving average weight per event
 const READOUT_INTERVAL_MS = 150; // throttle for the React-visible sample
 
 export const pitchTiltFromBeta = (beta: number): number => {
-  const norm = beta / 90;
+  const norm = beta / PITCH_NORMALIZER;
   if (norm > 0) return -Math.min(norm, 1);
   if (norm < 0) return Math.min(-norm, 1);
   return 0;
@@ -70,12 +77,12 @@ export function useDeviceTilt() {
     smoothed.gamma += SMOOTHING_ALPHA * (gamma - smoothed.gamma);
     smoothed.beta += SMOOTHING_ALPHA * (beta - smoothed.beta);
 
-    const x = -Math.min(Math.abs(smoothed.gamma) / 90, 1);
+    const x = -Math.min(Math.abs(smoothed.gamma) / PITCH_NORMALIZER, 1);
     const y = pitchTiltFromBeta(smoothed.beta);
     tiltRef.current = { x, y };
 
     // Playback uses raw angles; UI readout uses smoothed tiltRef.
-    const xRaw = -Math.min(Math.abs(gamma) / 90, 1);
+    const xRaw = -Math.min(Math.abs(gamma) / PITCH_NORMALIZER, 1);
     const yRaw = pitchTiltFromBeta(beta);
     rawTiltRef.current = { x: xRaw, y: yRaw };
 

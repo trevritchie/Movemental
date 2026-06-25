@@ -1,9 +1,9 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { ChordManager } from './ChordManager';
-import { OCTAVE } from './config';
+import { ChordManager, type Chord } from './ChordManager';
 import {
   DEFAULT_OCTAVE_RANGE,
   DEFAULT_TONAL_CENTER_OFFSET,
+  OCTAVE,
 } from './config';
 import { allChordNames, buildSmoothestParallelFromBranchTable } from './smoothestParallelFromBranch';
 import { computeNeutralTiltVoicing } from './tiltVoicingPlayback';
@@ -22,6 +22,10 @@ import {
 const DOUBLE_OCTAVE_FLAT = tiltSampleFromLevels(8, 0);
 const TONAL_CENTER_BB = 10;
 const OCTAVE_RANGE = 2;
+
+function pitchStructureFrom(chord: Chord): number[] {
+  return [chord.pitches[0], chord.pitches[1], chord.pitches[2], chord.pitches[3]];
+}
 
 describe('CHORD_FLAT_PARALLEL', () => {
   let manager: ChordManager;
@@ -143,12 +147,7 @@ describe('Smooth mode bass stability Branch -> Fire -> Magma -> Fire', () => {
       { anchor: 'contrary' }
     );
 
-    const firePitchStructure = [
-      fire.pitches[0],
-      fire.pitches[1],
-      fire.pitches[2],
-      fire.pitches[3],
-    ];
+    const firePitchStructure = pitchStructureFrom(fire);
     const fireRootPc = fire.pitches[fire.rootPositionIndex] % OCTAVE;
 
     const fireTilt = tiltSampleFromLevels(
@@ -171,12 +170,7 @@ describe('Smooth mode bass stability Branch -> Fire -> Magma -> Fire', () => {
       { anchor: 'contrary', previousChord: branch }
     );
 
-    const magmaPitchStructure = [
-      magma.pitches[0],
-      magma.pitches[1],
-      magma.pitches[2],
-      magma.pitches[3],
-    ];
+    const magmaPitchStructure = pitchStructureFrom(magma);
     const magmaRootPc = magma.pitches[magma.rootPositionIndex] % OCTAVE;
 
     const magmaTilt = tiltSampleFromLevels(

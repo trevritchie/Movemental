@@ -357,14 +357,7 @@ describe('opposite-element elemental bass labels', () => {
   const Bb_TONAL_CENTER = 10;
   const DOUBLE_OCTAVE_FLAT_BB = tiltSampleFromLevels(8, 0);
 
-  beforeEach(() => {
-    invalidateVoicingCache();
-  });
-
-  it('Wind after Glass matches sounded bass when elemental metadata is in context', () => {
-    const manager = new ChordManager();
-    manager.setTonalCenterOffset(Bb_TONAL_CENTER);
-    manager.setOctaveRange(OCTAVE_RANGE);
+  function glassToWindNavigation(manager: ChordManager) {
     const glass = manager.getChordByName('Glass')!;
     const windDict = manager.getChordByName('Wind')!;
     const glassTilt = resolveSmoothPlaybackTilt('Glass', DOUBLE_OCTAVE_FLAT_BB);
@@ -400,6 +393,19 @@ describe('opposite-element elemental bass labels', () => {
         },
       }
     );
+    return { glass, glassTilt, resolved, windTilt, windVoicing };
+  }
+
+  beforeEach(() => {
+    invalidateVoicingCache();
+  });
+
+  it('Wind after Glass matches sounded bass when elemental metadata is in context', () => {
+    const manager = new ChordManager();
+    manager.setTonalCenterOffset(Bb_TONAL_CENTER);
+    manager.setOctaveRange(OCTAVE_RANGE);
+    const { glass, glassTilt, resolved, windTilt, windVoicing } =
+      glassToWindNavigation(manager);
     const baseContext: TiltBassLabelContext = {
       tonalCenter: Bb_TONAL_CENTER,
       octaveRange: OCTAVE_RANGE,
@@ -442,41 +448,7 @@ describe('opposite-element elemental bass labels', () => {
     const manager = new ChordManager();
     manager.setTonalCenterOffset(Bb_TONAL_CENTER);
     manager.setOctaveRange(OCTAVE_RANGE);
-    const glass = manager.getChordByName('Glass')!;
-    const windDict = manager.getChordByName('Wind')!;
-    const glassTilt = resolveSmoothPlaybackTilt('Glass', DOUBLE_OCTAVE_FLAT_BB);
-    const glassVoicing = computeTiltVoicedPitches(
-      glass,
-      getInitialBorrowingState(),
-      glassTilt,
-      Bb_TONAL_CENTER,
-      OCTAVE_RANGE,
-      { anchor: 'contrary' }
-    );
-    const windTilt = tiltSampleFromLevels(8, parallelLevelFromTilt(glassTilt));
-    const resolved = resolveElementalForNavigation(
-      windDict,
-      Bb_TONAL_CENTER,
-      OCTAVE_RANGE,
-      glass,
-      previousBassMidi(glassVoicing),
-      windTilt,
-      'contrary'
-    );
-    const windVoicing = computeTiltVoicedPitches(
-      resolved.chord,
-      getInitialBorrowingState(),
-      windTilt,
-      Bb_TONAL_CENTER,
-      OCTAVE_RANGE,
-      {
-        anchor: 'contrary',
-        elemental: {
-          rootPitchClass: resolved.rootPitchClass,
-          homeMidi: resolved.homeMidi,
-        },
-      }
-    );
+    const { resolved, windTilt, windVoicing } = glassToWindNavigation(manager);
     expect(
       lastPlayedBassReadout(windTilt, resolved.chord, {
         voicedPitches: windVoicing,

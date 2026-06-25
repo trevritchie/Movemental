@@ -20,6 +20,7 @@ import { invalidateVoicingCache } from './voicingCache';
 
 const TONAL_CENTER = 10;
 const OCTAVE_RANGE = 2;
+// Flat double-octave roll at parallel 0 (smooth mode starting tilt).
 const DOUBLE_OCTAVE_FLAT = tiltSampleFromLevels(8, 0);
 
 function smoothWindTiltAfterGlass(

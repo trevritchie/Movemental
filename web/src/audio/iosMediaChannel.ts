@@ -51,6 +51,9 @@ function setPlaybackAudioSession(): boolean {
   return true;
 }
 
+/** Sample rate for the one-sample Web Audio unlock blip. */
+const WEB_AUDIO_BLIP_SAMPLE_RATE = 22050;
+
 function playWebAudioBlip(): boolean {
   try {
     const AudioCtx = getAudioContextClass();
@@ -58,7 +61,7 @@ function playWebAudioBlip(): boolean {
 
     const ctx = new AudioCtx();
     const source = ctx.createBufferSource();
-    source.buffer = ctx.createBuffer(1, 1, 22050);
+    source.buffer = ctx.createBuffer(1, 1, WEB_AUDIO_BLIP_SAMPLE_RATE);
     source.connect(ctx.destination);
     source.start(0);
 

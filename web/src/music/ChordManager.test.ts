@@ -46,6 +46,7 @@ describe('ChordManager', () => {
   });
 
   describe('applyVoicing', () => {
+    // Pitch classes for a close voicing; octave range 3 places them in MIDI 46-55.
     const basePitches: (number | null)[] = [10, 13, 17, 19];
 
     beforeEach(() => {

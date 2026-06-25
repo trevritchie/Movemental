@@ -1,5 +1,9 @@
 import { chordManager } from './music/ChordManager';
 
+/** Diagram pixel scale (matches ElementalDiagram VIEW_W / VIEW_H). */
+const DIAGRAM_VIEW_W = 1160;
+const DIAGRAM_VIEW_H = 800;
+
 console.log("Initializing chord dictionary...");
 chordManager.initializeChordDictionary();
 
@@ -36,7 +40,7 @@ const groupCenters = BASE_GROUPS.reduce((acc, baseName) => {
     if (!c) return null;
     const coord = chordManager.getCoordinateForChord(c.name);
     if (!coord) return null;
-    return { x: coord.x * 1160, y: coord.y * 800 };
+    return { x: coord.x * DIAGRAM_VIEW_W, y: coord.y * DIAGRAM_VIEW_H };
   });
   if (coords.every(c => !!c)) {
     const cx = coords.reduce((s, c) => s + c!.x, 0) / 4;

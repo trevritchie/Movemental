@@ -1,3 +1,6 @@
+/**
+ * In-memory MIDI note log encoded to Standard MIDI File on session stop.
+ */
 const DEFAULT_VELOCITY = 100;
 const DEFAULT_BPM = 120;
 const MIN_NOTE_DURATION_SEC = 0.01;

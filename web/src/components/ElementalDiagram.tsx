@@ -1,4 +1,11 @@
-import React, { useState, useLayoutEffect, useCallback } from 'react';
+import React, {
+  useState,
+  useLayoutEffect,
+  useCallback,
+  useRef,
+  useEffect,
+  useMemo,
+} from 'react';
 import { chordManager, type Chord } from '../music/ChordManager';
 import {
   BASE_GROUPS,
@@ -32,23 +39,26 @@ function piePath(r: number, slice: number): string {
 
 const VIEW_W = 1160;
 const VIEW_H = 800;
+const COMPACT_VIEW_W = 1210;
+const COMPACT_VIEW_H = 860;
+const COMPACT_VIEW_PAD = 25;
 
-const getColor = (name: string) => {
-  if (name === 'Earth') return 'var(--color-earth)';
-  if (name === 'Wind')  return 'var(--color-wind)';
-  if (name === 'Fire')  return 'var(--color-fire)';
-  return 'var(--color-mixed)';
+/** Parent-element stroke and glow tokens (Earth, Wind, Fire). */
+const PARENT_ELEMENT_STYLES: Record<string, { color: string; glow: string }> = {
+  Earth: { color: 'var(--color-earth)', glow: 'var(--glow-earth)' },
+  Wind:  { color: 'var(--color-wind)',  glow: 'var(--glow-wind)' },
+  Fire:  { color: 'var(--color-fire)',  glow: 'var(--glow-fire)' },
+};
+const DEFAULT_PARENT_STYLE = {
+  color: 'var(--color-mixed)',
+  glow: 'rgba(255,255,255,0.15)',
 };
 
-const getGlow = (name: string) => {
-  if (name === 'Earth') return 'var(--glow-earth)';
-  if (name === 'Wind')  return 'var(--glow-wind)';
-  if (name === 'Fire')  return 'var(--glow-fire)';
-  return 'rgba(255,255,255,0.15)';
-};
+const parentElementStyle = (name: string) =>
+  PARENT_ELEMENT_STYLES[name] ?? DEFAULT_PARENT_STYLE;
 
 export const ElementalDiagram: React.FC<{ children?: React.ReactNode }> = ({ children }) => {
-  const containerRef = React.useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const [aspectRatioCorrection, setAspectRatioCorrection] = useState(1);
 
   const {
@@ -72,7 +82,7 @@ export const ElementalDiagram: React.FC<{ children?: React.ReactNode }> = ({ chi
     const { width, height } = container.getBoundingClientRect();
     setContainerWidth(width);
     if (width > 0 && height > 0) {
-      const viewBoxAR = 1210 / 860;
+      const viewBoxAR = COMPACT_VIEW_W / COMPACT_VIEW_H;
       const containerAR = width / height;
       setAspectRatioCorrection(containerAR / viewBoxAR);
       if (layoutTier === 'phone') {
@@ -98,7 +108,7 @@ export const ElementalDiagram: React.FC<{ children?: React.ReactNode }> = ({ chi
     };
   }, [measureContainer]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (!isDiagramReady) return;
     const container = containerRef.current;
     if (!container) return;
@@ -115,7 +125,7 @@ export const ElementalDiagram: React.FC<{ children?: React.ReactNode }> = ({ chi
     containerWidth < BREAKPOINTS.compactDiagramWidth;
 
   const viewBox = isCompactDiagram
-    ? `-25 -25 1210 860`
+    ? `-${COMPACT_VIEW_PAD} -${COMPACT_VIEW_PAD} ${COMPACT_VIEW_W} ${COMPACT_VIEW_H}`
     : `0 0 ${VIEW_W} ${VIEW_H}`;
 
   const R_MAIN = isCompactDiagram ? 100 : 52;
@@ -129,14 +139,14 @@ export const ElementalDiagram: React.FC<{ children?: React.ReactNode }> = ({ chi
     return pos && pos !== 'line' && noteState === 'on';
   }) : false;
 
-  const getCoords = React.useCallback((chord: Chord | undefined) => {
+  const getCoords = useCallback((chord: Chord | undefined) => {
     if (!chord) return null;
     const coord = chordManager.getCoordinateForChord(chord.name);
     if (!coord) return null;
     return { x: coord.x * VIEW_W, y: coord.y * VIEW_H };
   }, []);
 
-  const { earth, wind, fire, earthC, windC, fireC, groupCenters, getParentCoords, getGroupParentCoords } = React.useMemo(() => {
+  const { earth, wind, fire, earthC, windC, fireC, groupCenters, getParentCoords, getGroupParentCoords } = useMemo(() => {
     const earth = chordManager.getChordByName('Earth');
     const wind  = chordManager.getChordByName('Wind');
     const fire  = chordManager.getChordByName('Fire');
@@ -243,7 +253,7 @@ export const ElementalDiagram: React.FC<{ children?: React.ReactNode }> = ({ chi
                 y1={p1C.y}
                 x2={center.x}
                 y2={center.y}
-                stroke={getColor(parents.p1)}
+                stroke={parentElementStyle(parents.p1).color}
                 strokeWidth={isGroupActive ? 4.5 : 2}
                 strokeDasharray={isGroupActive ? "none" : "3 5"}
                 opacity={isGroupActive ? 0.95 : 0.35}
@@ -255,7 +265,7 @@ export const ElementalDiagram: React.FC<{ children?: React.ReactNode }> = ({ chi
                 y1={p2C.y}
                 x2={center.x}
                 y2={center.y}
-                stroke={getColor(parents.p2)}
+                stroke={parentElementStyle(parents.p2).color}
                 strokeWidth={isGroupActive ? 4.5 : 2}
                 strokeDasharray={isGroupActive ? "none" : "3 5"}
                 opacity={isGroupActive ? 0.95 : 0.35}
@@ -268,7 +278,7 @@ export const ElementalDiagram: React.FC<{ children?: React.ReactNode }> = ({ chi
                   y1={oppC.y}
                   x2={center.x}
                   y2={center.y}
-                  stroke={getColor(oppParent)}
+                  stroke={parentElementStyle(oppParent).color}
                   strokeWidth={isGroupActive && isBorrowingActive ? 5 : 1.5}
                   strokeDasharray="none"
                   opacity={isGroupActive && isBorrowingActive ? 0.95 : 0}
@@ -398,10 +408,15 @@ export const ElementalDiagram: React.FC<{ children?: React.ReactNode }> = ({ chi
             >
               {/* Correction Group: Inverse the SVG stretch to keep nodes circular */}
               <g transform={`scale(1, ${aspectRatioCorrection})`}>
-                <circle r={r * 1.2} fill={getGlow(chord.name)} filter="url(#glow)" opacity={isSelected ? 1 : 0.4} />
+                <circle
+                  r={r * 1.2}
+                  fill={parentElementStyle(chord.name).glow}
+                  filter="url(#glow)"
+                  opacity={isSelected ? 1 : 0.4}
+                />
                 <circle
                   r={r}
-                  fill={getColor(chord.name)}
+                  fill={parentElementStyle(chord.name).color}
                   stroke={isSelected ? 'white' : 'rgba(255,255,255,0.25)'}
                   strokeWidth={isSelected ? 4 : 1.5}
                 />

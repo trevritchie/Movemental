@@ -9,11 +9,15 @@ import { LandscapePrompt } from './components/LandscapePrompt';
 import { useLayoutTier } from './hooks/useLayoutTier';
 import { usePhoneLandscapeBlocked } from './hooks/usePhoneLandscapeBlocked';
 
+const PRIMARY_ELEMENT_NAMES = new Set(['Earth', 'Wind', 'Fire']);
+
 function AppContent() {
   const { selectedChord } = useChordContext();
   const layoutTier = useLayoutTier();
 
-  const isPrimaryElement = selectedChord ? ["Earth", "Wind", "Fire"].includes(selectedChord.name) : true;
+  const isPrimaryElement = selectedChord
+    ? PRIMARY_ELEMENT_NAMES.has(selectedChord.name)
+    : true;
   const isPhoneLayout = layoutTier === 'phone';
 
   return (

@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, waitFor } from '@testing-library/react';
 import { ElementalDiagram } from './ElementalDiagram';
 
+// Idle diagram: no selected chord, borrowing off, tilt unsupported.
 vi.mock('../context/ChordContext', () => ({
   useChordContext: () => ({
     selectedChord: null,
@@ -52,6 +53,7 @@ vi.mock('./RecordControl', () => ({
   RecordControl: () => null,
 }));
 
+// ElementalDiagram fades in after rAF settles layout measurements.
 async function flushAnimationFrames(count = 2): Promise<void> {
   for (let i = 0; i < count; i += 1) {
     await new Promise<void>((resolve) => {

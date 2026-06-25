@@ -329,9 +329,7 @@ describe('borrowing overlay integration', () => {
     expect(borrowed.some((n) => n % 12 === gPc)).toBe(false);
     expect(borrowed.length).toBe(neutral.length);
 
-    const mutedWhileBorrowed = getInitialBorrowingState();
-    mutedWhileBorrowed.circlePositions[4] = 'up';
-    mutedWhileBorrowed.borrowingDirections[4] = 'up';
+    const mutedWhileBorrowed = borrowLine(4, 'up');
     mutedWhileBorrowed.noteStates[4] = 'off';
 
     const muted = applyVoicingOverlays(neutral, branch, mutedWhileBorrowed);

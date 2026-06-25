@@ -1,3 +1,8 @@
+/**
+ * Elemental diminished roots, opposite-edge navigation, and playback register
+ * resolution for Earth / Wind / Fire triangle chords.
+ */
+
 import { ELEMENTAL_RELATIONSHIPS, NOTE_NAMES_FLAT, OCTAVE } from './config';
 import type { Chord } from './ChordManager';
 import {

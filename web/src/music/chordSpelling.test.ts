@@ -7,6 +7,11 @@ import {
 } from './chordSpelling';
 import { formatPlayingNotes } from './formatPlayingNotes';
 
+function branchDegreeMap() {
+  const branch = new ChordManager().getChordByName('Branch')!;
+  return buildDegreeSpellingMap(branch);
+}
+
 describe('spellChordDegrees', () => {
   it('spells D maj6 with F# not Gb', () => {
     const degrees = spellChordDegrees(2, ' maj6');
@@ -62,23 +67,20 @@ describe('spellChordDegrees', () => {
 
 describe('spellMidiNote', () => {
   it('uses chord spelling when pitch class matches a degree', () => {
-    const manager = new ChordManager();
-    const branch = manager.getChordByName('Branch')!;
-    const map = buildDegreeSpellingMap(branch);
+    const map = branchDegreeMap();
     expect(spellMidiNote(62, map)).toBe('D4');
     expect(spellMidiNote(65, map)).toBe('F4');
   });
 
   it('falls back to flat spelling for borrowed pitch classes', () => {
-    const manager = new ChordManager();
-    const branch = manager.getChordByName('Branch')!;
-    const map = buildDegreeSpellingMap(branch);
+    const map = branchDegreeMap();
     expect(spellMidiNote(64, map)).toBe('E4');
   });
 });
 
 describe('formatPlayingNotes with chord context', () => {
   it('uses tertian spelling for D maj6', () => {
+    // Minimal chord shape for formatPlayingNotes tertian spelling path.
     const dMaj6 = {
       name: 'Test',
       originalPitches: [2, 6, 9, 11],

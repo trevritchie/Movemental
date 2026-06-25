@@ -66,17 +66,17 @@ export const ClockFace: React.FC<{ isMobileOverlay?: boolean }> = ({
   const elementalName = selectedChord?.name || null;
   const traditionalName = selectedChord?.traditionalName || null;
 
-  const displayElementalName = React.useMemo(() => {
+  const displayElementalName = useMemo(() => {
     if (!elementalName || !isMobileOverlay) return elementalName;
     return mobileChordDisplayName(elementalName);
   }, [elementalName, isMobileOverlay]);
 
-  const playingNotes = React.useMemo(
+  const playingNotes = useMemo(
     () => formatPlayingNotes(activePitches, selectedChord),
     [activePitches, selectedChord]
   );
 
-  const elementFormula = React.useMemo(
+  const elementFormula = useMemo(
     () => computeElementFormula(activePitches, tonalCenter),
     [activePitches, tonalCenter]
   );

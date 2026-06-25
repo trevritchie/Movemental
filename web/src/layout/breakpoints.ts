@@ -1,3 +1,9 @@
+/**
+ * Layout tier resolution and media-query strings for responsive UI.
+ * BREAKPOINTS and PHONE_*_MEDIA must stay in sync with layout/breakpoints.css
+ * and matching rules in index.css.
+ */
+
 export type LayoutTier = 'phone' | 'tablet' | 'desktop';
 
 /** Must stay in sync with layout/breakpoints.css custom properties. */

@@ -21,7 +21,27 @@ import {
 } from './noTiltChordLocks';
 
 const TONAL_CENTER = 10;
+// Home octave 2 at Bb; matches smooth no-tilt playback defaults.
 const OCTAVE_RANGE = 2;
+
+function applyBranchLocksToRefs(
+  maps: ReturnType<typeof createEmptyNoTiltChordLockMaps>,
+  positionLevel: number
+) {
+  const voicingRef = { current: DEFAULT_NO_TILT_VOICING_LEVEL };
+  const positionRef = { current: positionLevel };
+  applyNoTiltLocksForChord(maps, 'Branch', {
+    noTiltVoicingLevelRef: voicingRef,
+    noTiltPositionLevelRef: positionRef,
+    setNoTiltVoicingLevel: (level) => {
+      voicingRef.current = level;
+    },
+    setNoTiltPositionLevel: (level) => {
+      positionRef.current = level;
+    },
+  });
+  return { voicingRef, positionRef };
+}
 
 function tiltFromNoTiltLevels(
   voicingLevel: number,
@@ -124,21 +144,10 @@ describe('smooth no-tilt playback behavior', () => {
       'Branch',
       fifthPosition
     );
-    const voicingRef = { current: DEFAULT_NO_TILT_VOICING_LEVEL };
-    const positionRef = {
-      current: noTiltPositionLevelFromParallelSteps(0),
-    };
-
-    applyNoTiltLocksForChord(maps, 'Branch', {
-      noTiltVoicingLevelRef: voicingRef,
-      noTiltPositionLevelRef: positionRef,
-      setNoTiltVoicingLevel: (level) => {
-        voicingRef.current = level;
-      },
-      setNoTiltPositionLevel: (level) => {
-        positionRef.current = level;
-      },
-    });
+    const { voicingRef, positionRef } = applyBranchLocksToRefs(
+      maps,
+      noTiltPositionLevelFromParallelSteps(0)
+    );
 
     const lockedTilt = tiltFromNoTiltLevels(
       voicingRef.current,
@@ -165,21 +174,10 @@ describe('smooth no-tilt playback behavior', () => {
       'Branch',
       closeVoicing
     );
-    const voicingRef = { current: 8 };
-    const positionRef = {
-      current: noTiltPositionLevelFromParallelSteps(0),
-    };
-
-    applyNoTiltLocksForChord(maps, 'Branch', {
-      noTiltVoicingLevelRef: voicingRef,
-      noTiltPositionLevelRef: positionRef,
-      setNoTiltVoicingLevel: (level) => {
-        voicingRef.current = level;
-      },
-      setNoTiltPositionLevel: (level) => {
-        positionRef.current = level;
-      },
-    });
+    const { voicingRef, positionRef } = applyBranchLocksToRefs(
+      maps,
+      noTiltPositionLevelFromParallelSteps(0)
+    );
 
     const flameTilt = tiltFromNoTiltLevels(8, positionRef.current);
     const branchLockedTilt = tiltFromNoTiltLevels(

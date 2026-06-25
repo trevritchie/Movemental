@@ -1,3 +1,8 @@
+/**
+ * Shared play-style and voice-leading types used by ChordContext and music
+ * modules. Helpers here encode product rules (no-tilt styles, smoothest state).
+ */
+
 export type PlayStyle = 'click_and_hold' | 'drone' | 'tilt';
 
 export type VoiceLeadingMode = 'root_position' | 'smooth' | 'smoothest';

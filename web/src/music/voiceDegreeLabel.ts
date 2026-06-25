@@ -106,6 +106,14 @@ function voicingAnchorForPlayStyle(playStyle?: PlayStyle): TiltVoicingAnchor {
   return 'contrary';
 }
 
+function borrowingPitchStructure(
+  chord: Chord,
+  borrowingState: BorrowingState
+): (number | null)[] {
+  return borrowingLogic.prepareVoicingInput(chord, borrowingState)
+    .pitchStructure;
+}
+
 export function getFourthVoiceDegreeLabel(chord: Chord | null): string {
   if (!chord?.quality) {
     return DEFAULT_FOURTH_DEGREE;
@@ -251,10 +259,7 @@ export function bassDegreeLabelFromVoiced(
   voicedPitches: number[],
   borrowingState: BorrowingState
 ): string | null {
-  const structure = borrowingLogic.prepareVoicingInput(
-    chord,
-    borrowingState
-  ).pitchStructure;
+  const structure = borrowingPitchStructure(chord, borrowingState);
   const line = voiceLineForLowestPitch(voicedPitches, structure, chord);
   return line ? getVoiceDegreeLabel(line, chord) : null;
 }
@@ -278,10 +283,7 @@ export function resolveTiltBassVoiceLine(
     (pitch): pitch is number => pitch !== null
   );
   if (playedPitches && playedPitches.length > 0) {
-    const structure = borrowingLogic.prepareVoicingInput(
-      chord,
-      context.borrowingState
-    ).pitchStructure;
+    const structure = borrowingPitchStructure(chord, context.borrowingState);
     const line = voiceLineForLowestPitch(playedPitches, structure, chord);
     if (line !== null) {
       return line;
@@ -314,10 +316,7 @@ export function resolveTiltBassVoiceLine(
         : {}),
     }
   );
-  const structure = borrowingLogic.prepareVoicingInput(
-    chord,
-    context.borrowingState
-  ).pitchStructure;
+  const structure = borrowingPitchStructure(chord, context.borrowingState);
   const line = voiceLineForLowestPitch(voiced, structure, chord);
   return line ?? pitchOnlyVoiceLine(effectiveTilt);
 }

@@ -1,3 +1,8 @@
+/**
+ * Map chord name suffixes to traditional quality strings for readouts.
+ * Longest suffixes are listed first so partial matches do not win.
+ */
+
 /** Suffix-to-quality map; longest suffixes must be listed before shorter ones. */
 const CHORD_QUALITY_SUFFIXES: [string, string][] = [
   ['-Fire', '7b5'],

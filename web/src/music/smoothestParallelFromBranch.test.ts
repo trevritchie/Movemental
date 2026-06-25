@@ -63,7 +63,7 @@ function formatGroupedTsLines(table: Record<string, number>): string[] {
   for (const group of BASE_GROUPS) {
     const quality = getChordQuality(group).trim();
     const edge = EDGE_LABELS[group] ?? '';
-    lines.push(`  // ${edge} — ${group} (${quality})`);
+    lines.push(`  // ${edge}, ${group} (${quality})`);
     for (const variant of SLICE_VARIANTS) {
       const name = `${variant.prefix}${group}`;
       lines.push(`  '${name}': ${table[name]},`);
@@ -104,7 +104,7 @@ function writeSmoothestFlatTableArtifacts(
     let section = 'Elemental';
     if (!ELEMENTAL_NAMES.includes(name as (typeof ELEMENTAL_NAMES)[number])) {
       const group = CHORD_TO_GROUP.get(name)!;
-      section = `${EDGE_LABELS[group]} — ${group}`;
+      section = `${EDGE_LABELS[group]}, ${group}`;
     }
     if (section !== currentSection) {
       if (currentSection) {

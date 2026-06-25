@@ -1,3 +1,8 @@
+/**
+ * Element chemistry subscripts (Earth / Wind / Fire counts) from sounded pitch
+ * classes relative to the tonal center. Used by the diagram overlay readout.
+ */
+
 export interface ElementFormula {
   earth: number;
   wind: number;

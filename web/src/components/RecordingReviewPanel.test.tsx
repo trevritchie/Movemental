@@ -2,6 +2,26 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { RecordingReviewPanel } from './RecordingReviewPanel';
+import type { ComponentProps } from 'react';
+
+const defaultPanelProps: ComponentProps<typeof RecordingReviewPanel> = {
+  objectUrl: 'blob:mock-recording',
+  mimeType: 'audio/mp4',
+  downloadExtension: 'm4a',
+  midiDownloadExtension: 'mid',
+  onDismiss: vi.fn(),
+  onDownload: vi.fn(),
+  onDownloadMidi: vi.fn(),
+  onNewRecording: vi.fn(),
+};
+
+function renderPanel(
+  overrides: Partial<ComponentProps<typeof RecordingReviewPanel>> = {},
+) {
+  return render(
+    <RecordingReviewPanel {...defaultPanelProps} {...overrides} />,
+  );
+}
 
 describe('RecordingReviewPanel', () => {
   afterEach(() => {
@@ -13,18 +33,7 @@ describe('RecordingReviewPanel', () => {
       .spyOn(HTMLMediaElement.prototype, 'load')
       .mockImplementation(() => undefined);
 
-    render(
-      <RecordingReviewPanel
-        objectUrl="blob:mock-recording"
-        mimeType="audio/mp4"
-        downloadExtension="m4a"
-        midiDownloadExtension="mid"
-        onDismiss={vi.fn()}
-        onDownload={vi.fn()}
-        onDownloadMidi={vi.fn()}
-        onNewRecording={vi.fn()}
-      />,
-    );
+    renderPanel();
 
     const player = document.querySelector(
       '.record-review__player',
@@ -45,18 +54,7 @@ describe('RecordingReviewPanel', () => {
       .spyOn(HTMLMediaElement.prototype, 'load')
       .mockImplementation(() => undefined);
 
-    const { unmount } = render(
-      <RecordingReviewPanel
-        objectUrl="blob:mock-recording"
-        mimeType="audio/mp4"
-        downloadExtension="m4a"
-        midiDownloadExtension="mid"
-        onDismiss={vi.fn()}
-        onDownload={vi.fn()}
-        onDownloadMidi={vi.fn()}
-        onNewRecording={vi.fn()}
-      />,
-    );
+    const { unmount } = renderPanel();
 
     const player = document.querySelector(
       '.record-review__player',
@@ -74,18 +72,7 @@ describe('RecordingReviewPanel', () => {
   it('renders a MIDI download button', () => {
     const onDownloadMidi = vi.fn();
 
-    render(
-      <RecordingReviewPanel
-        objectUrl="blob:mock-recording"
-        mimeType="audio/mp4"
-        downloadExtension="m4a"
-        midiDownloadExtension="mid"
-        onDismiss={vi.fn()}
-        onDownload={vi.fn()}
-        onDownloadMidi={onDownloadMidi}
-        onNewRecording={vi.fn()}
-      />,
-    );
+    renderPanel({ onDownloadMidi });
 
     const midiButton = screen.getByRole('button', { name: 'Download .mid' });
     fireEvent.click(midiButton);

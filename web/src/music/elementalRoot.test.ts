@@ -26,7 +26,9 @@ import {
 describe('elementalRoot', () => {
   let manager: ChordManager;
   const OCTAVE_RANGE = 3;
+  // Bb tonal center; matches product default for elemental diminished tests.
   const TONAL_CENTER = 10;
+  // Flat double-octave roll at parallel 0 (smooth mode starting tilt).
   const DOUBLE_OCTAVE_FLAT = tiltSampleFromLevels(8, 0);
 
   beforeEach(() => {
@@ -69,17 +71,14 @@ describe('elementalRoot', () => {
     return '?';
   }
 
-  function windVoicingAtFlat(
+  function elementalVoicedPitches(
     resolved: ReturnType<typeof resolveElementalForNavigation>,
-    windTilt = tiltSampleFromLevels(
-      8,
-      parallelLevelFromTilt(resolveSmoothPlaybackTilt('Glass', DOUBLE_OCTAVE_FLAT))
-    )
+    tilt: ReturnType<typeof tiltSampleFromLevels>
   ): number[] {
     return computeTiltVoicedPitches(
       resolved.chord,
       getInitialBorrowingState(),
-      windTilt,
+      tilt,
       TONAL_CENTER,
       OCTAVE_RANGE,
       {
@@ -90,6 +89,16 @@ describe('elementalRoot', () => {
         },
       }
     );
+  }
+
+  function windVoicingAtFlat(
+    resolved: ReturnType<typeof resolveElementalForNavigation>,
+    windTilt = tiltSampleFromLevels(
+      8,
+      parallelLevelFromTilt(resolveSmoothPlaybackTilt('Glass', DOUBLE_OCTAVE_FLAT))
+    )
+  ): number[] {
+    return elementalVoicedPitches(resolved, windTilt);
   }
 
   describe('default diminished names at Bb', () => {
@@ -171,20 +180,7 @@ describe('elementalRoot', () => {
       expect(resolved.chord.traditionalName).toBe('Eb diminished');
       expect(resolved.rootPitchClass).toBe(3);
 
-      const voiced = computeTiltVoicedPitches(
-        resolved.chord,
-        getInitialBorrowingState(),
-        fireTilt,
-        TONAL_CENTER,
-        OCTAVE_RANGE,
-        {
-          anchor: 'contrary',
-          elemental: {
-            rootPitchClass: resolved.rootPitchClass,
-            homeMidi: resolved.homeMidi,
-          },
-        }
-      );
+      const voiced = elementalVoicedPitches(resolved, fireTilt);
       expect(Math.min(...voiced)).toBe(twinBass - 1);
     });
 
@@ -202,20 +198,7 @@ describe('elementalRoot', () => {
         'contrary'
       );
       expect(minusOne).not.toBeNull();
-      const voiced = computeTiltVoicedPitches(
-        minusOne!.chord,
-        getInitialBorrowingState(),
-        windTilt,
-        TONAL_CENTER,
-        OCTAVE_RANGE,
-        {
-          anchor: 'contrary',
-          elemental: {
-            rootPitchClass: minusOne!.rootPitchClass,
-            homeMidi: minusOne!.homeMidi,
-          },
-        }
-      );
+      const voiced = elementalVoicedPitches(minusOne!, windTilt);
       expect(Math.min(...voiced)).toBe(glassBass - 1);
     });
 
@@ -400,20 +383,7 @@ describe('elementalRoot', () => {
         { x: -1, y: 0 },
         'contrary'
       );
-      const voiced = computeTiltVoicedPitches(
-        resolved.chord,
-        getInitialBorrowingState(),
-        { x: -1, y: 0 },
-        2,
-        OCTAVE_RANGE,
-        {
-          anchor: 'contrary',
-          elemental: {
-            rootPitchClass: resolved.rootPitchClass,
-            homeMidi: resolved.homeMidi,
-          },
-        }
-      );
+      const voiced = elementalVoicedPitches(resolved, { x: -1, y: 0 });
       const delta = twinBass - Math.min(...voiced);
       expect(delta).toBeGreaterThanOrEqual(1);
       expect(delta).toBeLessThanOrEqual(2);

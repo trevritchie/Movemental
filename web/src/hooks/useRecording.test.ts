@@ -29,6 +29,18 @@ describe('useRecording', () => {
   const createObjectURL = vi.fn(() => 'blob:mock-url');
   const revokeObjectURL = vi.fn();
 
+  async function recordUntilReady(
+    result: { current: ReturnType<typeof useRecording> },
+  ): Promise<void> {
+    await act(async () => {
+      await result.current.start();
+      await result.current.stop();
+    });
+    await waitFor(() => {
+      expect(result.current.status).toBe('ready');
+    });
+  }
+
   beforeEach(() => {
     vi.clearAllMocks();
     vi.stubGlobal('URL', {
@@ -86,14 +98,7 @@ describe('useRecording', () => {
   it('revokes blob URL on dismiss', async () => {
     const { result } = renderHook(() => useRecording());
 
-    await act(async () => {
-      await result.current.start();
-      await result.current.stop();
-    });
-
-    await waitFor(() => {
-      expect(result.current.status).toBe('ready');
-    });
+    await recordUntilReady(result);
 
     act(() => {
       result.current.dismiss();
@@ -107,14 +112,7 @@ describe('useRecording', () => {
   it('revokes previous blob URL when starting a new recording', async () => {
     const { result } = renderHook(() => useRecording());
 
-    await act(async () => {
-      await result.current.start();
-      await result.current.stop();
-    });
-
-    await waitFor(() => {
-      expect(result.current.status).toBe('ready');
-    });
+    await recordUntilReady(result);
 
     createObjectURL.mockReturnValueOnce('blob:second-url');
 
@@ -147,14 +145,7 @@ describe('useRecording', () => {
       .mockImplementation(() => undefined);
     const { result } = renderHook(() => useRecording());
 
-    await act(async () => {
-      await result.current.start();
-      await result.current.stop();
-    });
-
-    await waitFor(() => {
-      expect(result.current.status).toBe('ready');
-    });
+    await recordUntilReady(result);
 
     await act(async () => {
       result.current.download();
@@ -174,14 +165,7 @@ describe('useRecording', () => {
       .mockImplementation(() => undefined);
     const { result } = renderHook(() => useRecording());
 
-    await act(async () => {
-      await result.current.start();
-      await result.current.stop();
-    });
-
-    await waitFor(() => {
-      expect(result.current.status).toBe('ready');
-    });
+    await recordUntilReady(result);
 
     await act(async () => {
       result.current.downloadMidi();

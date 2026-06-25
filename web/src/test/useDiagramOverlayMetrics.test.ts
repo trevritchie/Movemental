@@ -60,6 +60,7 @@ describe('computeDiagramOverlayMetrics', () => {
     const clock = parseInt(metrics['--overlay-clock-size'], 10);
     const readoutMax = parseInt(metrics['--overlay-readout-max-w'], 10);
     const insetX = parseInt(metrics['--overlay-inset-x'], 10);
+    // Matches computeDiagramOverlayMetrics center gutter at width 320 (14%).
     const centerGutter = 45;
     const maxHalf = (320 - centerGutter) / 2 - insetX - 4;
 

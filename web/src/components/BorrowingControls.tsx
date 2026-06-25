@@ -1,5 +1,5 @@
-import React, { useRef } from 'react';
-import type { BorrowingDirection } from '../music/BorrowingLogic';
+import React, { useRef, useCallback } from 'react';
+import type { BorrowingDirection, BorrowingState } from '../music/BorrowingLogic';
 import { useChordContext } from '../context/ChordContext';
 import { useLayoutTier } from '../hooks/useLayoutTier';
 import { ELEMENTAL_RELATIONSHIPS } from '../music/config';
@@ -16,6 +16,20 @@ const ELEMENT_COLORS: Record<string, string> = {
 };
 
 const VOICE_LINES = [1, 2, 3, 4] as const;
+
+/** Vertical track thirds: up (top), neutral (middle), down (bottom). */
+const SLIDER_ZONE_TOP = 0.33;
+const SLIDER_ZONE_BOTTOM = 0.67;
+
+/** Shallow-copy nested borrowing maps before mutating one voice line. */
+function cloneBorrowingState(state: BorrowingState): BorrowingState {
+  return {
+    ...state,
+    borrowingDirections: { ...state.borrowingDirections },
+    circlePositions: { ...state.circlePositions },
+    noteStates: { ...state.noteStates },
+  };
+}
 
 // ─── 3-node vertical slider ───────────────────────────────────────────────────
 
@@ -44,8 +58,8 @@ const BorrowSlider: React.FC<BorrowSliderProps> = ({
     if (!trackRef.current) return 'neutral';
     const { top, height } = trackRef.current.getBoundingClientRect();
     const ratio = (clientY - top) / height;
-    if (ratio < 0.33) return 'up';
-    if (ratio > 0.67) return 'down';
+    if (ratio < SLIDER_ZONE_TOP) return 'up';
+    if (ratio > SLIDER_ZONE_BOTTOM) return 'down';
     return 'neutral';
   };
 
@@ -141,7 +155,7 @@ export const BorrowingControls: React.FC<BorrowingControlsProps> = ({
     ? (ELEMENT_COLORS[oppositeElementName] ?? 'rgba(255,255,255,0.45)')
     : 'rgba(255,255,255,0.45)';
 
-  const getNeutralColor = React.useCallback((line: number): string => {
+  const getNeutralColor = useCallback((line: number): string => {
     if (!selectedChord) return 'rgba(255,255,255,0.45)';
     const rootIdx = selectedChord.rootPositionIndex;
     const mapping: Record<number, number> = {
@@ -162,7 +176,7 @@ export const BorrowingControls: React.FC<BorrowingControlsProps> = ({
     return 'var(--color-fire)';
   }, [selectedChord, tonalCenter]);
 
-  const getSliderSlot = React.useCallback(
+  const getSliderSlot = useCallback(
     (line: number): 'up' | 'neutral' | 'down' => {
       const dir = state.borrowingDirections[line];
       if (dir === 'up') return 'up';
@@ -172,13 +186,11 @@ export const BorrowingControls: React.FC<BorrowingControlsProps> = ({
     [state.borrowingDirections]
   );
 
-  const handleToggleMute = React.useCallback(
+  const handleToggleMute = useCallback(
     (line: number) => {
       if (disabled) return;
       onStateChange({
-        ...state,
-        borrowingDirections: { ...state.borrowingDirections },
-        circlePositions: { ...state.circlePositions },
+        ...cloneBorrowingState(state),
         noteStates: {
           ...state.noteStates,
           [line]: state.noteStates[line] === 'off' ? 'on' : 'off',
@@ -188,15 +200,11 @@ export const BorrowingControls: React.FC<BorrowingControlsProps> = ({
     [disabled, state, onStateChange]
   );
 
-  const handleSliderChange = React.useCallback(
+  const handleSliderChange = useCallback(
     (line: number, slot: 'up' | 'neutral' | 'down') => {
       if (disabled) return;
-      const newState = {
-        ...state,
-        borrowingDirections: { ...state.borrowingDirections },
-        circlePositions: { ...state.circlePositions },
-        noteStates: { ...state.noteStates, [line]: 'on' as const },
-      };
+      const newState = cloneBorrowingState(state);
+      newState.noteStates[line] = 'on';
       if (slot === 'neutral') {
         newState.borrowingDirections[line] = null;
         newState.circlePositions[line] = 'line';

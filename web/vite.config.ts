@@ -1,3 +1,4 @@
+// Vite dev server, production build, and Vitest configuration.
 import { defineConfig } from 'vitest/config'
 import react from '@vitejs/plugin-react'
 

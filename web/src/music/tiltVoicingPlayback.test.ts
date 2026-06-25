@@ -10,6 +10,26 @@ describe('computeTiltVoicedPitches', () => {
   const OCTAVE_RANGE = 3;
   const TONAL_CENTER = 10;
 
+  function voicingWithElementalMetadata(
+    resolved: ReturnType<typeof resolveElementalPlayback>,
+    tilt: { x: number; y: number }
+  ): number[] {
+    return computeTiltVoicedPitches(
+      resolved.chord,
+      getInitialBorrowingState(),
+      tilt,
+      TONAL_CENTER,
+      OCTAVE_RANGE,
+      {
+        anchor: 'contrary',
+        elemental: {
+          rootPitchClass: resolved.rootPitchClass,
+          homeMidi: resolved.homeMidi,
+        },
+      }
+    );
+  }
+
   beforeEach(() => {
     manager = new ChordManager();
     manager.setTonalCenterOffset(TONAL_CENTER);
@@ -60,20 +80,7 @@ describe('computeTiltVoicedPitches', () => {
       OCTAVE_RANGE,
       { anchor: 'contrary', previousChord: branch }
     );
-    const withElemental = computeTiltVoicedPitches(
-      resolved.chord,
-      getInitialBorrowingState(),
-      { x: -1, y: 0 },
-      TONAL_CENTER,
-      OCTAVE_RANGE,
-      {
-        anchor: 'contrary',
-        elemental: {
-          rootPitchClass: resolved.rootPitchClass,
-          homeMidi: resolved.homeMidi,
-        },
-      }
-    );
+    const withElemental = voicingWithElementalMetadata(resolved, { x: -1, y: 0 });
     expect(withElemental).toEqual(withResolve);
   });
 
@@ -99,40 +106,17 @@ describe('computeTiltVoicedPitches', () => {
       'contrary'
     );
 
-    const fireAfterTwin = computeTiltVoicedPitches(
-      resolved.chord,
-      getInitialBorrowingState(),
-      { x: -1, y: 0 },
-      TONAL_CENTER,
-      OCTAVE_RANGE,
-      {
-        anchor: 'contrary',
-        elemental: {
-          rootPitchClass: resolved.rootPitchClass,
-          homeMidi: resolved.homeMidi,
-        },
-      }
-    );
+    const fireAfterTwin = voicingWithElementalMetadata(resolved, { x: -1, y: 0 });
 
     const defaultFire = resolveElementalPlayback(
       fireDict,
       TONAL_CENTER,
       OCTAVE_RANGE
     );
-    const fireAfterDefault = computeTiltVoicedPitches(
-      defaultFire.chord,
-      getInitialBorrowingState(),
-      { x: -1, y: 0 },
-      TONAL_CENTER,
-      OCTAVE_RANGE,
-      {
-        anchor: 'contrary',
-        elemental: {
-          rootPitchClass: defaultFire.rootPitchClass,
-          homeMidi: defaultFire.homeMidi,
-        },
-      }
-    );
+    const fireAfterDefault = voicingWithElementalMetadata(defaultFire, {
+      x: -1,
+      y: 0,
+    });
 
     expect(fireAfterTwin[0]).not.toBe(fireAfterDefault[0]);
     expect(Math.min(...fireAfterTwin)).toBe(twinBass - 1);

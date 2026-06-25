@@ -1,3 +1,7 @@
+/**
+ * Degree-aware note spelling for chord readouts (flat vs sharp roots, maj6/min6).
+ */
+
 import { NOTE_NAMES_FLAT, NOTE_NAMES_SHARP } from './config';
 import type { Chord } from './ChordManager';
 

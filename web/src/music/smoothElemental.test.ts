@@ -22,6 +22,7 @@ import {
 
 const TONAL_CENTER = 10;
 const OCTAVE_RANGE = 3;
+// Flat double-octave roll at parallel 0 (smooth mode starting tilt).
 const DOUBLE_OCTAVE_FLAT = tiltSampleFromLevels(8, 0);
 const PITCH_UP_ONE = { x: 0, y: -0.25 };
 
@@ -46,6 +47,26 @@ function bassDegreeAtFlat(chordName: string, manager: ChordManager): string {
   return getVoiceDegreeLabel(line ?? 1, chord);
 }
 
+function elementalVoicedPitches(
+  resolved: ReturnType<typeof resolveElementalForNavigation>,
+  tilt: ReturnType<typeof resolveSmoothPlaybackTilt>
+): number[] {
+  return computeTiltVoicedPitches(
+    resolved.chord,
+    getInitialBorrowingState(),
+    tilt,
+    TONAL_CENTER,
+    OCTAVE_RANGE,
+    {
+      anchor: 'contrary',
+      elemental: {
+        rootPitchClass: resolved.rootPitchClass,
+        homeMidi: resolved.homeMidi,
+      },
+    }
+  );
+}
+
 function navigationElementalPitches(
   manager: ChordManager,
   elementName: string,
@@ -64,20 +85,7 @@ function navigationElementalPitches(
     playbackTilt,
     'contrary'
   );
-  return computeTiltVoicedPitches(
-    resolved.chord,
-    getInitialBorrowingState(),
-    playbackTilt,
-    TONAL_CENTER,
-    OCTAVE_RANGE,
-    {
-      anchor: 'contrary',
-      elemental: {
-        rootPitchClass: resolved.rootPitchClass,
-        homeMidi: resolved.homeMidi,
-      },
-    }
-  );
+  return elementalVoicedPitches(resolved, playbackTilt);
 }
 
 function voicedPreviousChord(
@@ -164,20 +172,7 @@ describe('opposite-element navigation (all modes)', () => {
       windTilt,
       'contrary'
     );
-    const windPitches = computeTiltVoicedPitches(
-      resolved.chord,
-      getInitialBorrowingState(),
-      windTilt,
-      TONAL_CENTER,
-      OCTAVE_RANGE,
-      {
-        anchor: 'contrary',
-        elemental: {
-          rootPitchClass: resolved.rootPitchClass,
-          homeMidi: resolved.homeMidi,
-        },
-      }
-    );
+    const windPitches = elementalVoicedPitches(resolved, windTilt);
     expect(resolved.chord.traditionalName).toBe('D diminished');
     expect(bassDegreeLabelFromVoiced(resolved.chord, windPitches, getInitialBorrowingState())).toBe(
       '5th'
@@ -199,20 +194,7 @@ describe('opposite-element navigation (all modes)', () => {
       pitched,
       'contrary'
     );
-    const pitches = computeTiltVoicedPitches(
-      resolved.chord,
-      getInitialBorrowingState(),
-      pitched,
-      TONAL_CENTER,
-      OCTAVE_RANGE,
-      {
-        anchor: 'contrary',
-        elemental: {
-          rootPitchClass: resolved.rootPitchClass,
-          homeMidi: resolved.homeMidi,
-        },
-      }
-    );
+    const pitches = elementalVoicedPitches(resolved, pitched);
     const delta = previousBassMidi(voicing)! - Math.min(...pitches);
     expect(delta).toBeGreaterThanOrEqual(1);
     expect(delta).toBeLessThanOrEqual(2);

@@ -12,6 +12,8 @@ import { isM4aCompatibleBlob } from './recordingMimeTypes';
 const FFMPEG_CORE_VERSION = '0.12.6';
 const FFMPEG_CDN_BASE =
   `https://cdn.jsdelivr.net/npm/@ffmpeg/core@${FFMPEG_CORE_VERSION}/dist/umd`;
+/** AAC bitrate for M4A download transcodes. */
+const AAC_EXPORT_BITRATE = '192k';
 
 type FfmpegInstance = {
   loaded: boolean;
@@ -96,7 +98,7 @@ export async function exportM4a(input: Blob): Promise<Blob> {
     '-c:a',
     'aac',
     '-b:a',
-    '192k',
+    AAC_EXPORT_BITRATE,
     // moov at front: progressive playback in Files/VLC/WMP on phone and desktop.
     '-movflags',
     '+faststart',

@@ -5,6 +5,7 @@ import { DiagramVoicingOverlay } from './DiagramVoicingOverlay';
 const toggleNoTiltVoicingLock = vi.fn();
 const toggleNoTiltBassLock = vi.fn();
 
+// Drone/no-tilt fixture: bass locked, voicing unlocked, all borrowing lines on.
 vi.mock('../context/ChordContext', () => ({
   useChordContext: () => ({
     playStyle: 'drone',

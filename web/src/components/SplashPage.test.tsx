@@ -1,6 +1,6 @@
 /// <reference types="node" />
 import { render, screen, fireEvent, act } from '@testing-library/react';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { SplashPage } from './SplashPage';
 import {
   unlockIosMediaChannel,
@@ -8,6 +8,7 @@ import {
 } from '../audio/iosMediaChannel';
 import { audioEngine } from '../audio/AudioEngine';
 import { useLayoutTier } from '../hooks/useLayoutTier';
+
 vi.mock('../audio/iosMediaChannel', () => ({
   unlockIosMediaChannel: vi.fn(),
   waitForIosMediaChannel: vi.fn().mockResolvedValue(undefined),
@@ -30,11 +31,21 @@ vi.mock('../hooks/useLayoutTier', () => ({
   useLayoutTier: vi.fn(() => 'desktop'),
 }));
 
+async function flushSplashEnterTimers(): Promise<void> {
+  await act(async () => {
+    await vi.runAllTimersAsync();
+  });
+}
+
 describe('SplashPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.useFakeTimers();
     vi.mocked(useLayoutTier).mockReturnValue('desktop');
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it('unlocks iOS media channel and starts audio on Start click', async () => {
@@ -48,9 +59,7 @@ describe('SplashPage', () => {
     expect(unlockIosMediaChannel).toHaveBeenCalledTimes(1);
     expect(waitForIosMediaChannel).toHaveBeenCalled();
 
-    await act(async () => {
-      await vi.runAllTimersAsync();
-    });
+    await flushSplashEnterTimers();
 
     expect(audioEngine.startContext).toHaveBeenCalled();
     expect(onEnter).toHaveBeenCalled();
@@ -100,9 +109,7 @@ describe('SplashPage', () => {
     expect(setPlayStyle).toHaveBeenCalledWith('tilt');
     expect(unlockIosMediaChannel).toHaveBeenCalled();
 
-    await act(async () => {
-      await vi.runAllTimersAsync();
-    });
+    await flushSplashEnterTimers();
     expect(onEnter).toHaveBeenCalled();
   });
 
@@ -118,9 +125,7 @@ describe('SplashPage', () => {
     expect(requestTiltPermission).not.toHaveBeenCalled();
     expect(setPlayStyle).toHaveBeenCalledWith('drone');
 
-    await act(async () => {
-      await vi.runAllTimersAsync();
-    });
+    await flushSplashEnterTimers();
     expect(onEnter).toHaveBeenCalled();
   });
 });

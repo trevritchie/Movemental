@@ -1,3 +1,9 @@
+/**
+ * Voice borrowing: circle positions, directions, mutes, and voicing overlays.
+ * See web/README.md (Borrowing System). prepareVoicingInput builds the pitch
+ * structure passed to the tilt engine before borrow/mute overlays apply.
+ */
+
 import { chordManager, type Chord } from './ChordManager';
 import { ELEMENTAL_RELATIONSHIPS, NOTE_POSITION_MAPPING } from './config';
 

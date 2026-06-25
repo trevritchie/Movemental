@@ -6,6 +6,7 @@ import {
 } from '../audio/iosMediaChannel';
 import { useChordContext } from '../context/ChordContext';
 import { useLayoutTier } from '../hooks/useLayoutTier';
+
 interface SplashPageProps {
   onEnter: () => void;
 }
