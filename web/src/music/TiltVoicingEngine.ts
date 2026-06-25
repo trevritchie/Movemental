@@ -50,8 +50,7 @@ const THINNING_RULES: Record<number, number[]> = {
   9: [2, 3, 5, 8], // double octave chord
 };
 
-const clamp = (value: number, min: number, max: number): number =>
-  Math.min(max, Math.max(min, value));
+import { clamp } from '../utils/clamp';
 
 /**
  * Build the tone cycle from a pre-voicing pitch structure.

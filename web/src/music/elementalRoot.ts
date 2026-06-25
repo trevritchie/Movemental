@@ -25,10 +25,7 @@ export function isElementalName(name: string): name is ElementalName {
   return (ELEMENTAL_NAMES as readonly string[]).includes(name);
 }
 
-export function getChordRootPitchClass(chord: Chord): number {
-  return chord.pitches[chord.rootPositionIndex] % 12;
-}
-
+export { getChordRootPitchClass } from './pitchClass';
 /** Half step below a pitch class. */
 export function semitoneBelow(pitchClass: number): number {
   return (pitchClass + 11) % 12;

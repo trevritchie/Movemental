@@ -29,6 +29,7 @@ import {
 } from './elementalRoot';
 import type { ElementalPlaybackResolution } from './tiltVoicingPlayback';
 import { spellChordDegrees } from './chordSpelling';
+import { normalizePitchClass } from './pitchClass';
 
 export type VoiceLine = 1 | 2 | 3 | 4;
 
@@ -208,7 +209,9 @@ function voiceLineFromSpelledDegrees(
   if (!chord.quality || chord.rootPositionIndex === undefined) {
     return null;
   }
-  const rootPitchClass = chord.pitches[chord.rootPositionIndex] % 12;
+  const rootPitchClass = normalizePitchClass(
+    chord.pitches[chord.rootPositionIndex]
+  );
   const degrees = spellChordDegrees(rootPitchClass, chord.quality);
   const index = degrees.findIndex(
     (degree) => degree.pitchClass === lowestPitchClass
@@ -228,7 +231,7 @@ function voiceLineForLowestPitch(
     return null;
   }
 
-  const lowestPc = ((Math.min(...voiced) % 12) + 12) % 12;
+  const lowestPc = normalizePitchClass(Math.min(...voiced));
   const spelledLine = voiceLineFromSpelledDegrees(chord, lowestPc);
   if (spelledLine !== null) {
     return spelledLine;
@@ -244,7 +247,7 @@ function voiceLineForLowestPitch(
     if (pitch === null) {
       continue;
     }
-    const pc = ((pitch % 12) + 12) % 12;
+    const pc = normalizePitchClass(pitch);
     if (pc === lowestPc) {
       return line as VoiceLine;
     }

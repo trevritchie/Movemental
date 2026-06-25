@@ -5,12 +5,13 @@
 import { NOTE_NAMES_FLAT } from './config';
 import type { Chord } from './ChordManager';
 import { buildDegreeSpellingMap, spellMidiNote } from './chordSpelling';
+import { normalizePitchClass } from './pitchClass';
 
 /** Convert a MIDI note number to flat spelling with octave (e.g. 60 -> C4). */
 export function midiToNoteName(midi: number): string {
-  const pitchClass = ((midi % 12) + 12) % 12;
+  const pc = normalizePitchClass(midi);
   const octave = Math.floor(midi / 12) - 1;
-  return `${NOTE_NAMES_FLAT[pitchClass]}${octave}`;
+  return `${NOTE_NAMES_FLAT[pc]}${octave}`;
 }
 
 /** Space-separated ascending note names for the currently voiced pitches. */

@@ -14,6 +14,14 @@ import {
   GROUP_PALETTE,
   AXIS_PARENTS,
 } from '../music/diagramMetadata';
+import {
+  DIAGRAM_VIEW_W,
+  DIAGRAM_VIEW_H,
+  DIAGRAM_COMPACT_VIEW_W,
+  DIAGRAM_COMPACT_VIEW_H,
+  DIAGRAM_COMPACT_VIEW_PAD,
+} from '../music/diagramLayout';
+import { parentElementStyle } from '../music/elementTokens';
 import { useChordContext } from '../context/ChordContext';
 import { BREAKPOINTS } from '../layout/breakpoints';
 import { useLayoutTier } from '../hooks/useLayoutTier';
@@ -36,26 +44,6 @@ function piePath(r: number, slice: number): string {
   const [x2, y2] = corners[(slice + 1) % 4];
   return `M 0,0 L ${x1},${y1} A ${r},${r} 0 0,1 ${x2},${y2} Z`;
 }
-
-const VIEW_W = 1160;
-const VIEW_H = 800;
-const COMPACT_VIEW_W = 1210;
-const COMPACT_VIEW_H = 860;
-const COMPACT_VIEW_PAD = 25;
-
-/** Parent-element stroke and glow tokens (Earth, Wind, Fire). */
-const PARENT_ELEMENT_STYLES: Record<string, { color: string; glow: string }> = {
-  Earth: { color: 'var(--color-earth)', glow: 'var(--glow-earth)' },
-  Wind:  { color: 'var(--color-wind)',  glow: 'var(--glow-wind)' },
-  Fire:  { color: 'var(--color-fire)',  glow: 'var(--glow-fire)' },
-};
-const DEFAULT_PARENT_STYLE = {
-  color: 'var(--color-mixed)',
-  glow: 'rgba(255,255,255,0.15)',
-};
-
-const parentElementStyle = (name: string) =>
-  PARENT_ELEMENT_STYLES[name] ?? DEFAULT_PARENT_STYLE;
 
 export const ElementalDiagram: React.FC<{ children?: React.ReactNode }> = ({ children }) => {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -82,7 +70,7 @@ export const ElementalDiagram: React.FC<{ children?: React.ReactNode }> = ({ chi
     const { width, height } = container.getBoundingClientRect();
     setContainerWidth(width);
     if (width > 0 && height > 0) {
-      const viewBoxAR = COMPACT_VIEW_W / COMPACT_VIEW_H;
+      const viewBoxAR = DIAGRAM_COMPACT_VIEW_W / DIAGRAM_COMPACT_VIEW_H;
       const containerAR = width / height;
       setAspectRatioCorrection(containerAR / viewBoxAR);
       if (layoutTier === 'phone') {
@@ -125,8 +113,8 @@ export const ElementalDiagram: React.FC<{ children?: React.ReactNode }> = ({ chi
     containerWidth < BREAKPOINTS.compactDiagramWidth;
 
   const viewBox = isCompactDiagram
-    ? `-${COMPACT_VIEW_PAD} -${COMPACT_VIEW_PAD} ${COMPACT_VIEW_W} ${COMPACT_VIEW_H}`
-    : `0 0 ${VIEW_W} ${VIEW_H}`;
+    ? `-${DIAGRAM_COMPACT_VIEW_PAD} -${DIAGRAM_COMPACT_VIEW_PAD} ${DIAGRAM_COMPACT_VIEW_W} ${DIAGRAM_COMPACT_VIEW_H}`
+    : `0 0 ${DIAGRAM_VIEW_W} ${DIAGRAM_VIEW_H}`;
 
   const R_MAIN = isCompactDiagram ? 100 : 52;
   const R_GROUP = isCompactDiagram ? 102 : 54;
@@ -143,7 +131,7 @@ export const ElementalDiagram: React.FC<{ children?: React.ReactNode }> = ({ chi
     if (!chord) return null;
     const coord = chordManager.getCoordinateForChord(chord.name);
     if (!coord) return null;
-    return { x: coord.x * VIEW_W, y: coord.y * VIEW_H };
+    return { x: coord.x * DIAGRAM_VIEW_W, y: coord.y * DIAGRAM_VIEW_H };
   }, []);
 
   const { earth, wind, fire, earthC, windC, fireC, groupCenters, getParentCoords, getGroupParentCoords } = useMemo(() => {

@@ -23,8 +23,7 @@ export type DiagramOverlayCssVars = {
   '--overlay-pill-padding-x': string;
 };
 
-const clamp = (value: number, min: number, max: number): number =>
-  Math.min(max, Math.max(min, value));
+import { clamp } from '../utils/clamp';
 
 /** Default overlay metrics before the container is measured. */
 export const DEFAULT_OVERLAY_METRICS: DiagramOverlayCssVars = {

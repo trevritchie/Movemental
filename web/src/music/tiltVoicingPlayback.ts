@@ -19,6 +19,7 @@ import {
   resolveDeterministicElementalPlayback,
   resolveElementalPlayback,
 } from './elementalRoot';
+import { getChordRootPitchClass } from './pitchClass';
 
 export interface ElementalPlaybackResolution {
   rootPitchClass: number;
@@ -100,7 +101,7 @@ export function resolveVoicingRoot(
 
   return {
     pitchStructure,
-    rootPitchClass: chord.pitches[chord.rootPositionIndex] % 12,
+    rootPitchClass: getChordRootPitchClass(chord),
   };
 }
 

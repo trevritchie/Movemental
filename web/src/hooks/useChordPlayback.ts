@@ -87,8 +87,7 @@ function pitchesEqual(a: number[], b: number[]): boolean {
   return true;
 }
 
-const clamp = (value: number, min: number, max: number): number =>
-  Math.min(max, Math.max(min, value));
+import { clamp } from '../utils/clamp';
 
 interface PlaybackResolution {
   displayChord: Chord;

@@ -3,17 +3,16 @@ import type { BorrowingDirection, BorrowingState } from '../music/BorrowingLogic
 import { useChordContext } from '../context/ChordContext';
 import { useLayoutTier } from '../hooks/useLayoutTier';
 import { ELEMENTAL_RELATIONSHIPS } from '../music/config';
+import {
+  cssColorForRelativePc,
+  parentElementColor,
+} from '../music/elementTokens';
+import { relativePitchClass } from '../music/pitchClass';
 import { MobileActionButtons } from './SettingsMenu';
 
 interface BorrowingControlsProps {
   disabled: boolean;
 }
-
-const ELEMENT_COLORS: Record<string, string> = {
-  Earth: 'var(--color-earth)',
-  Wind:  'var(--color-wind)',
-  Fire:  'var(--color-fire)',
-};
 
 const VOICE_LINES = [1, 2, 3, 4] as const;
 
@@ -152,7 +151,7 @@ export const BorrowingControls: React.FC<BorrowingControlsProps> = ({
     ? (ELEMENTAL_RELATIONSHIPS[selectedChord.name]?.[0] ?? null)
     : null;
   const oppositeColor = oppositeElementName
-    ? (ELEMENT_COLORS[oppositeElementName] ?? 'rgba(255,255,255,0.45)')
+    ? (parentElementColor(oppositeElementName) ?? 'rgba(255,255,255,0.45)')
     : 'rgba(255,255,255,0.45)';
 
   const getNeutralColor = useCallback((line: number): string => {
@@ -169,11 +168,7 @@ export const BorrowingControls: React.FC<BorrowingControlsProps> = ({
       return 'rgba(255,255,255,0.45)';
     }
     const pitch = selectedChord.pitches[idx];
-    const relPc = ((pitch % 12) - tonalCenter + 12) % 12;
-    const rem = relPc % 3;
-    if (rem === 0) return 'var(--color-earth)';
-    if (rem === 1) return 'var(--color-wind)';
-    return 'var(--color-fire)';
+    return cssColorForRelativePc(relativePitchClass(pitch, tonalCenter));
   }, [selectedChord, tonalCenter]);
 
   const getSliderSlot = useCallback(
