@@ -9,15 +9,12 @@ import type { Chord } from './ChordManager';
 import { borrowingLogic, getInitialBorrowingState, type BorrowingState } from './BorrowingLogic';
 import type { PlayStyle, VoiceLeadingMode } from '../context/types';
 import { isNoTiltPlayStyle } from '../context/types';
-import { resolveSmoothPlaybackTilt } from './predeterminedVoiceLeading';
-import { computeEffectiveParallelSteps } from './smoothestVoiceLeading';
+import { resolveEffectiveTiltForLabel } from './playbackTiltResolution';
 import {
-  mapTiltToPositions,
   NO_TILT_POSITION_LEVEL_COUNT,
   parallelLevelFromTilt,
   parallelStepsFromNoTiltPositionLevel,
   positionLabelIndexFromParallelSteps,
-  tiltSampleFromLevels,
   tiltVoicingLevelName,
   type TiltSample,
   type TiltVoicingAnchor,
@@ -25,7 +22,6 @@ import {
 import { getCachedTiltVoicedPitches } from './voicingCache';
 import {
   isElementalName,
-  isOppositeElementNavigation,
 } from './elementalRoot';
 import type { ElementalPlaybackResolution } from './tiltVoicingPlayback';
 import { spellChordDegrees } from './chordSpelling';
@@ -60,44 +56,7 @@ function resolveEffectiveTilt(
   context?: TiltBassLabelContext,
   chord?: Chord | null
 ): TiltSample {
-  if (!context) {
-    return tilt;
-  }
-
-  const mode = context.voiceLeadingMode ?? 'root_position';
-
-  if (mode === 'smooth' && chord) {
-    if (
-      context.previousChord &&
-      context.lastTapTilt &&
-      isElementalName(chord.name) &&
-      isOppositeElementNavigation(context.previousChord, chord.name)
-    ) {
-      const { inputSteps } = mapTiltToPositions(tilt);
-      const preservedParallel = parallelLevelFromTilt(context.lastTapTilt);
-      return tiltSampleFromLevels(inputSteps, preservedParallel);
-    }
-    return resolveSmoothPlaybackTilt(chord.name, tilt);
-  }
-
-  if (mode !== 'smoothest') {
-    return tilt;
-  }
-
-  if (
-    context.smoothBaseParallel === undefined ||
-    !context.lastTapTilt
-  ) {
-    return tilt;
-  }
-
-  const effectiveParallel = computeEffectiveParallelSteps(
-    context.smoothBaseParallel,
-    context.lastTapTilt,
-    tilt
-  );
-  const { inputSteps } = mapTiltToPositions(tilt);
-  return tiltSampleFromLevels(inputSteps, effectiveParallel);
+  return resolveEffectiveTiltForLabel(tilt, chord ?? null, context);
 }
 
 function voicingAnchorForPlayStyle(playStyle?: PlayStyle): TiltVoicingAnchor {

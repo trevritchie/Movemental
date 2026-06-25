@@ -1,5 +1,6 @@
 import React, { useRef, useCallback } from 'react';
-import type { BorrowingDirection, BorrowingState } from '../music/BorrowingLogic';
+import type { BorrowingDirection } from '../music/BorrowingLogic';
+import { borrowingLogic, cloneBorrowingState } from '../music/BorrowingLogic';
 import { useChordContext } from '../context/ChordContext';
 import { useLayoutTier } from '../hooks/useLayoutTier';
 import { ELEMENTAL_RELATIONSHIPS } from '../music/config';
@@ -19,16 +20,6 @@ const VOICE_LINES = [1, 2, 3, 4] as const;
 /** Vertical track thirds: up (top), neutral (middle), down (bottom). */
 const SLIDER_ZONE_TOP = 0.33;
 const SLIDER_ZONE_BOTTOM = 0.67;
-
-/** Shallow-copy nested borrowing maps before mutating one voice line. */
-function cloneBorrowingState(state: BorrowingState): BorrowingState {
-  return {
-    ...state,
-    borrowingDirections: { ...state.borrowingDirections },
-    circlePositions: { ...state.circlePositions },
-    noteStates: { ...state.noteStates },
-  };
-}
 
 // ─── 3-node vertical slider ───────────────────────────────────────────────────
 
@@ -156,13 +147,7 @@ export const BorrowingControls: React.FC<BorrowingControlsProps> = ({
 
   const getNeutralColor = useCallback((line: number): string => {
     if (!selectedChord) return 'rgba(255,255,255,0.45)';
-    const rootIdx = selectedChord.rootPositionIndex;
-    const mapping: Record<number, number> = {
-      1: rootIdx,
-      2: (rootIdx + 1) % 4,
-      3: (rootIdx + 2) % 4,
-      4: (rootIdx + 3) % 4,
-    };
+    const mapping = borrowingLogic.getRootPositionMapping(selectedChord);
     const idx = mapping[line];
     if (idx >= selectedChord.pitches.length) {
       return 'rgba(255,255,255,0.45)';

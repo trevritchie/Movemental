@@ -39,9 +39,11 @@ import {
   resolveSmoothParallelSteps,
 } from '../music/smoothestVoiceLeading';
 import {
-  resolveSmoothNoTiltPlaybackTilt,
-  resolveSmoothPlaybackTilt,
-} from '../music/predeterminedVoiceLeading';
+  tiltFromNoTiltLevels,
+  resolveSmoothReanchorTilt,
+  resolveSmoothestReanchorTilt,
+  resolveSmoothPlaybackTiltForNavigation as resolveSmoothNavTilt,
+} from '../music/playbackTiltResolution';
 import { invalidateVoicingCache } from '../music/voicingCache';
 import {
   lastPlayedBassReadout,
@@ -92,146 +94,6 @@ import { clamp } from '../utils/clamp';
 interface PlaybackResolution {
   displayChord: Chord;
   elemental?: ElementalPlaybackResolution;
-}
-
-function tiltFromNoTiltLevels(
-  voicingLevel: number,
-  positionLevel: number
-): TiltSample {
-  return tiltSampleFromLevels(
-    voicingLevel,
-    parallelStepsFromNoTiltPositionLevel(positionLevel)
-  );
-}
-
-/**
- * Smooth voice-leading tilt adjustment during re-anchor (not same-chord drift).
- */
-function resolveSmoothReanchorTilt(
-  displayChord: Chord,
-  style: PlayStyle,
-  options: {
-    isChordChange: boolean;
-    isFirstChord: boolean;
-    isOppositeElement: boolean;
-    lockMaps: NoTiltChordLockMaps;
-    noTiltVoicingLevel: number;
-    noTiltPositionLevel: number;
-    lastNoTiltPositionLevel: number;
-    resolveSmoothPlaybackTiltForNavigation: (
-      chord: Chord,
-      liveTilt: TiltSample,
-      isChordChange: boolean
-    ) => TiltSample;
-    getCurrentControlTilt: (style: PlayStyle) => TiltSample;
-    syncNoTiltPositionLevel: (effectiveParallel: number) => void;
-  }
-): TiltSample {
-  const {
-    isChordChange,
-    isFirstChord,
-    isOppositeElement,
-    lockMaps,
-    noTiltVoicingLevel,
-    noTiltPositionLevel,
-    lastNoTiltPositionLevel,
-    resolveSmoothPlaybackTiltForNavigation,
-    getCurrentControlTilt,
-    syncNoTiltPositionLevel,
-  } = options;
-
-  if (style === 'tilt') {
-    return resolveSmoothPlaybackTiltForNavigation(
-      displayChord,
-      getCurrentControlTilt(style),
-      isChordChange
-    );
-  }
-
-  if (isChordChange || isFirstChord) {
-    const chordName = displayChord.name;
-    const voicingLevel = isNoTiltVoicingLocked(lockMaps, chordName)
-      ? getLockedNoTiltVoicing(lockMaps, chordName)!
-      : noTiltVoicingLevel;
-
-    if (isNoTiltBassLocked(lockMaps, chordName)) {
-      return tiltFromNoTiltLevels(
-        voicingLevel,
-        getLockedNoTiltBass(lockMaps, chordName)!
-      );
-    }
-
-    if (isOppositeElement) {
-      const tilt = tiltFromNoTiltLevels(
-        voicingLevel,
-        lastNoTiltPositionLevel
-      );
-      syncNoTiltPositionLevel(parallelLevelFromTilt(tilt));
-      return tilt;
-    }
-
-    const tilt = resolveSmoothNoTiltPlaybackTilt(chordName, voicingLevel);
-    syncNoTiltPositionLevel(parallelLevelFromTilt(tilt));
-    return tilt;
-  }
-
-  return tiltFromNoTiltLevels(noTiltVoicingLevel, noTiltPositionLevel);
-}
-
-interface SmoothestReanchorCallbacks {
-  applySmoothestVoiceLeading: (
-    displayChord: Chord,
-    style: PlayStyle,
-    elemental?: ElementalPlaybackResolution
-  ) => TiltSample;
-  preserveSameChordSmoothestTilt: (
-    style: PlayStyle,
-    chordName: string
-  ) => TiltSample;
-  getBaselineTilt: (style: PlayStyle) => TiltSample;
-  getCurrentControlTilt: (style: PlayStyle) => TiltSample;
-  setSmoothBaseParallel: (parallel: number) => void;
-}
-
-/**
- * Smoothest voice-leading tilt during re-anchor (chord change, same chord, or
- * first session chord with no prior neutral voicing).
- */
-function resolveSmoothestReanchorTilt(
-  displayChord: Chord,
-  style: PlayStyle,
-  playbackTilt: TiltSample,
-  neutralVoicingLength: number,
-  isChordChange: boolean,
-  smoothBaseParallelRef: { current: number },
-  callbacks: SmoothestReanchorCallbacks
-): TiltSample {
-  if (neutralVoicingLength > 0) {
-    if (isChordChange) {
-      return callbacks.applySmoothestVoiceLeading(displayChord, style);
-    }
-    return callbacks.preserveSameChordSmoothestTilt(
-      style,
-      displayChord.name
-    );
-  }
-
-  const baselineTilt = callbacks.getBaselineTilt(style);
-  const currentTilt = callbacks.getCurrentControlTilt(style);
-  const parallelDelta =
-    parallelLevelFromTilt(currentTilt) -
-    parallelLevelFromTilt(baselineTilt);
-  const baseParallel = parallelLevelFromTilt(playbackTilt);
-  const effectiveParallel = clamp(
-    baseParallel + parallelDelta,
-    -MAX_TILT_PITCH_STEPS,
-    MAX_TILT_PITCH_STEPS
-  );
-  const { inputSteps } = mapTiltToPositions(currentTilt);
-  const tilt = tiltSampleFromLevels(inputSteps, effectiveParallel);
-  smoothBaseParallelRef.current = effectiveParallel;
-  callbacks.setSmoothBaseParallel(effectiveParallel);
-  return tilt;
 }
 
 export function useChordPlayback({
@@ -575,18 +437,13 @@ export function useChordPlayback({
       liveTilt: TiltSample,
       isChordChange: boolean
     ): TiltSample => {
-      const previousChord = previousChordRef.current;
-      if (
-        isChordChange &&
-        isElementalName(chord.name) &&
-        previousChord &&
-        isOppositeElementNavigation(previousChord, chord.name as ElementalName)
-      ) {
-        const { inputSteps } = mapTiltToPositions(liveTilt);
-        const preservedParallel = parallelLevelFromTilt(lastTapTiltRef.current);
-        return tiltSampleFromLevels(inputSteps, preservedParallel);
-      }
-      return resolveSmoothPlaybackTilt(chord.name, liveTilt);
+      return resolveSmoothNavTilt(
+        chord,
+        liveTilt,
+        isChordChange,
+        previousChordRef.current,
+        lastTapTiltRef.current
+      );
     },
     []
   );

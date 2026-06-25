@@ -54,6 +54,18 @@ function permute<T>(items: T[]): T[][] {
   return result;
 }
 
+/** Cached index permutations for four-voice assignment scoring. */
+const FOUR_VOICE_INDEX_PERMUTATIONS = permute([0, 1, 2, 3]);
+
+function permutePitches(candidatePitches: number[]): number[][] {
+  if (candidatePitches.length === 4) {
+    return FOUR_VOICE_INDEX_PERMUTATIONS.map((perm) =>
+      perm.map((i) => candidatePitches[i])
+    );
+  }
+  return permute(candidatePitches);
+}
+
 interface AssignmentScore {
   cost: number;
   downMoves: number;
@@ -86,7 +98,7 @@ function scoreAssignment(
   }
 
   let best: AssignmentScore | null = null;
-  for (const perm of permute(candidatePitches)) {
+  for (const perm of permutePitches(candidatePitches)) {
     const candidateScore = summarizeAssignment(previousPitches, perm);
     if (
       best === null ||

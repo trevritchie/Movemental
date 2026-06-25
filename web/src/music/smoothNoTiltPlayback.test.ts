@@ -5,11 +5,11 @@ import {
   getFlatParallelStepsForChord,
   resolveSmoothNoTiltPlaybackTilt,
 } from './predeterminedVoiceLeading';
+import { tiltFromNoTiltLevels } from './playbackTiltResolution';
 import {
   DEFAULT_NO_TILT_VOICING_LEVEL,
   noTiltPositionLevelFromParallelSteps,
   parallelLevelFromTilt,
-  parallelStepsFromNoTiltPositionLevel,
   tiltSampleFromLevels,
 } from './TiltVoicingEngine';
 import { computeNeutralTiltVoicing } from './tiltVoicingPlayback';
@@ -41,16 +41,6 @@ function applyBranchLocksToRefs(
     },
   });
   return { voicingRef, positionRef };
-}
-
-function tiltFromNoTiltLevels(
-  voicingLevel: number,
-  positionLevel: number
-) {
-  return tiltSampleFromLevels(
-    voicingLevel,
-    parallelStepsFromNoTiltPositionLevel(positionLevel)
-  );
 }
 
 function bassMidi(

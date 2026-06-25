@@ -26,6 +26,17 @@ export const getInitialBorrowingState = (): BorrowingState => ({
   borrowingDirections: { 1: null, 2: null, 3: null, 4: null },
   noteStates: { 1: 'on', 2: 'on', 3: 'on', 4: 'on' }
 });
+
+/** Shallow-copy nested borrowing maps before mutating one voice line. */
+export function cloneBorrowingState(state: BorrowingState): BorrowingState {
+  return {
+    ...state,
+    borrowingDirections: { ...state.borrowingDirections },
+    circlePositions: { ...state.circlePositions },
+    noteStates: { ...state.noteStates },
+  };
+}
+
 const clampMidi = (pitch: number): number => Math.max(21, Math.min(108, pitch));
 
 /** Nearest MIDI note matching targetPc to referenceMidi. */
