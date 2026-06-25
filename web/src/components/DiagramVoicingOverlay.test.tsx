@@ -13,7 +13,14 @@ vi.mock('../context/ChordContext', () => ({
     setNoTiltVoicingLevel: vi.fn(),
     noTiltPositionLevel: 4,
     setNoTiltPositionLevel: vi.fn(),
-    selectedChord: { name: 'Branch' },
+    selectedChord: {
+      name: 'Branch',
+      pitches: [58, 62, 65, 69],
+      rootPositionIndex: 0,
+      quality: ' maj6',
+      traditionalName: 'Bb maj6',
+      originalPitches: [58, 62, 65, 69],
+    },
     tonalCenter: 10,
     octaveRange: 2,
     borrowingState: {
@@ -30,14 +37,18 @@ vi.mock('../context/ChordContext', () => ({
     lastPlayedVoicingLabel: null,
     lastPlayedBassLabel: null,
     lastElementalPlayback: null,
-    activePitches: [58, 62, 65, 69],
-    tiltStatus: 'unsupported',
-    tiltSample: { x: 0, y: 0 },
-    requestTiltPermission: vi.fn(),
     isNoTiltVoicingLocked: false,
     isNoTiltBassLocked: true,
     toggleNoTiltVoicingLock,
     toggleNoTiltBassLock,
+  }),
+}));
+
+vi.mock('../context/TiltReadoutContext', () => ({
+  useTiltReadoutContext: () => ({
+    tiltStatus: 'unsupported',
+    tiltSample: { x: 0, y: 0 },
+    requestTiltPermission: vi.fn(),
   }),
 }));
 

@@ -35,9 +35,9 @@ interface BorrowSliderProps {
 
 const SLOTS: ('up' | 'neutral' | 'down')[] = ['up', 'neutral', 'down'];
 
-const BorrowSlider: React.FC<BorrowSliderProps> = ({
+const BorrowSlider = React.memo(function BorrowSlider({
   activeSlot, muted, disabled, onChange, onToggleMute, neutralColor, oppositeColor,
-}) => {
+}: BorrowSliderProps) {
   const trackRef = useRef<HTMLDivElement>(null);
   const isDragging = useRef(false);
   const didMove = useRef(false);
@@ -122,7 +122,7 @@ const BorrowSlider: React.FC<BorrowSliderProps> = ({
       })}
     </div>
   );
-};
+});
 
 // ─── Main component ───────────────────────────────────────────────────────────
 

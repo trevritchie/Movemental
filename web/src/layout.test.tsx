@@ -4,7 +4,7 @@ import { renderHook } from '@testing-library/react';
 import fs from 'fs';
 import path from 'path';
 import { BREAKPOINTS, PHONE_LANDSCAPE_BLOCK_MEDIA } from './layout/breakpoints';
-import { useLayoutTier } from './hooks/useLayoutTier';
+import { LayoutTierProvider, useLayoutTier } from './hooks/useLayoutTier';
 import { usePhoneLandscapeBlocked } from './hooks/usePhoneLandscapeBlocked';
 
 const mockMatchMedia = (matchesFor: (query: string) => boolean) => {
@@ -337,7 +337,9 @@ describe('layout hook initial state', () => {
         query === '(pointer: coarse)' || query === '(orientation: portrait)',
     );
 
-    const { result } = renderHook(() => useLayoutTier());
+    const { result } = renderHook(() => useLayoutTier(), {
+      wrapper: LayoutTierProvider,
+    });
     expect(result.current).toBe('phone');
   });
 

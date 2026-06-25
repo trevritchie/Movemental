@@ -5,6 +5,7 @@ import {
   waitForIosMediaChannel,
 } from '../audio/iosMediaChannel';
 import { useChordContext } from '../context/ChordContext';
+import { useTiltReadoutContext } from '../context/TiltReadoutContext';
 import { useLayoutTier } from '../hooks/useLayoutTier';
 
 interface SplashPageProps {
@@ -14,7 +15,8 @@ interface SplashPageProps {
 export const SplashPage: React.FC<SplashPageProps> = ({ onEnter }) => {
   const [isStarting, setIsStarting] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
-  const { setPlayStyle, requestTiltPermission } = useChordContext();
+  const { setPlayStyle } = useChordContext();
+  const { requestTiltPermission } = useTiltReadoutContext();
   const layoutTier = useLayoutTier();
   const isDesktop = layoutTier === 'desktop';
 

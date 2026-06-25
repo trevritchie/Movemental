@@ -805,24 +805,24 @@ export function useChordPlayback({
     ]
   );
 
-  const handleChordPointerDown = (chord: Chord) => {
+  const handleChordPointerDown = useCallback((chord: Chord) => {
     unlockIosMediaChannel();
     isPointerDownRef.current = true;
     applyChordWithBorrowing(chord);
-  };
+  }, [applyChordWithBorrowing]);
 
-  const handleChordPointerUp = () => {
+  const handleChordPointerUp = useCallback(() => {
     isPointerDownRef.current = false;
     if (playStyleRef.current === 'click_and_hold') {
       audioEngine.releaseActiveNotes();
     }
-  };
+  }, []);
 
-  const handleChordPointerEnter = (chord: Chord) => {
+  const handleChordPointerEnter = useCallback((chord: Chord) => {
     if (isPointerDownRef.current) {
       applyChordWithBorrowing(chord);
     }
-  };
+  }, [applyChordWithBorrowing]);
 
   return {
     playStyle,

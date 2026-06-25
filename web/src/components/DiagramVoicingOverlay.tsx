@@ -11,6 +11,7 @@ import {
   TILT_BASS_DEGREE_MOBILE_MAX_LABEL,
 } from '../music/voiceDegreeLabel';
 import { useChordContext } from '../context/ChordContext';
+import { useTiltReadoutContext } from '../context/TiltReadoutContext';
 import { DiagramOverlayPill } from './DiagramOverlayPill';
 import { NoTiltLockButton } from './NoTiltLockButton';
 
@@ -71,10 +72,10 @@ export const DiagramVoicingOverlay: React.FC = () => {
     lastPlayedVoicingLabel,
     lastPlayedBassLabel,
     lastElementalPlayback,
-    tiltStatus,
-    tiltSample,
-    requestTiltPermission,
   } = useChordContext();
+
+  const { tiltStatus, tiltSample, requestTiltPermission } =
+    useTiltReadoutContext();
 
   const isTilt = playStyle === 'tilt';
   const chordName = selectedChord?.name;
@@ -119,6 +120,11 @@ export const DiagramVoicingOverlay: React.FC = () => {
       smoothBaseParallel,
       lastTapTilt,
     ]
+  );
+
+  const tiltBassLabel = React.useMemo(
+    () => tiltBassDegreeLabel(tiltSample, selectedChord, tiltBassContext),
+    [tiltSample, selectedChord, tiltBassContext]
   );
 
   const renderVoicingValue = () => {
@@ -233,7 +239,7 @@ export const DiagramVoicingOverlay: React.FC = () => {
           className="diagram-overlay-readout"
           title="Pitch tilt sets which chord tone is in the bass"
         >
-          {tiltBassDegreeLabel(tiltSample, selectedChord, tiltBassContext)}
+          {tiltBassLabel}
         </span>
       </TiltReadoutStack>
     );

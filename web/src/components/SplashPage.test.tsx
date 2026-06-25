@@ -24,7 +24,11 @@ const setPlayStyle = vi.fn();
 const requestTiltPermission = vi.fn().mockResolvedValue(undefined);
 
 vi.mock('../context/ChordContext', () => ({
-  useChordContext: () => ({ setPlayStyle, requestTiltPermission }),
+  useChordContext: () => ({ setPlayStyle }),
+}));
+
+vi.mock('../context/TiltReadoutContext', () => ({
+  useTiltReadoutContext: () => ({ requestTiltPermission }),
 }));
 
 vi.mock('../hooks/useLayoutTier', () => ({

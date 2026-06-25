@@ -45,7 +45,11 @@ function piePath(r: number, slice: number): string {
   return `M 0,0 L ${x1},${y1} A ${r},${r} 0 0,1 ${x2},${y2} Z`;
 }
 
-export const ElementalDiagram: React.FC<{ children?: React.ReactNode }> = ({ children }) => {
+export const ElementalDiagram = React.memo(function ElementalDiagram({
+  children,
+}: {
+  children?: React.ReactNode;
+}) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [aspectRatioCorrection, setAspectRatioCorrection] = useState(1);
 
@@ -421,4 +425,4 @@ export const ElementalDiagram: React.FC<{ children?: React.ReactNode }> = ({ chi
       {children}
     </div>
   );
-};
+});

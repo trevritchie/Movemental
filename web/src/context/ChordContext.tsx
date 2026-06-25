@@ -31,7 +31,8 @@ import {
 import { useAudioSettings } from '../hooks/useAudioSettings';
 import { useBorrowingMemory } from '../hooks/useBorrowingMemory';
 import { useChordPlayback } from '../hooks/useChordPlayback';
-import { useDeviceTilt, type TiltStatus } from '../hooks/useDeviceTilt';
+import { useDeviceTilt } from '../hooks/useDeviceTilt';
+import { TiltReadoutProvider } from './TiltReadoutContext';
 import { useNoTiltChordLocks } from '../hooks/useNoTiltChordLocks';
 import type { ElementalPlaybackResolution } from '../music/tiltVoicingPlayback';
 import type { PlayStyle, VoiceLeadingMode } from './types';
@@ -89,9 +90,6 @@ interface ChordContextType {
   lastPlayedVoicingLabel: string | null;
   lastPlayedBassLabel: string | null;
   lastElementalPlayback: ElementalPlaybackResolution | null;
-  tiltStatus: TiltStatus;
-  tiltSample: TiltSample;
-  requestTiltPermission: () => Promise<void>;
   isNoTiltVoicingLocked: boolean;
   isNoTiltBassLocked: boolean;
   toggleNoTiltVoicingLock: () => void;
@@ -304,9 +302,6 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
       lastPlayedVoicingLabel: playback.lastPlayedVoicingLabel,
       lastPlayedBassLabel: playback.lastPlayedBassLabel,
       lastElementalPlayback: playback.lastElementalPlayback,
-      tiltStatus: deviceTilt.status,
-      tiltSample: deviceTilt.tilt,
-      requestTiltPermission: deviceTilt.requestPermission,
       isNoTiltVoicingLocked: noTiltLocks.isVoicingLocked,
       isNoTiltBassLocked: noTiltLocks.isBassLocked,
       toggleNoTiltVoicingLock: noTiltLocks.toggleVoicingLock,
@@ -358,9 +353,6 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
       playback.lastPlayedVoicingLabel,
       playback.lastPlayedBassLabel,
       playback.lastElementalPlayback,
-      deviceTilt.status,
-      deviceTilt.tilt,
-      deviceTilt.requestPermission,
       noTiltLocks.isVoicingLocked,
       noTiltLocks.isBassLocked,
       noTiltLocks.toggleVoicingLock,
@@ -371,6 +363,12 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
   );
 
   return (
-    <ChordContext.Provider value={value}>{children}</ChordContext.Provider>
+    <TiltReadoutProvider
+      status={deviceTilt.status}
+      tilt={deviceTilt.tilt}
+      requestPermission={deviceTilt.requestPermission}
+    >
+      <ChordContext.Provider value={value}>{children}</ChordContext.Provider>
+    </TiltReadoutProvider>
   );
 };

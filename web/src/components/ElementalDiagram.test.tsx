@@ -21,9 +21,6 @@ vi.mock('../context/ChordContext', () => ({
     tonalCenter: 0,
     octaveRange: 3,
     previousPlayedChord: null,
-    tiltStatus: 'unsupported',
-    tiltSample: { roll: 0, pitch: 0 },
-    requestTiltPermission: vi.fn(),
     isNoTiltVoicingLocked: false,
     isNoTiltBassLocked: false,
     toggleNoTiltVoicingLock: vi.fn(),
@@ -37,6 +34,14 @@ const mockUseLayoutTier = vi.fn((): LayoutTier => 'phone');
 
 vi.mock('../hooks/useLayoutTier', () => ({
   useLayoutTier: () => mockUseLayoutTier(),
+}));
+
+vi.mock('../context/TiltReadoutContext', () => ({
+  useTiltReadoutContext: () => ({
+    tiltStatus: 'unsupported',
+    tiltSample: { x: 0, y: 0 },
+    requestTiltPermission: vi.fn(),
+  }),
 }));
 
 vi.mock('../hooks/useFullscreen', () => ({

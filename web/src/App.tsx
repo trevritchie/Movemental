@@ -6,7 +6,7 @@ import { ChordProvider, useChordContext } from './context/ChordContext';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { SplashPage } from './components/SplashPage';
 import { LandscapePrompt } from './components/LandscapePrompt';
-import { useLayoutTier } from './hooks/useLayoutTier';
+import { useLayoutTier, LayoutTierProvider } from './hooks/useLayoutTier';
 import { usePhoneLandscapeBlocked } from './hooks/usePhoneLandscapeBlocked';
 
 const PRIMARY_ELEMENT_NAMES = new Set(['Earth', 'Wind', 'Fire']);
@@ -57,16 +57,18 @@ function App() {
 
   return (
     <ErrorBoundary>
-      <ChordProvider>
-        {isBlocked ? (
-          <LandscapePrompt />
-        ) : (
-          <>
-            {!hasStarted && <SplashPage onEnter={() => setHasStarted(true)} />}
-            <AppContent />
-          </>
-        )}
-      </ChordProvider>
+      <LayoutTierProvider>
+        <ChordProvider>
+          {isBlocked ? (
+            <LandscapePrompt />
+          ) : (
+            <>
+              {!hasStarted && <SplashPage onEnter={() => setHasStarted(true)} />}
+              <AppContent />
+            </>
+          )}
+        </ChordProvider>
+      </LayoutTierProvider>
     </ErrorBoundary>
   );
 }

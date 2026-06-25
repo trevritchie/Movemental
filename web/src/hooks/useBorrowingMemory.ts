@@ -63,47 +63,53 @@ export function useBorrowingMemory({
     [chordBorrowingStates, borrowingMemory]
   );
 
-  const handleBorrowingStateChange = (newState: BorrowingState) => {
-    setBorrowingState(newState);
-    if (selectedChord) {
-      setChordBorrowingStates(prev => {
-        const currentChordState =
-          prev[selectedChord.name] || getInitialBorrowingState();
-        const updatedChordState = {
-          ...currentChordState,
-          borrowingDirections: { ...currentChordState.borrowingDirections },
-          circlePositions: { ...currentChordState.circlePositions },
-          noteStates: { ...currentChordState.noteStates },
-        };
+  const handleBorrowingStateChange = useCallback(
+    (newState: BorrowingState) => {
+      setBorrowingState(newState);
+      if (selectedChord) {
+        setChordBorrowingStates(prev => {
+          const currentChordState =
+            prev[selectedChord.name] || getInitialBorrowingState();
+          const updatedChordState = {
+            ...currentChordState,
+            borrowingDirections: { ...currentChordState.borrowingDirections },
+            circlePositions: { ...currentChordState.circlePositions },
+            noteStates: { ...currentChordState.noteStates },
+          };
 
-        if (borrowingMemory === 'per-chord') {
-          for (let line = 1; line <= BORROWING_LINE_COUNT; line++) {
-            updatedChordState.borrowingDirections[line] =
-              newState.borrowingDirections[line];
-            updatedChordState.circlePositions[line] =
-              newState.circlePositions[line];
-            updatedChordState.noteStates[line] = newState.noteStates[line];
+          if (borrowingMemory === 'per-chord') {
+            for (let line = 1; line <= BORROWING_LINE_COUNT; line++) {
+              updatedChordState.borrowingDirections[line] =
+                newState.borrowingDirections[line];
+              updatedChordState.circlePositions[line] =
+                newState.circlePositions[line];
+              updatedChordState.noteStates[line] = newState.noteStates[line];
+            }
           }
-        }
 
-        return {
+          return {
+            ...prev,
+            [selectedChord.name]: updatedChordState,
+          };
+        });
+        playAndDisplayChord(selectedChord, newState);
+      }
+    },
+    [selectedChord, borrowingMemory, playAndDisplayChord]
+  );
+
+  const setBorrowingMemory = useCallback(
+    (mode: 'global' | 'per-chord') => {
+      setBorrowingMemoryState(mode);
+      if (mode === 'per-chord' && selectedChord) {
+        setChordBorrowingStates(prev => ({
           ...prev,
-          [selectedChord.name]: updatedChordState,
-        };
-      });
-      playAndDisplayChord(selectedChord, newState);
-    }
-  };
-
-  const setBorrowingMemory = (mode: 'global' | 'per-chord') => {
-    setBorrowingMemoryState(mode);
-    if (mode === 'per-chord' && selectedChord) {
-      setChordBorrowingStates(prev => ({
-        ...prev,
-        [selectedChord.name]: { ...borrowingStateRef.current },
-      }));
-    }
-  };
+          [selectedChord.name]: { ...borrowingStateRef.current },
+        }));
+      }
+    },
+    [selectedChord]
+  );
 
   return {
     borrowingState,
