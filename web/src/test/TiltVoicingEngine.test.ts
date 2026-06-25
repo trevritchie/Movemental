@@ -7,6 +7,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   DEFAULT_TONAL_CENTER_OFFSET,
+  DEFAULT_OCTAVE_RANGE,
   MIN_OCTAVE_RANGE,
 } from '../music/config';
 import {
@@ -24,6 +25,7 @@ import {
   positionLabelIndexFromParallelSteps,
   MAX_TILT_PITCH_STEPS,
   FLAT_TILT,
+  DEFAULT_NO_TILT_VOICING_LEVEL,
 } from '../music/TiltVoicingEngine';
 
 // Branch at tonal center C: C E G A, root C, pre-voicing structure.
@@ -437,8 +439,8 @@ describe('computeTiltVoicing', () => {
       undefined,
       { anchor: 'pivot' }
     );
-    expect(voiced).toEqual(buildThinnedChain(0, 7, BRANCH_CYCLE, 60));
-    expect(Math.min(...voiced)).toBe(60);
+    expect(voiced).toEqual(buildThinnedChain(0, 7, BRANCH_CYCLE, 48));
+    expect(Math.min(...voiced)).toBe(48);
   });
 
   it('keeps the root pitch class at Double Octave with pivot anchor when pitch is flat', () => {
@@ -452,8 +454,23 @@ describe('computeTiltVoicing', () => {
       undefined,
       { anchor: 'pivot' }
     );
-    expect(pivot).toEqual(buildThinnedChain(0, 9, BRANCH_CYCLE, 60));
-    expect(Math.min(...contrary) % 12).toBe(Math.min(...pivot) % 12);
+    expect(pivot).toEqual(buildThinnedChain(0, 9, BRANCH_CYCLE, 48));
+    expect(Math.min(...pivot)).toBe(Math.min(...contrary));
+  });
+
+  it('places Branch root in Bb2 at default home octave with pivot anchor', () => {
+    const branchAtBb = [10, 14, 17, 19];
+    const tilt = tiltSampleFromLevels(DEFAULT_NO_TILT_VOICING_LEVEL, 0);
+    const voiced = computeTiltVoicing(
+      branchAtBb,
+      10,
+      tilt,
+      DEFAULT_OCTAVE_RANGE,
+      DEFAULT_TONAL_CENTER_OFFSET,
+      undefined,
+      { anchor: 'pivot' }
+    );
+    expect(Math.min(...voiced)).toBe(46);
   });
 });
 

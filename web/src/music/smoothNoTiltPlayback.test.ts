@@ -78,6 +78,7 @@ describe('smooth no-tilt playback behavior', () => {
     const resetBass = bassMidi(manager, 'Branch', resetBranchTilt);
     const staleBass = bassMidi(manager, 'Branch', staleBranchTilt);
     expect(resetBass).not.toBe(staleBass);
+    expect(resetBass).toBe(46);
     expect(resetBass % OCTAVE).toBe(TONAL_CENTER);
   });
 

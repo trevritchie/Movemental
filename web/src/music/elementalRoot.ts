@@ -81,7 +81,7 @@ export function withElementalRoot(chord: Chord, rootPitchClass: number): Chord {
 }
 
 /**
- * Home MIDI for a chord root relative to the tonal center and octave range.
+ * Home MIDI for a chord root relative to the tonal center and home octave.
  */
 export function computeChordHomeMidi(
   rootPitchClass: number,

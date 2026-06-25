@@ -72,7 +72,7 @@ describe('resolveSmoothParallelSteps', () => {
     );
 
     const cycle = buildToneCycle(pitchStructure, rootPitchClass);
-    const homeMidi =
+    const contraryHomeMidi =
       TONAL_CENTER_BB +
       OCTAVE * (OCTAVE_RANGE + 2) +
       ((rootPitchClass - TONAL_CENTER_BB + OCTAVE) % OCTAVE);
@@ -81,7 +81,7 @@ describe('resolveSmoothParallelSteps', () => {
       smoothParallel,
       width,
       cycle,
-      homeMidi
+      contraryHomeMidi - OCTAVE
     );
 
     expect(pitchClass(Math.min(...nextPitches))).toBe(TONAL_CENTER_BB);
@@ -155,16 +155,21 @@ describe('resolveSmoothParallelSteps', () => {
       TONAL_CENTER_BB +
       OCTAVE * (OCTAVE_RANGE + 2) +
       ((rootPitchClass - TONAL_CENTER_BB + OCTAVE) % OCTAVE);
-    const width = voicingWidthFromTilt(DOUBLE_OCTAVE_FLAT);
 
-    const pivotBottom = Math.min(
-      ...buildThinnedChain(pivotParallel, width, cycle, homeMidi)
+    const narrowTilt = tiltSampleFromLevels(5, 0);
+    const narrowWidth = voicingWidthFromTilt(narrowTilt);
+    const pivotNarrowBottom = Math.min(
+      ...buildThinnedChain(
+        pivotParallel,
+        narrowWidth,
+        cycle,
+        homeMidi - OCTAVE
+      )
     );
-    const contraryBottom = Math.min(
-      ...obliqueMotion(contraryParallel, width, cycle, homeMidi)
+    const contraryNarrowBottom = Math.min(
+      ...obliqueMotion(contraryParallel, narrowWidth, cycle, homeMidi)
     );
-
-    expect(contraryBottom).not.toBe(pivotBottom);
+    expect(contraryNarrowBottom).not.toBe(pivotNarrowBottom);
   });
 });
 

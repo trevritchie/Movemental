@@ -156,7 +156,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
               <label className="settings-menu-field">
                 <span className="settings-menu-field__label">
-                  Octave Range
+                  Home Octave
                 </span>
                 <select
                   value={octaveRange}

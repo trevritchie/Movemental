@@ -82,7 +82,7 @@ function writeSmoothestFlatTableArtifacts(
     join(docsDir, 'smoothest-flat-parallel-from-branch.txt'),
     [
       '# Generated: Smoothest parallel steps from flat double-octave Branch',
-      '# Tonal center: Bb (10), octave range: 2, contrary anchor',
+      '# Tonal center: Bb (10), home octave: 2, contrary anchor',
       '# Edit predeterminedVoiceLeading.ts CHORD_FLAT_PARALLEL to override Smooth defaults.',
       '',
       'export const CHORD_FLAT_PARALLEL = {',
@@ -128,7 +128,7 @@ function writeSmoothestFlatTableArtifacts(
       'flat double octave, then tap each chord. These values seed Smooth mode',
       'defaults in `predeterminedVoiceLeading.ts`.',
       '',
-      'Settings: tonal center Bb, octave range 2, contrary tilt anchor.',
+      'Settings: tonal center Bb, home octave 2, contrary tilt anchor.',
       '',
       'To change Smooth mode defaults, edit `CHORD_FLAT_PARALLEL` in',
       '`web/src/music/predeterminedVoiceLeading.ts`. Re-run the vitest',

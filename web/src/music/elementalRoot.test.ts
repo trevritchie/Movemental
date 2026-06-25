@@ -117,6 +117,42 @@ describe('elementalRoot', () => {
       );
       expect(fireThird).toEqual([69, 72]); // A4 C5, one semitone below Branch pivot
     });
+
+    it('places Fire root in the same register as Branch with pivot anchor', () => {
+      const branch = manager.getChordByName('Branch')!;
+      const fire = manager.getChordByName('Fire')!;
+      const branchRoot = branch.pitches[branch.rootPositionIndex] % 12;
+      const branchStructure = [...branch.pitches];
+      const resolved = resolveElementalPlayback(
+        fire,
+        10,
+        OCTAVE_RANGE,
+        branch
+      );
+
+      const branchDrop2 = computeTiltVoicing(
+        branchStructure,
+        branchRoot,
+        tiltSampleFromLevels(5, 0),
+        OCTAVE_RANGE,
+        10,
+        undefined,
+        { anchor: 'pivot' }
+      );
+      const fireDrop2 = computeTiltVoicing(
+        [...fire.pitches],
+        resolved.rootPitchClass,
+        tiltSampleFromLevels(5, 0),
+        OCTAVE_RANGE,
+        10,
+        resolved.homeMidi,
+        { anchor: 'pivot' }
+      );
+
+      expect(Math.min(...branchDrop2)).toBe(58);
+      expect(Math.min(...fireDrop2)).toBe(57);
+      expect(Math.min(...fireDrop2)).toBe(Math.min(...branchDrop2) - 1);
+    });
   });
 
   describe('works at other tonal centers', () => {

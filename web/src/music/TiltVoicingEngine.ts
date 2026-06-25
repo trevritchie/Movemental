@@ -342,7 +342,7 @@ export interface ComputeTiltVoicingOptions {
  *
  * pitchStructure: pre-voicing pitches from BorrowingLogic (4 slots, nulls
  * for voices toggled off). rootPitchClass: pitch class of the chord root.
- * octaveRange: the app's octave range setting, used to place the register.
+ * octaveRange: the app's home octave setting, used to place the register.
  * tonalCenter: selected root/key pitch class; anchors home register so
  * elemental chords stay in a continuous register when roots wrap mod 12.
  * homeMidiOverride: when set, uses this pivot instead of the default formula
@@ -360,19 +360,21 @@ export function computeTiltVoicing(
   const cycle = buildToneCycle(pitchStructure, rootPitchClass);
   if (cycle.length === 0) return [];
 
-  const homeMidi =
+  const contraryHomeMidi =
     homeMidiOverride ??
     (tonalCenter +
       OCTAVE * (octaveRange + 2) +
       ((rootPitchClass - tonalCenter + OCTAVE) % OCTAVE));
+  const anchor = options?.anchor ?? 'contrary';
+  const ladderBase =
+    anchor === 'pivot' ? contraryHomeMidi - OCTAVE : contraryHomeMidi;
 
   const { parallelSteps } = mapTiltToPositions(tilt);
   const maxPivot = cycle.length;
   const pivot = clamp(parallelSteps, -maxPivot, maxPivot);
   const width = voicingWidthFromTilt(tilt);
-  const anchor = options?.anchor ?? 'contrary';
   if (anchor === 'pivot') {
-    return buildThinnedChain(pivot, width, cycle, homeMidi);
+    return buildThinnedChain(pivot, width, cycle, ladderBase);
   }
-  return obliqueMotion(pivot, width, cycle, homeMidi);
+  return obliqueMotion(pivot, width, cycle, contraryHomeMidi);
 }

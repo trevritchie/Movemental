@@ -150,13 +150,15 @@ function buildCandidateVoicing(
   pivot: number,
   width: number,
   cycle: number[],
-  homeMidi: number,
+  contraryHomeMidi: number,
   anchor: TiltVoicingAnchor
 ): number[] {
+  const ladderBase =
+    anchor === 'pivot' ? contraryHomeMidi - OCTAVE : contraryHomeMidi;
   if (anchor === 'pivot') {
-    return buildThinnedChain(pivot, width, cycle, homeMidi);
+    return buildThinnedChain(pivot, width, cycle, ladderBase);
   }
-  return obliqueMotion(pivot, width, cycle, homeMidi);
+  return obliqueMotion(pivot, width, cycle, contraryHomeMidi);
 }
 
 interface PivotEvaluation {

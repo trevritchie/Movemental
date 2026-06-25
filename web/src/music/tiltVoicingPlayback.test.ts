@@ -41,7 +41,7 @@ describe('computeTiltVoicedPitches', () => {
       OCTAVE_RANGE,
       { anchor: 'pivot' }
     );
-    expect(Math.min(...pitches)).toBe(70);
+    expect(Math.min(...pitches)).toBe(58);
   });
 
   it('uses pre-resolved elemental metadata without a second resolve', () => {
