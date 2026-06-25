@@ -2,25 +2,28 @@
  * Bass degree labels for the IN THE BASS readout.
  *
  * Tilt mode: derive the label from the lowest *sounded* pitch (contrary anchor,
- * both roll and pitch axes). Static mode: position dropdown uses signed parallel
+ * both roll and pitch axes). No-tilt mode: position dropdown uses signed parallel
  * steps via getBassDegreeLabelForParallelSteps.
  */
 import type { Chord } from './ChordManager';
 import { borrowingLogic, type BorrowingState } from './BorrowingLogic';
 import type { PlayStyle, VoiceLeadingMode } from '../context/types';
-import { computeEffectiveParallelSteps } from './smoothVoiceLeading';
+import { isNoTiltPlayStyle } from '../context/types';
+import { resolveSmoothPlaybackTilt } from './predeterminedVoiceLeading';
+import { computeEffectiveParallelSteps } from './smoothestVoiceLeading';
 import {
   mapTiltToPositions,
+  NO_TILT_POSITION_LEVEL_COUNT,
   parallelLevelFromTilt,
-  parallelStepsFromStaticPositionLevel,
+  parallelStepsFromNoTiltPositionLevel,
   positionLabelIndexFromParallelSteps,
-  STATIC_POSITION_LEVEL_COUNT,
   tiltSampleFromLevels,
   tiltVoicingLevelName,
   type TiltSample,
   type TiltVoicingAnchor,
 } from './TiltVoicingEngine';
 import { getCachedTiltVoicedPitches } from './voicingCache';
+import { isElementalName } from './elementalRoot';
 
 export type VoiceLine = 1 | 2 | 3 | 4;
 
@@ -35,18 +38,33 @@ export interface TiltBassLabelContext {
   borrowingState: BorrowingState;
   previousChord?: Chord | null;
   voiceLeadingMode?: VoiceLeadingMode;
+  /** Smoothest only: parallel committed at last tap before live pitch delta. */
   smoothBaseParallel?: number;
+  /** Smoothest only: raw tilt at the last diagram tap. */
   lastTapTilt?: TiltSample;
   playStyle?: PlayStyle;
 }
 
 function resolveEffectiveTilt(
   tilt: TiltSample,
-  context?: TiltBassLabelContext
+  context?: TiltBassLabelContext,
+  chord?: Chord | null
 ): TiltSample {
+  if (!context) {
+    return tilt;
+  }
+
+  const mode = context.voiceLeadingMode ?? 'root_position';
+
+  if (mode === 'smooth' && chord) {
+    return resolveSmoothPlaybackTilt(chord.name, tilt);
+  }
+
+  if (mode !== 'smoothest') {
+    return tilt;
+  }
+
   if (
-    !context ||
-    context.voiceLeadingMode !== 'smooth' ||
     context.smoothBaseParallel === undefined ||
     !context.lastTapTilt
   ) {
@@ -63,7 +81,7 @@ function resolveEffectiveTilt(
 }
 
 function voicingAnchorForPlayStyle(playStyle?: PlayStyle): TiltVoicingAnchor {
-  if (playStyle === 'drone' || playStyle === 'click_and_hold') {
+  if (playStyle && isNoTiltPlayStyle(playStyle)) {
     return 'pivot';
   }
   return 'contrary';
@@ -111,18 +129,26 @@ export function formatBassDegreeLabel(degree: string): string {
   return degree;
 }
 
-/** Prefix ↑ or ↓ when parallel position is above or below 1st. */
+/**
+ * Prefix ↑ or ↓ from phone pitch (positive = chest-ward, negative = away).
+ * Static position dropdown passes ladder steps; tilt readout passes pitch axis only.
+ */
 export function formatBassDegreeWithDirection(
   degree: string,
-  parallelSteps: number
+  arrowSteps: number
 ): string {
-  if (parallelSteps > 0) {
+  if (arrowSteps > 0) {
     return `\u2191 ${degree}`;
   }
-  if (parallelSteps < 0) {
+  if (arrowSteps < 0) {
     return `\u2193 ${degree}`;
   }
   return degree;
+}
+
+/** Signed pitch-axis steps from live tilt (roll ignored). Drives ↑/↓ in tilt mode. */
+export function pitchAxisArrowSteps(tilt: TiltSample): number {
+  return parallelLevelFromTilt(tilt);
 }
 
 export function voiceLineForParallelSteps(parallelSteps: number): VoiceLine {
@@ -192,7 +218,10 @@ export function resolveTiltBassVoiceLine(
     return null;
   }
 
-  const effectiveTilt = resolveEffectiveTilt(tilt, context);
+  const effectiveTilt = resolveEffectiveTilt(tilt, context, chord);
+  const mode = context.voiceLeadingMode ?? 'smooth';
+  const deterministicElemental =
+    mode === 'smooth' && isElementalName(chord.name);
   const voiced = getCachedTiltVoicedPitches(
     chord,
     context.borrowingState,
@@ -203,8 +232,13 @@ export function resolveTiltBassVoiceLine(
       anchor: voicingAnchorForPlayStyle(context.playStyle),
       previousChord: context.previousChord,
       voiceLeadingMode: context.voiceLeadingMode,
-      smoothBaseParallel: context.smoothBaseParallel,
-      lastTapTilt: context.lastTapTilt,
+      deterministicElemental,
+      ...(mode === 'smoothest'
+        ? {
+            smoothBaseParallel: context.smoothBaseParallel,
+            lastTapTilt: context.lastTapTilt,
+          }
+        : {}),
     }
   );
   const structure = borrowingLogic.prepareVoicingInput(
@@ -215,15 +249,13 @@ export function resolveTiltBassVoiceLine(
   return line ?? pitchOnlyVoiceLine(effectiveTilt);
 }
 
-/** Live tilt parallel position for the IN THE BASS pill (pitch axis). */
+/** @deprecated Use tiltBassDegreeLabel (roll-aware degree, pitch-only arrows). */
 export function tiltBassPositionLabel(
   tilt: TiltSample,
   chord: Chord | null,
   context?: TiltBassLabelContext
 ): string {
-  const effectiveTilt = resolveEffectiveTilt(tilt, context);
-  const parallelSteps = parallelLevelFromTilt(effectiveTilt);
-  return getBassDegreeLabelForParallelSteps(parallelSteps, chord);
+  return tiltBassDegreeLabel(tilt, chord, context);
 }
 
 /** Voicing width committed at the last diagram tap. */
@@ -259,22 +291,21 @@ export function tiltBassDegreeLabel(
   chord: Chord | null,
   context?: TiltBassLabelContext
 ): string {
-  const effectiveTilt = resolveEffectiveTilt(tilt, context);
-  const parallelSteps = parallelLevelFromTilt(effectiveTilt);
+  const effectiveTilt = resolveEffectiveTilt(tilt, context, chord);
   const voiceLine: VoiceLine =
     context && chord
       ? resolveTiltBassVoiceLine(tilt, chord, context) ??
         pitchOnlyVoiceLine(effectiveTilt)
       : pitchOnlyVoiceLine(effectiveTilt);
   const degree = formatBassDegreeLabel(getVoiceDegreeLabel(voiceLine, chord));
-  return formatBassDegreeWithDirection(degree, parallelSteps);
+  return formatBassDegreeWithDirection(degree, pitchAxisArrowSteps(tilt));
 }
 
-/** All bass degree labels for static position selects (-4..+4 parallel steps). */
+/** All bass degree labels for no-tilt position selects (-4..+4 parallel steps). */
 export function bassDegreeLabelsForSelect(chord: Chord | null): string[] {
-  return Array.from({ length: STATIC_POSITION_LEVEL_COUNT }, (_, idx) =>
+  return Array.from({ length: NO_TILT_POSITION_LEVEL_COUNT }, (_, idx) =>
     getBassDegreeLabelForParallelSteps(
-      parallelStepsFromStaticPositionLevel(idx),
+      parallelStepsFromNoTiltPositionLevel(idx),
       chord
     )
   );

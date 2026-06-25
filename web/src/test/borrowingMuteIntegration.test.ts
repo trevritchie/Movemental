@@ -7,7 +7,7 @@ import {
 import type { Chord } from '../music/ChordManager';
 import {
   tiltSampleFromLevels,
-  DEFAULT_STATIC_VOICING_LEVEL,
+  DEFAULT_NO_TILT_VOICING_LEVEL,
   type TiltSample,
 } from '../music/TiltVoicingEngine';
 import {
@@ -25,7 +25,7 @@ const SECOND_POSITION_CLOSE = tiltSampleFromLevels(3, 1);
 
 /** Default drone voicing at 2nd Position. */
 const DRONE_SECOND_POSITION = tiltSampleFromLevels(
-  DEFAULT_STATIC_VOICING_LEVEL,
+  DEFAULT_NO_TILT_VOICING_LEVEL,
   1
 );
 

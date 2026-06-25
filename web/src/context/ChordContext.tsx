@@ -24,8 +24,8 @@ import {
   DEFAULT_VOICE_LEADING_MODE,
 } from '../music/config';
 import {
-  DEFAULT_STATIC_POSITION_LEVEL,
-  DEFAULT_STATIC_VOICING_LEVEL,
+  DEFAULT_NO_TILT_POSITION_LEVEL,
+  DEFAULT_NO_TILT_VOICING_LEVEL,
   type TiltSample,
 } from '../music/TiltVoicingEngine';
 import { useAudioSettings } from '../hooks/useAudioSettings';
@@ -39,10 +39,10 @@ export type { PlayStyle, VoiceLeadingMode } from './types';
 interface ChordContextType {
   tonalCenter: number;
   setTonalCenter: (val: number) => void;
-  staticVoicingLevel: number;
-  setStaticVoicingLevel: (val: number) => void;
-  staticPositionLevel: number;
-  setStaticPositionLevel: (val: number) => void;
+  noTiltVoicingLevel: number;
+  setNoTiltVoicingLevel: (val: number) => void;
+  noTiltPositionLevel: number;
+  setNoTiltPositionLevel: (val: number) => void;
   octaveRange: number;
   setOctaveRange: (val: number) => void;
   selectedChord: Chord | null;
@@ -107,11 +107,11 @@ interface ChordProviderProps {
 
 export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
   const [tonalCenter, setTonalCenter] = useState(DEFAULT_TONAL_CENTER_OFFSET);
-  const [staticVoicingLevel, setStaticVoicingLevel] = useState(
-    DEFAULT_STATIC_VOICING_LEVEL
+  const [noTiltVoicingLevel, setNoTiltVoicingLevel] = useState(
+    DEFAULT_NO_TILT_VOICING_LEVEL
   );
-  const [staticPositionLevel, setStaticPositionLevel] = useState(
-    DEFAULT_STATIC_POSITION_LEVEL
+  const [noTiltPositionLevel, setNoTiltPositionLevel] = useState(
+    DEFAULT_NO_TILT_POSITION_LEVEL
   );
   const [octaveRange, setOctaveRange] = useState(DEFAULT_OCTAVE_RANGE);
   const [selectedChord, setSelectedChord] = useState<Chord | null>(null);
@@ -136,16 +136,16 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
 
   const deviceTilt = useDeviceTilt();
 
-  const staticVoicingLevelRef = useRef(staticVoicingLevel);
-  const staticPositionLevelRef = useRef(staticPositionLevel);
+  const noTiltVoicingLevelRef = useRef(noTiltVoicingLevel);
+  const noTiltPositionLevelRef = useRef(noTiltPositionLevel);
   const tonalCenterRef = useRef(tonalCenter);
   const voiceLeadingModeRef = useRef(voiceLeadingMode);
   useEffect(() => {
-    staticVoicingLevelRef.current = staticVoicingLevel;
-  }, [staticVoicingLevel]);
+    noTiltVoicingLevelRef.current = noTiltVoicingLevel;
+  }, [noTiltVoicingLevel]);
   useEffect(() => {
-    staticPositionLevelRef.current = staticPositionLevel;
-  }, [staticPositionLevel]);
+    noTiltPositionLevelRef.current = noTiltPositionLevel;
+  }, [noTiltPositionLevel]);
   useEffect(() => {
     tonalCenterRef.current = tonalCenter;
   }, [tonalCenter]);
@@ -159,11 +159,11 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
     setBorrowingState: borrowing.setBorrowingState,
     setSelectedChord,
     rawTiltRef: deviceTilt.rawTiltRef,
-    staticVoicingLevelRef,
-    staticPositionLevelRef,
+    noTiltVoicingLevelRef,
+    noTiltPositionLevelRef,
     tonalCenterRef,
     voiceLeadingModeRef,
-    setStaticPositionLevel,
+    setNoTiltPositionLevel,
   });
 
   useEffect(() => {
@@ -203,7 +203,7 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
   }, [tonalCenter, octaveRange]);
 
   /**
-   * Re-voice the selected chord when global register or static voicing
+   * Re-voice the selected chord when global register or no-tilt voicing
    * controls change. Skips redundant audio when pitches are unchanged
    * (playAndDisplayChord -> skipIfUnchanged). Does not run on every tilt
    * tick; tilt voicing is sampled at tap time only.
@@ -225,8 +225,8 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
   }, [
     tonalCenter,
     octaveRange,
-    staticVoicingLevel,
-    staticPositionLevel,
+    noTiltVoicingLevel,
+    noTiltPositionLevel,
     voiceLeadingMode,
     getBorrowingStateForChord,
     borrowingStateRef,
@@ -238,10 +238,10 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
     () => ({
       tonalCenter,
       setTonalCenter,
-      staticVoicingLevel,
-      setStaticVoicingLevel,
-      staticPositionLevel,
-      setStaticPositionLevel,
+      noTiltVoicingLevel,
+      setNoTiltVoicingLevel,
+      noTiltPositionLevel,
+      setNoTiltPositionLevel,
       octaveRange,
       setOctaveRange,
       selectedChord,
@@ -291,8 +291,8 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
     }),
     [
       tonalCenter,
-      staticVoicingLevel,
-      staticPositionLevel,
+      noTiltVoicingLevel,
+      noTiltPositionLevel,
       octaveRange,
       selectedChord,
       borrowing.borrowingState,

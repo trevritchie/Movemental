@@ -575,6 +575,19 @@ body.scroll-locked {
   font-size: 0.78rem;
 }
 
+.voice-leading-toggle {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.voice-leading-mode-desc {
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  line-height: 1.45;
+  margin: 0;
+}
+
 .settings-menu-fields {
   display: flex;
   flex-direction: column;

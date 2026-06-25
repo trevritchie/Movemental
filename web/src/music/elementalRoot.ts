@@ -166,3 +166,20 @@ export function resolveElementalPlayback(
     homeMidi,
   };
 }
+
+/**
+ * Smooth mode elemental resolution: default diminished root and register at
+ * the current tonal center, with no navigation history. Matches
+ * CHORD_FLAT_PARALLEL table generation from flat double-octave Branch.
+ */
+export function resolveDeterministicElementalPlayback(
+  chord: Chord,
+  tonalCenter: number,
+  octaveRange: number
+): {
+  chord: Chord;
+  rootPitchClass: number;
+  homeMidi: number;
+} {
+  return resolveElementalPlayback(chord, tonalCenter, octaveRange, null);
+}

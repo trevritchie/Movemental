@@ -7,7 +7,7 @@ import {
 } from '../music/TiltVoicingEngine';
 import {
   bassDegreeLabelsForSelect,
-  tiltBassPositionLabel,
+  tiltBassDegreeLabel,
   TILT_BASS_DEGREE_MOBILE_MAX_LABEL,
 } from '../music/voiceDegreeLabel';
 import { useChordContext } from '../context/ChordContext';
@@ -52,10 +52,10 @@ export const DiagramVoicingOverlay: React.FC = () => {
 
   const {
     playStyle,
-    staticVoicingLevel,
-    setStaticVoicingLevel,
-    staticPositionLevel,
-    setStaticPositionLevel,
+    noTiltVoicingLevel,
+    setNoTiltVoicingLevel,
+    noTiltPositionLevel,
+    setNoTiltPositionLevel,
     selectedChord,
     tonalCenter,
     octaveRange,
@@ -83,9 +83,10 @@ export const DiagramVoicingOverlay: React.FC = () => {
       borrowingState,
       previousChord: previousPlayedChord,
       voiceLeadingMode,
-      smoothBaseParallel,
-      lastTapTilt,
       playStyle,
+      ...(voiceLeadingMode === 'smoothest'
+        ? { smoothBaseParallel, lastTapTilt }
+        : {}),
     }),
     [
       tonalCenter,
@@ -93,9 +94,9 @@ export const DiagramVoicingOverlay: React.FC = () => {
       borrowingState,
       previousPlayedChord,
       voiceLeadingMode,
+      playStyle,
       smoothBaseParallel,
       lastTapTilt,
-      playStyle,
     ]
   );
 
@@ -104,8 +105,8 @@ export const DiagramVoicingOverlay: React.FC = () => {
       return (
         <select
           className="diagram-overlay-select"
-          value={staticVoicingLevel}
-          onChange={(e) => setStaticVoicingLevel(Number(e.target.value))}
+          value={noTiltVoicingLevel}
+          onChange={(e) => setNoTiltVoicingLevel(Number(e.target.value))}
           title="Voicing"
           aria-label="Voicing"
         >
@@ -172,8 +173,8 @@ export const DiagramVoicingOverlay: React.FC = () => {
       return (
         <select
           className="diagram-overlay-select"
-          value={staticPositionLevel}
-          onChange={(e) => setStaticPositionLevel(Number(e.target.value))}
+          value={noTiltPositionLevel}
+          onChange={(e) => setNoTiltPositionLevel(Number(e.target.value))}
           title="In the bass"
           aria-label="In the bass"
         >
@@ -195,7 +196,7 @@ export const DiagramVoicingOverlay: React.FC = () => {
           className="diagram-overlay-readout"
           title="Pitch tilt sets which chord tone is in the bass"
         >
-          {tiltBassPositionLabel(tiltSample, selectedChord, tiltBassContext)}
+          {tiltBassDegreeLabel(tiltSample, selectedChord, tiltBassContext)}
         </span>
       </TiltReadoutStack>
     );

@@ -6,6 +6,7 @@
  * commit because previousPlayedChord affects elemental resolution.
  */
 import type { VoiceLeadingMode } from '../context/types';
+import { isElementalName } from './elementalRoot';
 import type { BorrowingState } from './BorrowingLogic';
 import type { Chord } from './ChordManager';
 import {
@@ -42,7 +43,8 @@ function cacheKey(
   previousChordName: string | null,
   voiceLeadingMode: VoiceLeadingMode | undefined,
   smoothBaseParallel: number | undefined,
-  lastTapTilt: TiltSample | undefined
+  lastTapTilt: TiltSample | undefined,
+  deterministicElemental: boolean
 ): string {
   const { inputSteps, parallelSteps } = mapTiltToPositions(tilt);
   const lastTapParallel =
@@ -56,10 +58,11 @@ function cacheKey(
     tonalCenter,
     octaveRange,
     anchor,
-    previousChordName ?? '',
+    deterministicElemental ? '' : (previousChordName ?? ''),
     voiceLeadingMode ?? '',
     smoothBaseParallel ?? '',
     lastTapParallel,
+    deterministicElemental ? 'detElem' : '',
   ].join('|');
 }
 
@@ -83,9 +86,13 @@ export function getCachedTiltVoicedPitches(
     voiceLeadingMode?: VoiceLeadingMode;
     smoothBaseParallel?: number;
     lastTapTilt?: TiltSample;
+    deterministicElemental?: boolean;
   } = {}
 ): number[] {
   const anchor = options.anchor ?? 'contrary';
+  const deterministicElemental =
+    options.deterministicElemental ??
+    (options.voiceLeadingMode === 'smooth' && isElementalName(chord.name));
   const key = cacheKey(
     chord,
     borrowingState,
@@ -96,7 +103,8 @@ export function getCachedTiltVoicedPitches(
     options.previousChord?.name ?? null,
     options.voiceLeadingMode,
     options.smoothBaseParallel,
-    options.lastTapTilt
+    options.lastTapTilt,
+    deterministicElemental
   );
   if (key === lastKey) {
     return lastPitches;
@@ -107,7 +115,7 @@ export function getCachedTiltVoicedPitches(
     tilt,
     tonalCenter,
     octaveRange,
-    options
+    { ...options, deterministicElemental }
   );
   lastKey = key;
   return lastPitches;
