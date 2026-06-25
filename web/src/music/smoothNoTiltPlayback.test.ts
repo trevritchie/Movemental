@@ -13,6 +13,12 @@ import {
   tiltSampleFromLevels,
 } from './TiltVoicingEngine';
 import { computeNeutralTiltVoicing } from './tiltVoicingPlayback';
+import {
+  applyNoTiltLocksForChord,
+  createEmptyNoTiltChordLockMaps,
+  lockNoTiltBass,
+  lockNoTiltVoicing,
+} from './noTiltChordLocks';
 
 const TONAL_CENTER = 10;
 const OCTAVE_RANGE = 2;
@@ -109,5 +115,81 @@ describe('smooth no-tilt playback behavior', () => {
 
     expect(bassAfter).toBe(bassBefore);
     expect(bassAfter % OCTAVE).toBe(TONAL_CENTER);
+  });
+
+  it('keeps locked bass when returning to Branch in smooth mode', () => {
+    const fifthPosition = noTiltPositionLevelFromParallelSteps(-2);
+    const maps = lockNoTiltBass(
+      createEmptyNoTiltChordLockMaps(),
+      'Branch',
+      fifthPosition
+    );
+    const voicingRef = { current: DEFAULT_NO_TILT_VOICING_LEVEL };
+    const positionRef = {
+      current: noTiltPositionLevelFromParallelSteps(0),
+    };
+
+    applyNoTiltLocksForChord(maps, 'Branch', {
+      noTiltVoicingLevelRef: voicingRef,
+      noTiltPositionLevelRef: positionRef,
+      setNoTiltVoicingLevel: (level) => {
+        voicingRef.current = level;
+      },
+      setNoTiltPositionLevel: (level) => {
+        positionRef.current = level;
+      },
+    });
+
+    const lockedTilt = tiltFromNoTiltLevels(
+      voicingRef.current,
+      positionRef.current
+    );
+    const smoothResetTilt = resolveSmoothNoTiltPlaybackTilt(
+      'Branch',
+      DEFAULT_NO_TILT_VOICING_LEVEL
+    );
+
+    expect(parallelLevelFromTilt(smoothResetTilt)).toBe(0);
+    expect(parallelLevelFromTilt(lockedTilt)).toBe(-2);
+
+    const lockedBass = bassMidi(manager, 'Branch', lockedTilt);
+    const resetBass = bassMidi(manager, 'Branch', smoothResetTilt);
+    expect(lockedBass).not.toBe(resetBass);
+    expect(lockedBass % OCTAVE).not.toBe(TONAL_CENTER);
+  });
+
+  it('keeps locked voicing when returning to Branch after visiting Flame', () => {
+    const closeVoicing = 3;
+    const maps = lockNoTiltVoicing(
+      createEmptyNoTiltChordLockMaps(),
+      'Branch',
+      closeVoicing
+    );
+    const voicingRef = { current: 8 };
+    const positionRef = {
+      current: noTiltPositionLevelFromParallelSteps(0),
+    };
+
+    applyNoTiltLocksForChord(maps, 'Branch', {
+      noTiltVoicingLevelRef: voicingRef,
+      noTiltPositionLevelRef: positionRef,
+      setNoTiltVoicingLevel: (level) => {
+        voicingRef.current = level;
+      },
+      setNoTiltPositionLevel: (level) => {
+        positionRef.current = level;
+      },
+    });
+
+    const flameTilt = tiltFromNoTiltLevels(8, positionRef.current);
+    const branchLockedTilt = tiltFromNoTiltLevels(
+      voicingRef.current,
+      positionRef.current
+    );
+
+    const flameBass = bassMidi(manager, 'Flame', flameTilt);
+    const branchBass = bassMidi(manager, 'Branch', branchLockedTilt);
+    expect(voicingRef.current).toBe(closeVoicing);
+    expect(branchBass).not.toBe(flameBass);
   });
 });

@@ -3,12 +3,17 @@ import { ChordManager, type Chord } from './ChordManager';
 import { getInitialBorrowingState } from './BorrowingLogic';
 import {
   resolveDeterministicElementalPlayback,
-  resolveElementalPlayback,
+  resolveElementalForNavigation,
+  previousBassMidi,
 } from './elementalRoot';
 import { resolveSmoothPlaybackTilt } from './predeterminedVoiceLeading';
-import { tiltSampleFromLevels } from './TiltVoicingEngine';
+import {
+  parallelLevelFromTilt,
+  tiltSampleFromLevels,
+} from './TiltVoicingEngine';
 import { computeTiltVoicedPitches } from './tiltVoicingPlayback';
 import {
+  bassDegreeLabelFromVoiced,
   getVoiceDegreeLabel,
   resolveTiltBassVoiceLine,
   tiltBassDegreeLabel,
@@ -41,34 +46,55 @@ function bassDegreeAtFlat(chordName: string, manager: ChordManager): string {
   return getVoiceDegreeLabel(line ?? 1, chord);
 }
 
-function smoothElementalPitches(
+function navigationElementalPitches(
   manager: ChordManager,
   elementName: string,
-  previousChord: Chord | null | undefined,
+  previousChord: Chord,
+  previousVoicing: number[],
   tilt = DOUBLE_OCTAVE_FLAT
 ): number[] {
   const dict = manager.getChordByName(elementName)!;
-  const resolved = resolveDeterministicElementalPlayback(
+  const playbackTilt = resolveSmoothPlaybackTilt(elementName, tilt);
+  const resolved = resolveElementalForNavigation(
     dict,
     TONAL_CENTER,
-    OCTAVE_RANGE
+    OCTAVE_RANGE,
+    previousChord,
+    previousBassMidi(previousVoicing),
+    playbackTilt,
+    'contrary'
   );
   return computeTiltVoicedPitches(
     resolved.chord,
     getInitialBorrowingState(),
-    resolveSmoothPlaybackTilt(elementName, tilt),
+    playbackTilt,
     TONAL_CENTER,
     OCTAVE_RANGE,
     {
       anchor: 'contrary',
-      previousChord: previousChord,
-      deterministicElemental: true,
       elemental: {
         rootPitchClass: resolved.rootPitchClass,
         homeMidi: resolved.homeMidi,
       },
     }
   );
+}
+
+function voicedPreviousChord(
+  manager: ChordManager,
+  chordName: string,
+  tilt = DOUBLE_OCTAVE_FLAT
+): { chord: Chord; voicing: number[] } {
+  const chord = manager.getChordByName(chordName)!;
+  const voicing = computeTiltVoicedPitches(
+    chord,
+    getInitialBorrowingState(),
+    tilt,
+    TONAL_CENTER,
+    OCTAVE_RANGE,
+    { anchor: 'contrary' }
+  );
+  return { chord, voicing };
 }
 
 describe('resolveDeterministicElementalPlayback', () => {
@@ -79,30 +105,124 @@ describe('resolveDeterministicElementalPlayback', () => {
     manager.setTonalCenterOffset(TONAL_CENTER);
   });
 
-  it('matches resolveElementalPlayback with no previous chord', () => {
+  it('matches default elemental playback', () => {
     const fire = manager.getChordByName('Fire')!;
     expect(resolveDeterministicElementalPlayback(fire, TONAL_CENTER, OCTAVE_RANGE)).toEqual(
-      resolveElementalPlayback(fire, TONAL_CENTER, OCTAVE_RANGE, null)
+      resolveDeterministicElementalPlayback(fire, TONAL_CENTER, OCTAVE_RANGE)
+    );
+  });
+});
+
+describe('opposite-element navigation (all modes)', () => {
+  let manager: ChordManager;
+
+  beforeEach(() => {
+    manager = new ChordManager();
+    manager.setTonalCenterOffset(TONAL_CENTER);
+  });
+
+  it('Fire after Twin Branch differs from Fire after Branch at flat double octave', () => {
+    const { chord: branch, voicing: branchVoicing } = voicedPreviousChord(
+      manager,
+      'Branch'
+    );
+    const { chord: twinBranch, voicing: twinVoicing } = voicedPreviousChord(
+      manager,
+      'Twin Branch'
+    );
+    const afterBranch = navigationElementalPitches(
+      manager,
+      'Fire',
+      branch,
+      branchVoicing
+    );
+    const afterTwin = navigationElementalPitches(
+      manager,
+      'Fire',
+      twinBranch,
+      twinVoicing
+    );
+    expect(afterTwin).not.toEqual(afterBranch);
+    expect(afterBranch.length).toBeGreaterThan(0);
+    expect(afterTwin.length).toBeGreaterThan(0);
+  });
+
+  it('Glass -> Wind picks diminished root below Glass bass', () => {
+    const glassTilt = resolveSmoothPlaybackTilt('Glass', DOUBLE_OCTAVE_FLAT);
+    const { chord: glass, voicing } = voicedPreviousChord(
+      manager,
+      'Glass',
+      glassTilt
+    );
+    const windTilt = tiltSampleFromLevels(8, parallelLevelFromTilt(glassTilt));
+    const resolved = resolveElementalForNavigation(
+      manager.getChordByName('Wind')!,
+      TONAL_CENTER,
+      OCTAVE_RANGE,
+      glass,
+      previousBassMidi(voicing),
+      windTilt,
+      'contrary'
+    );
+    const windPitches = computeTiltVoicedPitches(
+      resolved.chord,
+      getInitialBorrowingState(),
+      windTilt,
+      TONAL_CENTER,
+      OCTAVE_RANGE,
+      {
+        anchor: 'contrary',
+        elemental: {
+          rootPitchClass: resolved.rootPitchClass,
+          homeMidi: resolved.homeMidi,
+        },
+      }
+    );
+    expect(resolved.chord.traditionalName).toBe('D diminished');
+    expect(bassDegreeLabelFromVoiced(resolved.chord, windPitches, getInitialBorrowingState())).toBe(
+      '5th'
     );
   });
 
-  it('differs from contextual resolution after Twin Branch', () => {
-    const twinBranch = manager.getChordByName('Twin Branch')!;
-    const fire = manager.getChordByName('Fire')!;
-    const deterministic = resolveDeterministicElementalPlayback(
-      fire,
-      TONAL_CENTER,
-      OCTAVE_RANGE
+  it('Fire pitched up keeps bass one or two semitones below Twin Branch', () => {
+    const { chord: twinBranch, voicing } = voicedPreviousChord(
+      manager,
+      'Twin Branch'
     );
-    const contextual = resolveElementalPlayback(
-      fire,
+    const pitched = resolveSmoothPlaybackTilt('Fire', PITCH_UP_ONE);
+    const resolved = resolveElementalForNavigation(
+      manager.getChordByName('Fire')!,
       TONAL_CENTER,
       OCTAVE_RANGE,
-      twinBranch
+      twinBranch,
+      previousBassMidi(voicing),
+      pitched,
+      'contrary'
     );
-    expect(deterministic.rootPitchClass).not.toBe(contextual.rootPitchClass);
-    expect(deterministic.chord.traditionalName).toBe('A diminished');
-    expect(contextual.chord.traditionalName).toBe('Eb diminished');
+    const pitches = computeTiltVoicedPitches(
+      resolved.chord,
+      getInitialBorrowingState(),
+      pitched,
+      TONAL_CENTER,
+      OCTAVE_RANGE,
+      {
+        anchor: 'contrary',
+        elemental: {
+          rootPitchClass: resolved.rootPitchClass,
+          homeMidi: resolved.homeMidi,
+        },
+      }
+    );
+    const delta = previousBassMidi(voicing)! - Math.min(...pitches);
+    expect(delta).toBeGreaterThanOrEqual(1);
+    expect(delta).toBeLessThanOrEqual(2);
+    expect(resolved.rootPitchClass).not.toBe(
+      resolveDeterministicElementalPlayback(
+        manager.getChordByName('Fire')!,
+        TONAL_CENTER,
+        OCTAVE_RANGE
+      ).rootPitchClass
+    );
   });
 });
 
@@ -112,58 +232,6 @@ describe('smooth mode elemental determinism', () => {
   beforeEach(() => {
     manager = new ChordManager();
     manager.setTonalCenterOffset(TONAL_CENTER);
-  });
-
-  it('Fire after Twin Branch matches Fire after Branch at flat double octave', () => {
-    const branch = manager.getChordByName('Branch')!;
-    const twinBranch = manager.getChordByName('Twin Branch')!;
-    const afterBranch = smoothElementalPitches(manager, 'Fire', branch);
-    const afterTwin = smoothElementalPitches(manager, 'Fire', twinBranch);
-    expect(afterTwin).toEqual(afterBranch);
-    expect(afterBranch.length).toBeGreaterThan(0);
-  });
-
-  it('Fire pitched up matches regardless of previous chord', () => {
-    const branch = manager.getChordByName('Branch')!;
-    const twinBranch = manager.getChordByName('Twin Branch')!;
-    const pitched = resolveSmoothPlaybackTilt('Fire', PITCH_UP_ONE);
-    const dict = manager.getChordByName('Fire')!;
-    const resolved = resolveDeterministicElementalPlayback(
-      dict,
-      TONAL_CENTER,
-      OCTAVE_RANGE
-    );
-    const elementalMeta = {
-      rootPitchClass: resolved.rootPitchClass,
-      homeMidi: resolved.homeMidi,
-    };
-    const afterBranch = computeTiltVoicedPitches(
-      resolved.chord,
-      getInitialBorrowingState(),
-      pitched,
-      TONAL_CENTER,
-      OCTAVE_RANGE,
-      {
-        anchor: 'contrary',
-        previousChord: branch,
-        deterministicElemental: true,
-        elemental: elementalMeta,
-      }
-    );
-    const afterTwin = computeTiltVoicedPitches(
-      resolved.chord,
-      getInitialBorrowingState(),
-      pitched,
-      TONAL_CENTER,
-      OCTAVE_RANGE,
-      {
-        anchor: 'contrary',
-        previousChord: twinBranch,
-        deterministicElemental: true,
-        elemental: elementalMeta,
-      }
-    );
-    expect(afterTwin).toEqual(afterBranch);
   });
 
   it('flat double octave bass degrees match CHORD_FLAT_PARALLEL table', () => {
@@ -180,7 +248,7 @@ describe('smooth mode elemental determinism', () => {
   });
 });
 
-describe('root position elemental regression', () => {
+describe('default elemental without opposite navigation', () => {
   let manager: ChordManager;
 
   beforeEach(() => {
@@ -188,34 +256,18 @@ describe('root position elemental regression', () => {
     manager.setTonalCenterOffset(TONAL_CENTER);
   });
 
-  it('contextual Fire still differs after Twin Branch without deterministic flag', () => {
-    const twinBranch = manager.getChordByName('Twin Branch')!;
-    const fireDict = manager.getChordByName('Fire')!;
-    const resolvedFire = resolveElementalPlayback(
-      fireDict,
+  it('Branch -> Wind keeps default D diminished at flat', () => {
+    const { chord: branch, voicing } = voicedPreviousChord(manager, 'Branch');
+    const windTilt = resolveSmoothPlaybackTilt('Wind', DOUBLE_OCTAVE_FLAT);
+    const resolved = resolveElementalForNavigation(
+      manager.getChordByName('Wind')!,
       TONAL_CENTER,
       OCTAVE_RANGE,
-      twinBranch
-    ).chord;
-
-    const afterTwin = computeTiltVoicedPitches(
-      resolvedFire,
-      getInitialBorrowingState(),
-      { x: -1, y: 0 },
-      TONAL_CENTER,
-      OCTAVE_RANGE,
-      { anchor: 'contrary', previousChord: twinBranch }
+      branch,
+      previousBassMidi(voicing),
+      windTilt,
+      'contrary'
     );
-
-    const afterDictFire = computeTiltVoicedPitches(
-      resolvedFire,
-      getInitialBorrowingState(),
-      { x: -1, y: 0 },
-      TONAL_CENTER,
-      OCTAVE_RANGE,
-      { anchor: 'contrary', previousChord: fireDict }
-    );
-
-    expect(afterTwin[0]).not.toBe(afterDictFire[0]);
+    expect(resolved.chord.traditionalName).toBe('D diminished');
   });
 });

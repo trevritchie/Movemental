@@ -23,6 +23,10 @@ vi.mock('../context/ChordContext', () => ({
     tiltStatus: 'unsupported',
     tiltSample: { roll: 0, pitch: 0 },
     requestTiltPermission: vi.fn(),
+    isNoTiltVoicingLocked: false,
+    isNoTiltBassLocked: false,
+    toggleNoTiltVoicingLock: vi.fn(),
+    toggleNoTiltBassLock: vi.fn(),
   }),
 }));
 

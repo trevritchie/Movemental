@@ -6,7 +6,7 @@
  * steps via getBassDegreeLabelForParallelSteps.
  */
 import type { Chord } from './ChordManager';
-import { borrowingLogic, type BorrowingState } from './BorrowingLogic';
+import { borrowingLogic, getInitialBorrowingState, type BorrowingState } from './BorrowingLogic';
 import type { PlayStyle, VoiceLeadingMode } from '../context/types';
 import { isNoTiltPlayStyle } from '../context/types';
 import { resolveSmoothPlaybackTilt } from './predeterminedVoiceLeading';
@@ -23,7 +23,12 @@ import {
   type TiltVoicingAnchor,
 } from './TiltVoicingEngine';
 import { getCachedTiltVoicedPitches } from './voicingCache';
-import { isElementalName } from './elementalRoot';
+import {
+  isElementalName,
+  isOppositeElementNavigation,
+} from './elementalRoot';
+import type { ElementalPlaybackResolution } from './tiltVoicingPlayback';
+import { spellChordDegrees } from './chordSpelling';
 
 export type VoiceLine = 1 | 2 | 3 | 4;
 
@@ -43,6 +48,10 @@ export interface TiltBassLabelContext {
   /** Smoothest only: raw tilt at the last diagram tap. */
   lastTapTilt?: TiltSample;
   playStyle?: PlayStyle;
+  /** Resolved elemental root/register from playback (opposite-element navigation). */
+  elemental?: ElementalPlaybackResolution;
+  /** When set, derive the bass degree from these sounded pitches (matches readout). */
+  activePitches?: number[];
 }
 
 function resolveEffectiveTilt(
@@ -57,6 +66,16 @@ function resolveEffectiveTilt(
   const mode = context.voiceLeadingMode ?? 'root_position';
 
   if (mode === 'smooth' && chord) {
+    if (
+      context.previousChord &&
+      context.lastTapTilt &&
+      isElementalName(chord.name) &&
+      isOppositeElementNavigation(context.previousChord, chord.name)
+    ) {
+      const { inputSteps } = mapTiltToPositions(tilt);
+      const preservedParallel = parallelLevelFromTilt(context.lastTapTilt);
+      return tiltSampleFromLevels(inputSteps, preservedParallel);
+    }
     return resolveSmoothPlaybackTilt(chord.name, tilt);
   }
 
@@ -174,6 +193,24 @@ export function getBassDegreeLabelForPositionIndex(
   return getBassDegreeLabelForParallelSteps(clampedIndex, chord);
 }
 
+function voiceLineFromSpelledDegrees(
+  chord: Chord,
+  lowestPitchClass: number
+): VoiceLine | null {
+  if (!chord.quality || chord.rootPositionIndex === undefined) {
+    return null;
+  }
+  const rootPitchClass = chord.pitches[chord.rootPositionIndex] % 12;
+  const degrees = spellChordDegrees(rootPitchClass, chord.quality);
+  const index = degrees.findIndex(
+    (degree) => degree.pitchClass === lowestPitchClass
+  );
+  if (index === -1) {
+    return null;
+  }
+  return (index + 1) as VoiceLine;
+}
+
 function voiceLineForLowestPitch(
   voiced: number[],
   pitchStructure: (number | null)[],
@@ -184,6 +221,11 @@ function voiceLineForLowestPitch(
   }
 
   const lowestPc = ((Math.min(...voiced) % 12) + 12) % 12;
+  const spelledLine = voiceLineFromSpelledDegrees(chord, lowestPc);
+  if (spelledLine !== null) {
+    return spelledLine;
+  }
+
   const mapping = borrowingLogic.getRootPositionMapping(chord);
 
   // Map pitch class back to chord line 1-4. If borrowing collapsed two lines
@@ -203,6 +245,20 @@ function voiceLineForLowestPitch(
   return null;
 }
 
+/** Bass degree label from sounded MIDI pitches (matches playback voicing). */
+export function bassDegreeLabelFromVoiced(
+  chord: Chord,
+  voicedPitches: number[],
+  borrowingState: BorrowingState
+): string | null {
+  const structure = borrowingLogic.prepareVoicingInput(
+    chord,
+    borrowingState
+  ).pitchStructure;
+  const line = voiceLineForLowestPitch(voicedPitches, structure, chord);
+  return line ? getVoiceDegreeLabel(line, chord) : null;
+}
+
 function pitchOnlyVoiceLine(tilt: TiltSample): VoiceLine {
   // Fallback when voicing context is missing or PC mapping fails.
   const steps = parallelLevelFromTilt(tilt);
@@ -218,10 +274,26 @@ export function resolveTiltBassVoiceLine(
     return null;
   }
 
+  const playedPitches = context.activePitches?.filter(
+    (pitch): pitch is number => pitch !== null
+  );
+  if (playedPitches && playedPitches.length > 0) {
+    const structure = borrowingLogic.prepareVoicingInput(
+      chord,
+      context.borrowingState
+    ).pitchStructure;
+    const line = voiceLineForLowestPitch(playedPitches, structure, chord);
+    if (line !== null) {
+      return line;
+    }
+  }
+
   const effectiveTilt = resolveEffectiveTilt(tilt, context, chord);
   const mode = context.voiceLeadingMode ?? 'smooth';
   const deterministicElemental =
-    mode === 'smooth' && isElementalName(chord.name);
+    mode === 'smooth' &&
+    isElementalName(chord.name) &&
+    !context.elemental;
   const voiced = getCachedTiltVoicedPitches(
     chord,
     context.borrowingState,
@@ -231,6 +303,7 @@ export function resolveTiltBassVoiceLine(
     {
       anchor: voicingAnchorForPlayStyle(context.playStyle),
       previousChord: context.previousChord,
+      elemental: context.elemental,
       voiceLeadingMode: context.voiceLeadingMode,
       deterministicElemental,
       ...(mode === 'smoothest'
@@ -266,8 +339,22 @@ export function lastPlayedVoicingReadout(playbackTilt: TiltSample): string {
 /** Bass degree committed at the last diagram tap (no direction arrow). */
 export function lastPlayedBassReadout(
   playbackTilt: TiltSample,
-  chord: Chord | null
+  chord: Chord | null,
+  options: {
+    voicedPitches?: number[];
+    borrowingState?: BorrowingState;
+  } = {}
 ): string {
+  if (chord && options.voicedPitches && options.voicedPitches.length > 0) {
+    const fromVoicing = bassDegreeLabelFromVoiced(
+      chord,
+      options.voicedPitches,
+      options.borrowingState ?? getInitialBorrowingState()
+    );
+    if (fromVoicing) {
+      return fromVoicing;
+    }
+  }
   const parallelSteps = parallelLevelFromTilt(playbackTilt);
   return getVoiceDegreeLabel(
     voiceLineForParallelSteps(parallelSteps),

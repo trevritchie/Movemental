@@ -44,8 +44,7 @@ export function computeSmoothestParallelFromBranch(
   const { rootPitchClass, homeMidi, pitchStructure } = resolveVoicingRoot(
     target,
     tonalCenter,
-    octaveRange,
-    branch
+    octaveRange
   );
 
   return resolveSmoothParallelSteps(

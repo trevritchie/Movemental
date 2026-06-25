@@ -3,7 +3,7 @@ import { ChordManager } from './ChordManager';
 import { getInitialBorrowingState } from './BorrowingLogic';
 import { FLAT_TILT } from './TiltVoicingEngine';
 import { computeTiltVoicedPitches } from './tiltVoicingPlayback';
-import { resolveElementalPlayback } from './elementalRoot';
+import { resolveElementalPlayback, resolveElementalForNavigation } from './elementalRoot';
 
 describe('computeTiltVoicedPitches', () => {
   let manager: ChordManager;
@@ -50,8 +50,7 @@ describe('computeTiltVoicedPitches', () => {
     const resolved = resolveElementalPlayback(
       fireDict,
       TONAL_CENTER,
-      OCTAVE_RANGE,
-      branch
+      OCTAVE_RANGE
     );
     const withResolve = computeTiltVoicedPitches(
       resolved.chord,
@@ -78,34 +77,64 @@ describe('computeTiltVoicedPitches', () => {
     expect(withElemental).toEqual(withResolve);
   });
 
-  it('anchors Fire register from resolved previous Fire, not dictionary default', () => {
+  it('anchors Fire register from opposite navigation after Twin Branch', () => {
     const twinBranch = manager.getChordByName('Twin Branch')!;
     const fireDict = manager.getChordByName('Fire')!;
-    const resolvedFire = resolveElementalPlayback(
+    const twinVoicing = computeTiltVoicedPitches(
+      twinBranch,
+      getInitialBorrowingState(),
+      { x: -1, y: 0 },
+      TONAL_CENTER,
+      OCTAVE_RANGE,
+      { anchor: 'contrary' }
+    );
+    const twinBass = Math.min(...twinVoicing);
+    const resolved = resolveElementalForNavigation(
       fireDict,
       TONAL_CENTER,
       OCTAVE_RANGE,
-      twinBranch
-    ).chord;
+      twinBranch,
+      twinBass,
+      { x: -1, y: 0 },
+      'contrary'
+    );
 
     const fireAfterTwin = computeTiltVoicedPitches(
-      resolvedFire,
+      resolved.chord,
       getInitialBorrowingState(),
       { x: -1, y: 0 },
       TONAL_CENTER,
       OCTAVE_RANGE,
-      { anchor: 'contrary', previousChord: twinBranch }
+      {
+        anchor: 'contrary',
+        elemental: {
+          rootPitchClass: resolved.rootPitchClass,
+          homeMidi: resolved.homeMidi,
+        },
+      }
     );
 
-    const fireAfterDictFire = computeTiltVoicedPitches(
-      resolvedFire,
+    const defaultFire = resolveElementalPlayback(
+      fireDict,
+      TONAL_CENTER,
+      OCTAVE_RANGE
+    );
+    const fireAfterDefault = computeTiltVoicedPitches(
+      defaultFire.chord,
       getInitialBorrowingState(),
       { x: -1, y: 0 },
       TONAL_CENTER,
       OCTAVE_RANGE,
-      { anchor: 'contrary', previousChord: fireDict }
+      {
+        anchor: 'contrary',
+        elemental: {
+          rootPitchClass: defaultFire.rootPitchClass,
+          homeMidi: defaultFire.homeMidi,
+        },
+      }
     );
 
-    expect(fireAfterTwin[0]).not.toBe(fireAfterDictFire[0]);
+    expect(fireAfterTwin[0]).not.toBe(fireAfterDefault[0]);
+    expect(Math.min(...fireAfterTwin)).toBe(twinBass - 1);
   });
 });

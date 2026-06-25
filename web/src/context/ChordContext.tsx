@@ -32,6 +32,8 @@ import { useAudioSettings } from '../hooks/useAudioSettings';
 import { useBorrowingMemory } from '../hooks/useBorrowingMemory';
 import { useChordPlayback } from '../hooks/useChordPlayback';
 import { useDeviceTilt, type TiltStatus } from '../hooks/useDeviceTilt';
+import { useNoTiltChordLocks } from '../hooks/useNoTiltChordLocks';
+import type { ElementalPlaybackResolution } from '../music/tiltVoicingPlayback';
 import type { PlayStyle, VoiceLeadingMode } from './types';
 
 export type { PlayStyle, VoiceLeadingMode } from './types';
@@ -86,9 +88,14 @@ interface ChordContextType {
   smoothBaseParallel: number;
   lastPlayedVoicingLabel: string | null;
   lastPlayedBassLabel: string | null;
+  lastElementalPlayback: ElementalPlaybackResolution | null;
   tiltStatus: TiltStatus;
   tiltSample: TiltSample;
   requestTiltPermission: () => Promise<void>;
+  isNoTiltVoicingLocked: boolean;
+  isNoTiltBassLocked: boolean;
+  toggleNoTiltVoicingLock: () => void;
+  toggleNoTiltBassLock: () => void;
 }
 
 const ChordContext = createContext<ChordContextType | undefined>(undefined);
@@ -153,6 +160,14 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
     voiceLeadingModeRef.current = voiceLeadingMode;
   }, [voiceLeadingMode]);
 
+  const noTiltLocks = useNoTiltChordLocks({
+    selectedChord,
+    setNoTiltVoicingLevel,
+    setNoTiltPositionLevel,
+    noTiltVoicingLevelRef,
+    noTiltPositionLevelRef,
+  });
+
   const playback = useChordPlayback({
     getBorrowingStateForChord: borrowing.getBorrowingStateForChord,
     borrowingStateRef: borrowing.borrowingStateRef,
@@ -164,6 +179,9 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
     tonalCenterRef,
     voiceLeadingModeRef,
     setNoTiltPositionLevel,
+    noTiltLockMapsRef: noTiltLocks.lockMapsRef,
+    applyNoTiltLocksForChord: noTiltLocks.applyLocksForChord,
+    clearNoTiltChordLocks: noTiltLocks.clearAllLocks,
   });
 
   useEffect(() => {
@@ -239,9 +257,9 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
       tonalCenter,
       setTonalCenter,
       noTiltVoicingLevel,
-      setNoTiltVoicingLevel,
+      setNoTiltVoicingLevel: noTiltLocks.setNoTiltVoicingLevel,
       noTiltPositionLevel,
-      setNoTiltPositionLevel,
+      setNoTiltPositionLevel: noTiltLocks.setNoTiltPositionLevel,
       octaveRange,
       setOctaveRange,
       selectedChord,
@@ -285,9 +303,14 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
       smoothBaseParallel: playback.smoothBaseParallel,
       lastPlayedVoicingLabel: playback.lastPlayedVoicingLabel,
       lastPlayedBassLabel: playback.lastPlayedBassLabel,
+      lastElementalPlayback: playback.lastElementalPlayback,
       tiltStatus: deviceTilt.status,
       tiltSample: deviceTilt.tilt,
       requestTiltPermission: deviceTilt.requestPermission,
+      isNoTiltVoicingLocked: noTiltLocks.isVoicingLocked,
+      isNoTiltBassLocked: noTiltLocks.isBassLocked,
+      toggleNoTiltVoicingLock: noTiltLocks.toggleVoicingLock,
+      toggleNoTiltBassLock: noTiltLocks.toggleBassLock,
     }),
     [
       tonalCenter,
@@ -334,9 +357,16 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
       playback.smoothBaseParallel,
       playback.lastPlayedVoicingLabel,
       playback.lastPlayedBassLabel,
+      playback.lastElementalPlayback,
       deviceTilt.status,
       deviceTilt.tilt,
       deviceTilt.requestPermission,
+      noTiltLocks.isVoicingLocked,
+      noTiltLocks.isBassLocked,
+      noTiltLocks.toggleVoicingLock,
+      noTiltLocks.toggleBassLock,
+      noTiltLocks.setNoTiltVoicingLevel,
+      noTiltLocks.setNoTiltPositionLevel,
     ]
   );
 

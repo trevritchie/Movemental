@@ -44,7 +44,8 @@ function cacheKey(
   voiceLeadingMode: VoiceLeadingMode | undefined,
   smoothBaseParallel: number | undefined,
   lastTapTilt: TiltSample | undefined,
-  deterministicElemental: boolean
+  deterministicElemental: boolean,
+  elemental?: ElementalPlaybackResolution
 ): string {
   const { inputSteps, parallelSteps } = mapTiltToPositions(tilt);
   const lastTapParallel =
@@ -63,6 +64,8 @@ function cacheKey(
     smoothBaseParallel ?? '',
     lastTapParallel,
     deterministicElemental ? 'detElem' : '',
+    elemental?.rootPitchClass ?? '',
+    elemental?.homeMidi ?? '',
   ].join('|');
 }
 
@@ -92,7 +95,9 @@ export function getCachedTiltVoicedPitches(
   const anchor = options.anchor ?? 'contrary';
   const deterministicElemental =
     options.deterministicElemental ??
-    (options.voiceLeadingMode === 'smooth' && isElementalName(chord.name));
+    (options.voiceLeadingMode === 'smooth' &&
+      isElementalName(chord.name) &&
+      !options.elemental);
   const key = cacheKey(
     chord,
     borrowingState,
@@ -104,7 +109,8 @@ export function getCachedTiltVoicedPitches(
     options.voiceLeadingMode,
     options.smoothBaseParallel,
     options.lastTapTilt,
-    deterministicElemental
+    deterministicElemental,
+    options.elemental
   );
   if (key === lastKey) {
     return lastPitches;

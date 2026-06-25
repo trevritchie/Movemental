@@ -40,7 +40,6 @@ function resolveElementalForVoicing(
   chord: Chord,
   tonalCenter: number,
   octaveRange: number,
-  previousChord: Chord | null,
   options: {
     elemental?: ElementalPlaybackResolution;
     deterministicElemental?: boolean;
@@ -56,12 +55,7 @@ function resolveElementalForVoicing(
       octaveRange
     );
   }
-  return resolveElementalPlayback(
-    chord,
-    tonalCenter,
-    octaveRange,
-    previousChord
-  );
+  return resolveElementalPlayback(chord, tonalCenter, octaveRange);
 }
 
 function neutralPitchStructure(chord: Chord): (number | null)[] {
@@ -85,7 +79,6 @@ export function resolveVoicingRoot(
   chord: Chord,
   tonalCenter: number,
   octaveRange: number,
-  previousChord: Chord | null,
   elemental?: ElementalPlaybackResolution,
   deterministicElemental?: boolean
 ): VoicingRootResolution {
@@ -96,7 +89,6 @@ export function resolveVoicingRoot(
       chord,
       tonalCenter,
       octaveRange,
-      previousChord,
       { elemental, deterministicElemental }
     );
     return {
@@ -124,7 +116,6 @@ export function computeNeutralTiltVoicing(
 ): number[] {
   const {
     anchor = 'contrary',
-    previousChord = null,
     elemental,
     deterministicElemental,
   } = options;
@@ -135,7 +126,6 @@ export function computeNeutralTiltVoicing(
       chord,
       tonalCenter,
       octaveRange,
-      previousChord,
       { elemental, deterministicElemental }
     );
     return computeTiltVoicing(

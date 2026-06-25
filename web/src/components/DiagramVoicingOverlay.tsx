@@ -12,6 +12,7 @@ import {
 } from '../music/voiceDegreeLabel';
 import { useChordContext } from '../context/ChordContext';
 import { DiagramOverlayPill } from './DiagramOverlayPill';
+import { NoTiltLockButton } from './NoTiltLockButton';
 
 /** Shared sizer so voicing and bass pills stay the same width. */
 const TOP_PILL_SIZER = TILT_VOICING_OVERLAY_MAX_LABEL;
@@ -57,21 +58,34 @@ export const DiagramVoicingOverlay: React.FC = () => {
     noTiltPositionLevel,
     setNoTiltPositionLevel,
     selectedChord,
+    isNoTiltVoicingLocked,
+    isNoTiltBassLocked,
+    toggleNoTiltVoicingLock,
+    toggleNoTiltBassLock,
     tonalCenter,
     octaveRange,
     borrowingState,
     previousPlayedChord,
+    activePitches,
     voiceLeadingMode,
     lastTapTilt,
     smoothBaseParallel,
     lastPlayedVoicingLabel,
     lastPlayedBassLabel,
+    lastElementalPlayback,
     tiltStatus,
     tiltSample,
     requestTiltPermission,
   } = useChordContext();
 
   const isTilt = playStyle === 'tilt';
+  const chordName = selectedChord?.name;
+  const voicingLockLabel = chordName
+    ? `${isNoTiltVoicingLocked ? 'Unlock' : 'Lock'} voicing for ${chordName}`
+    : 'Lock voicing';
+  const bassLockLabel = chordName
+    ? `${isNoTiltBassLocked ? 'Unlock' : 'Lock'} bass for ${chordName}`
+    : 'Lock bass';
   const bassSelectLabels = React.useMemo(
     () => bassDegreeLabelsForSelect(selectedChord),
     [selectedChord]
@@ -84,8 +98,15 @@ export const DiagramVoicingOverlay: React.FC = () => {
       previousChord: previousPlayedChord,
       voiceLeadingMode,
       playStyle,
+      activePitches: (activePitches ?? []).filter(
+        (pitch): pitch is number => pitch !== null
+      ),
+      ...(lastElementalPlayback ? { elemental: lastElementalPlayback } : {}),
+      ...(voiceLeadingMode === 'smooth' || voiceLeadingMode === 'smoothest'
+        ? { lastTapTilt }
+        : {}),
       ...(voiceLeadingMode === 'smoothest'
-        ? { smoothBaseParallel, lastTapTilt }
+        ? { smoothBaseParallel }
         : {}),
     }),
     [
@@ -95,6 +116,8 @@ export const DiagramVoicingOverlay: React.FC = () => {
       previousPlayedChord,
       voiceLeadingMode,
       playStyle,
+      activePitches,
+      lastElementalPlayback,
       smoothBaseParallel,
       lastTapTilt,
     ]
@@ -103,19 +126,27 @@ export const DiagramVoicingOverlay: React.FC = () => {
   const renderVoicingValue = () => {
     if (!isTilt) {
       return (
-        <select
-          className="diagram-overlay-select"
-          value={noTiltVoicingLevel}
-          onChange={(e) => setNoTiltVoicingLevel(Number(e.target.value))}
-          title="Voicing"
-          aria-label="Voicing"
-        >
-          {TILT_VOICING_OVERLAY_LABELS.map((name, idx) => (
-            <option key={TILT_VOICING_LEVEL_NAMES[idx]} value={idx}>
-              {name}
-            </option>
-          ))}
-        </select>
+        <div className="diagram-overlay-control">
+          <select
+            className="diagram-overlay-select"
+            value={noTiltVoicingLevel}
+            onChange={(e) => setNoTiltVoicingLevel(Number(e.target.value))}
+            title="Voicing"
+            aria-label="Voicing"
+          >
+            {TILT_VOICING_OVERLAY_LABELS.map((name, idx) => (
+              <option key={TILT_VOICING_LEVEL_NAMES[idx]} value={idx}>
+                {name}
+              </option>
+            ))}
+          </select>
+          <NoTiltLockButton
+            locked={isNoTiltVoicingLocked}
+            disabled={!chordName}
+            label={voicingLockLabel}
+            onToggle={toggleNoTiltVoicingLock}
+          />
+        </div>
       );
     }
 
@@ -171,19 +202,27 @@ export const DiagramVoicingOverlay: React.FC = () => {
   const renderBassValue = () => {
     if (!isTilt) {
       return (
-        <select
-          className="diagram-overlay-select"
-          value={noTiltPositionLevel}
-          onChange={(e) => setNoTiltPositionLevel(Number(e.target.value))}
-          title="In the bass"
-          aria-label="In the bass"
-        >
-          {bassSelectLabels.map((name, idx) => (
-            <option key={name} value={idx}>
-              {name}
-            </option>
-          ))}
-        </select>
+        <div className="diagram-overlay-control">
+          <select
+            className="diagram-overlay-select"
+            value={noTiltPositionLevel}
+            onChange={(e) => setNoTiltPositionLevel(Number(e.target.value))}
+            title="In the bass"
+            aria-label="In the bass"
+          >
+            {bassSelectLabels.map((name, idx) => (
+              <option key={name} value={idx}>
+                {name}
+              </option>
+            ))}
+          </select>
+          <NoTiltLockButton
+            locked={isNoTiltBassLocked}
+            disabled={!chordName}
+            label={bassLockLabel}
+            onToggle={toggleNoTiltBassLock}
+          />
+        </div>
       );
     }
 
@@ -208,6 +247,11 @@ export const DiagramVoicingOverlay: React.FC = () => {
         label="Voicing"
         corner="top-left"
         sizerText={TOP_PILL_SIZER}
+        className={
+          !isTilt && isNoTiltVoicingLocked
+            ? 'diagram-overlay-pill--locked'
+            : undefined
+        }
       >
         {renderVoicingValue()}
       </DiagramOverlayPill>
@@ -215,6 +259,11 @@ export const DiagramVoicingOverlay: React.FC = () => {
         label="IN THE BASS"
         corner="top-right"
         sizerText={bassMaxLabel}
+        className={
+          !isTilt && isNoTiltBassLocked
+            ? 'diagram-overlay-pill--locked'
+            : undefined
+        }
       >
         {renderBassValue()}
       </DiagramOverlayPill>

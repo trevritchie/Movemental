@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { ChordManager } from './ChordManager';
 import { getInitialBorrowingState } from './BorrowingLogic';
 import {
+  bassDegreeLabelFromVoiced,
   bassDegreeLabelsForSelect,
   formatBassDegreeLabel,
   formatBassDegreeWithDirection,
@@ -18,7 +19,18 @@ import {
   tiltBassPositionLabel,
   type TiltBassLabelContext,
 } from './voiceDegreeLabel';
-import { FLAT_TILT, tiltSampleFromLevels } from './TiltVoicingEngine';
+import {
+  FLAT_TILT,
+  parallelLevelFromTilt,
+  tiltSampleFromLevels,
+} from './TiltVoicingEngine';
+import { invalidateVoicingCache } from './voicingCache';
+import { computeTiltVoicedPitches } from './tiltVoicingPlayback';
+import {
+  previousBassMidi,
+  resolveElementalForNavigation,
+} from './elementalRoot';
+import { resolveSmoothPlaybackTilt } from './predeterminedVoiceLeading';
 
 const OCTAVE_RANGE = 3;
 const TONAL_CENTER = 0;
@@ -338,5 +350,138 @@ describe('getVoiceDegreeLabel', () => {
 
   it('maps legacy position index 3 to ↑ 6th when no chord is selected', () => {
     expect(getBassDegreeLabelForPositionIndex(3, null)).toBe('\u2191 6th');
+  });
+});
+
+describe('opposite-element elemental bass labels', () => {
+  const Bb_TONAL_CENTER = 10;
+  const DOUBLE_OCTAVE_FLAT_BB = tiltSampleFromLevels(8, 0);
+
+  beforeEach(() => {
+    invalidateVoicingCache();
+  });
+
+  it('Wind after Glass matches sounded bass when elemental metadata is in context', () => {
+    const manager = new ChordManager();
+    manager.setTonalCenterOffset(Bb_TONAL_CENTER);
+    manager.setOctaveRange(OCTAVE_RANGE);
+    const glass = manager.getChordByName('Glass')!;
+    const windDict = manager.getChordByName('Wind')!;
+    const glassTilt = resolveSmoothPlaybackTilt('Glass', DOUBLE_OCTAVE_FLAT_BB);
+    const glassVoicing = computeTiltVoicedPitches(
+      glass,
+      getInitialBorrowingState(),
+      glassTilt,
+      Bb_TONAL_CENTER,
+      OCTAVE_RANGE,
+      { anchor: 'contrary' }
+    );
+    const windTilt = tiltSampleFromLevels(8, parallelLevelFromTilt(glassTilt));
+    const resolved = resolveElementalForNavigation(
+      windDict,
+      Bb_TONAL_CENTER,
+      OCTAVE_RANGE,
+      glass,
+      previousBassMidi(glassVoicing),
+      windTilt,
+      'contrary'
+    );
+    const windVoicing = computeTiltVoicedPitches(
+      resolved.chord,
+      getInitialBorrowingState(),
+      windTilt,
+      Bb_TONAL_CENTER,
+      OCTAVE_RANGE,
+      {
+        anchor: 'contrary',
+        elemental: {
+          rootPitchClass: resolved.rootPitchClass,
+          homeMidi: resolved.homeMidi,
+        },
+      }
+    );
+    const baseContext: TiltBassLabelContext = {
+      tonalCenter: Bb_TONAL_CENTER,
+      octaveRange: OCTAVE_RANGE,
+      borrowingState: getInitialBorrowingState(),
+      playStyle: 'tilt',
+      voiceLeadingMode: 'smooth',
+      previousChord: glass,
+    };
+    const withoutNavigation = tiltBassDegreeLabel(
+      DOUBLE_OCTAVE_FLAT_BB,
+      resolved.chord,
+      baseContext
+    );
+    const withNavigation = tiltBassDegreeLabel(windTilt, resolved.chord, {
+      ...baseContext,
+      lastTapTilt: glassTilt,
+      activePitches: windVoicing,
+      elemental: {
+        rootPitchClass: resolved.rootPitchClass,
+        homeMidi: resolved.homeMidi,
+      },
+    });
+    const withPreservedParallel = tiltBassDegreeLabel(windTilt, resolved.chord, {
+      ...baseContext,
+      lastTapTilt: glassTilt,
+      elemental: {
+        rootPitchClass: resolved.rootPitchClass,
+        homeMidi: resolved.homeMidi,
+      },
+    });
+    expect(withoutNavigation).not.toBe(withNavigation);
+    expect(withNavigation).toBe('↓ 5th');
+    expect(withPreservedParallel).toBe('↓ 5th');
+    expect(bassDegreeLabelFromVoiced(resolved.chord, windVoicing, getInitialBorrowingState())).toBe(
+      '5th'
+    );
+  });
+
+  it('lastPlayedBassReadout uses sounded pitches when provided', () => {
+    const manager = new ChordManager();
+    manager.setTonalCenterOffset(Bb_TONAL_CENTER);
+    manager.setOctaveRange(OCTAVE_RANGE);
+    const glass = manager.getChordByName('Glass')!;
+    const windDict = manager.getChordByName('Wind')!;
+    const glassTilt = resolveSmoothPlaybackTilt('Glass', DOUBLE_OCTAVE_FLAT_BB);
+    const glassVoicing = computeTiltVoicedPitches(
+      glass,
+      getInitialBorrowingState(),
+      glassTilt,
+      Bb_TONAL_CENTER,
+      OCTAVE_RANGE,
+      { anchor: 'contrary' }
+    );
+    const windTilt = tiltSampleFromLevels(8, parallelLevelFromTilt(glassTilt));
+    const resolved = resolveElementalForNavigation(
+      windDict,
+      Bb_TONAL_CENTER,
+      OCTAVE_RANGE,
+      glass,
+      previousBassMidi(glassVoicing),
+      windTilt,
+      'contrary'
+    );
+    const windVoicing = computeTiltVoicedPitches(
+      resolved.chord,
+      getInitialBorrowingState(),
+      windTilt,
+      Bb_TONAL_CENTER,
+      OCTAVE_RANGE,
+      {
+        anchor: 'contrary',
+        elemental: {
+          rootPitchClass: resolved.rootPitchClass,
+          homeMidi: resolved.homeMidi,
+        },
+      }
+    );
+    expect(
+      lastPlayedBassReadout(windTilt, resolved.chord, {
+        voicedPitches: windVoicing,
+        borrowingState: getInitialBorrowingState(),
+      })
+    ).toBe('5th');
   });
 });
