@@ -20,11 +20,12 @@ vi.mock('../audio/AudioEngine', () => ({
   },
 }));
 
-const setPlayStyle = vi.fn();
+const enterTiltSession = vi.fn();
+const enterNoTiltSession = vi.fn();
 const requestTiltPermission = vi.fn().mockResolvedValue(undefined);
 
 vi.mock('../context/ChordContext', () => ({
-  useChordContext: () => ({ setPlayStyle }),
+  useChordContext: () => ({ enterTiltSession, enterNoTiltSession }),
 }));
 
 vi.mock('../context/TiltReadoutContext', () => ({
@@ -60,6 +61,7 @@ describe('SplashPage', () => {
       fireEvent.click(screen.getByRole('button', { name: /start/i }));
     });
 
+    expect(enterNoTiltSession).toHaveBeenCalledTimes(1);
     expect(unlockIosMediaChannel).toHaveBeenCalledTimes(1);
     expect(waitForIosMediaChannel).toHaveBeenCalled();
 
@@ -110,14 +112,15 @@ describe('SplashPage', () => {
     });
 
     expect(requestTiltPermission).toHaveBeenCalledTimes(1);
-    expect(setPlayStyle).toHaveBeenCalledWith('tilt');
+    expect(enterTiltSession).toHaveBeenCalledTimes(1);
+    expect(enterNoTiltSession).not.toHaveBeenCalled();
     expect(unlockIosMediaChannel).toHaveBeenCalled();
 
     await flushSplashEnterTimers();
     expect(onEnter).toHaveBeenCalled();
   });
 
-  it('enters drone mode from the No Tilt button without a permission request', async () => {
+  it('enters no-tilt session from the No Tilt button without a permission request', async () => {
     vi.mocked(useLayoutTier).mockReturnValue('tablet');
     const onEnter = vi.fn();
     render(<SplashPage onEnter={onEnter} />);
@@ -127,7 +130,8 @@ describe('SplashPage', () => {
     });
 
     expect(requestTiltPermission).not.toHaveBeenCalled();
-    expect(setPlayStyle).toHaveBeenCalledWith('drone');
+    expect(enterNoTiltSession).toHaveBeenCalledTimes(1);
+    expect(enterTiltSession).not.toHaveBeenCalled();
 
     await flushSplashEnterTimers();
     expect(onEnter).toHaveBeenCalled();

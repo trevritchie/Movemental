@@ -31,7 +31,7 @@ function smoothContext(previousPlayedChord?: Chord | null): TiltBassLabelContext
     tonalCenter: TONAL_CENTER,
     octaveRange: OCTAVE_RANGE,
     borrowingState: getInitialBorrowingState(),
-    playStyle: 'tilt',
+    tiltModeEnabled: true,
     voiceLeadingMode: 'smooth',
     previousChord: previousPlayedChord,
   };

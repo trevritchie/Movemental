@@ -22,7 +22,7 @@ export function useAudioSettings(playStyle: PlayStyle) {
 
   useEffect(() => {
     // The tilt style drones, so it shares the drone envelope.
-    if (playStyle === 'drone' || playStyle === 'tilt') {
+    if (playStyle === 'drone') {
       audioEngine.setEnvelope(droneAttack, droneDecay, droneSustain, droneRelease);
     } else {
       audioEngine.setEnvelope(

@@ -92,7 +92,7 @@ describe('Glass -> Wind opposite navigation', () => {
       tonalCenter: TONAL_CENTER,
       octaveRange: OCTAVE_RANGE,
       borrowingState: state,
-      playStyle: 'tilt',
+      tiltModeEnabled: true,
       voiceLeadingMode: 'smooth',
       previousChord: glass,
       activePitches: windVoicing,

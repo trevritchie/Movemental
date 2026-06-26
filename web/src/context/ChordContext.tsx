@@ -62,6 +62,9 @@ interface ChordContextType {
   setReverbWet: (val: number) => void;
   playStyle: PlayStyle;
   setPlayStyle: (mode: PlayStyle) => void;
+  tiltModeEnabled: boolean;
+  enterTiltSession: () => void;
+  enterNoTiltSession: () => void;
   handleChordPointerDown: (chord: Chord) => void;
   handleChordPointerUp: () => void;
   handleChordPointerEnter: (chord: Chord) => void;
@@ -193,7 +196,21 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
     borrowingStateRef,
     setBorrowingState,
   } = borrowing;
-  const { playAndDisplayChord } = playback;
+  const {
+    playAndDisplayChord,
+    enterTiltSession: enterTiltPlayback,
+    enterNoTiltSession: enterNoTiltPlayback,
+  } = playback;
+
+  const enterTiltSession = useCallback(() => {
+    enterTiltPlayback();
+    setVoiceLeadingMode('smooth');
+  }, [enterTiltPlayback]);
+
+  const enterNoTiltSession = useCallback(() => {
+    enterNoTiltPlayback();
+    setVoiceLeadingMode('smoothest');
+  }, [enterNoTiltPlayback]);
 
   const handleChordSelect = useCallback(
     (chord: Chord) => {
@@ -274,6 +291,9 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
       setReverbWet: audio.setReverbWet,
       playStyle: playback.playStyle,
       setPlayStyle: playback.setPlayStyle,
+      tiltModeEnabled: playback.tiltModeEnabled,
+      enterTiltSession,
+      enterNoTiltSession,
       handleChordPointerDown: playback.handleChordPointerDown,
       handleChordPointerUp: playback.handleChordPointerUp,
       handleChordPointerEnter: playback.handleChordPointerEnter,
@@ -321,6 +341,9 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
       playback.previousPlayedChord,
       playback.playStyle,
       playback.setPlayStyle,
+      playback.tiltModeEnabled,
+      enterTiltSession,
+      enterNoTiltSession,
       playback.handleChordPointerDown,
       playback.handleChordPointerUp,
       playback.handleChordPointerEnter,

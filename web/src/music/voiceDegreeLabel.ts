@@ -7,8 +7,8 @@
  */
 import type { Chord } from './ChordManager';
 import { borrowingLogic, getInitialBorrowingState, type BorrowingState } from './BorrowingLogic';
-import type { PlayStyle, VoiceLeadingMode } from '../context/types';
-import { isNoTiltPlayStyle } from '../context/types';
+import type { VoiceLeadingMode } from '../context/types';
+import { usesDeviceTilt } from '../context/types';
 import { resolveEffectiveTiltForLabel } from './playbackTiltResolution';
 import {
   NO_TILT_POSITION_LEVEL_COUNT,
@@ -44,7 +44,7 @@ export interface TiltBassLabelContext {
   smoothBaseParallel?: number;
   /** Smoothest only: raw tilt at the last diagram tap. */
   lastTapTilt?: TiltSample;
-  playStyle?: PlayStyle;
+  tiltModeEnabled?: boolean;
   /** Resolved elemental root/register from playback (opposite-element navigation). */
   elemental?: ElementalPlaybackResolution;
   /** When set, derive the bass degree from these sounded pitches (matches readout). */
@@ -59,9 +59,9 @@ function resolveEffectiveTilt(
   return resolveEffectiveTiltForLabel(tilt, chord ?? null, context);
 }
 
-function voicingAnchorForPlayStyle(playStyle?: PlayStyle): TiltVoicingAnchor {
-  if (playStyle && isNoTiltPlayStyle(playStyle)) {
-    return 'pivot';
+function voicingAnchorForContext(context?: TiltBassLabelContext): TiltVoicingAnchor {
+  if (context?.tiltModeEnabled !== undefined) {
+    return usesDeviceTilt(context.tiltModeEnabled) ? 'contrary' : 'pivot';
   }
   return 'contrary';
 }
@@ -265,7 +265,7 @@ export function resolveTiltBassVoiceLine(
     context.tonalCenter,
     context.octaveRange,
     {
-      anchor: voicingAnchorForPlayStyle(context.playStyle),
+      anchor: voicingAnchorForContext(context),
       previousChord: context.previousChord,
       elemental: context.elemental,
       voiceLeadingMode: context.voiceLeadingMode,

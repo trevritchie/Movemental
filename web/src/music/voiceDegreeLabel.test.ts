@@ -40,7 +40,7 @@ function labelContext(): TiltBassLabelContext {
     tonalCenter: TONAL_CENTER,
     octaveRange: OCTAVE_RANGE,
     borrowingState: getInitialBorrowingState(),
-    playStyle: 'tilt',
+    tiltModeEnabled: true,
   };
 }
 
@@ -410,7 +410,7 @@ describe('opposite-element elemental bass labels', () => {
       tonalCenter: Bb_TONAL_CENTER,
       octaveRange: OCTAVE_RANGE,
       borrowingState: getInitialBorrowingState(),
-      playStyle: 'tilt',
+      tiltModeEnabled: true,
       voiceLeadingMode: 'smooth',
       previousChord: glass,
     };

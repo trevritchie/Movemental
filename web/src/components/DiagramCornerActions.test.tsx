@@ -107,13 +107,15 @@ describe('DiagramCornerActions', () => {
     expect(screen.queryByRole('option', { name: 'Tilt' })).not.toBeInTheDocument();
   });
 
-  it('shows tilt play style on tablet', () => {
+  it('shows only drone and click-and-hold play styles on tablet', () => {
     vi.mocked(useLayoutTier).mockReturnValue('tablet');
 
     render(<DiagramCornerActions />);
     fireEvent.click(screen.getByRole('button', { name: 'Settings' }));
 
-    expect(screen.getByRole('option', { name: 'Tilt' })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'Drone' })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: /click/i })).toBeInTheDocument();
+    expect(screen.queryByRole('option', { name: 'Tilt' })).not.toBeInTheDocument();
   });
 
   it('calls panic stop without opening the menu', () => {

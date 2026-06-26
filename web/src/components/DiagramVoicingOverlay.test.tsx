@@ -9,6 +9,7 @@ const toggleNoTiltBassLock = vi.fn();
 vi.mock('../context/ChordContext', () => ({
   useChordContext: () => ({
     playStyle: 'drone',
+    tiltModeEnabled: false,
     noTiltVoicingLevel: 5,
     setNoTiltVoicingLevel: vi.fn(),
     noTiltPositionLevel: 4,

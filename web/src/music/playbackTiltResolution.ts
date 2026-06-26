@@ -2,7 +2,7 @@
  * Shared tilt resolution for playback and bass-degree labels.
  * Keeps smooth/smoothest and opposite-element rules in one place.
  */
-import type { PlayStyle, VoiceLeadingMode } from '@/context/types';
+import type { VoiceLeadingMode } from '@/context/types';
 import type { Chord } from './ChordManager';
 import {
   isElementalName,
@@ -147,13 +147,13 @@ export interface SmoothReanchorTiltOptions {
     liveTilt: TiltSample,
     isChordChange: boolean
   ) => TiltSample;
-  getCurrentControlTilt: (style: PlayStyle) => TiltSample;
+  getCurrentControlTilt: () => TiltSample;
   syncNoTiltPositionLevel: (effectiveParallel: number) => void;
 }
 
 export function resolveSmoothReanchorTilt(
   displayChord: Chord,
-  style: PlayStyle,
+  tiltMode: boolean,
   options: SmoothReanchorTiltOptions
 ): TiltSample {
   const {
@@ -169,10 +169,10 @@ export function resolveSmoothReanchorTilt(
     syncNoTiltPositionLevel,
   } = options;
 
-  if (style === 'tilt') {
+  if (tiltMode) {
     return resolveSmoothPlaybackTiltForNavigation(
       displayChord,
-      getCurrentControlTilt(style),
+      getCurrentControlTilt(),
       isChordChange
     );
   }
@@ -210,21 +210,16 @@ export function resolveSmoothReanchorTilt(
 export interface SmoothestReanchorCallbacks {
   applySmoothestVoiceLeading: (
     displayChord: Chord,
-    style: PlayStyle,
     elemental?: import('./tiltVoicingPlayback').ElementalPlaybackResolution
   ) => TiltSample;
-  preserveSameChordSmoothestTilt: (
-    style: PlayStyle,
-    chordName: string
-  ) => TiltSample;
-  getBaselineTilt: (style: PlayStyle) => TiltSample;
-  getCurrentControlTilt: (style: PlayStyle) => TiltSample;
+  preserveSameChordSmoothestTilt: (chordName: string) => TiltSample;
+  getBaselineTilt: () => TiltSample;
+  getCurrentControlTilt: () => TiltSample;
   setSmoothBaseParallel: (parallel: number) => void;
 }
 
 export function resolveSmoothestReanchorTilt(
   displayChord: Chord,
-  style: PlayStyle,
   playbackTilt: TiltSample,
   neutralVoicingLength: number,
   isChordChange: boolean,
@@ -233,16 +228,13 @@ export function resolveSmoothestReanchorTilt(
 ): TiltSample {
   if (neutralVoicingLength > 0) {
     if (isChordChange) {
-      return callbacks.applySmoothestVoiceLeading(displayChord, style);
+      return callbacks.applySmoothestVoiceLeading(displayChord);
     }
-    return callbacks.preserveSameChordSmoothestTilt(
-      style,
-      displayChord.name
-    );
+    return callbacks.preserveSameChordSmoothestTilt(displayChord.name);
   }
 
-  const baselineTilt = callbacks.getBaselineTilt(style);
-  const currentTilt = callbacks.getCurrentControlTilt(style);
+  const baselineTilt = callbacks.getBaselineTilt();
+  const currentTilt = callbacks.getCurrentControlTilt();
   const parallelDelta =
     parallelLevelFromTilt(currentTilt) -
     parallelLevelFromTilt(baselineTilt);

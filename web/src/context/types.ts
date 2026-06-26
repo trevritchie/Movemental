@@ -1,15 +1,15 @@
 /**
  * Shared play-style and voice-leading types used by ChordContext and music
- * modules. Helpers here encode product rules (no-tilt styles, smoothest state).
+ * modules. Helpers here encode product rules (tilt session vs audio style).
  */
 
-export type PlayStyle = 'click_and_hold' | 'drone' | 'tilt';
+export type PlayStyle = 'click_and_hold' | 'drone';
 
 export type VoiceLeadingMode = 'root_position' | 'smooth' | 'smoothest';
 
-/** Drone and click-and-hold use no-tilt dropdown controls instead of device tilt. */
-export function isNoTiltPlayStyle(style: PlayStyle): boolean {
-  return style === 'drone' || style === 'click_and_hold';
+/** Device tilt controls voicing (splash choice; not changed in settings). */
+export function usesDeviceTilt(tiltModeEnabled: boolean): boolean {
+  return tiltModeEnabled;
 }
 
 /** Smoothest mode commits parallel ladder steps after each chord for re-taps. */

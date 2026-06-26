@@ -44,6 +44,9 @@ selection. It intentionally excludes high-frequency tilt samples.
 (`DiagramVoicingOverlay`, splash permission flow). Components that do not need
 tilt (borrowing sliders, settings) should stay on `ChordContext` alone.
 
+**`tiltModeEnabled`** is set once at splash (Tilt vs No Tilt / desktop Start).
+Settings only switch audio `playStyle` (`drone` vs `click_and_hold`).
+
 **`LayoutTierProvider`** (in `useLayoutTier.ts`) shares one resize /
 `matchMedia` listener for phone vs desktop layout. Wrap the app root; use
 `useLayoutTierContext()` instead of instantiating `useLayoutTier` per

@@ -17,7 +17,7 @@ function smoothContext(): TiltBassLabelContext {
     tonalCenter: 0,
     octaveRange: 3,
     borrowingState: getInitialBorrowingState(),
-    playStyle: 'tilt',
+    tiltModeEnabled: true,
     voiceLeadingMode: 'smooth',
     smoothBaseParallel: 0,
     lastTapTilt: FLAT_TILT,

@@ -4,7 +4,6 @@ import { Settings, VolumeX, Maximize2, Minimize2, X } from 'lucide-react';
 import { NOTE_NAMES_FLAT, OCTAVE_RANGE_OPTIONS } from '../music/config';
 import { audioEngine } from '../audio/AudioEngine';
 import { useChordContext, type PlayStyle } from '../context/ChordContext';
-import { useLayoutTier } from '../hooks/useLayoutTier';
 import { useBodyScrollLock } from '../hooks/useBodyScrollLock';
 import { useFullscreen } from '../hooks/useFullscreen';
 import { AdsrPanelContent } from './settings/AdsrPanelContent';
@@ -41,9 +40,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     playStyle,
     setPlayStyle,
   } = useChordContext();
-
-  const layoutTier = useLayoutTier();
-  const isDesktop = layoutTier === 'desktop';
 
   const [showAdsr, setShowAdsr] = React.useState(false);
   const [showEffects, setShowEffects] = React.useState(false);
@@ -182,7 +178,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 >
                   <option value="click_and_hold">Click & Hold</option>
                   <option value="drone">Drone</option>
-                  {!isDesktop && <option value="tilt">Tilt</option>}
                 </select>
               </label>
             </div>

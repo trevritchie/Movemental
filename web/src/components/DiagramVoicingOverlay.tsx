@@ -51,7 +51,7 @@ const TiltReadoutStack: React.FC<TiltReadoutStackProps> = ({
  */
 export const DiagramVoicingOverlay: React.FC = () => {
   const {
-    playStyle,
+    tiltModeEnabled,
     noTiltVoicingLevel,
     setNoTiltVoicingLevel,
     noTiltPositionLevel,
@@ -77,7 +77,7 @@ export const DiagramVoicingOverlay: React.FC = () => {
   const { tiltStatus, tiltSample, requestTiltPermission } =
     useTiltReadoutContext();
 
-  const isTilt = playStyle === 'tilt';
+  const isTilt = tiltModeEnabled;
   const chordName = selectedChord?.name;
   const voicingLockLabel = chordName
     ? `${isNoTiltVoicingLocked ? 'Unlock' : 'Lock'} voicing for ${chordName}`
@@ -96,7 +96,7 @@ export const DiagramVoicingOverlay: React.FC = () => {
       borrowingState,
       previousChord: previousPlayedChord,
       voiceLeadingMode,
-      playStyle,
+      tiltModeEnabled,
       activePitches: (activePitches ?? []).filter(
         (pitch): pitch is number => pitch !== null
       ),
@@ -114,7 +114,7 @@ export const DiagramVoicingOverlay: React.FC = () => {
       borrowingState,
       previousPlayedChord,
       voiceLeadingMode,
-      playStyle,
+      tiltModeEnabled,
       activePitches,
       lastElementalPlayback,
       smoothBaseParallel,
