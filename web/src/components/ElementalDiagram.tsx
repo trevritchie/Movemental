@@ -31,23 +31,7 @@ import {
 } from '../hooks/useDiagramOverlayMetrics';
 import { DiagramVoicingOverlay } from './DiagramVoicingOverlay';
 import { DiagramCornerActions } from './DiagramCornerActions';
-
-function isInteractiveOverlayControl(target: EventTarget | null): boolean {
-  return (
-    target instanceof Element &&
-    !!target.closest('button, select, a, input, textarea')
-  );
-}
-
-function blockBrowserGesture(
-  e: { preventDefault(): void },
-  target: EventTarget | null
-) {
-  if (isInteractiveOverlayControl(target)) {
-    return;
-  }
-  e.preventDefault();
-}
+import { useSuppressNativeTouchGestures } from '../hooks/useSuppressNativeTouchGestures';
 
 function piePath(r: number, slice: number): string {
   const d = r / Math.SQRT2;
@@ -102,6 +86,8 @@ export const ElementalDiagram = React.memo(function ElementalDiagram({
       }
     }
   }, [layoutTier]);
+
+  useSuppressNativeTouchGestures(containerRef);
 
   useLayoutEffect(() => {
     let frame2 = 0;
@@ -205,8 +191,6 @@ export const ElementalDiagram = React.memo(function ElementalDiagram({
       ref={containerRef}
       style={{ opacity: isDiagramReady ? 1 : 0 }}
       data-layout-tier={layoutTier === 'phone' ? 'phone' : undefined}
-      onContextMenu={(e) => blockBrowserGesture(e, e.target)}
-      onTouchStart={(e) => blockBrowserGesture(e, e.target)}
     >
       <DiagramVoicingOverlay />
       {layoutTier !== 'phone' && <DiagramCornerActions />}

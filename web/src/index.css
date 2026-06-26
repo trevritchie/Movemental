@@ -498,6 +498,12 @@ body.scroll-locked {
   pointer-events: none;
 }
 
+.diagram-container button,
+.diagram-container select {
+  -webkit-touch-callout: default;
+  touch-action: manipulation;
+}
+
 /* ==========================================================================
    Settings modal (portaled to body)
    ========================================================================== */
