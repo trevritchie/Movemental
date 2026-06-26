@@ -477,8 +477,25 @@ body.scroll-locked {
   border-radius: 16px;
   padding: 0px;
   min-height: 450px;
+  touch-action: none;
   --overlay-inset-x: 12px;
   --overlay-inset-y: 12px;
+}
+
+.diagram-container,
+.diagram-container .diagram-svg,
+.diagram-overlay-pill,
+.diagram-overlay-pill *,
+.diagram-chord-readout,
+.diagram-chord-readout * {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.diagram-container .diagram-svg text {
+  pointer-events: none;
 }
 
 /* ==========================================================================

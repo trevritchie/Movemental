@@ -32,6 +32,23 @@ import {
 import { DiagramVoicingOverlay } from './DiagramVoicingOverlay';
 import { DiagramCornerActions } from './DiagramCornerActions';
 
+function isInteractiveOverlayControl(target: EventTarget | null): boolean {
+  return (
+    target instanceof Element &&
+    !!target.closest('button, select, a, input, textarea')
+  );
+}
+
+function blockBrowserGesture(
+  e: { preventDefault(): void },
+  target: EventTarget | null
+) {
+  if (isInteractiveOverlayControl(target)) {
+    return;
+  }
+  e.preventDefault();
+}
+
 function piePath(r: number, slice: number): string {
   const d = r / Math.SQRT2;
   const corners = [
@@ -188,6 +205,8 @@ export const ElementalDiagram = React.memo(function ElementalDiagram({
       ref={containerRef}
       style={{ opacity: isDiagramReady ? 1 : 0 }}
       data-layout-tier={layoutTier === 'phone' ? 'phone' : undefined}
+      onContextMenu={(e) => blockBrowserGesture(e, e.target)}
+      onTouchStart={(e) => blockBrowserGesture(e, e.target)}
     >
       <DiagramVoicingOverlay />
       {layoutTier !== 'phone' && <DiagramCornerActions />}
@@ -413,7 +432,14 @@ export const ElementalDiagram = React.memo(function ElementalDiagram({
                   strokeWidth={isSelected ? 4 : 1.5}
                 />
                 {showLabels && (
-                  <text y={r + 29} fill="#ffffff" fontSize={24} fontWeight="bold" textAnchor="middle">
+                  <text
+                    y={r + 29}
+                    fill="#ffffff"
+                    fontSize={24}
+                    fontWeight="bold"
+                    textAnchor="middle"
+                    pointerEvents="none"
+                  >
                     {chord.name}
                   </text>
                 )}

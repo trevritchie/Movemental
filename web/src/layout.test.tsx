@@ -68,6 +68,17 @@ describe('Responsive Layout CSS', () => {
     expect(phoneBlock).toMatch(/input[\s\S]*user-select:\s*text/);
   });
 
+  it('should harden diagram play surface against mobile browser gestures', () => {
+    const diagramSection = cssContent.match(
+      /Diagram container[\s\S]*?\.diagram-container \.diagram-svg text[\s\S]*?\}/
+    )?.[0];
+    expect(diagramSection).toBeTruthy();
+    expect(diagramSection).toMatch(/touch-action:\s*none/);
+    expect(diagramSection).toMatch(/-webkit-tap-highlight-color:\s*transparent/);
+    expect(diagramSection).toMatch(/user-select:\s*none/);
+    expect(diagramSection).toMatch(/pointer-events:\s*none/);
+  });
+
   it('should use a flanked vertical-slider mobile voice panel', () => {
     const phoneBlock = phoneLayoutBlock(5000);
     expect(phoneBlock).toMatch(/\.mobile-voice-panel\s*\{/);
