@@ -5,38 +5,32 @@ import { isIphone, supportsBrowserFullscreen } from './devicePlatform';
 describe('devicePlatform', () => {
   const originalUserAgent = navigator.userAgent;
 
-  afterEach(() => {
+  function stubUserAgent(userAgent: string) {
     vi.stubGlobal('navigator', {
       ...navigator,
-      userAgent: originalUserAgent,
+      userAgent,
     });
+  }
+
+  afterEach(() => {
+    stubUserAgent(originalUserAgent);
   });
 
   describe('isIphone', () => {
     it('returns true for iPhone user agents', () => {
-      vi.stubGlobal('navigator', {
-        ...navigator,
-        userAgent:
-          'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X)',
-      });
+      stubUserAgent(
+        'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X)'
+      );
       expect(isIphone()).toBe(true);
     });
 
     it('returns false for iPad user agents', () => {
-      vi.stubGlobal('navigator', {
-        ...navigator,
-        userAgent:
-          'Mozilla/5.0 (iPad; CPU OS 17_0 like Mac OS X)',
-      });
+      stubUserAgent('Mozilla/5.0 (iPad; CPU OS 17_0 like Mac OS X)');
       expect(isIphone()).toBe(false);
     });
 
     it('returns false for Android user agents', () => {
-      vi.stubGlobal('navigator', {
-        ...navigator,
-        userAgent:
-          'Mozilla/5.0 (Linux; Android 14; Pixel 8)',
-      });
+      stubUserAgent('Mozilla/5.0 (Linux; Android 14; Pixel 8)');
       expect(isIphone()).toBe(false);
     });
   });

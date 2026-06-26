@@ -1,4 +1,10 @@
 import { chordManager } from './music/ChordManager';
+import { SLICE_VARIANTS } from './music/diagramMetadata';
+import {
+  DIAGRAM_VIEW_W,
+  DIAGRAM_VIEW_H,
+  coordToPixels,
+} from './music/diagramLayout';
 
 console.log("Initializing chord dictionary...");
 chordManager.initializeChordDictionary();
@@ -19,16 +25,10 @@ console.log("Earth Coord:", earthCoord);
 console.log("Wind Coord:", windCoord);
 console.log("Fire Coord:", fireCoord);
 
-// Print Trunk, Leaf, Branch centers
-const BASE_GROUPS = ['Trunk', 'Branch', 'Sand-Storm', 'Leaf'];
-const SLICE_VARIANTS = [
-  { prefix: '',          label: 'Base', sliceIdx: 0 },
-  { prefix: 'Sister ',  label: 'Si.',  sliceIdx: 1 },
-  { prefix: 'Twin ',    label: 'Tw.',  sliceIdx: 2 },
-  { prefix: 'Brother ', label: 'Br.',  sliceIdx: 3 },
-];
+// Print Trunk, Leaf, Branch centers (subset of diagram groups for CLI check)
+const CHECK_BASE_GROUPS = ['Trunk', 'Branch', 'Sand-Storm', 'Leaf'];
 
-const groupCenters = BASE_GROUPS.reduce((acc, baseName) => {
+const groupCenters = CHECK_BASE_GROUPS.reduce((acc, baseName) => {
   const chords = SLICE_VARIANTS.map(v =>
     chordManager.getChordByName(v.prefix + baseName) ?? undefined
   );
@@ -36,7 +36,7 @@ const groupCenters = BASE_GROUPS.reduce((acc, baseName) => {
     if (!c) return null;
     const coord = chordManager.getCoordinateForChord(c.name);
     if (!coord) return null;
-    return { x: coord.x * 1160, y: coord.y * 800 };
+    return coordToPixels(coord.x, coord.y, DIAGRAM_VIEW_W, DIAGRAM_VIEW_H);
   });
   if (coords.every(c => !!c)) {
     const cx = coords.reduce((s, c) => s + c!.x, 0) / 4;

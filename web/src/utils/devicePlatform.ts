@@ -1,7 +1,11 @@
+/**
+ * User-agent helpers for iOS recording, fullscreen, and layout branching.
+ * Used by hooks and audio export to pick codecs and APIs per platform.
+ */
+
 /** True when running in iPhone Safari (not iPad). */
 export function isIphone(): boolean {
-  if (typeof navigator === 'undefined') return false;
-  return /iPhone/i.test(navigator.userAgent);
+  return /iPhone/i.test(getUserAgent());
 }
 
 function getUserAgent(): string {

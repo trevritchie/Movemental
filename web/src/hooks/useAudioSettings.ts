@@ -1,3 +1,6 @@
+/**
+ * Effect wet/dry and envelope settings synced to AudioEngine.
+ */
 import { useState, useEffect } from 'react';
 import { audioEngine } from '../audio/AudioEngine';
 import type { PlayStyle } from '../context/types';
@@ -19,7 +22,7 @@ export function useAudioSettings(playStyle: PlayStyle) {
 
   useEffect(() => {
     // The tilt style drones, so it shares the drone envelope.
-    if (playStyle === 'drone' || playStyle === 'tilt') {
+    if (playStyle === 'drone') {
       audioEngine.setEnvelope(droneAttack, droneDecay, droneSustain, droneRelease);
     } else {
       audioEngine.setEnvelope(

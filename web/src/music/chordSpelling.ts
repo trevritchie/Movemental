@@ -1,4 +1,9 @@
+/**
+ * Degree-aware note spelling for chord readouts (flat vs sharp roots, maj6/min6).
+ */
+
 import { NOTE_NAMES_FLAT, NOTE_NAMES_SHARP } from './config';
+import { getChordRootPitchClass, normalizePitchClass } from './pitchClass';
 import type { Chord } from './ChordManager';
 
 const LETTERS = ['C', 'D', 'E', 'F', 'G', 'A', 'B'] as const;
@@ -149,7 +154,7 @@ export function buildDegreeSpellingMap(
     return null;
   }
 
-  const rootPitchClass = chord.pitches[chord.rootPositionIndex] % 12;
+  const rootPitchClass = getChordRootPitchClass(chord);
   const degrees = spellChordDegrees(rootPitchClass, chord.quality);
   const map = new Map<number, string>();
 
@@ -164,9 +169,9 @@ export function spellMidiNote(
   midi: number,
   degreeSpellings: Map<number, string> | null
 ): string {
-  const pitchClass = ((midi % 12) + 12) % 12;
+  const pc = normalizePitchClass(midi);
   const octave = Math.floor(midi / 12) - 1;
   const noteName =
-    degreeSpellings?.get(pitchClass) ?? NOTE_NAMES_FLAT[pitchClass];
+    degreeSpellings?.get(pc) ?? NOTE_NAMES_FLAT[pc];
   return `${noteName}${octave}`;
 }

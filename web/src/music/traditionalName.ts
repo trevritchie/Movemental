@@ -1,3 +1,7 @@
+/**
+ * Traditional chord spelling for UI labels (slash equivalents for maj6/min6).
+ */
+
 import { NOTE_NAMES_FLAT } from './config';
 
 /**

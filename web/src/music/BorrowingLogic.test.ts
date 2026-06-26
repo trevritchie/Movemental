@@ -9,7 +9,18 @@ describe('BorrowingLogic', () => {
     chordManager.setTonalCenterOffset(0);
   });
 
-  const firePitches = [62, 65, 68, 71]; // D4, F4, Ab4, B4
+  // Fire diminished pitch classes voiced around middle C for step/wrap tests.
+  const firePitches = [62, 65, 68, 71];
+
+  function branchChord() {
+    return chordManager.getChordByName('Branch')!;
+  }
+
+  function borrowingStateWithMutedVoice(voiceLine: number) {
+    const state = getInitialBorrowingState();
+    state.noteStates[voiceLine] = 'off';
+    return state;
+  }
 
   describe('findNextHigherNote', () => {
     it('returns the next higher pitch class in the same octave', () => {
@@ -37,7 +48,7 @@ describe('BorrowingLogic', () => {
 
   describe('getRootPositionMapping', () => {
     it('maps Branch at C by harmonic degree', () => {
-      const branch = chordManager.getChordByName('Branch')!;
+      const branch = branchChord();
       expect(branch.pitches).toEqual([0, 4, 7, 9]);
       expect(branch.rootPositionIndex).toBe(0);
       expect(logic.getRootPositionMapping(branch)).toEqual({
@@ -63,52 +74,29 @@ describe('BorrowingLogic', () => {
 
   describe('generatePitchStructure', () => {
     it('nulls exactly one slot when each Branch voice is muted', () => {
-      const branch = chordManager.getChordByName('Branch')!;
+      const branch = branchChord();
       const allOn = logic.generatePitchStructure(
         branch,
         getInitialBorrowingState()
       );
       expect(allOn).toEqual([0, 4, 7, 9]);
 
-      const muteRoot = getInitialBorrowingState();
-      muteRoot.noteStates[1] = 'off';
-      expect(logic.generatePitchStructure(branch, muteRoot)).toEqual([
-        null,
-        4,
-        7,
-        9,
-      ]);
-
-      const muteThird = getInitialBorrowingState();
-      muteThird.noteStates[2] = 'off';
-      expect(logic.generatePitchStructure(branch, muteThird)).toEqual([
-        0,
-        null,
-        7,
-        9,
-      ]);
-
-      const muteFifth = getInitialBorrowingState();
-      muteFifth.noteStates[3] = 'off';
-      expect(logic.generatePitchStructure(branch, muteFifth)).toEqual([
-        0,
-        4,
-        null,
-        9,
-      ]);
-
-      const muteSixth = getInitialBorrowingState();
-      muteSixth.noteStates[4] = 'off';
-      expect(logic.generatePitchStructure(branch, muteSixth)).toEqual([
-        0,
-        4,
-        7,
-        null,
-      ]);
+      expect(
+        logic.generatePitchStructure(branch, borrowingStateWithMutedVoice(1))
+      ).toEqual([null, 4, 7, 9]);
+      expect(
+        logic.generatePitchStructure(branch, borrowingStateWithMutedVoice(2))
+      ).toEqual([0, null, 7, 9]);
+      expect(
+        logic.generatePitchStructure(branch, borrowingStateWithMutedVoice(3))
+      ).toEqual([0, 4, null, 9]);
+      expect(
+        logic.generatePitchStructure(branch, borrowingStateWithMutedVoice(4))
+      ).toEqual([0, 4, 7, null]);
     });
 
     it('skips borrowing on muted lines in pitch structure', () => {
-      const branch = chordManager.getChordByName('Branch')!;
+      const branch = branchChord();
       const state = getInitialBorrowingState();
       state.noteStates[1] = 'off';
       state.circlePositions[1] = 'up';
@@ -120,7 +108,7 @@ describe('BorrowingLogic', () => {
     });
 
     it('getMutedPitchClasses mutes natural and borrowed PC when line is off', () => {
-      const branch = chordManager.getChordByName('Branch')!;
+      const branch = branchChord();
       const state = getInitialBorrowingState();
       state.noteStates[1] = 'off';
       state.circlePositions[1] = 'up';
@@ -134,7 +122,7 @@ describe('BorrowingLogic', () => {
 
   describe('prepareVoicingInput', () => {
     it('builds structure and mutes in one pass', () => {
-      const branch = chordManager.getChordByName('Branch')!;
+      const branch = branchChord();
       const state: BorrowingState = {
         ...getInitialBorrowingState(),
         active: true,
@@ -148,7 +136,7 @@ describe('BorrowingLogic', () => {
     });
 
     it('matches separate structure and mute helpers', () => {
-      const branch = chordManager.getChordByName('Branch')!;
+      const branch = branchChord();
       const state: BorrowingState = {
         ...getInitialBorrowingState(),
         active: true,
@@ -183,7 +171,7 @@ describe('BorrowingLogic', () => {
   describe('applyBorrowingOverlay', () => {
     it('replaces natural pitch class at the closest MIDI octave', () => {
       chordManager.setTonalCenterOffset(10);
-      const branch = chordManager.getChordByName('Branch')!;
+      const branch = branchChord();
       const neutral = [70, 79, 86, 89, 94];
       const state = getInitialBorrowingState();
       state.circlePositions[4] = 'up';
@@ -208,7 +196,7 @@ describe('BorrowingLogic', () => {
     });
 
     it('borrows root down to the nearest B, not an octave above C', () => {
-      const branch = chordManager.getChordByName('Branch')!;
+      const branch = branchChord();
       const neutral = [60, 64, 67, 69];
       const state = getInitialBorrowingState();
       state.circlePositions[1] = 'down';
@@ -222,7 +210,7 @@ describe('BorrowingLogic', () => {
     });
 
     it('returns neutral voicing when all lines are on neutral', () => {
-      const branch = chordManager.getChordByName('Branch')!;
+      const branch = branchChord();
       const neutral = [58, 67, 74, 77, 82];
       expect(
         logic.applyBorrowingOverlay(

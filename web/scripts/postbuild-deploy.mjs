@@ -1,3 +1,4 @@
+// Post-build hook: deploy dist/ to Firebase Hosting on local builds (skipped in CI).
 import { execSync } from 'node:child_process'
 
 if (process.env.CI) {

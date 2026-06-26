@@ -1,5 +1,8 @@
-// config.ts
-// Ported configuration from Movemental config.py
+/**
+ * Global defaults, note names, borrowing relationships, and MIDI reference
+ * pitches. Ported from Movemental config.py; see web/README.md for how defaults
+ * surface in ChordContext and playback.
+ */
 
 import type { VoiceLeadingMode } from '../context/types';
 

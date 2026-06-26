@@ -28,7 +28,7 @@ export const FLAT_TILT: TiltSample = { x: 0, y: 0 };
 // (Double Octave).
 const MAX_INPUT_STEPS = 8;
 
-// Four named positions (1st through 4th) on a 4-tone cycle; static UI uses
+// Four named positions (1st through 4th) on a 4-tone cycle; no-tilt UI uses
 // indices 0..MAX_PARALLEL_STEPS. Tilt pitch adds one extra ladder step each
 // way so full tilt lands on 1st again (one cycle up or down).
 export const MAX_PARALLEL_STEPS = 3;
@@ -50,8 +50,7 @@ const THINNING_RULES: Record<number, number[]> = {
   9: [2, 3, 5, 8], // double octave chord
 };
 
-const clamp = (value: number, min: number, max: number): number =>
-  Math.min(max, Math.max(min, value));
+import { clamp } from '../utils/clamp';
 
 /**
  * Build the tone cycle from a pre-voicing pitch structure.
@@ -93,7 +92,7 @@ export function ladderPitch(
  * Chest-ward (y < 0): +1..+4; away-from-chest (y > 0): -1..-4; flat: 0.
  * ±4 is one full tone-cycle (octave register) from center 1st.
  *
- * Static UI encodes the full ±4 range via tiltSampleFromLevels.
+ * No-tilt UI encodes the full ±4 range via tiltSampleFromLevels.
  */
 export function parallelLevelFromTilt(tilt: TiltSample): number {
   const y = clamp(tilt.y, -1, 1);
@@ -135,23 +134,23 @@ export function mapTiltToPositions(tilt: TiltSample): {
   };
 }
 
-/** Default static voicing level index (5 = Drop 2). */
-export const DEFAULT_STATIC_VOICING_LEVEL = 5;
+/** Default no-tilt voicing level index (5 = Drop 2). */
+export const DEFAULT_NO_TILT_VOICING_LEVEL = 5;
 
-/** Static position UI indices span parallelSteps -4..+4 (9 options). */
-export const STATIC_POSITION_LEVEL_COUNT = MAX_TILT_PITCH_STEPS * 2 + 1;
+/** No-tilt position UI indices span parallelSteps -4..+4 (9 options). */
+export const NO_TILT_POSITION_LEVEL_COUNT = MAX_TILT_PITCH_STEPS * 2 + 1;
 
-/** Default static position index (4 = 1st / parallelSteps 0). */
-export const DEFAULT_STATIC_POSITION_LEVEL = MAX_TILT_PITCH_STEPS;
+/** Default no-tilt position index (4 = 1st / parallelSteps 0). */
+export const DEFAULT_NO_TILT_POSITION_LEVEL = MAX_TILT_PITCH_STEPS;
 
-/** Map a static position dropdown index to signed parallel ladder steps. */
-export function parallelStepsFromStaticPositionLevel(level: number): number {
-  const idx = clamp(level, 0, STATIC_POSITION_LEVEL_COUNT - 1);
+/** Map a no-tilt position dropdown index to signed parallel ladder steps. */
+export function parallelStepsFromNoTiltPositionLevel(level: number): number {
+  const idx = clamp(level, 0, NO_TILT_POSITION_LEVEL_COUNT - 1);
   return idx - MAX_TILT_PITCH_STEPS;
 }
 
-/** Map signed parallel ladder steps to a static position dropdown index. */
-export function staticPositionLevelFromParallelSteps(steps: number): number {
+/** Map signed parallel ladder steps to a no-tilt position dropdown index. */
+export function noTiltPositionLevelFromParallelSteps(steps: number): number {
   return (
     clamp(steps, -MAX_TILT_PITCH_STEPS, MAX_TILT_PITCH_STEPS) +
     MAX_TILT_PITCH_STEPS
@@ -159,7 +158,7 @@ export function staticPositionLevelFromParallelSteps(steps: number): number {
 }
 
 /**
- * Build a discrete tilt sample for static mode UI controls.
+ * Build a discrete tilt sample for no-tilt mode UI controls.
  *
  * parallelSteps may be signed (-4..+4): chest-ward positive, away-from-chest
  * negative, flat = 0 (1st).
@@ -184,15 +183,33 @@ export function tiltSampleFromLevels(
   return { x, y };
 }
 
-/** Map a tilt sample back to static UI voicing and position indices. */
-export function staticLevelsFromTilt(tilt: TiltSample): {
+/**
+ * Tilt voicing with a fixed parallel baseline at flat phone pitch plus live
+ * pitch offset. Root position mode uses flatBaseline 0; Smooth mode supplies a
+ * per-chord value from CHORD_FLAT_PARALLEL.
+ */
+export function resolvePlaybackTiltWithFlatBaseline(
+  flatBaseline: number,
+  liveTilt: TiltSample
+): TiltSample {
+  const { inputSteps } = mapTiltToPositions(liveTilt);
+  const parallel = clamp(
+    flatBaseline + parallelLevelFromTilt(liveTilt),
+    -MAX_TILT_PITCH_STEPS,
+    MAX_TILT_PITCH_STEPS
+  );
+  return tiltSampleFromLevels(inputSteps, parallel);
+}
+
+/** Map a tilt sample back to no-tilt UI voicing and position indices. */
+export function noTiltLevelsFromTilt(tilt: TiltSample): {
   voicingLevel: number;
   positionLevel: number;
 } {
   const { inputSteps, parallelSteps } = mapTiltToPositions(tilt);
   return {
     voicingLevel: inputSteps,
-    positionLevel: staticPositionLevelFromParallelSteps(parallelSteps),
+    positionLevel: noTiltPositionLevelFromParallelSteps(parallelSteps),
   };
 }
 
@@ -307,7 +324,7 @@ export function obliqueMotion(
  * - contrary: bottom and top move in opposite directions as width narrows
  *   (Double Oct. down to Drop 3; Drop 2&4 is an oblique intermediary step).
  * - pivot: bottom stays on the parallel pivot; width only adds notes above
- *   (static mode position control).
+ *   (no-tilt mode position control).
  */
 export type TiltVoicingAnchor = 'contrary' | 'pivot';
 
@@ -320,11 +337,11 @@ export interface ComputeTiltVoicingOptions {
  *
  * Parallel and roll motion compose on the tone ladder: the pitch axis
  * sets the parallel pivot; roll selects chain width (contrary by default,
- * or pivot-anchored for static mode).
+ * or pivot-anchored for no-tilt mode).
  *
  * pitchStructure: pre-voicing pitches from BorrowingLogic (4 slots, nulls
  * for voices toggled off). rootPitchClass: pitch class of the chord root.
- * octaveRange: the app's octave range setting, used to place the register.
+ * octaveRange: the app's home octave setting, used to place the register.
  * tonalCenter: selected root/key pitch class; anchors home register so
  * elemental chords stay in a continuous register when roots wrap mod 12.
  * homeMidiOverride: when set, uses this pivot instead of the default formula
@@ -342,19 +359,21 @@ export function computeTiltVoicing(
   const cycle = buildToneCycle(pitchStructure, rootPitchClass);
   if (cycle.length === 0) return [];
 
-  const homeMidi =
+  const contraryHomeMidi =
     homeMidiOverride ??
     (tonalCenter +
       OCTAVE * (octaveRange + 2) +
       ((rootPitchClass - tonalCenter + OCTAVE) % OCTAVE));
+  const anchor = options?.anchor ?? 'contrary';
+  const ladderBase =
+    anchor === 'pivot' ? contraryHomeMidi - OCTAVE : contraryHomeMidi;
 
   const { parallelSteps } = mapTiltToPositions(tilt);
   const maxPivot = cycle.length;
   const pivot = clamp(parallelSteps, -maxPivot, maxPivot);
   const width = voicingWidthFromTilt(tilt);
-  const anchor = options?.anchor ?? 'contrary';
   if (anchor === 'pivot') {
-    return buildThinnedChain(pivot, width, cycle, homeMidi);
+    return buildThinnedChain(pivot, width, cycle, ladderBase);
   }
-  return obliqueMotion(pivot, width, cycle, homeMidi);
+  return obliqueMotion(pivot, width, cycle, contraryHomeMidi);
 }

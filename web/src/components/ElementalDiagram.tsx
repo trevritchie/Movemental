@@ -1,4 +1,11 @@
-import React, { useState, useLayoutEffect, useCallback } from 'react';
+import React, {
+  useState,
+  useLayoutEffect,
+  useCallback,
+  useRef,
+  useEffect,
+  useMemo,
+} from 'react';
 import { chordManager, type Chord } from '../music/ChordManager';
 import {
   BASE_GROUPS,
@@ -7,6 +14,14 @@ import {
   GROUP_PALETTE,
   AXIS_PARENTS,
 } from '../music/diagramMetadata';
+import {
+  DIAGRAM_VIEW_W,
+  DIAGRAM_VIEW_H,
+  DIAGRAM_COMPACT_VIEW_W,
+  DIAGRAM_COMPACT_VIEW_H,
+  DIAGRAM_COMPACT_VIEW_PAD,
+} from '../music/diagramLayout';
+import { parentElementStyle } from '../music/elementTokens';
 import { useChordContext } from '../context/ChordContext';
 import { BREAKPOINTS } from '../layout/breakpoints';
 import { useLayoutTier } from '../hooks/useLayoutTier';
@@ -16,6 +31,7 @@ import {
 } from '../hooks/useDiagramOverlayMetrics';
 import { DiagramVoicingOverlay } from './DiagramVoicingOverlay';
 import { DiagramCornerActions } from './DiagramCornerActions';
+import { useSuppressNativeTouchGestures } from '../hooks/useSuppressNativeTouchGestures';
 
 function piePath(r: number, slice: number): string {
   const d = r / Math.SQRT2;
@@ -30,25 +46,12 @@ function piePath(r: number, slice: number): string {
   return `M 0,0 L ${x1},${y1} A ${r},${r} 0 0,1 ${x2},${y2} Z`;
 }
 
-const VIEW_W = 1160;
-const VIEW_H = 800;
-
-const getColor = (name: string) => {
-  if (name === 'Earth') return 'var(--color-earth)';
-  if (name === 'Wind')  return 'var(--color-wind)';
-  if (name === 'Fire')  return 'var(--color-fire)';
-  return 'var(--color-mixed)';
-};
-
-const getGlow = (name: string) => {
-  if (name === 'Earth') return 'var(--glow-earth)';
-  if (name === 'Wind')  return 'var(--glow-wind)';
-  if (name === 'Fire')  return 'var(--glow-fire)';
-  return 'rgba(255,255,255,0.15)';
-};
-
-export const ElementalDiagram: React.FC<{ children?: React.ReactNode }> = ({ children }) => {
-  const containerRef = React.useRef<HTMLDivElement>(null);
+export const ElementalDiagram = React.memo(function ElementalDiagram({
+  children,
+}: {
+  children?: React.ReactNode;
+}) {
+  const containerRef = useRef<HTMLDivElement>(null);
   const [aspectRatioCorrection, setAspectRatioCorrection] = useState(1);
 
   const {
@@ -72,7 +75,7 @@ export const ElementalDiagram: React.FC<{ children?: React.ReactNode }> = ({ chi
     const { width, height } = container.getBoundingClientRect();
     setContainerWidth(width);
     if (width > 0 && height > 0) {
-      const viewBoxAR = 1210 / 860;
+      const viewBoxAR = DIAGRAM_COMPACT_VIEW_W / DIAGRAM_COMPACT_VIEW_H;
       const containerAR = width / height;
       setAspectRatioCorrection(containerAR / viewBoxAR);
       if (layoutTier === 'phone') {
@@ -83,6 +86,8 @@ export const ElementalDiagram: React.FC<{ children?: React.ReactNode }> = ({ chi
       }
     }
   }, [layoutTier]);
+
+  useSuppressNativeTouchGestures(containerRef);
 
   useLayoutEffect(() => {
     let frame2 = 0;
@@ -98,7 +103,7 @@ export const ElementalDiagram: React.FC<{ children?: React.ReactNode }> = ({ chi
     };
   }, [measureContainer]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (!isDiagramReady) return;
     const container = containerRef.current;
     if (!container) return;
@@ -115,8 +120,8 @@ export const ElementalDiagram: React.FC<{ children?: React.ReactNode }> = ({ chi
     containerWidth < BREAKPOINTS.compactDiagramWidth;
 
   const viewBox = isCompactDiagram
-    ? `-25 -25 1210 860`
-    : `0 0 ${VIEW_W} ${VIEW_H}`;
+    ? `-${DIAGRAM_COMPACT_VIEW_PAD} -${DIAGRAM_COMPACT_VIEW_PAD} ${DIAGRAM_COMPACT_VIEW_W} ${DIAGRAM_COMPACT_VIEW_H}`
+    : `0 0 ${DIAGRAM_VIEW_W} ${DIAGRAM_VIEW_H}`;
 
   const R_MAIN = isCompactDiagram ? 100 : 52;
   const R_GROUP = isCompactDiagram ? 102 : 54;
@@ -129,14 +134,14 @@ export const ElementalDiagram: React.FC<{ children?: React.ReactNode }> = ({ chi
     return pos && pos !== 'line' && noteState === 'on';
   }) : false;
 
-  const getCoords = React.useCallback((chord: Chord | undefined) => {
+  const getCoords = useCallback((chord: Chord | undefined) => {
     if (!chord) return null;
     const coord = chordManager.getCoordinateForChord(chord.name);
     if (!coord) return null;
-    return { x: coord.x * VIEW_W, y: coord.y * VIEW_H };
+    return { x: coord.x * DIAGRAM_VIEW_W, y: coord.y * DIAGRAM_VIEW_H };
   }, []);
 
-  const { earth, wind, fire, earthC, windC, fireC, groupCenters, getParentCoords, getGroupParentCoords } = React.useMemo(() => {
+  const { earth, wind, fire, earthC, windC, fireC, groupCenters, getParentCoords, getGroupParentCoords } = useMemo(() => {
     const earth = chordManager.getChordByName('Earth');
     const wind  = chordManager.getChordByName('Wind');
     const fire  = chordManager.getChordByName('Fire');
@@ -243,7 +248,7 @@ export const ElementalDiagram: React.FC<{ children?: React.ReactNode }> = ({ chi
                 y1={p1C.y}
                 x2={center.x}
                 y2={center.y}
-                stroke={getColor(parents.p1)}
+                stroke={parentElementStyle(parents.p1).color}
                 strokeWidth={isGroupActive ? 4.5 : 2}
                 strokeDasharray={isGroupActive ? "none" : "3 5"}
                 opacity={isGroupActive ? 0.95 : 0.35}
@@ -255,7 +260,7 @@ export const ElementalDiagram: React.FC<{ children?: React.ReactNode }> = ({ chi
                 y1={p2C.y}
                 x2={center.x}
                 y2={center.y}
-                stroke={getColor(parents.p2)}
+                stroke={parentElementStyle(parents.p2).color}
                 strokeWidth={isGroupActive ? 4.5 : 2}
                 strokeDasharray={isGroupActive ? "none" : "3 5"}
                 opacity={isGroupActive ? 0.95 : 0.35}
@@ -268,7 +273,7 @@ export const ElementalDiagram: React.FC<{ children?: React.ReactNode }> = ({ chi
                   y1={oppC.y}
                   x2={center.x}
                   y2={center.y}
-                  stroke={getColor(oppParent)}
+                  stroke={parentElementStyle(oppParent).color}
                   strokeWidth={isGroupActive && isBorrowingActive ? 5 : 1.5}
                   strokeDasharray="none"
                   opacity={isGroupActive && isBorrowingActive ? 0.95 : 0}
@@ -398,15 +403,27 @@ export const ElementalDiagram: React.FC<{ children?: React.ReactNode }> = ({ chi
             >
               {/* Correction Group: Inverse the SVG stretch to keep nodes circular */}
               <g transform={`scale(1, ${aspectRatioCorrection})`}>
-                <circle r={r * 1.2} fill={getGlow(chord.name)} filter="url(#glow)" opacity={isSelected ? 1 : 0.4} />
+                <circle
+                  r={r * 1.2}
+                  fill={parentElementStyle(chord.name).glow}
+                  filter="url(#glow)"
+                  opacity={isSelected ? 1 : 0.4}
+                />
                 <circle
                   r={r}
-                  fill={getColor(chord.name)}
+                  fill={parentElementStyle(chord.name).color}
                   stroke={isSelected ? 'white' : 'rgba(255,255,255,0.25)'}
                   strokeWidth={isSelected ? 4 : 1.5}
                 />
                 {showLabels && (
-                  <text y={r + 29} fill="#ffffff" fontSize={24} fontWeight="bold" textAnchor="middle">
+                  <text
+                    y={r + 29}
+                    fill="#ffffff"
+                    fontSize={24}
+                    fontWeight="bold"
+                    textAnchor="middle"
+                    pointerEvents="none"
+                  >
                     {chord.name}
                   </text>
                 )}
@@ -418,4 +435,4 @@ export const ElementalDiagram: React.FC<{ children?: React.ReactNode }> = ({ chi
       {children}
     </div>
   );
-};
+});

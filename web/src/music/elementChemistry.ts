@@ -1,3 +1,10 @@
+/**
+ * Element chemistry subscripts (Earth / Wind / Fire counts) from sounded pitch
+ * classes relative to the tonal center. Used by the diagram overlay readout.
+ */
+import { normalizePitchClass, relativePitchClass } from './pitchClass';
+import { elementBucketForRelativePc } from './elementTokens';
+
 export interface ElementFormula {
   earth: number;
   wind: number;
@@ -17,18 +24,18 @@ export function computeElementFormula(
   const pitchClasses = new Set<number>();
   for (const pitch of activePitches) {
     if (pitch === null) continue;
-    pitchClasses.add(((pitch % 12) + 12) % 12);
+    pitchClasses.add(normalizePitchClass(pitch));
   }
   if (pitchClasses.size === 0) return null;
 
   let earth = 0;
   let wind = 0;
   let fire = 0;
-  for (const pitchClass of pitchClasses) {
-    const relPc = ((pitchClass - tonalCenter) + 12) % 12;
-    const rem = relPc % 3;
-    if (rem === 0) earth++;
-    else if (rem === 1) wind++;
+  for (const pc of pitchClasses) {
+    const relPc = relativePitchClass(pc, tonalCenter);
+    const bucket = elementBucketForRelativePc(relPc);
+    if (bucket === 0) earth++;
+    else if (bucket === 1) wind++;
     else fire++;
   }
   return { earth, wind, fire };

@@ -1,3 +1,6 @@
+/**
+ * Settings flyout open state and focus management for the gear trigger.
+ */
 import { useCallback, useId, useRef, useState } from 'react';
 
 export function useSettingsMenu() {

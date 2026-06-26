@@ -4,8 +4,21 @@ import { renderHook } from '@testing-library/react';
 import fs from 'fs';
 import path from 'path';
 import { BREAKPOINTS, PHONE_LANDSCAPE_BLOCK_MEDIA } from './layout/breakpoints';
-import { useLayoutTier } from './hooks/useLayoutTier';
+import { LayoutTierProvider, useLayoutTier } from './hooks/useLayoutTier';
 import { usePhoneLandscapeBlocked } from './hooks/usePhoneLandscapeBlocked';
+
+const mockMatchMedia = (matchesFor: (query: string) => boolean) => {
+  window.matchMedia = vi.fn().mockImplementation((query: string) => ({
+    matches: matchesFor(query),
+    media: query,
+    onchange: null,
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    addListener: vi.fn(),
+    removeListener: vi.fn(),
+    dispatchEvent: vi.fn(),
+  }));
+};
 
 describe('Responsive Layout CSS', () => {
   const cssPath = path.resolve(process.cwd(), 'src/index.css');
@@ -18,6 +31,12 @@ describe('Responsive Layout CSS', () => {
 
   const phoneLayoutPattern =
     /\(max-width:\s*767px\)[\s\S]*?\(max-width:\s*950px\)\s*and\s*\(\s*orientation:\s*portrait\s*\)\s*and\s*\(\s*pointer:\s*coarse\s*\)/;
+
+  // Slice the combined mobile media-query block for focused assertions.
+  function phoneLayoutBlock(maxLength = 2500): string {
+    const phoneStart = cssContent.search(phoneLayoutPattern);
+    return cssContent.slice(phoneStart, phoneStart + maxLength);
+  }
 
   it('should define portrait main-content column layout on mobile', () => {
     const portraitMatch = cssContent.match(
@@ -35,24 +54,33 @@ describe('Responsive Layout CSS', () => {
     const phoneStart = cssContent.search(phoneLayoutPattern);
     expect(phoneStart).toBeGreaterThan(-1);
 
-    const phoneBlock = cssContent.slice(phoneStart, phoneStart + 2500);
+    const phoneBlock = phoneLayoutBlock();
     expect(phoneBlock).toMatch(/html,\s*body[\s\S]*overflow:\s*hidden/);
     expect(phoneBlock).toMatch(/overscroll-behavior:\s*none/);
     expect(phoneBlock).toMatch(/position:\s*fixed/);
   });
 
   it('should disable text selection and touch callouts on mobile shell', () => {
-    const phoneStart = cssContent.search(phoneLayoutPattern);
-    const phoneBlock = cssContent.slice(phoneStart, phoneStart + 2500);
+    const phoneBlock = phoneLayoutBlock();
 
     expect(phoneBlock).toMatch(/-webkit-touch-callout:\s*none/);
     expect(phoneBlock).toMatch(/user-select:\s*none/);
     expect(phoneBlock).toMatch(/input[\s\S]*user-select:\s*text/);
   });
 
+  it('should harden diagram play surface against mobile browser gestures', () => {
+    const diagramSection = cssContent.match(
+      /Diagram container[\s\S]*?\.diagram-container \.diagram-svg text[\s\S]*?\}/
+    )?.[0];
+    expect(diagramSection).toBeTruthy();
+    expect(diagramSection).toMatch(/touch-action:\s*none/);
+    expect(diagramSection).toMatch(/-webkit-tap-highlight-color:\s*transparent/);
+    expect(diagramSection).toMatch(/user-select:\s*none/);
+    expect(diagramSection).toMatch(/pointer-events:\s*none/);
+  });
+
   it('should use a flanked vertical-slider mobile voice panel', () => {
-    const phoneStart = cssContent.search(phoneLayoutPattern);
-    const phoneBlock = cssContent.slice(phoneStart, phoneStart + 5000);
+    const phoneBlock = phoneLayoutBlock(5000);
     expect(phoneBlock).toMatch(/\.mobile-voice-panel\s*\{/);
     expect(phoneBlock).toMatch(/\.mobile-voice-sliders\s*\{/);
     expect(phoneBlock).toMatch(/\.mobile-voice-slider-col\s*\{/);
@@ -181,8 +209,7 @@ describe('Responsive Layout CSS', () => {
   });
 
   it('should ensure accessible touch targets in the mobile voice panel', () => {
-    const phoneStart = cssContent.search(phoneLayoutPattern);
-    const phoneBlock = cssContent.slice(phoneStart, phoneStart + 5000);
+    const phoneBlock = phoneLayoutBlock(5000);
     expect(phoneBlock).toMatch(/\.mobile-toolbar-btn\s*\{/);
     expect(phoneBlock).toMatch(/min-width:\s*48px/);
     expect(phoneBlock).toMatch(/min-height:\s*48px/);
@@ -266,19 +293,6 @@ describe('Responsive Layout CSS', () => {
 });
 
 describe('isPhoneLandscapeBlocked', () => {
-  const mockMatchMedia = (matchesFor: (query: string) => boolean) => {
-    window.matchMedia = vi.fn().mockImplementation((query: string) => ({
-      matches: matchesFor(query),
-      media: query,
-      onchange: null,
-      addEventListener: vi.fn(),
-      removeEventListener: vi.fn(),
-      addListener: vi.fn(),
-      removeListener: vi.fn(),
-      dispatchEvent: vi.fn(),
-    }));
-  };
-
   it('should detect blocked phone landscape via shared media query', async () => {
     const { isPhoneLandscapeBlocked } = await import('./layout/breakpoints');
 
@@ -295,19 +309,6 @@ describe('isPhoneLandscapeBlocked', () => {
 });
 
 describe('resolveLayoutTier', () => {
-  const mockMatchMedia = (matchesFor: (query: string) => boolean) => {
-    window.matchMedia = vi.fn().mockImplementation((query: string) => ({
-      matches: matchesFor(query),
-      media: query,
-      onchange: null,
-      addEventListener: vi.fn(),
-      removeEventListener: vi.fn(),
-      addListener: vi.fn(),
-      removeListener: vi.fn(),
-      dispatchEvent: vi.fn(),
-    }));
-  };
-
   it('should classify narrow portrait touch viewports as phone', async () => {
     const { resolveLayoutTier } = await import('./layout/breakpoints');
 
@@ -337,19 +338,6 @@ describe('resolveLayoutTier', () => {
 });
 
 describe('layout hook initial state', () => {
-  const mockMatchMedia = (matchesFor: (query: string) => boolean) => {
-    window.matchMedia = vi.fn().mockImplementation((query: string) => ({
-      matches: matchesFor(query),
-      media: query,
-      onchange: null,
-      addEventListener: vi.fn(),
-      removeEventListener: vi.fn(),
-      addListener: vi.fn(),
-      removeListener: vi.fn(),
-      dispatchEvent: vi.fn(),
-    }));
-  };
-
   it('useLayoutTier should read phone tier synchronously on first render', () => {
     Object.defineProperty(window, 'innerWidth', {
       configurable: true,
@@ -360,7 +348,9 @@ describe('layout hook initial state', () => {
         query === '(pointer: coarse)' || query === '(orientation: portrait)',
     );
 
-    const { result } = renderHook(() => useLayoutTier());
+    const { result } = renderHook(() => useLayoutTier(), {
+      wrapper: LayoutTierProvider,
+    });
     expect(result.current).toBe('phone');
   });
 

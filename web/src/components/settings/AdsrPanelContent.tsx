@@ -28,7 +28,7 @@ export const AdsrPanelContent: React.FC<AdsrPanelContentProps> = ({
     setDroneRelease,
   } = useChordContext();
 
-  const isDrone = playStyle === 'drone' || playStyle === 'tilt';
+  const isDrone = playStyle === 'drone';
 
   const currentA = isDrone ? droneAttack : envelopeAttack;
   const currentD = isDrone ? droneDecay : envelopeDecay;

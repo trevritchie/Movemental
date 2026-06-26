@@ -6,6 +6,8 @@ import {
   formatPlayingNotes,
 } from '../music/formatPlayingNotes';
 import { computeElementFormula } from '../music/elementChemistry';
+import { cssColorForRelativePc } from '../music/elementTokens';
+import { normalizePitchClass, relativePitchClass } from '../music/pitchClass';
 import { useChordContext } from '../context/ChordContext';
 
 const CLOCK_RADIUS = 108;
@@ -66,27 +68,23 @@ export const ClockFace: React.FC<{ isMobileOverlay?: boolean }> = ({
   const elementalName = selectedChord?.name || null;
   const traditionalName = selectedChord?.traditionalName || null;
 
-  const displayElementalName = React.useMemo(() => {
+  const displayElementalName = useMemo(() => {
     if (!elementalName || !isMobileOverlay) return elementalName;
     return mobileChordDisplayName(elementalName);
   }, [elementalName, isMobileOverlay]);
 
-  const playingNotes = React.useMemo(
+  const playingNotes = useMemo(
     () => formatPlayingNotes(activePitches, selectedChord),
     [activePitches, selectedChord]
   );
 
-  const elementFormula = React.useMemo(
+  const elementFormula = useMemo(
     () => computeElementFormula(activePitches, tonalCenter),
     [activePitches, tonalCenter]
   );
 
-  const getElementColor = (relativePitchClass: number) => {
-    const rem = ((relativePitchClass % 3) + 3) % 3;
-    if (rem === 0) return 'var(--color-earth)';
-    if (rem === 1) return 'var(--color-wind)';
-    return 'var(--color-fire)';
-  };
+  const getElementColor = (relativePitchClass: number) =>
+    cssColorForRelativePc(relativePitchClass);
 
   const ticks = useMemo(() => {
     return CLOCK_POINTS.map((pt, i) => {
@@ -99,8 +97,8 @@ export const ClockFace: React.FC<{ isMobileOverlay?: boolean }> = ({
     return activePitches
       .filter((p): p is number => p !== null)
       .map(pitch => {
-        const pitchClass = pitch % 12;
-        const adjustedPitchClass = (pitchClass - tonalCenter + 12) % 12;
+        const pitchClass = normalizePitchClass(pitch);
+        const adjustedPitchClass = relativePitchClass(pitchClass, tonalCenter);
         const angle = (adjustedPitchClass / 12) * Math.PI * 2 - Math.PI / 2;
         return {
           x: CLOCK_CX + CLOCK_RADIUS * Math.cos(angle),
@@ -213,9 +211,8 @@ export const ClockFace: React.FC<{ isMobileOverlay?: boolean }> = ({
       ))}
 
       {activeNodes.map((node, i) => {
-        const relativePitchClass =
-          ((node.pitch % 12) - tonalCenter + 12) % 12;
-        const nodeColor = getElementColor(relativePitchClass);
+        const relPc = relativePitchClass(node.pitch, tonalCenter);
+        const nodeColor = getElementColor(relPc);
         return (
           <circle
             key={`node-${i}`}

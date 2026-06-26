@@ -1,14 +1,11 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { ChordManager } from './ChordManager';
+import { ChordManager, type Chord } from './ChordManager';
 import { OCTAVE } from './config';
 import { computeNeutralTiltVoicing } from './tiltVoicingPlayback';
 import {
-  bassDelta,
-  bassPreferenceScore,
   computeEffectiveParallelSteps,
-  LEADING_TONE_COST_SLACK,
   resolveSmoothParallelSteps,
-} from './smoothVoiceLeading';
+} from './smoothestVoiceLeading';
 import {
   FLAT_TILT,
   buildThinnedChain,
@@ -16,20 +13,25 @@ import {
   mapTiltToPositions,
   obliqueMotion,
   parallelLevelFromTilt,
-  parallelStepsFromStaticPositionLevel,
-  staticLevelsFromTilt,
-  staticPositionLevelFromParallelSteps,
+  parallelStepsFromNoTiltPositionLevel,
+  noTiltLevelsFromTilt,
+  noTiltPositionLevelFromParallelSteps,
   tiltSampleFromLevels,
   voicingWidthFromTilt,
 } from './TiltVoicingEngine';
 
 const TONAL_CENTER_BB = 10;
 const OCTAVE_RANGE = 2;
+// Flat double-octave roll at parallel 0 (smooth mode starting tilt).
 const DOUBLE_OCTAVE_FLAT = tiltSampleFromLevels(8, 0);
 const PITCH_UP_TWO = tiltSampleFromLevels(8, 2);
 
 function pitchClass(midi: number): number {
   return ((midi % OCTAVE) + OCTAVE) % OCTAVE;
+}
+
+function pitchStructureFrom(chord: Chord): number[] {
+  return [chord.pitches[0], chord.pitches[1], chord.pitches[2], chord.pitches[3]];
 }
 
 describe('resolveSmoothParallelSteps', () => {
@@ -56,12 +58,7 @@ describe('resolveSmoothParallelSteps', () => {
     expect(previousPitches.length).toBeGreaterThan(0);
     expect(pitchClass(Math.min(...previousPitches))).toBe(TONAL_CENTER_BB);
 
-    const pitchStructure = [
-      glass.pitches[0],
-      glass.pitches[1],
-      glass.pitches[2],
-      glass.pitches[3],
-    ];
+    const pitchStructure = pitchStructureFrom(glass);
     const rootPitchClass = glass.pitches[glass.rootPositionIndex] % OCTAVE;
 
     const smoothParallel = resolveSmoothParallelSteps(
@@ -75,7 +72,7 @@ describe('resolveSmoothParallelSteps', () => {
     );
 
     const cycle = buildToneCycle(pitchStructure, rootPitchClass);
-    const homeMidi =
+    const contraryHomeMidi =
       TONAL_CENTER_BB +
       OCTAVE * (OCTAVE_RANGE + 2) +
       ((rootPitchClass - TONAL_CENTER_BB + OCTAVE) % OCTAVE);
@@ -84,7 +81,7 @@ describe('resolveSmoothParallelSteps', () => {
       smoothParallel,
       width,
       cycle,
-      homeMidi
+      contraryHomeMidi - OCTAVE
     );
 
     expect(pitchClass(Math.min(...nextPitches))).toBe(TONAL_CENTER_BB);
@@ -93,12 +90,7 @@ describe('resolveSmoothParallelSteps', () => {
 
   it('returns baseline parallel when there is no previous voicing', () => {
     const glass = manager.getChordByName('Glass')!;
-    const pitchStructure = [
-      glass.pitches[0],
-      glass.pitches[1],
-      glass.pitches[2],
-      glass.pitches[3],
-    ];
+    const pitchStructure = pitchStructureFrom(glass);
     const rootPitchClass = glass.pitches[glass.rootPositionIndex] % OCTAVE;
 
     const smoothParallel = resolveSmoothParallelSteps(
@@ -126,12 +118,7 @@ describe('resolveSmoothParallelSteps', () => {
       { anchor: 'contrary' }
     );
 
-    const pitchStructure = [
-      glass.pitches[0],
-      glass.pitches[1],
-      glass.pitches[2],
-      glass.pitches[3],
-    ];
+    const pitchStructure = pitchStructureFrom(glass);
     const rootPitchClass = glass.pitches[glass.rootPositionIndex] % OCTAVE;
 
     const pivotParallel = resolveSmoothParallelSteps(
@@ -158,16 +145,21 @@ describe('resolveSmoothParallelSteps', () => {
       TONAL_CENTER_BB +
       OCTAVE * (OCTAVE_RANGE + 2) +
       ((rootPitchClass - TONAL_CENTER_BB + OCTAVE) % OCTAVE);
-    const width = voicingWidthFromTilt(DOUBLE_OCTAVE_FLAT);
 
-    const pivotBottom = Math.min(
-      ...buildThinnedChain(pivotParallel, width, cycle, homeMidi)
+    const narrowTilt = tiltSampleFromLevels(5, 0);
+    const narrowWidth = voicingWidthFromTilt(narrowTilt);
+    const pivotNarrowBottom = Math.min(
+      ...buildThinnedChain(
+        pivotParallel,
+        narrowWidth,
+        cycle,
+        homeMidi - OCTAVE
+      )
     );
-    const contraryBottom = Math.min(
-      ...obliqueMotion(contraryParallel, width, cycle, homeMidi)
+    const contraryNarrowBottom = Math.min(
+      ...obliqueMotion(contraryParallel, narrowWidth, cycle, homeMidi)
     );
-
-    expect(contraryBottom).not.toBe(pivotBottom);
+    expect(contraryNarrowBottom).not.toBe(pivotNarrowBottom);
   });
 });
 
@@ -213,12 +205,7 @@ describe('inter-tap roll change', () => {
       { anchor: 'pivot' }
     );
 
-    const pitchStructure = [
-      glass.pitches[0],
-      glass.pitches[1],
-      glass.pitches[2],
-      glass.pitches[3],
-    ];
+    const pitchStructure = pitchStructureFrom(glass);
     const rootPitchClass = glass.pitches[glass.rootPositionIndex] % OCTAVE;
 
     const smoothParallel = resolveSmoothParallelSteps(
@@ -248,19 +235,19 @@ describe('inter-tap roll change', () => {
   });
 });
 
-describe('staticLevelsFromTilt', () => {
-  it('round-trips with tiltSampleFromLevels and static position indices', () => {
+describe('noTiltLevelsFromTilt', () => {
+  it('round-trips with tiltSampleFromLevels and no-tilt position indices', () => {
     const original = tiltSampleFromLevels(5, 2);
-    const levels = staticLevelsFromTilt(original);
+    const levels = noTiltLevelsFromTilt(original);
 
     expect(levels.voicingLevel).toBe(5);
     expect(levels.positionLevel).toBe(
-      staticPositionLevelFromParallelSteps(2)
+      noTiltPositionLevelFromParallelSteps(2)
     );
 
     const roundTrip = tiltSampleFromLevels(
       levels.voicingLevel,
-      parallelStepsFromStaticPositionLevel(levels.positionLevel)
+      parallelStepsFromNoTiltPositionLevel(levels.positionLevel)
     );
     expect(parallelLevelFromTilt(roundTrip)).toBe(
       parallelLevelFromTilt(original)
@@ -271,15 +258,15 @@ describe('staticLevelsFromTilt', () => {
   });
 });
 
-describe('static smooth baseline sync', () => {
+describe('no-tilt smooth baseline sync', () => {
   it('second preserve pass is idempotent after baseline sync from playbackTilt', () => {
     const playbackTilt = tiltSampleFromLevels(5, 2);
     const smoothBase = parallelLevelFromTilt(playbackTilt);
-    const { voicingLevel, positionLevel } = staticLevelsFromTilt(playbackTilt);
+    const { voicingLevel, positionLevel } = noTiltLevelsFromTilt(playbackTilt);
     const lastTapTilt = playbackTilt;
     const currentTilt = tiltSampleFromLevels(
       voicingLevel,
-      parallelStepsFromStaticPositionLevel(positionLevel)
+      parallelStepsFromNoTiltPositionLevel(positionLevel)
     );
 
     const parallelDelta =
@@ -321,141 +308,5 @@ describe('pivot anchor voicing width change', () => {
     );
 
     expect(Math.min(...drop3Pitches)).toBe(Math.min(...drop2Pitches));
-  });
-});
-
-describe('bassPreferenceScore', () => {
-  it('ranks upward semitone resolution above common tone and other motion', () => {
-    const previousBass = 69;
-    expect(bassPreferenceScore(previousBass, 70)).toBe(3);
-    expect(bassPreferenceScore(previousBass, 69)).toBe(2);
-    expect(bassPreferenceScore(previousBass, 67)).toBe(1);
-    expect(bassPreferenceScore(previousBass, 70)).toBeGreaterThan(
-      bassPreferenceScore(previousBass, 69)
-    );
-    expect(bassPreferenceScore(previousBass, 70)).toBeGreaterThan(
-      bassPreferenceScore(previousBass, 67)
-    );
-    expect(bassDelta(previousBass, 70)).toBe(1);
-  });
-});
-
-describe('leading tone bass preference', () => {
-  const rootPitchClass = TONAL_CENTER_BB;
-  const pitchStructure = [10, 2, 5, 7];
-  const baselineTilt = tiltSampleFromLevels(5, 0);
-  const homeMidi = TONAL_CENTER_BB + OCTAVE * (OCTAVE_RANGE + 2);
-
-  /** Previous voicing with A in the bass (Drop 2 width). */
-  const previousPitchesWithABass = [69, 73, 77, 80, 84];
-
-  function pivotBass(
-    pivot: number,
-    anchor: 'pivot' | 'contrary'
-  ): number {
-    const cycle = buildToneCycle(pitchStructure, rootPitchClass);
-    const width = voicingWidthFromTilt(baselineTilt);
-    const voicing =
-      anchor === 'pivot'
-        ? buildThinnedChain(pivot, width, cycle, homeMidi)
-        : obliqueMotion(pivot, width, cycle, homeMidi);
-    return Math.min(...voicing);
-  }
-
-  it('prefers Bb bass over G bass when A resolves up by a semitone within slack', () => {
-    expect(pivotBass(3, 'pivot')).toBe(67);
-    expect(pivotBass(4, 'pivot')).toBe(70);
-    expect(bassDelta(69, pivotBass(4, 'pivot'))).toBe(1);
-
-    const smoothParallel = resolveSmoothParallelSteps(
-      previousPitchesWithABass,
-      pitchStructure,
-      rootPitchClass,
-      baselineTilt,
-      TONAL_CENTER_BB,
-      OCTAVE_RANGE,
-      'pivot'
-    );
-
-    expect(smoothParallel).toBe(4);
-    expect(pivotBass(smoothParallel, 'pivot')).toBe(70);
-  });
-
-  it('applies leading-tone preference with contrary anchor', () => {
-    const contraryBaseline = tiltSampleFromLevels(0, 0);
-    const previousPitches = [69];
-    const cycle = buildToneCycle(pitchStructure, rootPitchClass);
-
-    const smoothParallel = resolveSmoothParallelSteps(
-      previousPitches,
-      pitchStructure,
-      rootPitchClass,
-      contraryBaseline,
-      TONAL_CENTER_BB,
-      OCTAVE_RANGE,
-      'contrary'
-    );
-
-    const voicing = obliqueMotion(smoothParallel, 1, cycle, homeMidi);
-    expect(bassDelta(69, Math.min(...voicing))).toBe(1);
-  });
-
-  it('does not override when leading-tone option exceeds cost slack', () => {
-    const tightPreviousPitches = [69, 70, 74, 77, 81];
-    const smoothParallel = resolveSmoothParallelSteps(
-      tightPreviousPitches,
-      pitchStructure,
-      rootPitchClass,
-      baselineTilt,
-      TONAL_CENTER_BB,
-      OCTAVE_RANGE,
-      'pivot'
-    );
-
-    const cycle = buildToneCycle(pitchStructure, rootPitchClass);
-    const width = voicingWidthFromTilt(baselineTilt);
-    let bestCost = Infinity;
-    let leadingTonePivot: number | null = null;
-
-    for (let pivot = -4; pivot <= 4; pivot++) {
-      const candidate = buildThinnedChain(pivot, width, cycle, homeMidi);
-      if (candidate.length === 0) {
-        continue;
-      }
-      let cost = 0;
-      for (let i = 0; i < tightPreviousPitches.length; i++) {
-        let bestDist = Infinity;
-        for (const pitch of candidate) {
-          bestDist = Math.min(bestDist, Math.abs(tightPreviousPitches[i] - pitch));
-        }
-        cost += bestDist;
-      }
-      if (cost < bestCost) {
-        bestCost = cost;
-      }
-      if (bassDelta(69, Math.min(...candidate)) === 1) {
-        leadingTonePivot = pivot;
-      }
-    }
-
-    expect(leadingTonePivot).not.toBeNull();
-    const leadingToneCandidate = buildThinnedChain(
-      leadingTonePivot!,
-      width,
-      cycle,
-      homeMidi
-    );
-    let leadingToneCost = 0;
-    for (let i = 0; i < tightPreviousPitches.length; i++) {
-      let bestDist = Infinity;
-      for (const pitch of leadingToneCandidate) {
-        bestDist = Math.min(bestDist, Math.abs(tightPreviousPitches[i] - pitch));
-      }
-      leadingToneCost += bestDist;
-    }
-
-    if (leadingToneCost > bestCost + LEADING_TONE_COST_SLACK) {
-      expect(bassDelta(69, pivotBass(smoothParallel, 'pivot'))).not.toBe(1);
-    }
   });
 });

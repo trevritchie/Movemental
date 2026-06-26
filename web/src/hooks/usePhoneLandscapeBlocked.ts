@@ -4,12 +4,16 @@ import {
   PHONE_LANDSCAPE_BLOCK_MEDIA,
 } from '../layout/breakpoints';
 
+/**
+ * True when a phone-sized viewport is in landscape (diagram is portrait-only).
+ */
 export function usePhoneLandscapeBlocked(): boolean {
   const [isBlocked, setIsBlocked] = useState(() => isPhoneLandscapeBlocked());
 
   useEffect(() => {
     const mediaQuery = window.matchMedia(PHONE_LANDSCAPE_BLOCK_MEDIA);
-    const update = () => setIsBlocked(isPhoneLandscapeBlocked());    mediaQuery.addEventListener('change', update);
+    const update = () => setIsBlocked(isPhoneLandscapeBlocked());
+    mediaQuery.addEventListener('change', update);
     return () => mediaQuery.removeEventListener('change', update);
   }, []);
 

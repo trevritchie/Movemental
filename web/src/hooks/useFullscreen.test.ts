@@ -10,6 +10,15 @@ vi.mock('../utils/devicePlatform', () => ({
 
 import { isIphone, supportsBrowserFullscreen } from '../utils/devicePlatform';
 
+function mockRequestFullscreen(): ReturnType<typeof vi.fn> {
+  const requestFullscreen = vi.fn().mockResolvedValue(undefined);
+  Object.defineProperty(document.documentElement, 'requestFullscreen', {
+    configurable: true,
+    value: requestFullscreen,
+  });
+  return requestFullscreen;
+}
+
 describe('useFullscreen', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -23,11 +32,7 @@ describe('useFullscreen', () => {
   });
 
   it('requests fullscreen when toggled and not on iPhone', async () => {
-    const requestFullscreen = vi.fn().mockResolvedValue(undefined);
-    Object.defineProperty(document.documentElement, 'requestFullscreen', {
-      configurable: true,
-      value: requestFullscreen,
-    });
+    const requestFullscreen = mockRequestFullscreen();
 
     const { result } = renderHook(() => useFullscreen());
 
@@ -42,11 +47,7 @@ describe('useFullscreen', () => {
   it('shows iOS install hint on iPhone instead of requesting fullscreen', async () => {
     vi.mocked(isIphone).mockReturnValue(true);
 
-    const requestFullscreen = vi.fn().mockResolvedValue(undefined);
-    Object.defineProperty(document.documentElement, 'requestFullscreen', {
-      configurable: true,
-      value: requestFullscreen,
-    });
+    const requestFullscreen = mockRequestFullscreen();
 
     const { result } = renderHook(() => useFullscreen());
 

@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { ChordManager } from './ChordManager';
 import { getInitialBorrowingState } from './BorrowingLogic';
 import {
+  bassDegreeLabelFromVoiced,
   bassDegreeLabelsForSelect,
   formatBassDegreeLabel,
   formatBassDegreeWithDirection,
@@ -12,12 +13,24 @@ import {
   formatLastPlayedTiltReadout,
   lastPlayedBassReadout,
   lastPlayedVoicingReadout,
+  pitchAxisArrowSteps,
   resolveTiltBassVoiceLine,
   tiltBassDegreeLabel,
   tiltBassPositionLabel,
   type TiltBassLabelContext,
 } from './voiceDegreeLabel';
-import { tiltSampleFromLevels } from './TiltVoicingEngine';
+import {
+  FLAT_TILT,
+  parallelLevelFromTilt,
+  tiltSampleFromLevels,
+} from './TiltVoicingEngine';
+import { invalidateVoicingCache } from './voicingCache';
+import { computeTiltVoicedPitches } from './tiltVoicingPlayback';
+import {
+  previousBassMidi,
+  resolveElementalForNavigation,
+} from './elementalRoot';
+import { resolveSmoothPlaybackTilt } from './predeterminedVoiceLeading';
 
 const OCTAVE_RANGE = 3;
 const TONAL_CENTER = 0;
@@ -27,8 +40,23 @@ function labelContext(): TiltBassLabelContext {
     tonalCenter: TONAL_CENTER,
     octaveRange: OCTAVE_RANGE,
     borrowingState: getInitialBorrowingState(),
+    tiltModeEnabled: true,
   };
 }
+
+function smoothVoiceLeadingContext(
+  smoothBaseParallel: number,
+  lastTapTilt = FLAT_TILT
+): TiltBassLabelContext {
+  return {
+    ...labelContext(),
+    voiceLeadingMode: 'smooth',
+    smoothBaseParallel,
+    lastTapTilt,
+  };
+}
+
+const DOUBLE_OCTAVE_FLAT = tiltSampleFromLevels(8, 0);
 
 describe('getFourthVoiceDegreeLabel', () => {
   let manager: ChordManager;
@@ -71,10 +99,18 @@ describe('formatBassDegreeLabel', () => {
 });
 
 describe('formatBassDegreeWithDirection', () => {
-  it('prefixes higher and lower parallel positions', () => {
+  it('prefixes pitch-up and pitch-down with single arrows', () => {
     expect(formatBassDegreeWithDirection('3rd', 1)).toBe('\u2191 3rd');
     expect(formatBassDegreeWithDirection('6th', -1)).toBe('\u2193 6th');
     expect(formatBassDegreeWithDirection('Root', 0)).toBe('Root');
+  });
+});
+
+describe('pitchAxisArrowSteps', () => {
+  it('follows phone pitch only and ignores roll', () => {
+    expect(pitchAxisArrowSteps({ x: 0, y: 0 })).toBe(0);
+    expect(pitchAxisArrowSteps({ x: -0.5, y: -0.25 })).toBe(1);
+    expect(pitchAxisArrowSteps({ x: 0, y: 0.25 })).toBe(-1);
   });
 });
 
@@ -135,6 +171,90 @@ describe('tiltBassDegreeLabel', () => {
     const branch = manager.getChordByName('Branch')!;
     expect(tiltBassDegreeLabel({ x: -0.25, y: 0 }, branch)).toBe('Root');
   });
+
+  it('roll-only change updates degree without arrow', () => {
+    const branch = manager.getChordByName('Branch')!;
+    const context = labelContext();
+    expect(tiltBassDegreeLabel(DOUBLE_OCTAVE_FLAT, branch, context)).toBe(
+      'Root'
+    );
+    expect(
+      tiltBassDegreeLabel({ x: -0.25, y: 0 }, branch, context)
+    ).toBe('3rd');
+  });
+
+  it('pitch up always shows up arrow', () => {
+    const branch = manager.getChordByName('Branch')!;
+    const context = labelContext();
+    const label = tiltBassDegreeLabel({ x: 0, y: -0.25 }, branch, context);
+    expect(label.startsWith('\u2191 ')).toBe(true);
+  });
+
+  it('pitch down always shows down arrow', () => {
+    const branch = manager.getChordByName('Branch')!;
+    const context = labelContext();
+    const label = tiltBassDegreeLabel({ x: 0, y: 0.25 }, branch, context);
+    expect(label.startsWith('\u2193 ')).toBe(true);
+  });
+});
+
+describe('tiltBassDegreeLabel smooth Flame', () => {
+  let manager: ChordManager;
+
+  beforeEach(() => {
+    manager = new ChordManager();
+  });
+
+  it('flat pitch shows 5th with no arrow', () => {
+    const flame = manager.getChordByName('Flame')!;
+    const context = smoothVoiceLeadingContext(-2);
+    expect(
+      tiltBassDegreeLabel(DOUBLE_OCTAVE_FLAT, flame, context)
+    ).toBe('5th');
+  });
+
+  it('pitch up one shows up arrow 7th', () => {
+    const flame = manager.getChordByName('Flame')!;
+    const context = smoothVoiceLeadingContext(-2);
+    expect(
+      tiltBassDegreeLabel({ x: 0, y: -0.25 }, flame, context)
+    ).toBe('\u2191 7th');
+  });
+
+  it('pitch down shows down arrow on bass degree', () => {
+    const flame = manager.getChordByName('Flame')!;
+    const context = smoothVoiceLeadingContext(-2);
+    const label = tiltBassDegreeLabel({ x: 0, y: 0.25 }, flame, context);
+    expect(label.startsWith('\u2193 ')).toBe(true);
+  });
+
+  it('ignores stale smoothBaseParallel for degree lookup', () => {
+    const flame = manager.getChordByName('Flame')!;
+    const context = smoothVoiceLeadingContext(0);
+    expect(
+      tiltBassDegreeLabel(DOUBLE_OCTAVE_FLAT, flame, context)
+    ).toBe('5th');
+  });
+});
+
+describe('tiltBassDegreeLabel smoothest', () => {
+  let manager: ChordManager;
+
+  beforeEach(() => {
+    manager = new ChordManager();
+  });
+
+  it('uses phone pitch for arrows when smoothBaseParallel differs from root', () => {
+    const flame = manager.getChordByName('Flame')!;
+    const context = smoothVoiceLeadingContext(-3);
+    context.voiceLeadingMode = 'smoothest';
+    expect(
+      tiltBassDegreeLabel({ x: 0, y: -0.25 }, flame, context)
+    ).toMatch(/^\u2191 /);
+    expect(
+      tiltBassDegreeLabel(DOUBLE_OCTAVE_FLAT, flame, context)
+    ).not.toMatch(/^[\u2191\u2193] /);
+  });
 });
 
 describe('tiltBassPositionLabel', () => {
@@ -144,19 +264,13 @@ describe('tiltBassPositionLabel', () => {
     manager = new ChordManager();
   });
 
-  it('maps chest-ward tilt to parallel position with arrow', () => {
+  it('matches tiltBassDegreeLabel', () => {
     const branch = manager.getChordByName('Branch')!;
     const context = labelContext();
-    expect(
-      tiltBassPositionLabel({ x: 0, y: -0.25 }, branch, context)
-    ).toBe('\u2191 3rd');
-  });
-
-  it('maps flat tilt to root position', () => {
-    const branch = manager.getChordByName('Branch')!;
-    expect(
-      tiltBassPositionLabel({ x: 0, y: 0 }, branch, labelContext())
-    ).toBe('Root');
+    const tilt = { x: -0.25, y: 0 };
+    expect(tiltBassPositionLabel(tilt, branch, context)).toBe(
+      tiltBassDegreeLabel(tilt, branch, context)
+    );
   });
 });
 
@@ -236,5 +350,110 @@ describe('getVoiceDegreeLabel', () => {
 
   it('maps legacy position index 3 to ↑ 6th when no chord is selected', () => {
     expect(getBassDegreeLabelForPositionIndex(3, null)).toBe('\u2191 6th');
+  });
+});
+
+describe('opposite-element elemental bass labels', () => {
+  const Bb_TONAL_CENTER = 10;
+  const DOUBLE_OCTAVE_FLAT_BB = tiltSampleFromLevels(8, 0);
+
+  function glassToWindNavigation(manager: ChordManager) {
+    const glass = manager.getChordByName('Glass')!;
+    const windDict = manager.getChordByName('Wind')!;
+    const glassTilt = resolveSmoothPlaybackTilt('Glass', DOUBLE_OCTAVE_FLAT_BB);
+    const glassVoicing = computeTiltVoicedPitches(
+      glass,
+      getInitialBorrowingState(),
+      glassTilt,
+      Bb_TONAL_CENTER,
+      OCTAVE_RANGE,
+      { anchor: 'contrary' }
+    );
+    const windTilt = tiltSampleFromLevels(8, parallelLevelFromTilt(glassTilt));
+    const resolved = resolveElementalForNavigation(
+      windDict,
+      Bb_TONAL_CENTER,
+      OCTAVE_RANGE,
+      glass,
+      previousBassMidi(glassVoicing),
+      windTilt,
+      'contrary'
+    );
+    const windVoicing = computeTiltVoicedPitches(
+      resolved.chord,
+      getInitialBorrowingState(),
+      windTilt,
+      Bb_TONAL_CENTER,
+      OCTAVE_RANGE,
+      {
+        anchor: 'contrary',
+        elemental: {
+          rootPitchClass: resolved.rootPitchClass,
+          homeMidi: resolved.homeMidi,
+        },
+      }
+    );
+    return { glass, glassTilt, resolved, windTilt, windVoicing };
+  }
+
+  beforeEach(() => {
+    invalidateVoicingCache();
+  });
+
+  it('Wind after Glass matches sounded bass when elemental metadata is in context', () => {
+    const manager = new ChordManager();
+    manager.setTonalCenterOffset(Bb_TONAL_CENTER);
+    manager.setOctaveRange(OCTAVE_RANGE);
+    const { glass, glassTilt, resolved, windTilt, windVoicing } =
+      glassToWindNavigation(manager);
+    const baseContext: TiltBassLabelContext = {
+      tonalCenter: Bb_TONAL_CENTER,
+      octaveRange: OCTAVE_RANGE,
+      borrowingState: getInitialBorrowingState(),
+      tiltModeEnabled: true,
+      voiceLeadingMode: 'smooth',
+      previousChord: glass,
+    };
+    const withoutNavigation = tiltBassDegreeLabel(
+      DOUBLE_OCTAVE_FLAT_BB,
+      resolved.chord,
+      baseContext
+    );
+    const withNavigation = tiltBassDegreeLabel(windTilt, resolved.chord, {
+      ...baseContext,
+      lastTapTilt: glassTilt,
+      activePitches: windVoicing,
+      elemental: {
+        rootPitchClass: resolved.rootPitchClass,
+        homeMidi: resolved.homeMidi,
+      },
+    });
+    const withPreservedParallel = tiltBassDegreeLabel(windTilt, resolved.chord, {
+      ...baseContext,
+      lastTapTilt: glassTilt,
+      elemental: {
+        rootPitchClass: resolved.rootPitchClass,
+        homeMidi: resolved.homeMidi,
+      },
+    });
+    expect(withoutNavigation).not.toBe(withNavigation);
+    expect(withNavigation).toBe('↓ 5th');
+    expect(withPreservedParallel).toBe('↓ 5th');
+    expect(bassDegreeLabelFromVoiced(resolved.chord, windVoicing, getInitialBorrowingState())).toBe(
+      '5th'
+    );
+  });
+
+  it('lastPlayedBassReadout uses sounded pitches when provided', () => {
+    const manager = new ChordManager();
+    manager.setTonalCenterOffset(Bb_TONAL_CENTER);
+    manager.setOctaveRange(OCTAVE_RANGE);
+    const { resolved, windTilt, windVoicing } = glassToWindNavigation(manager);
+    expect(
+      lastPlayedBassReadout(windTilt, resolved.chord, {
+        voicedPitches: windVoicing,
+        borrowingState: getInitialBorrowingState(),
+      })
+    ).toBe('5th');
   });
 });

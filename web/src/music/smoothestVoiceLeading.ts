@@ -1,5 +1,5 @@
 /**
- * Smooth voice leading: pick parallel ladder steps on chord change that
+ * Smoothest voice leading: pick parallel ladder steps on chord change that
  * minimize total semitone motion from the previous neutral voicing.
  */
 import { OCTAVE } from './config';
@@ -14,33 +14,7 @@ import {
   type TiltVoicingAnchor,
 } from './TiltVoicingEngine';
 
-const clamp = (value: number, min: number, max: number): number =>
-  Math.min(max, Math.max(min, value));
-
-/** Total-cost tolerance for preferring upward semitone bass resolution. */
-export const LEADING_TONE_COST_SLACK = 2;
-
-export function bassDelta(
-  previousBass: number,
-  candidateBass: number
-): number {
-  return candidateBass - previousBass;
-}
-
-/** Higher is better. +1 leading tone beats common tone, then other motion. */
-export function bassPreferenceScore(
-  previousBass: number,
-  candidateBass: number
-): number {
-  const delta = bassDelta(previousBass, candidateBass);
-  if (delta === 1) {
-    return 3;
-  }
-  if (delta === 0) {
-    return 2;
-  }
-  return 1;
-}
+import { clamp } from '../utils/clamp';
 
 function computeHomeMidi(
   tonalCenter: number,
@@ -80,6 +54,18 @@ function permute<T>(items: T[]): T[][] {
   return result;
 }
 
+/** Cached index permutations for four-voice assignment scoring. */
+const FOUR_VOICE_INDEX_PERMUTATIONS = permute([0, 1, 2, 3]);
+
+function permutePitches(candidatePitches: number[]): number[][] {
+  if (candidatePitches.length === 4) {
+    return FOUR_VOICE_INDEX_PERMUTATIONS.map((perm) =>
+      perm.map((i) => candidatePitches[i])
+    );
+  }
+  return permute(candidatePitches);
+}
+
 interface AssignmentScore {
   cost: number;
   downMoves: number;
@@ -112,7 +98,7 @@ function scoreAssignment(
   }
 
   let best: AssignmentScore | null = null;
-  for (const perm of permute(candidatePitches)) {
+  for (const perm of permutePitches(candidatePitches)) {
     const candidateScore = summarizeAssignment(previousPitches, perm);
     if (
       best === null ||
@@ -175,21 +161,21 @@ function buildCandidateVoicing(
   pivot: number,
   width: number,
   cycle: number[],
-  homeMidi: number,
+  contraryHomeMidi: number,
   anchor: TiltVoicingAnchor
 ): number[] {
+  const ladderBase =
+    anchor === 'pivot' ? contraryHomeMidi - OCTAVE : contraryHomeMidi;
   if (anchor === 'pivot') {
-    return buildThinnedChain(pivot, width, cycle, homeMidi);
+    return buildThinnedChain(pivot, width, cycle, ladderBase);
   }
-  return obliqueMotion(pivot, width, cycle, homeMidi);
+  return obliqueMotion(pivot, width, cycle, contraryHomeMidi);
 }
 
 interface PivotEvaluation {
   pivot: number;
   cost: number;
   registerBreak: number;
-  candidateBass: number;
-  bassPref: number;
   bassDistance: number;
   pivotDistance: number;
 }
@@ -210,41 +196,10 @@ function isBetterOverallCandidate(
   if (candidate.registerBreak < best.registerBreak) {
     return false;
   }
-  if (candidate.bassPref > best.bassPref) {
-    return true;
-  }
-  if (candidate.bassPref < best.bassPref) {
-    return false;
-  }
   if (candidate.bassDistance < best.bassDistance) {
     return true;
   }
   if (candidate.bassDistance > best.bassDistance) {
-    return false;
-  }
-  if (candidate.pivotDistance < best.pivotDistance) {
-    return true;
-  }
-  if (candidate.pivotDistance > best.pivotDistance) {
-    return false;
-  }
-  return candidate.pivot < best.pivot;
-}
-
-function isBetterLeadingToneCandidate(
-  candidate: PivotEvaluation,
-  best: PivotEvaluation
-): boolean {
-  if (candidate.cost < best.cost) {
-    return true;
-  }
-  if (candidate.cost > best.cost) {
-    return false;
-  }
-  if (candidate.registerBreak > best.registerBreak) {
-    return true;
-  }
-  if (candidate.registerBreak < best.registerBreak) {
     return false;
   }
   if (candidate.pivotDistance < best.pivotDistance) {
@@ -317,8 +272,6 @@ export function resolveSmoothParallelSteps(
         score,
         referenceMidi
       ),
-      candidateBass,
-      bassPref: bassPreferenceScore(previousBass, candidateBass),
       bassDistance: Math.abs(candidateBass - previousBass),
       pivotDistance: Math.abs(pivot - baselineParallel),
     });
@@ -335,30 +288,11 @@ export function resolveSmoothParallelSteps(
     }
   }
 
-  const bestCost = bestOverall.cost;
-  const slackLimit = bestCost + LEADING_TONE_COST_SLACK;
-  let bestLeadingTone: PivotEvaluation | null = null;
-
-  for (const candidate of evaluated) {
-    if (bassDelta(previousBass, candidate.candidateBass) !== 1) {
-      continue;
-    }
-    if (candidate.cost > slackLimit) {
-      continue;
-    }
-    if (
-      bestLeadingTone === null ||
-      isBetterLeadingToneCandidate(candidate, bestLeadingTone)
-    ) {
-      bestLeadingTone = candidate;
-    }
-  }
-
-  return (bestLeadingTone ?? bestOverall).pivot;
+  return bestOverall.pivot;
 }
 
 /**
- * Combine smooth baseline parallel steps with live pitch delta since last tap.
+ * Combine smoothest committed parallel steps with live pitch delta since last tap.
  */
 export function computeEffectiveParallelSteps(
   smoothBaseParallel: number,

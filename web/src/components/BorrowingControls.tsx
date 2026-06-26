@@ -1,21 +1,25 @@
-import React, { useRef } from 'react';
+import React, { useRef, useCallback } from 'react';
 import type { BorrowingDirection } from '../music/BorrowingLogic';
+import { borrowingLogic, cloneBorrowingState } from '../music/BorrowingLogic';
 import { useChordContext } from '../context/ChordContext';
 import { useLayoutTier } from '../hooks/useLayoutTier';
 import { ELEMENTAL_RELATIONSHIPS } from '../music/config';
+import {
+  cssColorForRelativePc,
+  parentElementColor,
+} from '../music/elementTokens';
+import { relativePitchClass } from '../music/pitchClass';
 import { MobileActionButtons } from './SettingsMenu';
 
 interface BorrowingControlsProps {
   disabled: boolean;
 }
 
-const ELEMENT_COLORS: Record<string, string> = {
-  Earth: 'var(--color-earth)',
-  Wind:  'var(--color-wind)',
-  Fire:  'var(--color-fire)',
-};
-
 const VOICE_LINES = [1, 2, 3, 4] as const;
+
+/** Vertical track thirds: up (top), neutral (middle), down (bottom). */
+const SLIDER_ZONE_TOP = 0.33;
+const SLIDER_ZONE_BOTTOM = 0.67;
 
 // ─── 3-node vertical slider ───────────────────────────────────────────────────
 
@@ -31,21 +35,45 @@ interface BorrowSliderProps {
 
 const SLOTS: ('up' | 'neutral' | 'down')[] = ['up', 'neutral', 'down'];
 
-const BorrowSlider: React.FC<BorrowSliderProps> = ({
+/** Throttle borrowing preview re-voice during slider drag (ms). */
+const SLIDER_PREVIEW_THROTTLE_MS = 60;
+
+const BorrowSlider = React.memo(function BorrowSlider({
   activeSlot, muted, disabled, onChange, onToggleMute, neutralColor, oppositeColor,
-}) => {
+}: BorrowSliderProps) {
   const trackRef = useRef<HTMLDivElement>(null);
   const isDragging = useRef(false);
   const didMove = useRef(false);
   const initialSlotOnDown = useRef<'up' | 'neutral' | 'down' | null>(null);
   const clickedActiveNode = useRef(false);
+  const lastPreviewAtRef = useRef(0);
+  const pendingSlotRef = useRef<'up' | 'neutral' | 'down' | null>(null);
+
+  const emitChange = (slot: 'up' | 'neutral' | 'down') => {
+    const now = Date.now();
+    if (now - lastPreviewAtRef.current >= SLIDER_PREVIEW_THROTTLE_MS) {
+      lastPreviewAtRef.current = now;
+      pendingSlotRef.current = null;
+      onChange(slot);
+      return;
+    }
+    pendingSlotRef.current = slot;
+  };
+
+  const flushPendingChange = () => {
+    if (pendingSlotRef.current !== null) {
+      onChange(pendingSlotRef.current);
+      pendingSlotRef.current = null;
+      lastPreviewAtRef.current = Date.now();
+    }
+  };
 
   const getSlotFromY = (clientY: number): 'down' | 'neutral' | 'up' => {
     if (!trackRef.current) return 'neutral';
     const { top, height } = trackRef.current.getBoundingClientRect();
     const ratio = (clientY - top) / height;
-    if (ratio < 0.33) return 'up';
-    if (ratio > 0.67) return 'down';
+    if (ratio < SLIDER_ZONE_TOP) return 'up';
+    if (ratio > SLIDER_ZONE_BOTTOM) return 'down';
     return 'neutral';
   };
 
@@ -64,7 +92,7 @@ const BorrowSlider: React.FC<BorrowSliderProps> = ({
     e.currentTarget.setPointerCapture(e.pointerId);
 
     if (slot !== activeSlot || muted) {
-      onChange(slot);
+      emitChange(slot);
     }
   };
 
@@ -75,13 +103,14 @@ const BorrowSlider: React.FC<BorrowSliderProps> = ({
     if (slot !== initialSlotOnDown.current) {
       didMove.current = true;
     }
-    onChange(slot);
+    emitChange(slot);
   };
 
   const stopDrag = (e: React.PointerEvent<HTMLDivElement>) => {
     if (!isDragging.current || disabled) return;
 
     const endSlot = getSlotFromY(e.clientY);
+    flushPendingChange();
 
     if (
       clickedActiveNode.current &&
@@ -118,7 +147,7 @@ const BorrowSlider: React.FC<BorrowSliderProps> = ({
       })}
     </div>
   );
-};
+});
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
@@ -138,31 +167,21 @@ export const BorrowingControls: React.FC<BorrowingControlsProps> = ({
     ? (ELEMENTAL_RELATIONSHIPS[selectedChord.name]?.[0] ?? null)
     : null;
   const oppositeColor = oppositeElementName
-    ? (ELEMENT_COLORS[oppositeElementName] ?? 'rgba(255,255,255,0.45)')
+    ? (parentElementColor(oppositeElementName) ?? 'rgba(255,255,255,0.45)')
     : 'rgba(255,255,255,0.45)';
 
-  const getNeutralColor = React.useCallback((line: number): string => {
+  const getNeutralColor = useCallback((line: number): string => {
     if (!selectedChord) return 'rgba(255,255,255,0.45)';
-    const rootIdx = selectedChord.rootPositionIndex;
-    const mapping: Record<number, number> = {
-      1: rootIdx,
-      2: (rootIdx + 1) % 4,
-      3: (rootIdx + 2) % 4,
-      4: (rootIdx + 3) % 4,
-    };
+    const mapping = borrowingLogic.getRootPositionMapping(selectedChord);
     const idx = mapping[line];
     if (idx >= selectedChord.pitches.length) {
       return 'rgba(255,255,255,0.45)';
     }
     const pitch = selectedChord.pitches[idx];
-    const relPc = ((pitch % 12) - tonalCenter + 12) % 12;
-    const rem = relPc % 3;
-    if (rem === 0) return 'var(--color-earth)';
-    if (rem === 1) return 'var(--color-wind)';
-    return 'var(--color-fire)';
+    return cssColorForRelativePc(relativePitchClass(pitch, tonalCenter));
   }, [selectedChord, tonalCenter]);
 
-  const getSliderSlot = React.useCallback(
+  const getSliderSlot = useCallback(
     (line: number): 'up' | 'neutral' | 'down' => {
       const dir = state.borrowingDirections[line];
       if (dir === 'up') return 'up';
@@ -172,13 +191,11 @@ export const BorrowingControls: React.FC<BorrowingControlsProps> = ({
     [state.borrowingDirections]
   );
 
-  const handleToggleMute = React.useCallback(
+  const handleToggleMute = useCallback(
     (line: number) => {
       if (disabled) return;
       onStateChange({
-        ...state,
-        borrowingDirections: { ...state.borrowingDirections },
-        circlePositions: { ...state.circlePositions },
+        ...cloneBorrowingState(state),
         noteStates: {
           ...state.noteStates,
           [line]: state.noteStates[line] === 'off' ? 'on' : 'off',
@@ -188,15 +205,11 @@ export const BorrowingControls: React.FC<BorrowingControlsProps> = ({
     [disabled, state, onStateChange]
   );
 
-  const handleSliderChange = React.useCallback(
+  const handleSliderChange = useCallback(
     (line: number, slot: 'up' | 'neutral' | 'down') => {
       if (disabled) return;
-      const newState = {
-        ...state,
-        borrowingDirections: { ...state.borrowingDirections },
-        circlePositions: { ...state.circlePositions },
-        noteStates: { ...state.noteStates, [line]: 'on' as const },
-      };
+      const newState = cloneBorrowingState(state);
+      newState.noteStates[line] = 'on';
       if (slot === 'neutral') {
         newState.borrowingDirections[line] = null;
         newState.circlePositions[line] = 'line';

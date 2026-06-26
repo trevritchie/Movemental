@@ -1,6 +1,6 @@
 /// <reference types="node" />
 import { render, screen, fireEvent, act } from '@testing-library/react';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { SplashPage } from './SplashPage';
 import {
   unlockIosMediaChannel,
@@ -8,6 +8,7 @@ import {
 } from '../audio/iosMediaChannel';
 import { audioEngine } from '../audio/AudioEngine';
 import { useLayoutTier } from '../hooks/useLayoutTier';
+
 vi.mock('../audio/iosMediaChannel', () => ({
   unlockIosMediaChannel: vi.fn(),
   waitForIosMediaChannel: vi.fn().mockResolvedValue(undefined),
@@ -19,22 +20,37 @@ vi.mock('../audio/AudioEngine', () => ({
   },
 }));
 
-const setPlayStyle = vi.fn();
+const enterTiltSession = vi.fn();
+const enterNoTiltSession = vi.fn();
 const requestTiltPermission = vi.fn().mockResolvedValue(undefined);
 
 vi.mock('../context/ChordContext', () => ({
-  useChordContext: () => ({ setPlayStyle, requestTiltPermission }),
+  useChordContext: () => ({ enterTiltSession, enterNoTiltSession }),
+}));
+
+vi.mock('../context/TiltReadoutContext', () => ({
+  useTiltReadoutContext: () => ({ requestTiltPermission }),
 }));
 
 vi.mock('../hooks/useLayoutTier', () => ({
   useLayoutTier: vi.fn(() => 'desktop'),
 }));
 
+async function flushSplashEnterTimers(): Promise<void> {
+  await act(async () => {
+    await vi.runAllTimersAsync();
+  });
+}
+
 describe('SplashPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.useFakeTimers();
     vi.mocked(useLayoutTier).mockReturnValue('desktop');
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it('unlocks iOS media channel and starts audio on Start click', async () => {
@@ -45,12 +61,11 @@ describe('SplashPage', () => {
       fireEvent.click(screen.getByRole('button', { name: /start/i }));
     });
 
+    expect(enterNoTiltSession).toHaveBeenCalledTimes(1);
     expect(unlockIosMediaChannel).toHaveBeenCalledTimes(1);
     expect(waitForIosMediaChannel).toHaveBeenCalled();
 
-    await act(async () => {
-      await vi.runAllTimersAsync();
-    });
+    await flushSplashEnterTimers();
 
     expect(audioEngine.startContext).toHaveBeenCalled();
     expect(onEnter).toHaveBeenCalled();
@@ -97,16 +112,15 @@ describe('SplashPage', () => {
     });
 
     expect(requestTiltPermission).toHaveBeenCalledTimes(1);
-    expect(setPlayStyle).toHaveBeenCalledWith('tilt');
+    expect(enterTiltSession).toHaveBeenCalledTimes(1);
+    expect(enterNoTiltSession).not.toHaveBeenCalled();
     expect(unlockIosMediaChannel).toHaveBeenCalled();
 
-    await act(async () => {
-      await vi.runAllTimersAsync();
-    });
+    await flushSplashEnterTimers();
     expect(onEnter).toHaveBeenCalled();
   });
 
-  it('enters drone mode from the No Tilt button without a permission request', async () => {
+  it('enters no-tilt session from the No Tilt button without a permission request', async () => {
     vi.mocked(useLayoutTier).mockReturnValue('tablet');
     const onEnter = vi.fn();
     render(<SplashPage onEnter={onEnter} />);
@@ -116,11 +130,10 @@ describe('SplashPage', () => {
     });
 
     expect(requestTiltPermission).not.toHaveBeenCalled();
-    expect(setPlayStyle).toHaveBeenCalledWith('drone');
+    expect(enterNoTiltSession).toHaveBeenCalledTimes(1);
+    expect(enterTiltSession).not.toHaveBeenCalled();
 
-    await act(async () => {
-      await vi.runAllTimersAsync();
-    });
+    await flushSplashEnterTimers();
     expect(onEnter).toHaveBeenCalled();
   });
 });

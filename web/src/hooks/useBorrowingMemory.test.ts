@@ -8,30 +8,42 @@ import type { Chord } from '../music/ChordManager';
 const branch = { name: 'Branch' } as Chord;
 const leaf = { name: 'Leaf' } as Chord;
 
+function renderBorrowingMemory(selectedChord: Chord | null = branch) {
+  const playAndDisplayChord = vi.fn();
+  const hook = renderHook(
+    ({ chord }) =>
+      useBorrowingMemory({
+        selectedChord: chord,
+        playAndDisplayChord,
+      }),
+    { initialProps: { chord: selectedChord } },
+  );
+  return { playAndDisplayChord, ...hook };
+}
+
+function borrowingWithMutedRoot(): ReturnType<typeof getInitialBorrowingState> {
+  const state = getInitialBorrowingState();
+  state.noteStates[1] = 'off';
+  return state;
+}
+
 describe('useBorrowingMemory', () => {
   it('restores per-chord saved line state when switching chords', () => {
-    const playAndDisplayChord = vi.fn();
+    const { result, rerender } = renderBorrowingMemory();
 
-    const { result, rerender } = renderHook(
-      ({ selectedChord }) =>
-        useBorrowingMemory({ selectedChord, playAndDisplayChord }),
-      { initialProps: { selectedChord: branch as Chord | null } },
-    );
-
-    const mutedRoot = getInitialBorrowingState();
-    mutedRoot.noteStates[1] = 'off';
+    const mutedRoot = borrowingWithMutedRoot();
 
     act(() => {
       result.current.handleBorrowingStateChange(mutedRoot);
     });
 
-    rerender({ selectedChord: leaf });
+    rerender({ chord: leaf });
 
     act(() => {
       result.current.setBorrowingState(getInitialBorrowingState());
     });
 
-    rerender({ selectedChord: branch });
+    rerender({ chord: branch });
 
     const restored = result.current.getBorrowingStateForChord(
       'Branch',
@@ -41,22 +53,15 @@ describe('useBorrowingMemory', () => {
   });
 
   it('uses global state for all lines when borrowing memory is global', () => {
-    const playAndDisplayChord = vi.fn();
+    const { result, rerender } = renderBorrowingMemory();
 
-    const { result, rerender } = renderHook(
-      ({ selectedChord }) =>
-        useBorrowingMemory({ selectedChord, playAndDisplayChord }),
-      { initialProps: { selectedChord: branch as Chord | null } },
-    );
-
-    const mutedRoot = getInitialBorrowingState();
-    mutedRoot.noteStates[1] = 'off';
+    const mutedRoot = borrowingWithMutedRoot();
 
     act(() => {
       result.current.handleBorrowingStateChange(mutedRoot);
     });
 
-    rerender({ selectedChord: leaf });
+    rerender({ chord: leaf });
     act(() => {
       result.current.setBorrowingMemory('global');
     });
@@ -67,7 +72,7 @@ describe('useBorrowingMemory', () => {
       result.current.setBorrowingState(globalMuted);
     });
 
-    rerender({ selectedChord: branch });
+    rerender({ chord: branch });
 
     const restored = result.current.getBorrowingStateForChord(
       'Branch',

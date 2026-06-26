@@ -1,3 +1,8 @@
+/**
+ * Chord dictionary, tonal center, octave range, and diagram coordinates.
+ * Initializes all elemental and edge chords from config voicing templates.
+ */
+
 import {
   C4, CS4, DF4, D4, EF4, E4, F4, FS4, GF4, G4, GS4, AF4, A4, BF4, B4,
   C5, CF5, CS5, DF5, D5, DS5, EF5, E5, F5, FS5, GF5, G5, GS5, AF5, A5, BF5, B5,

@@ -5,7 +5,9 @@ import {
   waitForIosMediaChannel,
 } from '../audio/iosMediaChannel';
 import { useChordContext } from '../context/ChordContext';
+import { useTiltReadoutContext } from '../context/TiltReadoutContext';
 import { useLayoutTier } from '../hooks/useLayoutTier';
+
 interface SplashPageProps {
   onEnter: () => void;
 }
@@ -13,7 +15,8 @@ interface SplashPageProps {
 export const SplashPage: React.FC<SplashPageProps> = ({ onEnter }) => {
   const [isStarting, setIsStarting] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
-  const { setPlayStyle, requestTiltPermission } = useChordContext();
+  const { enterTiltSession, enterNoTiltSession } = useChordContext();
+  const { requestTiltPermission } = useTiltReadoutContext();
   const layoutTier = useLayoutTier();
   const isDesktop = layoutTier === 'desktop';
 
@@ -42,13 +45,13 @@ export const SplashPage: React.FC<SplashPageProps> = ({ onEnter }) => {
     // Must run inside the tap gesture: iOS only grants motion access from a
     // user-initiated call.
     void requestTiltPermission();
-    setPlayStyle('tilt');
+    enterTiltSession();
     handleStart();
   };
 
   const handleStartStatic = () => {
     if (isStarting) return;
-    setPlayStyle('drone');
+    enterNoTiltSession();
     handleStart();
   };
 
@@ -86,7 +89,11 @@ export const SplashPage: React.FC<SplashPageProps> = ({ onEnter }) => {
         {isDesktop ? (
           <button
             className="splash-button"
-            onClick={(e) => { e.stopPropagation(); handleStart(); }}
+            onClick={(e) => {
+              e.stopPropagation();
+              enterNoTiltSession();
+              handleStart();
+            }}
             disabled={isStarting}
           >
             Start

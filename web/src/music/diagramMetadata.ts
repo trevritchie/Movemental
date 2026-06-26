@@ -1,4 +1,7 @@
-// Diagram layout metadata shared by ElementalDiagram and domain logic.
+/**
+ * Elemental diagram layout: group names, slice variants, palettes, and mobile
+ * chord label abbreviations. Shared by ElementalDiagram and domain logic.
+ */
 
 export const BASE_GROUPS = [
   'Trunk', 'Branch', 'Sand-Storm', 'Leaf',

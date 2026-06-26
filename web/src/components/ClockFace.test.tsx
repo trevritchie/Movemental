@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { ClockFace } from './ClockFace';
 
+// Branch maj6 at tonal center 10; activePitches drive the note readout strings.
 vi.mock('../context/ChordContext', () => ({
   useChordContext: () => ({
     tonalCenter: 10,

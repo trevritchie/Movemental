@@ -3,12 +3,32 @@ import { ChordManager } from './ChordManager';
 import { getInitialBorrowingState } from './BorrowingLogic';
 import { FLAT_TILT } from './TiltVoicingEngine';
 import { computeTiltVoicedPitches } from './tiltVoicingPlayback';
-import { resolveElementalPlayback } from './elementalRoot';
+import { resolveElementalPlayback, resolveElementalForNavigation } from './elementalRoot';
 
 describe('computeTiltVoicedPitches', () => {
   let manager: ChordManager;
   const OCTAVE_RANGE = 3;
   const TONAL_CENTER = 10;
+
+  function voicingWithElementalMetadata(
+    resolved: ReturnType<typeof resolveElementalPlayback>,
+    tilt: { x: number; y: number }
+  ): number[] {
+    return computeTiltVoicedPitches(
+      resolved.chord,
+      getInitialBorrowingState(),
+      tilt,
+      TONAL_CENTER,
+      OCTAVE_RANGE,
+      {
+        anchor: 'contrary',
+        elemental: {
+          rootPitchClass: resolved.rootPitchClass,
+          homeMidi: resolved.homeMidi,
+        },
+      }
+    );
+  }
 
   beforeEach(() => {
     manager = new ChordManager();
@@ -41,7 +61,7 @@ describe('computeTiltVoicedPitches', () => {
       OCTAVE_RANGE,
       { anchor: 'pivot' }
     );
-    expect(Math.min(...pitches)).toBe(70);
+    expect(Math.min(...pitches)).toBe(58);
   });
 
   it('uses pre-resolved elemental metadata without a second resolve', () => {
@@ -50,8 +70,7 @@ describe('computeTiltVoicedPitches', () => {
     const resolved = resolveElementalPlayback(
       fireDict,
       TONAL_CENTER,
-      OCTAVE_RANGE,
-      branch
+      OCTAVE_RANGE
     );
     const withResolve = computeTiltVoicedPitches(
       resolved.chord,
@@ -61,51 +80,45 @@ describe('computeTiltVoicedPitches', () => {
       OCTAVE_RANGE,
       { anchor: 'contrary', previousChord: branch }
     );
-    const withElemental = computeTiltVoicedPitches(
-      resolved.chord,
-      getInitialBorrowingState(),
-      { x: -1, y: 0 },
-      TONAL_CENTER,
-      OCTAVE_RANGE,
-      {
-        anchor: 'contrary',
-        elemental: {
-          rootPitchClass: resolved.rootPitchClass,
-          homeMidi: resolved.homeMidi,
-        },
-      }
-    );
+    const withElemental = voicingWithElementalMetadata(resolved, { x: -1, y: 0 });
     expect(withElemental).toEqual(withResolve);
   });
 
-  it('anchors Fire register from resolved previous Fire, not dictionary default', () => {
+  it('anchors Fire register from opposite navigation after Twin Branch', () => {
     const twinBranch = manager.getChordByName('Twin Branch')!;
     const fireDict = manager.getChordByName('Fire')!;
-    const resolvedFire = resolveElementalPlayback(
+    const twinVoicing = computeTiltVoicedPitches(
+      twinBranch,
+      getInitialBorrowingState(),
+      { x: -1, y: 0 },
+      TONAL_CENTER,
+      OCTAVE_RANGE,
+      { anchor: 'contrary' }
+    );
+    const twinBass = Math.min(...twinVoicing);
+    const resolved = resolveElementalForNavigation(
       fireDict,
       TONAL_CENTER,
       OCTAVE_RANGE,
-      twinBranch
-    ).chord;
-
-    const fireAfterTwin = computeTiltVoicedPitches(
-      resolvedFire,
-      getInitialBorrowingState(),
+      twinBranch,
+      twinBass,
       { x: -1, y: 0 },
-      TONAL_CENTER,
-      OCTAVE_RANGE,
-      { anchor: 'contrary', previousChord: twinBranch }
+      'contrary'
     );
 
-    const fireAfterDictFire = computeTiltVoicedPitches(
-      resolvedFire,
-      getInitialBorrowingState(),
-      { x: -1, y: 0 },
-      TONAL_CENTER,
-      OCTAVE_RANGE,
-      { anchor: 'contrary', previousChord: fireDict }
-    );
+    const fireAfterTwin = voicingWithElementalMetadata(resolved, { x: -1, y: 0 });
 
-    expect(fireAfterTwin[0]).not.toBe(fireAfterDictFire[0]);
+    const defaultFire = resolveElementalPlayback(
+      fireDict,
+      TONAL_CENTER,
+      OCTAVE_RANGE
+    );
+    const fireAfterDefault = voicingWithElementalMetadata(defaultFire, {
+      x: -1,
+      y: 0,
+    });
+
+    expect(fireAfterTwin[0]).not.toBe(fireAfterDefault[0]);
+    expect(Math.min(...fireAfterTwin)).toBe(twinBass - 1);
   });
 });

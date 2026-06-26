@@ -1,6 +1,12 @@
+/* ==========================================================================
+   Imports
+   ========================================================================== */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 @import './layout/breakpoints.css';
 
+/* ==========================================================================
+   Design tokens (:root)
+   ========================================================================== */
 :root {
   --bg-dark: #09090b;
   --panel-bg: rgba(24, 24, 27, 0.6);
@@ -25,6 +31,9 @@
   --overlay-pill-border: rgba(255, 255, 255, 0.08);
 }
 
+/* ==========================================================================
+   Reset and document base
+   ========================================================================== */
 * {
   box-sizing: border-box;
   margin: 0;
@@ -58,13 +67,18 @@ body.scroll-locked {
   touch-action: auto;
 }
 
+/* ==========================================================================
+   App shell layout
+   ========================================================================== */
 #root {
   height: 100vh;
   display: flex;
   flex-direction: column;
 }
 
-/* Glassmorphism utilities */
+/* ==========================================================================
+   Glassmorphism utilities
+   ========================================================================== */
 .glass-panel {
   background: var(--panel-bg);
   backdrop-filter: blur(16px);
@@ -73,7 +87,6 @@ body.scroll-locked {
   border-radius: 16px;
 }
 
-/* Layout */
 .app-container {
   display: flex;
   flex-direction: column;
@@ -94,6 +107,9 @@ body.scroll-locked {
   min-height: 0;
 }
 
+/* ==========================================================================
+   Mobile phone layout (coarse pointer)
+   ========================================================================== */
 @media (max-width: 767px),
        (max-width: 950px) and (orientation: portrait) and (pointer: coarse) {
   html,
@@ -412,6 +428,9 @@ body.scroll-locked {
 
 }
 
+/* ==========================================================================
+   Desktop and tablet: hide mobile clock overlay
+   ========================================================================== */
 @media (min-width: 768px) and (pointer: fine),
        (min-width: 768px) and (max-width: 1199px) and (pointer: coarse) {
   .clock-container.mobile-overlay {
@@ -419,7 +438,9 @@ body.scroll-locked {
   }
 }
 
-/* Tablet: touch side-by-side layout with desktop-like grid */
+/* ==========================================================================
+   Tablet touch layout (side-by-side grid)
+   ========================================================================== */
 @media (min-width: 768px) and (max-width: 1199px) and (pointer: coarse) {
   .app-container {
     padding: 0 max(12px, env(safe-area-inset-right))
@@ -441,6 +462,9 @@ body.scroll-locked {
   }
 }
 
+/* ==========================================================================
+   Diagram container
+   ========================================================================== */
 .diagram-container {
   position: relative;
   overflow: hidden;
@@ -453,11 +477,36 @@ body.scroll-locked {
   border-radius: 16px;
   padding: 0px;
   min-height: 450px;
+  touch-action: none;
   --overlay-inset-x: 12px;
   --overlay-inset-y: 12px;
 }
 
-/* Settings modal overlay (portaled to body on all tiers) */
+.diagram-container,
+.diagram-container .diagram-svg,
+.diagram-overlay-pill,
+.diagram-overlay-pill *,
+.diagram-chord-readout,
+.diagram-chord-readout * {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.diagram-container .diagram-svg text {
+  pointer-events: none;
+}
+
+.diagram-container button,
+.diagram-container select {
+  -webkit-touch-callout: default;
+  touch-action: manipulation;
+}
+
+/* ==========================================================================
+   Settings modal (portaled to body)
+   ========================================================================== */
 .settings-modal-backdrop {
   position: fixed;
   inset: 0;
@@ -575,6 +624,19 @@ body.scroll-locked {
   font-size: 0.78rem;
 }
 
+.voice-leading-toggle {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.voice-leading-mode-desc {
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  line-height: 1.45;
+  margin: 0;
+}
+
 .settings-menu-fields {
   display: flex;
   flex-direction: column;
@@ -631,7 +693,9 @@ body.scroll-locked {
   grid-template-columns: 1fr 1fr !important;
 }
 
-/* Diagram corner overlays (Gemini-inspired glass pills) */
+/* ==========================================================================
+   Diagram corner overlay pills
+   ========================================================================== */
 .diagram-overlay-pill {
   pointer-events: auto;
   display: flex;
@@ -791,7 +855,8 @@ body.scroll-locked {
 .diagram-overlay-select {
   appearance: none;
   -webkit-appearance: none;
-  width: 100%;
+  flex: 1 1 auto;
+  min-width: 0;
   background: transparent;
   border: none;
   color: inherit;
@@ -807,6 +872,51 @@ body.scroll-locked {
   white-space: nowrap;
   text-align: center;
   text-align-last: center;
+}
+
+.diagram-overlay-control {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+}
+
+.diagram-overlay-lock {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.45);
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.diagram-overlay-lock:hover:not(:disabled) {
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.diagram-overlay-lock:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.diagram-overlay-lock--active {
+  background: rgba(155, 114, 248, 0.12);
+  border-color: rgba(155, 114, 248, 0.45);
+  color: #c084fc;
+}
+
+.diagram-overlay-pill--locked {
+  border-color: rgba(155, 114, 248, 0.35);
+  box-shadow:
+    0 0 0 1px rgba(155, 114, 248, 0.15),
+    0 4px 16px rgba(0, 0, 0, 0.25);
 }
 
 .diagram-overlay-btn {
@@ -874,6 +984,9 @@ body.scroll-locked {
   height: auto;
 }
 
+/* ==========================================================================
+   Diagram corner toolbar and actions
+   ========================================================================== */
 .diagram-corner-actions {
   position: absolute;
   inset: 0;
@@ -931,6 +1044,9 @@ body.scroll-locked {
   padding: 8px;
 }
 
+/* ==========================================================================
+   iOS install hint
+   ========================================================================== */
 .diagram-ios-hint-anchor {
   position: absolute;
   bottom: calc(max(var(--overlay-inset-y, 12px), env(safe-area-inset-bottom, 0px)) + 96px);
@@ -1030,6 +1146,9 @@ body.scroll-locked {
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
 }
 
+/* ==========================================================================
+   Mobile diagram container overrides
+   ========================================================================== */
 @media (max-width: 767px),
        (max-width: 950px) and (orientation: portrait) and (pointer: coarse) {
   .diagram-container {
@@ -1051,6 +1170,9 @@ body.scroll-locked {
   }
 }
 
+/* ==========================================================================
+   Unified side panel
+   ========================================================================== */
 .unified-side-panel {
   display: flex;
   flex-direction: column;
@@ -1060,7 +1182,6 @@ body.scroll-locked {
   overflow: hidden;
 }
 
-/* Custom scrollbar for side panel */
 .unified-side-panel::-webkit-scrollbar {
   width: 4px;
 }
@@ -1118,7 +1239,9 @@ body.scroll-locked {
   }
 }
 
-/* SVG Diagram styles */
+/* ==========================================================================
+   SVG diagram and chord nodes
+   ========================================================================== */
 .diagram-svg {
   width: 100%;
   height: 100%;
@@ -1155,7 +1278,9 @@ body.scroll-locked {
   stroke-width: 3;
 }
 
-/* UI Controls */
+/* ==========================================================================
+   Form controls (select, range)
+   ========================================================================== */
 select {
   appearance: none;
   -webkit-appearance: none;
@@ -1200,7 +1325,9 @@ input[type="range"] {
   outline: none;
 }
 
-/* Clock Face */
+/* ==========================================================================
+   Clock face and chemistry readout
+   ========================================================================== */
 .clock-container {
   width: 100%;
   height: 100%;
@@ -1244,7 +1371,6 @@ input[type="range"] {
   font-size: 0.88rem;
 }
 
-/* Chemistry-style elemental formula (e.g. Earth₂Wind₁Fire₁) */
 .chemistry-formula {
   display: flex;
   align-items: baseline;
@@ -1294,7 +1420,9 @@ input[type="range"] {
   text-shadow: 0 0 8px var(--glow-fire);
 }
 
-/* Borrowing Controls Layout */
+/* ==========================================================================
+   Voice borrowing controls
+   ========================================================================== */
 .borrowing-controls {
   padding: 0 12px 4px 12px;
   display: flex;
@@ -1317,7 +1445,6 @@ input[type="range"] {
   max-width: 56px;
 }
 
-/* 3-node vertical borrowing slider */
 .borrow-slider {
   position: relative;
   display: grid;
@@ -1335,7 +1462,6 @@ input[type="range"] {
   -webkit-user-select: none;
 }
 
-/* Connecting line behind nodes */
 .borrow-slider-track {
   position: absolute;
   top: calc(100% / 6);
@@ -1381,7 +1507,6 @@ input[type="range"] {
   pointer-events: none;
 }
 
-/* Borrowing memory toggle (settings sheet) */
 .memory-toggle {
   display: flex;
   background: rgba(0, 0, 0, 0.4);
@@ -1413,8 +1538,9 @@ input[type="range"] {
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
 }
 
-
-/* Stop Audio Button */
+/* ==========================================================================
+   Action buttons, effects, and ADSR panel
+   ========================================================================== */
 .stop-btn {
   background: rgba(239, 68, 68, 0.08);
   border: 1px solid rgba(239, 68, 68, 0.25);
@@ -1445,7 +1571,6 @@ input[type="range"] {
   transform: translateY(0);
 }
 
-/* Synthesizer Effects Toggle Button */
 .borrow-btn {
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid var(--panel-border);
@@ -1532,7 +1657,6 @@ input[type="range"] {
   background: rgba(255, 255, 255, 0.15);
 }
 
-/* Chrome/Safari Slider Thumb */
 .slider-container input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
@@ -1551,7 +1675,6 @@ input[type="range"] {
   box-shadow: 0 0 12px rgba(255, 255, 255, 0.4);
 }
 
-/* Firefox Slider Thumb */
 .slider-container input[type="range"]::-moz-range-thumb {
   width: 16px;
   height: 16px;
@@ -1578,7 +1701,6 @@ input[type="range"] {
   font-variant-numeric: tabular-nums;
 }
 
-/* ADSR Panel Refinements */
 .adsr-panel {
   padding: 4px 24px;
 }
@@ -1646,7 +1768,9 @@ input[type="range"] {
   }
 }
 
-/* Splash Screen */
+/* ==========================================================================
+   Splash screen
+   ========================================================================== */
 .splash-container {
   position: fixed;
   inset: 0;
@@ -1862,7 +1986,9 @@ input[type="range"] {
   100% { transform: translateY(-8px); }
 }
 
-/* Orientation Blocker (rendered only while blocked via React) */
+/* ==========================================================================
+   Orientation blocker
+   ========================================================================== */
 .orientation-blocker {
   display: flex;
   position: fixed;
@@ -1902,7 +2028,9 @@ input[type="range"] {
   100% { transform: rotate(90deg); }
 }
 
-/* Foldable: gutter padding when spanning both viewport segments */
+/* ==========================================================================
+   Foldable dual-screen gutter padding
+   ========================================================================== */
 @media (horizontal-viewport-segments: 2) {
   .app-container {
     padding-left: max(16px, env(safe-area-inset-left));
@@ -1914,7 +2042,9 @@ input[type="range"] {
   }
 }
 
-/* Session recording controls */
+/* ==========================================================================
+   Session recording controls
+   ========================================================================== */
 .record-control-root {
   position: relative;
   flex-shrink: 0;

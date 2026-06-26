@@ -14,7 +14,12 @@ import {
   type TiltSample,
   type TiltVoicingAnchor,
 } from './TiltVoicingEngine';
-import { isElementalName, resolveElementalPlayback } from './elementalRoot';
+import {
+  isElementalName,
+  resolveDeterministicElementalPlayback,
+  resolveElementalPlayback,
+} from './elementalRoot';
+import { getChordRootPitchClass } from './pitchClass';
 
 export interface ElementalPlaybackResolution {
   rootPitchClass: number;
@@ -28,6 +33,30 @@ export interface ComputeTiltVoicedPitchesOptions {
   elemental?: ElementalPlaybackResolution;
   /** When set, skip ladder voicing and apply borrow/mute overlays only. */
   neutralVoicing?: number[];
+  /** Smooth mode: ignore previousChord for elemental root/register. */
+  deterministicElemental?: boolean;
+}
+
+function resolveElementalForVoicing(
+  chord: Chord,
+  tonalCenter: number,
+  octaveRange: number,
+  options: {
+    elemental?: ElementalPlaybackResolution;
+    deterministicElemental?: boolean;
+  }
+): ElementalPlaybackResolution & { chord: Chord } {
+  if (options.elemental) {
+    return { ...options.elemental, chord };
+  }
+  if (options.deterministicElemental) {
+    return resolveDeterministicElementalPlayback(
+      chord,
+      tonalCenter,
+      octaveRange
+    );
+  }
+  return resolveElementalPlayback(chord, tonalCenter, octaveRange);
 }
 
 function neutralPitchStructure(chord: Chord): (number | null)[] {
@@ -51,15 +80,18 @@ export function resolveVoicingRoot(
   chord: Chord,
   tonalCenter: number,
   octaveRange: number,
-  previousChord: Chord | null,
-  elemental?: ElementalPlaybackResolution
+  elemental?: ElementalPlaybackResolution,
+  deterministicElemental?: boolean
 ): VoicingRootResolution {
   const pitchStructure = neutralPitchStructure(chord);
 
   if (isElementalName(chord.name)) {
-    const resolved =
-      elemental ??
-      resolveElementalPlayback(chord, tonalCenter, octaveRange, previousChord);
+    const resolved = resolveElementalForVoicing(
+      chord,
+      tonalCenter,
+      octaveRange,
+      { elemental, deterministicElemental }
+    );
     return {
       pitchStructure,
       rootPitchClass: resolved.rootPitchClass,
@@ -69,7 +101,7 @@ export function resolveVoicingRoot(
 
   return {
     pitchStructure,
-    rootPitchClass: chord.pitches[chord.rootPositionIndex] % 12,
+    rootPitchClass: getChordRootPitchClass(chord),
   };
 }
 
@@ -83,18 +115,20 @@ export function computeNeutralTiltVoicing(
   octaveRange: number,
   options: ComputeTiltVoicedPitchesOptions = {}
 ): number[] {
-  const { anchor = 'contrary', previousChord = null, elemental } = options;
+  const {
+    anchor = 'contrary',
+    elemental,
+    deterministicElemental,
+  } = options;
   const pitchStructure = neutralPitchStructure(chord);
 
   if (isElementalName(chord.name)) {
-    const resolved =
-      elemental ??
-      resolveElementalPlayback(
-        chord,
-        tonalCenter,
-        octaveRange,
-        previousChord
-      );
+    const resolved = resolveElementalForVoicing(
+      chord,
+      tonalCenter,
+      octaveRange,
+      { elemental, deterministicElemental }
+    );
     return computeTiltVoicing(
       pitchStructure,
       resolved.rootPitchClass,

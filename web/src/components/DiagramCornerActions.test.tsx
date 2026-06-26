@@ -58,17 +58,24 @@ vi.mock('../hooks/useFullscreen', () => ({
 import { useLayoutTier } from '../hooks/useLayoutTier';
 import { useFullscreen } from '../hooks/useFullscreen';
 
+function mockFullscreenState(
+  overrides: Partial<ReturnType<typeof useFullscreen>> = {},
+) {
+  return {
+    isFullscreen: false,
+    canFullscreen: true,
+    showIosInstallHint: false,
+    toggleFullscreen,
+    dismissIosInstallHint,
+    ...overrides,
+  };
+}
+
 describe('DiagramCornerActions', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(useLayoutTier).mockReturnValue('desktop');
-    vi.mocked(useFullscreen).mockReturnValue({
-      isFullscreen: false,
-      canFullscreen: true,
-      showIosInstallHint: false,
-      toggleFullscreen,
-      dismissIosInstallHint,
-    });
+    vi.mocked(useFullscreen).mockReturnValue(mockFullscreenState());
   });
 
   it('renders panic, settings, and fullscreen in diagram corners', () => {
@@ -100,13 +107,15 @@ describe('DiagramCornerActions', () => {
     expect(screen.queryByRole('option', { name: 'Tilt' })).not.toBeInTheDocument();
   });
 
-  it('shows tilt play style on tablet', () => {
+  it('shows only drone and click-and-hold play styles on tablet', () => {
     vi.mocked(useLayoutTier).mockReturnValue('tablet');
 
     render(<DiagramCornerActions />);
     fireEvent.click(screen.getByRole('button', { name: 'Settings' }));
 
-    expect(screen.getByRole('option', { name: 'Tilt' })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'Drone' })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: /click/i })).toBeInTheDocument();
+    expect(screen.queryByRole('option', { name: 'Tilt' })).not.toBeInTheDocument();
   });
 
   it('calls panic stop without opening the menu', () => {
@@ -135,13 +144,9 @@ describe('DiagramCornerActions', () => {
 
   it('shows iOS install hint on tablet when enabled', () => {
     vi.mocked(useLayoutTier).mockReturnValue('tablet');
-    vi.mocked(useFullscreen).mockReturnValue({
-      isFullscreen: false,
-      canFullscreen: true,
-      showIosInstallHint: true,
-      toggleFullscreen,
-      dismissIosInstallHint,
-    });
+    vi.mocked(useFullscreen).mockReturnValue(
+      mockFullscreenState({ showIosInstallHint: true }),
+    );
 
     render(<DiagramCornerActions />);
 
@@ -152,13 +157,9 @@ describe('DiagramCornerActions', () => {
 
   it('does not show iOS install hint on desktop tier when enabled', () => {
     vi.mocked(useLayoutTier).mockReturnValue('desktop');
-    vi.mocked(useFullscreen).mockReturnValue({
-      isFullscreen: false,
-      canFullscreen: true,
-      showIosInstallHint: true,
-      toggleFullscreen,
-      dismissIosInstallHint,
-    });
+    vi.mocked(useFullscreen).mockReturnValue(
+      mockFullscreenState({ showIosInstallHint: true }),
+    );
 
     render(<DiagramCornerActions />);
 

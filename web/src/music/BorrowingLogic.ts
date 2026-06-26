@@ -1,5 +1,12 @@
+/**
+ * Voice borrowing: circle positions, directions, mutes, and voicing overlays.
+ * See web/README.md (Borrowing System). prepareVoicingInput builds the pitch
+ * structure passed to the tilt engine before borrow/mute overlays apply.
+ */
+
 import { chordManager, type Chord } from './ChordManager';
 import { ELEMENTAL_RELATIONSHIPS, NOTE_POSITION_MAPPING } from './config';
+import { normalizePitchClass } from './pitchClass';
 
 export type BorrowingDirection = 'up' | 'down' | null;
 export type NoteState = 'on' | 'off';
@@ -20,7 +27,15 @@ export const getInitialBorrowingState = (): BorrowingState => ({
   noteStates: { 1: 'on', 2: 'on', 3: 'on', 4: 'on' }
 });
 
-const pitchClass = (pitch: number): number => ((pitch % 12) + 12) % 12;
+/** Shallow-copy nested borrowing maps before mutating one voice line. */
+export function cloneBorrowingState(state: BorrowingState): BorrowingState {
+  return {
+    ...state,
+    borrowingDirections: { ...state.borrowingDirections },
+    circlePositions: { ...state.circlePositions },
+    noteStates: { ...state.noteStates },
+  };
+}
 
 const clampMidi = (pitch: number): number => Math.max(21, Math.min(108, pitch));
 
@@ -29,7 +44,7 @@ export function closestMidiWithPitchClass(
   referenceMidi: number,
   targetPc: number
 ): number {
-  const pc = pitchClass(targetPc);
+  const pc = normalizePitchClass(targetPc);
   const center = Math.round((referenceMidi - pc) / 12);
   let best = clampMidi(pc + 12 * center);
   let bestDist = Math.abs(best - referenceMidi);
@@ -153,9 +168,9 @@ export class BorrowingLogic {
         // Overlay skips muted lines, so neutral PCs remain in the spread.
         // Mute must target the home pitch class; also drop borrowed PC if
         // the slider still shows up/down when toggled off.
-        mutedPitchClasses.add(pitchClass(chord.pitches[noteIndex]));
+        mutedPitchClasses.add(normalizePitchClass(chord.pitches[noteIndex]));
         if (state.circlePositions[line] !== 'line') {
-          mutedPitchClasses.add(pitchClass(borrowedPitches[noteIndex]));
+          mutedPitchClasses.add(normalizePitchClass(borrowedPitches[noteIndex]));
         }
       }
     }
@@ -179,7 +194,7 @@ export class BorrowingLogic {
     // Mutes by pitch class: if borrowing collapsed two lines to the same
     // PC, muting one line removes every voiced note with that PC.
     return voicedPitches.filter(
-      (pitch) => !mutedPitchClasses.has(pitchClass(pitch))
+      (pitch) => !mutedPitchClasses.has(normalizePitchClass(pitch))
     );
   }
 
@@ -191,9 +206,9 @@ export class BorrowingLogic {
   ): { naturalPc: number; effectivePc: number } {
     const rootPositionMapping = this.getRootPositionMapping(chord);
     const noteIndex = rootPositionMapping[line];
-    const naturalPc = pitchClass(chord.pitches[noteIndex]);
+    const naturalPc = normalizePitchClass(chord.pitches[noteIndex]);
     const borrowedPitches = this.applyBorrowing(chord, state, true);
-    const effectivePc = pitchClass(borrowedPitches[noteIndex]);
+    const effectivePc = normalizePitchClass(borrowedPitches[noteIndex]);
     return { naturalPc, effectivePc };
   }
 
@@ -215,12 +230,12 @@ export class BorrowingLogic {
       if (state.circlePositions[line] === 'line') continue;
 
       const noteIndex = rootPositionMapping[line];
-      const naturalPc = pitchClass(chord.pitches[noteIndex]);
-      const borrowedPc = pitchClass(borrowedPitches[noteIndex]);
+      const naturalPc = normalizePitchClass(chord.pitches[noteIndex]);
+      const borrowedPc = normalizePitchClass(borrowedPitches[noteIndex]);
       if (naturalPc === borrowedPc) continue;
 
       result = result.map((note) => {
-        if (pitchClass(note) !== naturalPc) return note;
+        if (normalizePitchClass(note) !== naturalPc) return note;
         return closestMidiWithPitchClass(note, borrowedPc);
       });
     }

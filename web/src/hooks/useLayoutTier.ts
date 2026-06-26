@@ -1,7 +1,19 @@
-import { useEffect, useState } from 'react';
+/**
+ * Reactive layout tier (phone, tablet, desktop) from breakpoints.
+ */
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  createElement,
+  type ReactNode,
+} from 'react';
 import { resolveLayoutTier, type LayoutTier } from '../layout/breakpoints';
 
-export function useLayoutTier(): LayoutTier {
+const LayoutTierContext = createContext<LayoutTier>('desktop');
+
+export function LayoutTierProvider({ children }: { children: ReactNode }) {
   const [tier, setTier] = useState<LayoutTier>(() => resolveLayoutTier());
 
   useEffect(() => {
@@ -21,5 +33,9 @@ export function useLayoutTier(): LayoutTier {
     };
   }, []);
 
-  return tier;
+  return createElement(LayoutTierContext.Provider, { value: tier }, children);
+}
+
+export function useLayoutTier(): LayoutTier {
+  return useContext(LayoutTierContext);
 }

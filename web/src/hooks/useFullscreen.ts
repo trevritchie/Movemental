@@ -1,3 +1,6 @@
+/**
+ * Browser fullscreen toggle with iOS install-to-homescreen hint fallback.
+ */
 import { useCallback, useEffect, useState } from 'react';
 import { isIphone, supportsBrowserFullscreen } from '../utils/devicePlatform';
 

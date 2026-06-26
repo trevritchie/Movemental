@@ -1,3 +1,9 @@
+/**
+ * Session recording UI state: capture, review, M4A export, and MIDI download.
+ *
+ * Wires AudioEngine session capture to React state. Stop order matters: panic
+ * live voices, fade the recorder tap, then finalize blobs for review.
+ */
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { audioEngine, RECORDING_STOP_FADE_MS } from '../audio/AudioEngine';
 import { exportM4a } from '../audio/SessionAudioExporter';
@@ -6,6 +12,8 @@ export type RecordingStatus = 'idle' | 'recording' | 'ready';
 
 /** Hard cap aligned with typical MediaRecorder memory use in long sessions. */
 const MAX_RECORDING_MS = 10 * 60 * 1000;
+/** Elapsed timer tick while recording (ms). */
+const ELAPSED_TIMER_INTERVAL_MS = 250;
 
 function formatRecordingTimestamp(date: Date): string {
   const pad = (value: number) => String(value).padStart(2, '0');
@@ -45,12 +53,6 @@ export interface UseRecordingResult {
   downloadMidi: () => void;
 }
 
-/**
- * Session recording state: idle, actively capturing, or review-ready.
- *
- * Stop order matters: release live synth voices, fade the recorder tap, then
- * finalize audio + MIDI blobs so playback is not masked by ongoing audio.
- */
 export function useRecording(): UseRecordingResult {
   const [status, setStatus] = useState<RecordingStatus>('idle');
   const [elapsedMs, setElapsedMs] = useState(0);
@@ -187,7 +189,7 @@ export function useRecording(): UseRecordingResult {
         if (startedAtRef.current !== null) {
           setElapsedMs(Date.now() - startedAtRef.current);
         }
-      }, 250);
+      }, ELAPSED_TIMER_INTERVAL_MS);
 
       maxDurationTimerRef.current = window.setTimeout(() => {
         void stop();

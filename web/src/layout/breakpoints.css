@@ -1,4 +1,6 @@
-/* Must stay in sync with layout/breakpoints.ts BREAKPOINTS values. */
+/* ==========================================================================
+   Responsive breakpoint CSS variables (sync with layout/breakpoints.ts)
+   ========================================================================== */
 :root {
   --bp-phone-max: 767px;
   --bp-compact-max: 950px;

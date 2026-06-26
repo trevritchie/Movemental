@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, waitFor } from '@testing-library/react';
 import { ElementalDiagram } from './ElementalDiagram';
 
+// Idle diagram: no selected chord, borrowing off, tilt unsupported.
 vi.mock('../context/ChordContext', () => ({
   useChordContext: () => ({
     selectedChord: null,
@@ -13,16 +14,17 @@ vi.mock('../context/ChordContext', () => ({
     handleChordPointerUp: vi.fn(),
     handleChordPointerEnter: vi.fn(),
     playStyle: 'drone',
-    staticVoicingLevel: 0,
-    setStaticVoicingLevel: vi.fn(),
-    staticPositionLevel: 4,
-    setStaticPositionLevel: vi.fn(),
+    noTiltVoicingLevel: 0,
+    setNoTiltVoicingLevel: vi.fn(),
+    noTiltPositionLevel: 4,
+    setNoTiltPositionLevel: vi.fn(),
     tonalCenter: 0,
     octaveRange: 3,
     previousPlayedChord: null,
-    tiltStatus: 'unsupported',
-    tiltSample: { roll: 0, pitch: 0 },
-    requestTiltPermission: vi.fn(),
+    isNoTiltVoicingLocked: false,
+    isNoTiltBassLocked: false,
+    toggleNoTiltVoicingLock: vi.fn(),
+    toggleNoTiltBassLock: vi.fn(),
   }),
 }));
 
@@ -32,6 +34,14 @@ const mockUseLayoutTier = vi.fn((): LayoutTier => 'phone');
 
 vi.mock('../hooks/useLayoutTier', () => ({
   useLayoutTier: () => mockUseLayoutTier(),
+}));
+
+vi.mock('../context/TiltReadoutContext', () => ({
+  useTiltReadoutContext: () => ({
+    tiltStatus: 'unsupported',
+    tiltSample: { x: 0, y: 0 },
+    requestTiltPermission: vi.fn(),
+  }),
 }));
 
 vi.mock('../hooks/useFullscreen', () => ({
@@ -48,6 +58,7 @@ vi.mock('./RecordControl', () => ({
   RecordControl: () => null,
 }));
 
+// ElementalDiagram fades in after rAF settles layout measurements.
 async function flushAnimationFrames(count = 2): Promise<void> {
   for (let i = 0; i < count; i += 1) {
     await new Promise<void>((resolve) => {

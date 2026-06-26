@@ -24,14 +24,17 @@ import {
   DEFAULT_VOICE_LEADING_MODE,
 } from '../music/config';
 import {
-  DEFAULT_STATIC_POSITION_LEVEL,
-  DEFAULT_STATIC_VOICING_LEVEL,
+  DEFAULT_NO_TILT_POSITION_LEVEL,
+  DEFAULT_NO_TILT_VOICING_LEVEL,
   type TiltSample,
 } from '../music/TiltVoicingEngine';
 import { useAudioSettings } from '../hooks/useAudioSettings';
 import { useBorrowingMemory } from '../hooks/useBorrowingMemory';
 import { useChordPlayback } from '../hooks/useChordPlayback';
-import { useDeviceTilt, type TiltStatus } from '../hooks/useDeviceTilt';
+import { useDeviceTilt } from '../hooks/useDeviceTilt';
+import { TiltReadoutProvider } from './TiltReadoutContext';
+import { useNoTiltChordLocks } from '../hooks/useNoTiltChordLocks';
+import type { ElementalPlaybackResolution } from '../music/tiltVoicingPlayback';
 import type { PlayStyle, VoiceLeadingMode } from './types';
 
 export type { PlayStyle, VoiceLeadingMode } from './types';
@@ -39,10 +42,10 @@ export type { PlayStyle, VoiceLeadingMode } from './types';
 interface ChordContextType {
   tonalCenter: number;
   setTonalCenter: (val: number) => void;
-  staticVoicingLevel: number;
-  setStaticVoicingLevel: (val: number) => void;
-  staticPositionLevel: number;
-  setStaticPositionLevel: (val: number) => void;
+  noTiltVoicingLevel: number;
+  setNoTiltVoicingLevel: (val: number) => void;
+  noTiltPositionLevel: number;
+  setNoTiltPositionLevel: (val: number) => void;
   octaveRange: number;
   setOctaveRange: (val: number) => void;
   selectedChord: Chord | null;
@@ -59,6 +62,9 @@ interface ChordContextType {
   setReverbWet: (val: number) => void;
   playStyle: PlayStyle;
   setPlayStyle: (mode: PlayStyle) => void;
+  tiltModeEnabled: boolean;
+  enterTiltSession: () => void;
+  enterNoTiltSession: () => void;
   handleChordPointerDown: (chord: Chord) => void;
   handleChordPointerUp: () => void;
   handleChordPointerEnter: (chord: Chord) => void;
@@ -86,9 +92,11 @@ interface ChordContextType {
   smoothBaseParallel: number;
   lastPlayedVoicingLabel: string | null;
   lastPlayedBassLabel: string | null;
-  tiltStatus: TiltStatus;
-  tiltSample: TiltSample;
-  requestTiltPermission: () => Promise<void>;
+  lastElementalPlayback: ElementalPlaybackResolution | null;
+  isNoTiltVoicingLocked: boolean;
+  isNoTiltBassLocked: boolean;
+  toggleNoTiltVoicingLock: () => void;
+  toggleNoTiltBassLock: () => void;
 }
 
 const ChordContext = createContext<ChordContextType | undefined>(undefined);
@@ -107,11 +115,11 @@ interface ChordProviderProps {
 
 export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
   const [tonalCenter, setTonalCenter] = useState(DEFAULT_TONAL_CENTER_OFFSET);
-  const [staticVoicingLevel, setStaticVoicingLevel] = useState(
-    DEFAULT_STATIC_VOICING_LEVEL
+  const [noTiltVoicingLevel, setNoTiltVoicingLevel] = useState(
+    DEFAULT_NO_TILT_VOICING_LEVEL
   );
-  const [staticPositionLevel, setStaticPositionLevel] = useState(
-    DEFAULT_STATIC_POSITION_LEVEL
+  const [noTiltPositionLevel, setNoTiltPositionLevel] = useState(
+    DEFAULT_NO_TILT_POSITION_LEVEL
   );
   const [octaveRange, setOctaveRange] = useState(DEFAULT_OCTAVE_RANGE);
   const [selectedChord, setSelectedChord] = useState<Chord | null>(null);
@@ -136,16 +144,16 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
 
   const deviceTilt = useDeviceTilt();
 
-  const staticVoicingLevelRef = useRef(staticVoicingLevel);
-  const staticPositionLevelRef = useRef(staticPositionLevel);
+  const noTiltVoicingLevelRef = useRef(noTiltVoicingLevel);
+  const noTiltPositionLevelRef = useRef(noTiltPositionLevel);
   const tonalCenterRef = useRef(tonalCenter);
   const voiceLeadingModeRef = useRef(voiceLeadingMode);
   useEffect(() => {
-    staticVoicingLevelRef.current = staticVoicingLevel;
-  }, [staticVoicingLevel]);
+    noTiltVoicingLevelRef.current = noTiltVoicingLevel;
+  }, [noTiltVoicingLevel]);
   useEffect(() => {
-    staticPositionLevelRef.current = staticPositionLevel;
-  }, [staticPositionLevel]);
+    noTiltPositionLevelRef.current = noTiltPositionLevel;
+  }, [noTiltPositionLevel]);
   useEffect(() => {
     tonalCenterRef.current = tonalCenter;
   }, [tonalCenter]);
@@ -153,17 +161,28 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
     voiceLeadingModeRef.current = voiceLeadingMode;
   }, [voiceLeadingMode]);
 
+  const noTiltLocks = useNoTiltChordLocks({
+    selectedChord,
+    setNoTiltVoicingLevel,
+    setNoTiltPositionLevel,
+    noTiltVoicingLevelRef,
+    noTiltPositionLevelRef,
+  });
+
   const playback = useChordPlayback({
     getBorrowingStateForChord: borrowing.getBorrowingStateForChord,
     borrowingStateRef: borrowing.borrowingStateRef,
     setBorrowingState: borrowing.setBorrowingState,
     setSelectedChord,
     rawTiltRef: deviceTilt.rawTiltRef,
-    staticVoicingLevelRef,
-    staticPositionLevelRef,
+    noTiltVoicingLevelRef,
+    noTiltPositionLevelRef,
     tonalCenterRef,
     voiceLeadingModeRef,
-    setStaticPositionLevel,
+    setNoTiltPositionLevel,
+    noTiltLockMapsRef: noTiltLocks.lockMapsRef,
+    applyNoTiltLocksForChord: noTiltLocks.applyLocksForChord,
+    clearNoTiltChordLocks: noTiltLocks.clearAllLocks,
   });
 
   useEffect(() => {
@@ -177,7 +196,21 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
     borrowingStateRef,
     setBorrowingState,
   } = borrowing;
-  const { playAndDisplayChord } = playback;
+  const {
+    playAndDisplayChord,
+    enterTiltSession: enterTiltPlayback,
+    enterNoTiltSession: enterNoTiltPlayback,
+  } = playback;
+
+  const enterTiltSession = useCallback(() => {
+    enterTiltPlayback();
+    setVoiceLeadingMode('smooth');
+  }, [enterTiltPlayback]);
+
+  const enterNoTiltSession = useCallback(() => {
+    enterNoTiltPlayback();
+    setVoiceLeadingMode('smoothest');
+  }, [enterNoTiltPlayback]);
 
   const handleChordSelect = useCallback(
     (chord: Chord) => {
@@ -203,7 +236,7 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
   }, [tonalCenter, octaveRange]);
 
   /**
-   * Re-voice the selected chord when global register or static voicing
+   * Re-voice the selected chord when global register or no-tilt voicing
    * controls change. Skips redundant audio when pitches are unchanged
    * (playAndDisplayChord -> skipIfUnchanged). Does not run on every tilt
    * tick; tilt voicing is sampled at tap time only.
@@ -225,8 +258,8 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
   }, [
     tonalCenter,
     octaveRange,
-    staticVoicingLevel,
-    staticPositionLevel,
+    noTiltVoicingLevel,
+    noTiltPositionLevel,
     voiceLeadingMode,
     getBorrowingStateForChord,
     borrowingStateRef,
@@ -238,10 +271,10 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
     () => ({
       tonalCenter,
       setTonalCenter,
-      staticVoicingLevel,
-      setStaticVoicingLevel,
-      staticPositionLevel,
-      setStaticPositionLevel,
+      noTiltVoicingLevel,
+      setNoTiltVoicingLevel: noTiltLocks.setNoTiltVoicingLevel,
+      noTiltPositionLevel,
+      setNoTiltPositionLevel: noTiltLocks.setNoTiltPositionLevel,
       octaveRange,
       setOctaveRange,
       selectedChord,
@@ -258,6 +291,9 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
       setReverbWet: audio.setReverbWet,
       playStyle: playback.playStyle,
       setPlayStyle: playback.setPlayStyle,
+      tiltModeEnabled: playback.tiltModeEnabled,
+      enterTiltSession,
+      enterNoTiltSession,
       handleChordPointerDown: playback.handleChordPointerDown,
       handleChordPointerUp: playback.handleChordPointerUp,
       handleChordPointerEnter: playback.handleChordPointerEnter,
@@ -285,14 +321,16 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
       smoothBaseParallel: playback.smoothBaseParallel,
       lastPlayedVoicingLabel: playback.lastPlayedVoicingLabel,
       lastPlayedBassLabel: playback.lastPlayedBassLabel,
-      tiltStatus: deviceTilt.status,
-      tiltSample: deviceTilt.tilt,
-      requestTiltPermission: deviceTilt.requestPermission,
+      lastElementalPlayback: playback.lastElementalPlayback,
+      isNoTiltVoicingLocked: noTiltLocks.isVoicingLocked,
+      isNoTiltBassLocked: noTiltLocks.isBassLocked,
+      toggleNoTiltVoicingLock: noTiltLocks.toggleVoicingLock,
+      toggleNoTiltBassLock: noTiltLocks.toggleBassLock,
     }),
     [
       tonalCenter,
-      staticVoicingLevel,
-      staticPositionLevel,
+      noTiltVoicingLevel,
+      noTiltPositionLevel,
       octaveRange,
       selectedChord,
       borrowing.borrowingState,
@@ -303,6 +341,9 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
       playback.previousPlayedChord,
       playback.playStyle,
       playback.setPlayStyle,
+      playback.tiltModeEnabled,
+      enterTiltSession,
+      enterNoTiltSession,
       playback.handleChordPointerDown,
       playback.handleChordPointerUp,
       playback.handleChordPointerEnter,
@@ -334,13 +375,23 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
       playback.smoothBaseParallel,
       playback.lastPlayedVoicingLabel,
       playback.lastPlayedBassLabel,
-      deviceTilt.status,
-      deviceTilt.tilt,
-      deviceTilt.requestPermission,
+      playback.lastElementalPlayback,
+      noTiltLocks.isVoicingLocked,
+      noTiltLocks.isBassLocked,
+      noTiltLocks.toggleVoicingLock,
+      noTiltLocks.toggleBassLock,
+      noTiltLocks.setNoTiltVoicingLevel,
+      noTiltLocks.setNoTiltPositionLevel,
     ]
   );
 
   return (
-    <ChordContext.Provider value={value}>{children}</ChordContext.Provider>
+    <TiltReadoutProvider
+      status={deviceTilt.status}
+      tilt={deviceTilt.tilt}
+      requestPermission={deviceTilt.requestPermission}
+    >
+      <ChordContext.Provider value={value}>{children}</ChordContext.Provider>
+    </TiltReadoutProvider>
   );
 };

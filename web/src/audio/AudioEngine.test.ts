@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import * as Tone from 'tone';
 
+// Hoisted spies referenced inside vi.mock factories below.
 const midiRecorderMock = vi.hoisted(() => ({
   start: vi.fn(),
   reset: vi.fn(),
