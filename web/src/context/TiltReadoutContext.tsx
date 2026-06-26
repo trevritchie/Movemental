@@ -8,8 +8,8 @@ import {
   useMemo,
   type ReactNode,
 } from 'react';
-import type { TiltSample } from '../music/TiltVoicingEngine';
-import type { TiltStatus } from '../hooks/useDeviceTilt';
+import type { TiltSample } from '@/music/TiltVoicingEngine';
+import type { TiltStatus } from '@/hooks/useDeviceTilt';
 
 interface TiltReadoutContextType {
   tiltStatus: TiltStatus;

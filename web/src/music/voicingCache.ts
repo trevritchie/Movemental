@@ -5,7 +5,7 @@
  * within the same voicing level hits the cache. Commit invalidation is
  * selective: only when chord, borrowing, or voice-leading mode changes.
  */
-import type { VoiceLeadingMode } from '../context/types';
+import type { VoiceLeadingMode } from '@/context/types';
 import { isElementalName } from './elementalRoot';
 import type { BorrowingState } from './BorrowingLogic';
 import type { Chord } from './ChordManager';

@@ -50,11 +50,11 @@ const BorrowSlider = React.memo(function BorrowSlider({
   const pendingSlotRef = useRef<'up' | 'neutral' | 'down' | null>(null);
 
   const emitChange = (slot: 'up' | 'neutral' | 'down') => {
-    const now = performance.now();
+    const now = Date.now();
     if (now - lastPreviewAtRef.current >= SLIDER_PREVIEW_THROTTLE_MS) {
       lastPreviewAtRef.current = now;
       pendingSlotRef.current = null;
-      emitChange(slot);
+      onChange(slot);
       return;
     }
     pendingSlotRef.current = slot;
@@ -64,7 +64,7 @@ const BorrowSlider = React.memo(function BorrowSlider({
     if (pendingSlotRef.current !== null) {
       onChange(pendingSlotRef.current);
       pendingSlotRef.current = null;
-      lastPreviewAtRef.current = performance.now();
+      lastPreviewAtRef.current = Date.now();
     }
   };
 

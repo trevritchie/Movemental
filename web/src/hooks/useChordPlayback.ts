@@ -613,7 +613,7 @@ export function useChordPlayback({
         );
       }
     },
-    [dispatchAudio, setSelectedChord, updateVoiceLeadingBaseline]
+    [dispatchAudio, setSelectedChord, updateVoiceLeadingBaseline, voiceLeadingModeRef]
   );
 
   const voiceAndPlay = useCallback(

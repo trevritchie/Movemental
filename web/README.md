@@ -12,9 +12,9 @@ The web application is structured around a unidirectional state flow, managed by
 graph TD
     UI_Diag[ElementalDiagram.tsx] -->|Pointer events| Playback[useChordPlayback.ts]
     UI_Sliders[BorrowingControls.tsx] -->|Borrowing state| Context[ChordContext.tsx]
-    UI_TopBar[TopBar.tsx] -->|Settings / tilt readouts| Context
-    UI_Overlay[DiagramVoicingOverlay.tsx] -->|Static voicing on phone| Context
-    TiltHook[useDeviceTilt.ts] -->|Tilt sample ~150ms| Context
+    UI_TopBar[TopBar.tsx] -->|Settings| Context
+    UI_Overlay[DiagramVoicingOverlay.tsx] -->|Voicing readout| TiltCtx[TiltReadoutContext.tsx]
+    TiltHook[useDeviceTilt.ts] -->|Tilt sample ~150ms| TiltCtx
 
     subgraph Core [Core logic]
         Context
@@ -42,7 +42,10 @@ graph TD
 ```
 
 ### ChordContext React Core (`ChordContext.tsx`)
-At the core of the UI is the `ChordProvider`, which wires together borrowing memory, device tilt, playback, and audio FX settings.
+At the core of the UI is the `ChordProvider`, which wires together borrowing
+memory, playback, and audio FX settings. High-frequency tilt samples live in
+`TiltReadoutContext` so diagram borrowing controls do not re-render on every
+sensor update.
 
 **Global parameters**
 *   **Tonal center** (default: Bb, offset `10`)
@@ -264,12 +267,32 @@ graph LR
 
 ---
 
+## Shared modules
+
+Cross-file utilities introduced in the second-pass refactor. See
+[`CONTRIBUTING.md`](CONTRIBUTING.md) for conventions and hot-path rules.
+
+| Module | Purpose |
+|--------|---------|
+| [`pitchClass.ts`](src/music/pitchClass.ts) | Pitch-class math (`normalizePitchClass`, tonal-center relatives, chord root) |
+| [`elementTokens.ts`](src/music/elementTokens.ts) | Parent-element CSS colors and mod-3 styling helpers |
+| [`diagramLayout.ts`](src/music/diagramLayout.ts) | SVG viewBox constants and `coordToPixels` |
+| [`playbackTiltResolution.ts`](src/music/playbackTiltResolution.ts) | Smooth/smoothest tilt rules shared by playback and bass labels |
+| [`utils/clamp.ts`](src/utils/clamp.ts) | Numeric clamp |
+| [`TiltReadoutContext.tsx`](src/context/TiltReadoutContext.tsx) | Isolates ~7 Hz tilt updates from `ChordContext` |
+| [`voicingCache.ts`](src/music/voicingCache.ts) | Selective invalidation for tilt label memo |
+
+Imports may use the `@/` path alias (`@/music/...`, `@/context/...`) in new
+and recently touched modules.
+
+---
+
 ## Source layout
 
 | Area | Path | Role |
 |------|------|------|
 | UI | `src/components/` | Diagram, clock, borrowing controls, TopBar, voicing overlay |
-| State | `src/context/ChordContext.tsx` | Provider wiring |
+| State | `src/context/ChordContext.tsx`, `TiltReadoutContext.tsx` | Provider wiring |
 | Playback | `src/hooks/useChordPlayback.ts` | Play styles, voicing dispatch, elemental chain |
 | Tilt sensor | `src/hooks/useDeviceTilt.ts` | Orientation to normalized tilt sample |
 | Voicing | `src/music/TiltVoicingEngine.ts`, `tiltVoicingPlayback.ts` | Ladder counterpoint |

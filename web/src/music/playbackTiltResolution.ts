@@ -2,7 +2,7 @@
  * Shared tilt resolution for playback and bass-degree labels.
  * Keeps smooth/smoothest and opposite-element rules in one place.
  */
-import type { PlayStyle, VoiceLeadingMode } from '../context/types';
+import type { PlayStyle, VoiceLeadingMode } from '@/context/types';
 import type { Chord } from './ChordManager';
 import {
   isElementalName,
