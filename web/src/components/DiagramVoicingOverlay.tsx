@@ -65,9 +65,9 @@ export const DiagramVoicingOverlay: React.FC = () => {
     octaveRange,
     borrowingState,
     previousPlayedChord,
-    activePitches,
     voiceLeadingMode,
     lastTapTilt,
+    lastCommittedPlaybackTilt,
     smoothBaseParallel,
     lastPlayedVoicingLabel,
     lastPlayedBassLabel,
@@ -97,12 +97,9 @@ export const DiagramVoicingOverlay: React.FC = () => {
       previousChord: previousPlayedChord,
       voiceLeadingMode,
       tiltModeEnabled,
-      activePitches: (activePitches ?? []).filter(
-        (pitch): pitch is number => pitch !== null
-      ),
       ...(lastElementalPlayback ? { elemental: lastElementalPlayback } : {}),
       ...(voiceLeadingMode === 'smooth' || voiceLeadingMode === 'smoothest'
-        ? { lastTapTilt }
+        ? { lastTapTilt, lastCommittedPlaybackTilt }
         : {}),
       ...(voiceLeadingMode === 'smoothest'
         ? { smoothBaseParallel }
@@ -115,10 +112,10 @@ export const DiagramVoicingOverlay: React.FC = () => {
       previousPlayedChord,
       voiceLeadingMode,
       tiltModeEnabled,
-      activePitches,
       lastElementalPlayback,
       smoothBaseParallel,
       lastTapTilt,
+      lastCommittedPlaybackTilt,
     ]
   );
 

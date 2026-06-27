@@ -2,7 +2,7 @@
 
 Parallel ladder steps Smoothest mode picks when you hold Branch at
 flat double octave, then tap each chord. These values seed Smooth mode
-defaults in `predeterminedVoiceLeading.ts`.
+defaults in `predeterminedVoiceLeading.ts` unless noted below.
 
 Settings: tonal center Bb, home octave 2, contrary tilt anchor.
 
@@ -126,3 +126,20 @@ To change Smooth mode defaults, edit `CHORD_FLAT_PARALLEL` in
 | Sister Charcoal | -1 | 7th |
 | Twin Charcoal | -4 | Root |
 | Brother Charcoal | -3 | 3rd |
+
+## Smooth mode: Wind
+
+Smoothest from Branch gives Wind parallel **-1** (6th in bass). Smooth
+overrides the Wind table entry to **-2** (5th in bass at flat tilt).
+
+When navigating **to Wind** in smooth tilt mode (see
+`playbackTiltResolution.ts` and `elementalRoot.ts`):
+
+| Previous context | Entry parallel | Bass at flat (no pitch delta) |
+|------------------|----------------|-----------------------------|
+| Earth-Wind or Wind-Fire edge, not opposite | -1 | 6th |
+| Fire corner or other non-opposite | -2 | 5th |
+| Fire-Earth edge (opposite-element) | preserve committed parallel from source + pitch delta; rotation search | depends on source |
+
+Pitch tilt since the last diagram tap adds to the entry baseline. Roll
+comes from live device tilt.

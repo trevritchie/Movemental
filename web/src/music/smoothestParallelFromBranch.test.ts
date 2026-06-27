@@ -57,7 +57,13 @@ function formatGroupedTsLines(table: Record<string, number>): string[] {
   const lines: string[] = [];
   lines.push('  // Elemental diminished (triangle corners)');
   for (const element of ELEMENTAL_NAMES) {
-    lines.push(`  '${element}': ${table[element]},`);
+    if (element === 'Wind') {
+      lines.push(
+        `  '${element}': ${table[element]},  // Smoothest; Smooth CHORD_FLAT_PARALLEL uses -2`
+      );
+    } else {
+      lines.push(`  '${element}': ${table[element]},`);
+    }
   }
   lines.push('');
   for (const group of BASE_GROUPS) {
@@ -88,6 +94,10 @@ function writeSmoothestFlatTableArtifacts(
       'export const CHORD_FLAT_PARALLEL = {',
       ...groupedLines,
       '};',
+      '',
+      '# Smooth Wind overrides (see smoothest-flat-parallel-from-branch.md):',
+      "#   CHORD_FLAT_PARALLEL['Wind'] = -2 (5th in bass at flat tilt)",
+      '#   Navigating to Wind from Earth-Wind or Wind-Fire (non-opposite): -1 (6th)',
       '',
     ].join('\n')
   );
@@ -126,7 +136,7 @@ function writeSmoothestFlatTableArtifacts(
       '',
       'Parallel ladder steps Smoothest mode picks when you hold Branch at',
       'flat double octave, then tap each chord. These values seed Smooth mode',
-      'defaults in `predeterminedVoiceLeading.ts`.',
+      'defaults in `predeterminedVoiceLeading.ts` unless noted below.',
       '',
       'Settings: tonal center Bb, home octave 2, contrary tilt anchor.',
       '',
@@ -136,6 +146,23 @@ function writeSmoothestFlatTableArtifacts(
       '`smoothestParallelFromBranch.test.ts` to regenerate this file.',
       '',
       ...mdSections,
+      '',
+      '## Smooth mode: Wind',
+      '',
+      'Smoothest from Branch gives Wind parallel **-1** (6th in bass). Smooth',
+      'overrides the Wind table entry to **-2** (5th in bass at flat tilt).',
+      '',
+      'When navigating **to Wind** in smooth tilt mode (see',
+      '`playbackTiltResolution.ts` and `elementalRoot.ts`):',
+      '',
+      '| Previous context | Entry parallel | Bass at flat (no pitch delta) |',
+      '|------------------|----------------|-----------------------------|',
+      '| Earth-Wind or Wind-Fire edge, not opposite | -1 | 6th |',
+      '| Fire corner or other non-opposite | -2 | 5th |',
+      '| Fire-Earth edge (opposite-element) | preserve committed parallel from source + pitch delta; rotation search | depends on source |',
+      '',
+      'Pitch tilt since the last diagram tap adds to the entry baseline. Roll',
+      'comes from live device tilt.',
       '',
     ].join('\n')
   );

@@ -23,7 +23,7 @@ import {
 export const CHORD_FLAT_PARALLEL: Record<string, number> = {
   // Elemental diminished (triangle corners)
   'Earth': -2,
-  'Wind': -1,
+  'Wind': -2,
   'Fire': 0,
 
   // Earth-Wind — Trunk (min6)

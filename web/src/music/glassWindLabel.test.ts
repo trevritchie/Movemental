@@ -6,6 +6,7 @@ import {
   resolveElementalForNavigation,
 } from './elementalRoot';
 import { resolveSmoothPlaybackTilt } from './predeterminedVoiceLeading';
+import { resolveSmoothPlaybackTiltForNavigation } from './playbackTiltResolution';
 import {
   parallelLevelFromTilt,
   tiltSampleFromLevels,
@@ -95,7 +96,8 @@ describe('Glass -> Wind opposite navigation', () => {
       tiltModeEnabled: true,
       voiceLeadingMode: 'smooth',
       previousChord: glass,
-      activePitches: windVoicing,
+      lastTapTilt: DOUBLE_OCTAVE_FLAT,
+      lastCommittedPlaybackTilt: glassTilt,
       elemental: {
         rootPitchClass: resolved.rootPitchClass,
         homeMidi: resolved.homeMidi,
@@ -106,19 +108,27 @@ describe('Glass -> Wind opposite navigation', () => {
     );
   });
 
-  it('uses Wind table parallel for non-opposite navigation', () => {
+  it('uses Earth-Wind axis baseline for Branch -> Wind', () => {
     const branch = manager.getChordByName('Branch')!;
     const wind = manager.getChordByName('Wind')!;
     const state = getInitialBorrowingState();
+    const branchTilt = resolveSmoothPlaybackTilt('Branch', DOUBLE_OCTAVE_FLAT);
     const branchVoicing = computeTiltVoicedPitches(
       branch,
       state,
-      resolveSmoothPlaybackTilt('Branch', DOUBLE_OCTAVE_FLAT),
+      branchTilt,
       TONAL_CENTER,
       OCTAVE_RANGE,
       { anchor: 'contrary' }
     );
-    const windTilt = resolveSmoothPlaybackTilt('Wind', DOUBLE_OCTAVE_FLAT);
+    const windTilt = resolveSmoothPlaybackTiltForNavigation(
+      wind,
+      DOUBLE_OCTAVE_FLAT,
+      true,
+      branch,
+      DOUBLE_OCTAVE_FLAT,
+      branchTilt
+    );
     expect(parallelLevelFromTilt(windTilt)).toBe(-1);
     const resolved = resolveElementalForNavigation(
       wind,
