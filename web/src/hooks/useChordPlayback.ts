@@ -118,6 +118,8 @@ export function useChordPlayback({
     null
   );
   const [lastTapTilt, setLastTapTilt] = useState<TiltSample>(FLAT_TILT);
+  const [lastCommittedPlaybackTilt, setLastCommittedPlaybackTilt] =
+    useState<TiltSample>(FLAT_TILT);
   const [smoothBaseParallel, setSmoothBaseParallel] = useState(0);
   const [lastPlayedVoicingLabel, setLastPlayedVoicingLabel] = useState<
     string | null
@@ -144,6 +146,8 @@ export function useChordPlayback({
   const anchorKeyRef = useRef<string>('');
   /** Raw tilt at the tap that committed the previous chord. */
   const lastTapTiltRef = useRef<TiltSample>(FLAT_TILT);
+  /** Resolved playback tilt at the last chord commit. */
+  const lastCommittedPlaybackTiltRef = useRef<TiltSample>(FLAT_TILT);
   /** Winning parallel steps from smooth search (before pitch delta). */
   const smoothBaseParallelRef = useRef(0);
   /** No-tilt control levels at the previous chord commit. */
@@ -405,6 +409,8 @@ export function useChordPlayback({
   const resetVoiceLeadingSession = useCallback(() => {
     lastTapTiltRef.current = FLAT_TILT;
     setLastTapTilt(FLAT_TILT);
+    lastCommittedPlaybackTiltRef.current = FLAT_TILT;
+    setLastCommittedPlaybackTilt(FLAT_TILT);
     smoothBaseParallelRef.current = 0;
     setSmoothBaseParallel(0);
     setLastPlayedVoicingLabel(null);
@@ -458,7 +464,8 @@ export function useChordPlayback({
         liveTilt,
         isChordChange,
         previousChordRef.current,
-        lastTapTiltRef.current
+        lastTapTiltRef.current,
+        lastCommittedPlaybackTiltRef.current
       );
     },
     []
@@ -567,6 +574,9 @@ export function useChordPlayback({
 
   const updateVoiceLeadingBaseline = useCallback(
     (playbackTilt: TiltSample) => {
+      lastCommittedPlaybackTiltRef.current = { ...playbackTilt };
+      setLastCommittedPlaybackTilt(lastCommittedPlaybackTiltRef.current);
+
       if (usesDeviceTilt(tiltModeRef.current)) {
         lastTapTiltRef.current = { ...rawTiltRef.current };
         setLastTapTilt(lastTapTiltRef.current);
@@ -680,6 +690,7 @@ export function useChordPlayback({
           isChordChange,
           isFirstChord,
           isOppositeElement,
+          previousChord: previousChordRef.current,
           lockMaps: noTiltLockMapsRef.current,
           noTiltVoicingLevel: noTiltVoicingLevelRef.current,
           noTiltPositionLevel: noTiltPositionLevelRef.current,
@@ -851,6 +862,7 @@ export function useChordPlayback({
     activePitches,
     previousPlayedChord,
     lastTapTilt,
+    lastCommittedPlaybackTilt,
     smoothBaseParallel,
     lastPlayedVoicingLabel,
     lastPlayedBassLabel,

@@ -42,8 +42,10 @@ export interface TiltBassLabelContext {
   voiceLeadingMode?: VoiceLeadingMode;
   /** Smoothest only: parallel committed at last tap before live pitch delta. */
   smoothBaseParallel?: number;
-  /** Smoothest only: raw tilt at the last diagram tap. */
+  /** Raw device tilt at the last diagram tap (control baseline for pitch delta). */
   lastTapTilt?: TiltSample;
+  /** Resolved playback tilt committed at the last diagram tap. */
+  lastCommittedPlaybackTilt?: TiltSample;
   tiltModeEnabled?: boolean;
   /** Resolved elemental root/register from playback (opposite-element navigation). */
   elemental?: ElementalPlaybackResolution;

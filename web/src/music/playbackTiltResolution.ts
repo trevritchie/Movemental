@@ -7,6 +7,7 @@ import type { Chord } from './ChordManager';
 import {
   isElementalName,
   isOppositeElementNavigation,
+  resolveWindEntryBaseline,
   type ElementalName,
 } from './elementalRoot';
 import {
@@ -41,18 +42,43 @@ export function tiltFromNoTiltLevels(
   );
 }
 
-/**
- * Smooth mode on opposite-element navigation: preserve parallel from last tap.
- */
-export function resolveSmoothOppositeElementTilt(
-  _chord: Chord,
-  _previousChord: Chord,
+function pitchDeltaSinceLastControl(
   liveTilt: TiltSample,
-  lastTapTilt: TiltSample
+  lastControlTilt: TiltSample
+): number {
+  return (
+    parallelLevelFromTilt(liveTilt) - parallelLevelFromTilt(lastControlTilt)
+  );
+}
+
+function tiltWithEntryBaselineAndDelta(
+  liveTilt: TiltSample,
+  lastControlTilt: TiltSample,
+  entryBaseline: number
 ): TiltSample {
   const { inputSteps } = mapTiltToPositions(liveTilt);
-  const preservedParallel = parallelLevelFromTilt(lastTapTilt);
-  return tiltSampleFromLevels(inputSteps, preservedParallel);
+  const effectiveParallel = clamp(
+    entryBaseline + pitchDeltaSinceLastControl(liveTilt, lastControlTilt),
+    -MAX_TILT_PITCH_STEPS,
+    MAX_TILT_PITCH_STEPS
+  );
+  return tiltSampleFromLevels(inputSteps, effectiveParallel);
+}
+
+/**
+ * Smooth mode on opposite-element navigation: preserve committed parallel
+ * from the previous chord plus pitch delta since last control tilt.
+ */
+export function resolveSmoothOppositeElementTilt(
+  liveTilt: TiltSample,
+  lastControlTilt: TiltSample,
+  lastCommittedPlaybackTilt: TiltSample
+): TiltSample {
+  return tiltWithEntryBaselineAndDelta(
+    liveTilt,
+    lastControlTilt,
+    parallelLevelFromTilt(lastCommittedPlaybackTilt)
+  );
 }
 
 export function resolveSmoothPlaybackTiltForNavigation(
@@ -60,29 +86,69 @@ export function resolveSmoothPlaybackTiltForNavigation(
   liveTilt: TiltSample,
   isChordChange: boolean,
   previousChord: Chord | null,
-  lastTapTilt: TiltSample
+  lastControlTilt: TiltSample,
+  lastCommittedPlaybackTilt: TiltSample
 ): TiltSample {
+  if (!isChordChange || !previousChord) {
+    return resolveSmoothPlaybackTilt(chord.name, liveTilt);
+  }
+
   if (
-    isChordChange &&
     isElementalName(chord.name) &&
-    previousChord &&
     isOppositeElementNavigation(previousChord, chord.name as ElementalName)
   ) {
     return resolveSmoothOppositeElementTilt(
-      chord,
-      previousChord,
       liveTilt,
-      lastTapTilt
+      lastControlTilt,
+      lastCommittedPlaybackTilt
     );
   }
+
+  if (chord.name === 'Wind') {
+    return tiltWithEntryBaselineAndDelta(
+      liveTilt,
+      lastControlTilt,
+      resolveWindEntryBaseline(previousChord)
+    );
+  }
+
   return resolveSmoothPlaybackTilt(chord.name, liveTilt);
+}
+
+/**
+ * Smooth no-tilt playback tilt on chord change: table baseline, Wind axis
+ * entry, or opposite-element position preservation.
+ */
+export function resolveSmoothNoTiltPlaybackTiltForNavigation(
+  chord: Chord,
+  voicingLevel: number,
+  isChordChange: boolean,
+  previousChord: Chord | null,
+  isOppositeElement: boolean,
+  lastNoTiltPositionLevel: number
+): TiltSample {
+  if (isOppositeElement && isChordChange) {
+    return tiltFromNoTiltLevels(voicingLevel, lastNoTiltPositionLevel);
+  }
+
+  if (isChordChange && previousChord && chord.name === 'Wind') {
+    return tiltSampleFromLevels(
+      voicingLevel,
+      resolveWindEntryBaseline(previousChord)
+    );
+  }
+
+  return resolveSmoothNoTiltPlaybackTilt(chord.name, voicingLevel);
 }
 
 export interface TiltBassLabelTiltContext {
   voiceLeadingMode?: VoiceLeadingMode;
   previousChord?: Chord | null;
   smoothBaseParallel?: number;
+  /** Raw device tilt at the last diagram tap. */
   lastTapTilt?: TiltSample;
+  /** Resolved playback tilt committed at the last diagram tap. */
+  lastCommittedPlaybackTilt?: TiltSample;
 }
 
 /** Effective tilt for bass labels (smooth table + smoothest live delta). */
@@ -98,19 +164,30 @@ export function resolveEffectiveTiltForLabel(
   const mode = context.voiceLeadingMode ?? 'root_position';
 
   if (mode === 'smooth') {
+    const previousChord = context.previousChord;
+    const isChordChange =
+      previousChord !== null &&
+      previousChord !== undefined &&
+      previousChord.name !== chord.name;
+    const lastControlTilt = context.lastTapTilt;
+    const lastCommittedPlaybackTilt = context.lastCommittedPlaybackTilt;
+
     if (
-      context.previousChord &&
-      context.lastTapTilt &&
-      isElementalName(chord.name) &&
-      isOppositeElementNavigation(context.previousChord, chord.name)
+      isChordChange &&
+      previousChord &&
+      lastControlTilt &&
+      lastCommittedPlaybackTilt
     ) {
-      return resolveSmoothOppositeElementTilt(
+      return resolveSmoothPlaybackTiltForNavigation(
         chord,
-        context.previousChord,
         tilt,
-        context.lastTapTilt
+        true,
+        previousChord,
+        lastControlTilt,
+        lastCommittedPlaybackTilt
       );
     }
+
     return resolveSmoothPlaybackTilt(chord.name, tilt);
   }
 
@@ -138,6 +215,7 @@ export interface SmoothReanchorTiltOptions {
   isChordChange: boolean;
   isFirstChord: boolean;
   isOppositeElement: boolean;
+  previousChord: Chord | null;
   lockMaps: NoTiltChordLockMaps;
   noTiltVoicingLevel: number;
   noTiltPositionLevel: number;
@@ -160,6 +238,7 @@ export function resolveSmoothReanchorTilt(
     isChordChange,
     isFirstChord,
     isOppositeElement,
+    previousChord,
     lockMaps,
     noTiltVoicingLevel,
     noTiltPositionLevel,
@@ -199,7 +278,14 @@ export function resolveSmoothReanchorTilt(
       return tilt;
     }
 
-    const tilt = resolveSmoothNoTiltPlaybackTilt(chordName, voicingLevel);
+    const tilt = resolveSmoothNoTiltPlaybackTiltForNavigation(
+      displayChord,
+      voicingLevel,
+      isChordChange,
+      previousChord,
+      isOppositeElement,
+      lastNoTiltPositionLevel
+    );
     syncNoTiltPositionLevel(parallelLevelFromTilt(tilt));
     return tilt;
   }

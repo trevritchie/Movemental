@@ -39,6 +39,11 @@ describe('CHORD_FLAT_PARALLEL', () => {
   it('matches Smoothest from flat double-octave Branch for every chord', () => {
     const expected = buildSmoothestParallelFromBranchTable(manager);
     for (const name of allChordNames()) {
+      if (name === 'Wind') {
+        expect(getFlatParallelStepsForChord(name)).toBe(-2);
+        expect(CHORD_FLAT_PARALLEL[name]).toBe(-2);
+        continue;
+      }
       expect(getFlatParallelStepsForChord(name)).toBe(expected[name]);
       expect(CHORD_FLAT_PARALLEL[name]).toBe(expected[name]);
     }

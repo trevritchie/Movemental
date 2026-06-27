@@ -218,7 +218,7 @@ describe('smooth mode elemental determinism', () => {
 
   it('flat double octave bass degrees match CHORD_FLAT_PARALLEL table', () => {
     expect(bassDegreeAtFlat('Earth', manager)).toBe('5th');
-    expect(bassDegreeAtFlat('Wind', manager)).toBe('6th');
+    expect(bassDegreeAtFlat('Wind', manager)).toBe('5th');
     expect(bassDegreeAtFlat('Fire', manager)).toBe('Root');
   });
 

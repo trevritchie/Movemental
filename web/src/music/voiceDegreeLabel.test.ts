@@ -421,24 +421,30 @@ describe('opposite-element elemental bass labels', () => {
     );
     const withNavigation = tiltBassDegreeLabel(windTilt, resolved.chord, {
       ...baseContext,
-      lastTapTilt: glassTilt,
+      lastTapTilt: DOUBLE_OCTAVE_FLAT_BB,
+      lastCommittedPlaybackTilt: glassTilt,
       activePitches: windVoicing,
       elemental: {
         rootPitchClass: resolved.rootPitchClass,
         homeMidi: resolved.homeMidi,
       },
     });
-    const withPreservedParallel = tiltBassDegreeLabel(windTilt, resolved.chord, {
-      ...baseContext,
-      lastTapTilt: glassTilt,
-      elemental: {
-        rootPitchClass: resolved.rootPitchClass,
-        homeMidi: resolved.homeMidi,
-      },
-    });
+    const withPreservedParallel = tiltBassDegreeLabel(
+      DOUBLE_OCTAVE_FLAT_BB,
+      resolved.chord,
+      {
+        ...baseContext,
+        lastTapTilt: DOUBLE_OCTAVE_FLAT_BB,
+        lastCommittedPlaybackTilt: glassTilt,
+        elemental: {
+          rootPitchClass: resolved.rootPitchClass,
+          homeMidi: resolved.homeMidi,
+        },
+      }
+    );
     expect(withoutNavigation).not.toBe(withNavigation);
     expect(withNavigation).toBe('↓ 5th');
-    expect(withPreservedParallel).toBe('↓ 5th');
+    expect(withPreservedParallel).toBe('5th');
     expect(bassDegreeLabelFromVoiced(resolved.chord, windVoicing, getInitialBorrowingState())).toBe(
       '5th'
     );

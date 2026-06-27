@@ -55,6 +55,68 @@ export function isOppositeElementNavigation(
   return ELEMENTAL_RELATIONSHIPS[previousChord.name]?.[0] === element;
 }
 
+/** Parallel ladder step for Wind 5th in bass at flat tilt. */
+export const WIND_DEFAULT_PARALLEL = -2;
+
+/** Parallel ladder step for Wind 6th in bass (Earth-Wind / Wind-Fire entry). */
+export const WIND_AXIS_ENTRY_PARALLEL = -1;
+
+const EARTH_WIND_EDGE_BASES = [
+  'Trunk',
+  'Branch',
+  'Sand-Storm',
+  'Leaf',
+] as const;
+
+const WIND_FIRE_EDGE_BASES = [
+  'Smoke',
+  'Ember',
+  'Fire-Storm',
+  'Flame',
+] as const;
+
+function matchesEdgeFamily(
+  chordName: string,
+  bases: readonly string[]
+): boolean {
+  for (const base of bases) {
+    if (chordName === base) {
+      return true;
+    }
+    if (
+      chordName === `Brother ${base}` ||
+      chordName === `Sister ${base}` ||
+      chordName === `Twin ${base}`
+    ) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/** True when the chord sits on the Earth-Wind triangle edge. */
+export function isEarthWindEdgeChord(chordName: string): boolean {
+  return matchesEdgeFamily(chordName, EARTH_WIND_EDGE_BASES);
+}
+
+/** True when the chord sits on the Wind-Fire triangle edge. */
+export function isWindFireEdgeChord(chordName: string): boolean {
+  return matchesEdgeFamily(chordName, WIND_FIRE_EDGE_BASES);
+}
+
+/**
+ * Smooth-mode entry parallel when navigating to Wind (non-opposite paths only).
+ */
+export function resolveWindEntryBaseline(previousChord: Chord): number {
+  if (
+    isEarthWindEdgeChord(previousChord.name) ||
+    isWindFireEdgeChord(previousChord.name)
+  ) {
+    return WIND_AXIS_ENTRY_PARALLEL;
+  }
+  return WIND_DEFAULT_PARALLEL;
+}
+
 /** Lowest MIDI note in a voiced spread. */
 export function previousBassMidi(voicedMidi: number[]): number | undefined {
   if (voicedMidi.length === 0) {
@@ -210,30 +272,36 @@ export function resolveOppositeElementalPlayback(
   const pitchStructure = elementalPitchStructure(chord);
   const candidateRoots = uniquePitchClasses(chord.pitches);
   const targets = [previousBassMidiValue - 1, previousBassMidiValue - 2];
+  const homeOctaveShiftPasses: number[][] = [[0], [-12, 12, -24, 24]];
 
-  for (const target of targets) {
-    for (const rootPitchClass of candidateRoots) {
-      const homeMidi = computeElementalHomeMidi(
-        rootPitchClass,
-        tonalCenter,
-        octaveRange,
-        anchorBassPitchClass
-      );
-      const voiced = computeTiltVoicing(
-        pitchStructure,
-        rootPitchClass,
-        plannedTilt,
-        octaveRange,
-        tonalCenter,
-        homeMidi,
-        { anchor }
-      );
-      if (voiced.length > 0 && Math.min(...voiced) === target) {
-        return {
-          chord: withElementalRoot(chord, rootPitchClass),
+  for (const octaveShifts of homeOctaveShiftPasses) {
+    for (const target of targets) {
+      for (const rootPitchClass of candidateRoots) {
+        const baseHomeMidi = computeElementalHomeMidi(
           rootPitchClass,
-          homeMidi,
-        };
+          tonalCenter,
+          octaveRange,
+          anchorBassPitchClass
+        );
+        for (const octaveShift of octaveShifts) {
+          const homeMidi = baseHomeMidi + octaveShift;
+          const voiced = computeTiltVoicing(
+            pitchStructure,
+            rootPitchClass,
+            plannedTilt,
+            octaveRange,
+            tonalCenter,
+            homeMidi,
+            { anchor }
+          );
+          if (voiced.length > 0 && Math.min(...voiced) === target) {
+            return {
+              chord: withElementalRoot(chord, rootPitchClass),
+              rootPitchClass,
+              homeMidi,
+            };
+          }
+        }
       }
     }
   }
