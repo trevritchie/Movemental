@@ -41,6 +41,7 @@ export const DiagramCornerActions: React.FC = () => {
             aria-label="Settings"
             aria-expanded={isOpen}
             aria-controls={menuId}
+            data-tour-id="tour-settings"
           >
             <Settings size={22} />
           </button>
@@ -68,6 +69,7 @@ export const DiagramCornerActions: React.FC = () => {
             onClick={() => audioEngine.releaseActiveNotes()}
             title="Panic Switch"
             aria-label="Panic Switch: stop all notes"
+            data-tour-id="tour-panic"
           >
             <VolumeX size={22} />
           </button>

@@ -28,6 +28,13 @@ vi.mock('./RecordControl', () => ({
   ),
 }));
 
+vi.mock('./tour/tourContext', () => ({
+  useTour: () => ({
+    startTour: vi.fn(),
+    hasCompletedTour: false,
+  }),
+}));
+
 vi.mock('../context/ChordContext', () => ({
   useChordContext: () => ({
     tonalCenter: 0,

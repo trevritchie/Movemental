@@ -246,7 +246,7 @@ export const ClockFace: React.FC<{ isMobileOverlay?: boolean }> = ({
   }
 
   return (
-    <div className="clock-container">
+    <div className="clock-container" data-tour-id="tour-clock">
       <div className="clock-info">{chordInfo}</div>
       {clockSvg}
     </div>

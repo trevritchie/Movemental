@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Settings, VolumeX, Maximize2, Minimize2, X } from 'lucide-react';
+import { Settings, VolumeX, Maximize2, Minimize2, X, HelpCircle } from 'lucide-react';
 import { NOTE_NAMES_FLAT, OCTAVE_RANGE_OPTIONS } from '../music/config';
 import { audioEngine } from '../audio/AudioEngine';
 import { useChordContext, type PlayStyle } from '../context/ChordContext';
@@ -15,6 +15,8 @@ import { isIphone } from '../utils/devicePlatform';
 
 import { useSettingsMenu } from '../hooks/useSettingsMenu';
 import { RecordControl } from './RecordControl';
+import { HelpPage } from './help/HelpPage';
+import { useTour } from './tour/tourContext';
 
 const FOCUSABLE_SELECTOR =
   'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
@@ -43,14 +45,33 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
   const [showAdsr, setShowAdsr] = React.useState(false);
   const [showEffects, setShowEffects] = React.useState(false);
+  const [showHelp, setShowHelp] = React.useState(false);
+  const { startTour, hasCompletedTour } = useTour();
 
   const idPrefix = `${menuId}-`;
 
   const closeModal = useCallback(() => {
     setShowAdsr(false);
     setShowEffects(false);
+    setShowHelp(false);
     onClose();
   }, [onClose]);
+
+  const closeHelp = useCallback(() => {
+    setShowHelp(false);
+  }, []);
+
+  const handleStartTourFromHelp = useCallback(
+    (options?: { restart?: boolean }) => {
+      closeModal();
+      window.requestAnimationFrame(() => {
+        window.requestAnimationFrame(() => {
+          startTour(options);
+        });
+      });
+    },
+    [closeModal, startTour],
+  );
 
   useBodyScrollLock(isOpen);
 
@@ -59,7 +80,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        closeModal();
+        if (showHelp) {
+          closeHelp();
+        } else {
+          closeModal();
+        }
         return;
       }
 
@@ -88,7 +113,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
     document.addEventListener('keydown', onKeyDown);
     return () => document.removeEventListener('keydown', onKeyDown);
-  }, [isOpen, closeModal, modalRef]);
+  }, [isOpen, closeModal, closeHelp, showHelp, modalRef]);
 
   useEffect(() => {
     if (isOpen) {
@@ -114,12 +139,14 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         className="settings-modal glass-panel"
         role="dialog"
         aria-modal="true"
-        aria-label="Settings"
+        aria-label={showHelp ? 'Help' : 'Settings'}
         tabIndex={-1}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="settings-modal__header">
-          <h2 className="settings-modal__title">Settings</h2>
+          <h2 className="settings-modal__title">
+            {showHelp ? 'Help' : 'Settings'}
+          </h2>
           <button
             type="button"
             className="settings-modal__close"
@@ -131,6 +158,30 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         </div>
 
         <div className="settings-modal__body">
+          {showHelp ? (
+            <HelpPage
+              onBack={closeHelp}
+              onStartTour={handleStartTourFromHelp}
+              hasCompletedTour={hasCompletedTour}
+            />
+          ) : (
+            <>
+          <section className="settings-menu-section settings-menu-section--help">
+            <button
+              type="button"
+              className="settings-help-entry"
+              onClick={() => setShowHelp(true)}
+            >
+              <HelpCircle size={22} aria-hidden="true" />
+              <span className="settings-help-entry__text">
+                <span className="settings-help-entry__title">Help</span>
+                <span className="settings-help-entry__subtitle">
+                  How Movemental works and interactive tour
+                </span>
+              </span>
+            </button>
+          </section>
+
           <section className="settings-menu-section">
             <h3 className="settings-menu-section__title">General</h3>
             <div className="settings-menu-fields">
@@ -239,6 +290,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             </p>
             <BorrowingMemoryToggle />
           </section>
+            </>
+          )}
         </div>
       </div>
     </div>,
@@ -284,6 +337,7 @@ export const MobileActionButtons: React.FC<MobileActionButtonsProps> = ({
         aria-label="Settings"
         aria-expanded={isOpen}
         aria-controls={menuId}
+        data-tour-id="tour-settings"
       >
         <Settings size={22} />
       </button>
@@ -316,6 +370,7 @@ export const MobileActionButtons: React.FC<MobileActionButtonsProps> = ({
         onClick={() => audioEngine.releaseActiveNotes()}
         title="Panic Switch"
         aria-label="Panic Switch: stop all notes"
+        data-tour-id="tour-panic"
       >
         <VolumeX size={22} />
       </button>

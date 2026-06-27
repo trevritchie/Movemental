@@ -249,7 +249,10 @@ export const BorrowingControls: React.FC<BorrowingControlsProps> = ({
 
   if (isPhone) {
     return (
-      <div className="borrowing-controls borrowing-controls--phone">
+      <div
+        className="borrowing-controls borrowing-controls--phone"
+        data-tour-id="tour-borrowing"
+      >
         <div className="mobile-voice-panel">
           <MobileActionButtons side="left" />
           <div className="mobile-voice-sliders">
@@ -262,7 +265,7 @@ export const BorrowingControls: React.FC<BorrowingControlsProps> = ({
   }
 
   return (
-    <div className="borrowing-controls">
+    <div className="borrowing-controls" data-tour-id="tour-borrowing">
       {VOICE_LINES.map((line) => renderSliderColumn(line))}
     </div>
   );

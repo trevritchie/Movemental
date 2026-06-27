@@ -41,11 +41,19 @@ vi.mock('../context/ChordContext', () => ({
     setBorrowingMemory,
     playStyle: 'drone',
     setPlayStyle,
+    tiltModeEnabled: false,
   }),
 }));
 
 vi.mock('../hooks/useLayoutTier', () => ({
   useLayoutTier: vi.fn(() => 'phone'),
+}));
+
+vi.mock('./tour/tourContext', () => ({
+  useTour: () => ({
+    startTour: vi.fn(),
+    hasCompletedTour: false,
+  }),
 }));
 
 vi.mock('../hooks/useFullscreen', () => ({
@@ -106,10 +114,36 @@ describe('MobileActionButtons', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Settings' }));
 
     expect(screen.getByRole('dialog', { name: 'Settings' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /help/i })).toBeInTheDocument();
     expect(screen.getByText('Tonal Center')).toBeInTheDocument();
     expect(screen.getByText('Voice Borrowing')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /per chord/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /^global$/i })).toBeInTheDocument();
+  });
+
+  it('opens help from the top of the settings menu', () => {
+    render(<MobileActionButtons />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Settings' }));
+    fireEvent.click(screen.getByRole('button', { name: /help/i }));
+
+    expect(screen.getByRole('dialog', { name: 'Help' })).toBeInTheDocument();
+    expect(screen.getByText(/How Movemental works/i)).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /start interactive tour/i }),
+    ).toBeInTheDocument();
+  });
+
+  it('closes help on Escape but keeps settings open', () => {
+    render(<MobileActionButtons />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Settings' }));
+    fireEvent.click(screen.getByRole('button', { name: /help/i }));
+    expect(screen.getByRole('dialog', { name: 'Help' })).toBeInTheDocument();
+
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(screen.getByRole('dialog', { name: 'Settings' })).toBeInTheDocument();
+    expect(screen.queryByRole('dialog', { name: 'Help' })).not.toBeInTheDocument();
   });
 
   it('calls panic stop without opening the menu', () => {

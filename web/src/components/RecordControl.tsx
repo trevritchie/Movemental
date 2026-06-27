@@ -76,7 +76,10 @@ export const RecordControl: React.FC<RecordControlProps> = ({ variant }) => {
     : null;
 
   return (
-    <div className={`record-control-root record-control-root--${variant}`}>
+    <div
+      className={`record-control-root record-control-root--${variant}`}
+      data-tour-id="tour-record"
+    >
       <button
         type="button"
         className={`${btnClass}${isRecording ? ' record-control--active' : ''}`}
