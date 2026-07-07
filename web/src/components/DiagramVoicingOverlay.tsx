@@ -248,6 +248,7 @@ export const DiagramVoicingOverlay: React.FC = () => {
         label="Voicing"
         corner="top-left"
         sizerText={TOP_PILL_SIZER}
+        dataTourId="tour-voicing"
         className={
           !isTilt && isNoTiltVoicingLocked
             ? 'diagram-overlay-pill--locked'
@@ -260,6 +261,7 @@ export const DiagramVoicingOverlay: React.FC = () => {
         label="IN THE BASS"
         corner="top-right"
         sizerText={TILT_BASS_DEGREE_MOBILE_MAX_LABEL}
+        dataTourId="tour-bass"
         className={
           !isTilt && isNoTiltBassLocked
             ? 'diagram-overlay-pill--locked'

@@ -191,6 +191,7 @@ export const ElementalDiagram = React.memo(function ElementalDiagram({
       ref={containerRef}
       style={{ opacity: isDiagramReady ? 1 : 0 }}
       data-layout-tier={layoutTier === 'phone' ? 'phone' : undefined}
+      data-tour-id="tour-diagram"
     >
       <DiagramVoicingOverlay />
       {layoutTier !== 'phone' && <DiagramCornerActions />}

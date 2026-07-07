@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ElementalDiagram } from './components/ElementalDiagram';
 import { ClockFace } from './components/ClockFace';
 import { BorrowingControls } from './components/BorrowingControls';
@@ -8,6 +8,9 @@ import { SplashPage } from './components/SplashPage';
 import { LandscapePrompt } from './components/LandscapePrompt';
 import { useLayoutTier, LayoutTierProvider } from './hooks/useLayoutTier';
 import { usePhoneLandscapeBlocked } from './hooks/usePhoneLandscapeBlocked';
+import { TourProvider } from './components/tour/TourProvider';
+import { useTour } from './components/tour/tourContext';
+import { preloadSettingsModalAfterSplash } from './components/preloadSettingsModal';
 
 const PRIMARY_ELEMENT_NAMES = new Set(['Earth', 'Wind', 'Fire']);
 
@@ -51,22 +54,40 @@ function AppContent() {
   );
 }
 
-function App() {
+function AppShell() {
   const [hasStarted, setHasStarted] = useState(false);
   const isBlocked = usePhoneLandscapeBlocked();
+  const { markAppEntered } = useTour();
 
+  useEffect(() => {
+    if (hasStarted) {
+      markAppEntered();
+      preloadSettingsModalAfterSplash();
+    }
+  }, [hasStarted, markAppEntered]);
+
+  return (
+    <>
+      {isBlocked ? (
+        <LandscapePrompt />
+      ) : (
+        <>
+          {!hasStarted && <SplashPage onEnter={() => setHasStarted(true)} />}
+          <AppContent />
+        </>
+      )}
+    </>
+  );
+}
+
+function App() {
   return (
     <ErrorBoundary>
       <LayoutTierProvider>
         <ChordProvider>
-          {isBlocked ? (
-            <LandscapePrompt />
-          ) : (
-            <>
-              {!hasStarted && <SplashPage onEnter={() => setHasStarted(true)} />}
-              <AppContent />
-            </>
-          )}
+          <TourProvider>
+            <AppShell />
+          </TourProvider>
         </ChordProvider>
       </LayoutTierProvider>
     </ErrorBoundary>

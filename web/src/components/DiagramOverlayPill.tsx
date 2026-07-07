@@ -8,6 +8,7 @@ interface DiagramOverlayPillProps {
   sizerContent?: React.ReactNode;
   className?: string;
   title?: string;
+  dataTourId?: string;
   children: React.ReactNode;
 }
 
@@ -22,6 +23,7 @@ export const DiagramOverlayPill: React.FC<DiagramOverlayPillProps> = ({
   sizerContent,
   className = '',
   title,
+  dataTourId,
   children,
 }) => {
   const cornerClass = corner
@@ -34,6 +36,7 @@ export const DiagramOverlayPill: React.FC<DiagramOverlayPillProps> = ({
     <div
       className={`diagram-overlay-pill${cornerClass}${alignClass} ${className}`.trim()}
       title={title}
+      {...(dataTourId ? { 'data-tour-id': dataTourId } : {})}
     >
       {label && (
         <span className="diagram-overlay-pill__label">{label}</span>

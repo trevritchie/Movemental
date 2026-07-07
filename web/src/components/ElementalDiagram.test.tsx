@@ -2,6 +2,13 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, waitFor } from '@testing-library/react';
 import { ElementalDiagram } from './ElementalDiagram';
 
+vi.mock('./tour/tourContext', () => ({
+  useTour: () => ({
+    startTour: vi.fn(),
+    hasCompletedTour: false,
+  }),
+}));
+
 // Idle diagram: no selected chord, borrowing off, tilt unsupported.
 vi.mock('../context/ChordContext', () => ({
   useChordContext: () => ({

@@ -1,6 +1,6 @@
 /// <reference types="node" />
-import { render, screen, fireEvent, act } from '@testing-library/react';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { render, screen, fireEvent, act, waitFor } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach, beforeAll } from 'vitest';
 import { DiagramCornerActions } from './DiagramCornerActions';
 import { audioEngine } from '../audio/AudioEngine';
 
@@ -26,6 +26,13 @@ vi.mock('./RecordControl', () => ({
       Record
     </button>
   ),
+}));
+
+vi.mock('./tour/tourContext', () => ({
+  useTour: () => ({
+    startTour: vi.fn(),
+    hasCompletedTour: false,
+  }),
 }));
 
 vi.mock('../context/ChordContext', () => ({
@@ -55,8 +62,13 @@ vi.mock('../hooks/useFullscreen', () => ({
   })),
 }));
 
+vi.mock('../utils/devicePlatform', () => ({
+  isIphone: vi.fn(() => false),
+}));
+
 import { useLayoutTier } from '../hooks/useLayoutTier';
 import { useFullscreen } from '../hooks/useFullscreen';
+import { isIphone } from '../utils/devicePlatform';
 
 function mockFullscreenState(
   overrides: Partial<ReturnType<typeof useFullscreen>> = {},
@@ -71,14 +83,39 @@ function mockFullscreenState(
   };
 }
 
+async function openHelpFromToolbar() {
+  fireEvent.click(screen.getByRole('button', { name: 'Help' }));
+  await waitFor(
+    () => {
+      expect(screen.getByRole('dialog', { name: 'Help' })).toBeInTheDocument();
+    },
+    { timeout: 3000 },
+  );
+}
+
+async function openSettingsFromToolbar() {
+  fireEvent.click(screen.getByRole('button', { name: 'Settings' }));
+  await waitFor(
+    () => {
+      expect(screen.getByRole('dialog', { name: 'Settings' })).toBeInTheDocument();
+    },
+    { timeout: 3000 },
+  );
+}
+
 describe('DiagramCornerActions', () => {
+  beforeAll(async () => {
+    await import('./SettingsModal');
+  });
+
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(useLayoutTier).mockReturnValue('desktop');
+    vi.mocked(isIphone).mockReturnValue(false);
     vi.mocked(useFullscreen).mockReturnValue(mockFullscreenState());
   });
 
-  it('renders panic, settings, and fullscreen in diagram corners', () => {
+  it('renders panic, settings, and help in diagram corners', () => {
     render(<DiagramCornerActions />);
 
     expect(
@@ -91,27 +128,40 @@ describe('DiagramCornerActions', () => {
       screen.getByRole('button', { name: 'Settings' }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('button', { name: /full screen/i }),
+      screen.getByRole('button', { name: 'Help' }),
     ).toBeInTheDocument();
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
-  it('opens the settings sheet with play style on desktop', () => {
+  it('opens the settings sheet with play style on desktop', async () => {
     render(<DiagramCornerActions />);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Settings' }));
+    await openSettingsFromToolbar();
 
     expect(screen.getByRole('dialog', { name: 'Settings' })).toBeInTheDocument();
     expect(screen.getByText('Play Style')).toBeInTheDocument();
     expect(screen.getByText('Tonal Center')).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /full screen/i }),
+    ).toBeInTheDocument();
     expect(screen.queryByRole('option', { name: 'Tilt' })).not.toBeInTheDocument();
   });
 
-  it('shows only drone and click-and-hold play styles on tablet', () => {
+  it('opens Help dialog directly from the toolbar', async () => {
+    render(<DiagramCornerActions />);
+
+    await openHelpFromToolbar();
+
+    expect(screen.getByRole('dialog', { name: 'Help' })).toBeInTheDocument();
+    expect(screen.queryByText('Tonal Center')).not.toBeInTheDocument();
+    expect(screen.getByText(/How Movemental works/i)).toBeInTheDocument();
+  });
+
+  it('shows only drone and click-and-hold play styles on tablet', async () => {
     vi.mocked(useLayoutTier).mockReturnValue('tablet');
 
     render(<DiagramCornerActions />);
-    fireEvent.click(screen.getByRole('button', { name: 'Settings' }));
+    await openSettingsFromToolbar();
 
     expect(screen.getByRole('option', { name: 'Drone' })).toBeInTheDocument();
     expect(screen.getByRole('option', { name: /click/i })).toBeInTheDocument();
@@ -129,8 +179,10 @@ describe('DiagramCornerActions', () => {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
-  it('calls toggleFullscreen without opening the settings sheet', async () => {
+  it('calls toggleFullscreen from settings General section', async () => {
     render(<DiagramCornerActions />);
+
+    await openSettingsFromToolbar();
 
     await act(async () => {
       fireEvent.click(
@@ -139,16 +191,17 @@ describe('DiagramCornerActions', () => {
     });
 
     expect(toggleFullscreen).toHaveBeenCalledTimes(1);
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(screen.getByRole('dialog', { name: 'Settings' })).toBeInTheDocument();
   });
 
-  it('shows iOS install hint on tablet when enabled', () => {
-    vi.mocked(useLayoutTier).mockReturnValue('tablet');
+  it('shows iOS install hint in settings on iPhone when enabled', async () => {
+    vi.mocked(isIphone).mockReturnValue(true);
     vi.mocked(useFullscreen).mockReturnValue(
       mockFullscreenState({ showIosInstallHint: true }),
     );
 
     render(<DiagramCornerActions />);
+    await openSettingsFromToolbar();
 
     expect(screen.getByText(/Full Screen on iPhone/i)).toBeInTheDocument();
     expect(screen.getByText(/Share button, then Add to Home Screen/i)).toBeInTheDocument();
