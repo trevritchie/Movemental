@@ -3,6 +3,7 @@
  */
 import React from 'react';
 import { HelpArticleLayout } from './HelpArticleLayout';
+import { HelpCallout } from './HelpCallout';
 import {
   CREATION_ADJACENT_NAV_BODY,
   CREATION_ADJACENT_NAV_MOVEMENTAL,
@@ -37,47 +38,42 @@ export const CreationTheoryHelp: React.FC<CreationTheoryHelpProps> = ({
     videoUrl={CREATION_THEORY_VIDEO_URL}
   >
     <section className="help-page__section">
-      <p>{CREATION_THEORY_INTRO}</p>
+      <p className="help-article__lede">{CREATION_THEORY_INTRO}</p>
     </section>
 
     <section className="help-page__section">
-      <h4 className="help-page__section-title">Two diminished parents</h4>
+      <h3 className="help-page__section-title">Two diminished parents</h3>
       <p>{CREATION_TWO_PARENTS_BODY}</p>
     </section>
 
     <section className="help-page__section">
-      <h4 className="help-page__section-title">In Movemental</h4>
-      <p>{CREATION_MOVEMENTAL_BODY}</p>
+      <HelpCallout>{CREATION_MOVEMENTAL_BODY}</HelpCallout>
     </section>
 
     <section className="help-page__section">
-      <h4 className="help-page__section-title">
+      <h3 className="help-page__section-title">
         Brothers and sisters
-      </h4>
+      </h3>
       <p>{CREATION_ONE_NOTE_LOWER_BODY}</p>
       <p>{CREATION_ONE_NOTE_LOWER_SIBLINGS_BODY}</p>
       <p>{CREATION_ONE_NOTE_LOWER_DIAGRAM_BODY}</p>
     </section>
 
     <section className="help-page__section">
-      <h4 className="help-page__section-title">Adjacent moves on the diagram</h4>
+      <h3 className="help-page__section-title">Adjacent moves on the diagram</h3>
       <p>{CREATION_ADJACENT_NAV_BODY}</p>
-      <p className="help-article__subsection">
-        <strong>In Movemental:</strong> {CREATION_ADJACENT_NAV_MOVEMENTAL}
-      </p>
+      <HelpCallout>{CREATION_ADJACENT_NAV_MOVEMENTAL}</HelpCallout>
     </section>
 
     <section className="help-page__section">
-      <h4 className="help-page__section-title">Scale of chords in practice</h4>
+      <h3 className="help-page__section-title">Scale of chords in practice</h3>
       <p>{CREATION_SCALE_PRACTICE_BODY}</p>
-      <p className="help-article__subsection">
-        <strong>In Movemental:</strong> {CREATION_SCALE_PRACTICE_MOVEMENTAL}
-      </p>
+      <HelpCallout>{CREATION_SCALE_PRACTICE_MOVEMENTAL}</HelpCallout>
       <p>{CREATION_NEIGHBORS_LINK}</p>
     </section>
 
     <section className="help-page__section">
-      <h4 className="help-page__section-title">Lowering more notes</h4>
+      <h3 className="help-page__section-title">Lowering more notes</h3>
       <p>{CREATION_DEEPER_LOWERING_INTRO}</p>
       <ul className="help-article__list">
         {CREATION_LOWERING_RULES.map((rule) => (
@@ -89,7 +85,7 @@ export const CreationTheoryHelp: React.FC<CreationTheoryHelpProps> = ({
     </section>
 
     <section className="help-page__section">
-      <h4 className="help-page__section-title">Before the diagram</h4>
+      <h3 className="help-page__section-title">Beyond the diagram</h3>
       <p>{CREATION_BEFORE_DIAGRAM_INTRO}</p>
       <p>{CREATION_CHROMATIC_UNIVERSE_BODY}</p>
       <p>{CREATION_DIMINISHED_FROM_WHOLE_TONE_BODY}</p>

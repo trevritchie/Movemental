@@ -3,8 +3,10 @@
  */
 import React from 'react';
 import { HelpArticleLayout } from './HelpArticleLayout';
+import { HelpCallout } from './HelpCallout';
 import {
   ELEVATOR_CONTRARY_ON_OFF_BODY,
+  ELEVATOR_CONTRARY_BIGGER_INTERVALS_BODY,
   ELEVATOR_FLOORS,
   ELEVATOR_MOTION_TOPICS,
   ELEVATOR_SYSTEM_ATTRIBUTION,
@@ -39,7 +41,7 @@ export const ElevatorSystemHelp: React.FC<ElevatorSystemHelpProps> = ({
     videoUrl={ELEVATOR_SYSTEM_VIDEO_URL}
   >
     <section className="help-page__section">
-      <p>
+      <p className="help-article__lede">
         The Elevator Sequence comes from Barry Harris&apos;s Scales of Chords.
         Nine floors of harmonic density run from the narrowest spread (unison)
         to the widest (double octaves). Each floor is a toolkit for shaping
@@ -48,7 +50,7 @@ export const ElevatorSystemHelp: React.FC<ElevatorSystemHelpProps> = ({
     </section>
 
     <section className="help-page__section">
-      <h4 className="help-page__section-title">The nine floors</h4>
+      <h3 className="help-page__section-title">The nine floors</h3>
       <ol className="help-article__list help-article__list--ordered">
         {ELEVATOR_FLOORS.map((item) => (
           <li key={item.floor} className="help-article__list-item">
@@ -62,41 +64,43 @@ export const ElevatorSystemHelp: React.FC<ElevatorSystemHelpProps> = ({
     </section>
 
     <section className="help-page__section">
-      <h4 className="help-page__section-title">Relative motion</h4>
+      <h3 className="help-page__section-title">Relative motion</h3>
       <p>
         The Elevator is especially useful for polyphonic lines: several
         melodies moving at once. Three classical motion types map cleanly onto
         the floors.
       </p>
-      <p>
-        In Movemental Tilt mode, phone <strong>roll</strong> steps through the
-        nine voicing floors (the Voicing readout). Phone <strong>pitch</strong>{' '}
+      <HelpCallout label="In Movemental: tilt and no-tilt">
+        In Tilt mode, phone <strong>roll</strong> steps through the nine
+        voicing floors (the Voicing readout). Phone <strong>pitch</strong>{' '}
         moves parallel positions and sets IN THE BASS. No Tilt mode reaches the
         same floors from the Voicing and IN THE BASS dropdowns on the diagram.
-      </p>
+      </HelpCallout>
       {ELEVATOR_MOTION_TOPICS.map((topic) => (
         <div key={topic.title} className="help-article__subsection">
-          <h5 className="help-article__subsection-title">{topic.title}</h5>
+          <h4 className="help-article__subsection-title">{topic.title}</h4>
           <p>
             <strong>Mechanic:</strong> {topic.mechanic}
           </p>
           <p>
             <strong>Application:</strong> {topic.application}
           </p>
-          <p>
-            <strong>In Movemental:</strong> {topic.movemental}
-          </p>
+          <HelpCallout>{topic.movemental}</HelpCallout>
           {topic.title === 'Contrary motion' && (
-            <p>
-              <strong>Scale of chords:</strong> {ELEVATOR_CONTRARY_ON_OFF_BODY}
-            </p>
+            <>
+              <p>
+                <strong>Scale of chords:</strong>{' '}
+                {ELEVATOR_CONTRARY_ON_OFF_BODY}
+              </p>
+              <p>{ELEVATOR_CONTRARY_BIGGER_INTERVALS_BODY}</p>
+            </>
           )}
         </div>
       ))}
     </section>
 
     <section className="help-page__section">
-      <h4 className="help-page__section-title">Subset and superset</h4>
+      <h3 className="help-page__section-title">Subset and superset</h3>
       <p>
         Treat a full chord shape as a superset. Small subset intervals inside
         that frame can move on their own. An inner voice might walk through
@@ -106,7 +110,7 @@ export const ElevatorSystemHelp: React.FC<ElevatorSystemHelpProps> = ({
     </section>
 
     <section className="help-page__section">
-      <h4 className="help-page__section-title">Voicing and the bass</h4>
+      <h3 className="help-page__section-title">Voicing and the bass</h3>
       <p>{ELEVATOR_VOICING_BASS_NOTE}</p>
     </section>
   </HelpArticleLayout>

@@ -337,7 +337,8 @@ export const ELEVATOR_FLOORS: ElevatorFloor[] = [
     floor: 9,
     name: 'Double Octave Chords',
     description:
-      'The widest core layout, with lines separated by multiple octaves.',
+      'The widest voicing, with the outer voices separated by two octaves. ' +
+      'One can devise wider voicings, but we\'ll stop here.',
   },
 ];
 
@@ -358,11 +359,11 @@ export const ELEVATOR_MOTION_TOPICS: RelativeMotionTopic[] = [
       'ones (or back), so outer voices naturally drift apart or together.',
     movemental:
       'In Tilt mode, roll your phone left or right to step through Movemental\'s ' +
-      'voicing elevator. Each roll stop is one floor of the elevator; moving two ' +
-      'stops skips a floor. Roll from Unison toward Triad and the voicing ' +
-      'expands outward (opening contrary motion). Roll from Double Octave toward ' +
-      'Drop 3 and the spread contracts inward (closing contrary motion). Watch ' +
-      'the Voicing readout as you roll.',
+      'voicing elevator while staying on the same chord. Each roll stop is one ' +
+      'floor; rolling two stops skips a floor. From Unison toward Triads (skipping ' +
+      'Thirds), the outer voices move in opposite directions even though the ' +
+      'harmony stays put. That is contrary motion in thirds. Watch the Voicing ' +
+      'readout as you roll.',
   },
   {
     title: 'Parallel (direct) motion',
@@ -395,14 +396,19 @@ export const ELEVATOR_MOTION_TOPICS: RelativeMotionTopic[] = [
 ];
 
 export const ELEVATOR_CONTRARY_ON_OFF_BODY =
-  'You can also open or close contrary motion by moving one floor on the ' +
-  'elevator while switching between the on-chord and off-chord in a scale of ' +
-  'chords (see Borrowing from the Neighbors in Help for on and off). Stay on ' +
-  'the child chord for the on color, then move to its neighbor element for the ' +
-  'off color. For example, play a Double Octave voicing of Branch (on), then a ' +
-  'Drop 2 and 4 voicing of Fire (off, Branch\'s neighbor). The spread ' +
-  'compresses while the harmony shifts to the neighbor pool, so outer voices ' +
-  'move in opposite directions even though you only stepped one floor.';
+  'Moving one elevator floor while stepping through the on/off scale of chords ' +
+  'gives contrary motion by step (see Borrowing from the Neighbors in Help for ' +
+  'on and off). Stay on the child chord for the on color, then move to its ' +
+  'neighbor element for the off color on the next floor. For example, play a ' +
+  'Double Octave voicing of Branch (on), then a Drop 2 and 4 voicing of Fire ' +
+  '(off, Branch\'s neighbor). The spread compresses while the harmony shifts to ' +
+  'the neighbor pool, so outer voices move in opposite directions even though ' +
+  'you only stepped one floor.';
+
+export const ELEVATOR_CONTRARY_BIGGER_INTERVALS_BODY =
+  'Of course, skipping more floors of the elevator pushes the voices ' +
+  'farther apart or together, so you get contrary motion in wider intervals. ' +
+  'Try this to really highlight the expanding and contracting effect.';
 
 export const ELEVATOR_VOICING_BASS_NOTE =
   'In No Tilt mode, changing the voicing on the elevator keeps the bass note ' +

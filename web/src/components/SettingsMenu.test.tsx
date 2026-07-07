@@ -196,7 +196,7 @@ describe('MobileActionButtons', () => {
     expect(screen.getByText(/one half step/i)).toBeInTheDocument();
     expect(screen.getByText(/whole-tone scales/i)).toBeInTheDocument();
     expect(screen.getByText(/twelve notes of the chromatic scale/i)).toBeInTheDocument();
-    expect(screen.getAllByText(/In Movemental:/i).length).toBeGreaterThanOrEqual(2);
+    expect(screen.getAllByText(/^In Movemental/i).length).toBeGreaterThanOrEqual(2);
   });
 
   it('opens borrowing from the neighbors with Barry Harris credit and video link', () => {
@@ -225,7 +225,7 @@ describe('MobileActionButtons', () => {
     expect(screen.getByText(/eight related harmonies/i)).toBeInTheDocument();
     expect(screen.getByText(/Branch is an Earth-Wind child/i)).toBeInTheDocument();
     expect(screen.getByText(/neighbor is Fire/i)).toBeInTheDocument();
-    expect(screen.getAllByText(/In Movemental:/i).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText(/^In Movemental/i).length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText(/Drag up or down to borrow/i)).toBeInTheDocument();
   });
 
@@ -262,7 +262,7 @@ describe('MobileActionButtons', () => {
         name: /watch reference video on youtube/i,
       }),
     ).toHaveAttribute('href', 'https://www.youtube.com/watch?v=qYoSZqWLh7E');
-    expect(screen.getAllByText(/In Movemental:/i).length).toBeGreaterThanOrEqual(3);
+    expect(screen.getAllByText(/^In Movemental/i).length).toBeGreaterThanOrEqual(3);
     expect(screen.getByText(/roll your phone left or right/i)).toBeInTheDocument();
     expect(screen.getByText(/Unison toward Triad/i)).toBeInTheDocument();
   });

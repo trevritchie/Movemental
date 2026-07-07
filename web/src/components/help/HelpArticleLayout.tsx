@@ -12,7 +12,7 @@ interface HelpArticleLayoutProps {
   children: React.ReactNode;
 }
 
-export const HELP_REFERENCE_VIDEO_LABEL = 'Watch reference video on YouTube';
+export const HELP_REFERENCE_VIDEO_LABEL = 'Watch reference video on YouTube.';
 
 export const HelpArticleLayout: React.FC<HelpArticleLayoutProps> = ({
   backLabel = 'Help',
@@ -34,18 +34,20 @@ export const HelpArticleLayout: React.FC<HelpArticleLayoutProps> = ({
       </button>
     </div>
 
-    <p className="help-article__attribution">{attribution}</p>
+    <div className="help-article__header">
+      <p className="help-article__attribution">{attribution}</p>
 
-    <a
-      className="help-article__video-link"
-      href={videoUrl}
-      target="_blank"
-      rel="noopener noreferrer"
-      aria-label={`${HELP_REFERENCE_VIDEO_LABEL} (opens in new tab)`}
-    >
-      <ExternalLink size={18} aria-hidden="true" />
-      <span>{HELP_REFERENCE_VIDEO_LABEL}</span>
-    </a>
+      <a
+        className="help-article__video-link"
+        href={videoUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label={`${HELP_REFERENCE_VIDEO_LABEL} (opens in new tab)`}
+      >
+        <ExternalLink size={18} aria-hidden="true" />
+        <span>{HELP_REFERENCE_VIDEO_LABEL}</span>
+      </a>
+    </div>
 
     <div className="help-article__body">{children}</div>
   </div>
