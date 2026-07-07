@@ -25,8 +25,8 @@ export const FirstRunTourPrompt: React.FC<FirstRunTourPromptProps> = ({
           Take a quick tour?
         </h2>
         <p className="tour-prompt__body">
-          A short walkthrough highlights the diagram, voicing controls, voice
-          borrowing, and session tools.
+          A short walkthrough highlights the diagram, elevator voicing,
+          neighbor borrowing, and session tools.
         </p>
         <div className="tour-prompt__actions">
           <button

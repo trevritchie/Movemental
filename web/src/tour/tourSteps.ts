@@ -20,16 +20,16 @@ const TILT_TOUR_STEPS: TourStepDef[] = [
     targetId: 'tour-diagram',
     title: 'Elemental diagram',
     body:
-      'Movemental maps chords as Earth, Wind, and Fire elements with groups ' +
-      'around the triangle. Tap any chord to hear it.',
+      'Earth, Wind, and Fire are parent vertices at the triangle corners. ' +
+      'Child groups sit on each axis. Tap any chord to hear it.',
   },
   {
     id: 'voicing',
     targetId: 'tour-voicing',
     title: 'Voicing (tilt roll)',
     body:
-      'Tilt your phone left or right (roll) to change voicing width, from ' +
-      'close position to wide spread.',
+      'Tilt your phone left or right (roll) to step through elevator floors, ' +
+      'from narrow Unison to wide Double Octave. Watch the Voicing readout.',
   },
   {
     id: 'bass',
@@ -44,8 +44,9 @@ const TILT_TOUR_STEPS: TourStepDef[] = [
     targetId: 'tour-borrowing',
     title: 'Voice borrowing',
     body:
-      'Four vertical sliders borrow from the opposite element. Drag up or ' +
-      'down, or tap the active node again to mute that voice.',
+      'Four vertical sliders borrow from the neighbor (the opposite vertex). ' +
+      'Drag up or down, or tap the active node again to mute that voice. ' +
+      'Learn more under Help > Borrowing from the Neighbors.',
   },
   {
     id: 'settings',
@@ -79,32 +80,33 @@ const NO_TILT_TOUR_STEPS: TourStepDef[] = [
     targetId: 'tour-diagram',
     title: 'Elemental diagram',
     body:
-      'Movemental maps chords as Earth, Wind, and Fire elements with groups ' +
-      'around the triangle. Tap any chord to hear it.',
+      'Earth, Wind, and Fire are parent vertices at the triangle corners. ' +
+      'Child groups sit on each axis. Tap any chord to hear it.',
   },
   {
     id: 'voicing',
     targetId: 'tour-voicing',
     title: 'Voicing',
     body:
-      'Choose voicing width from the dropdown. Lock voicing per chord so ' +
-      'your choice stays when you navigate away and back.',
+      'Choose an elevator floor from the Voicing dropdown. Lock voicing per ' +
+      'chord so your choice stays when you navigate away and back.',
   },
   {
     id: 'bass',
     targetId: 'tour-bass',
     title: 'IN THE BASS',
     body:
-      'Pick which chord tone is in the bass. Lock bass per chord to keep ' +
-      'your choice across visits to the same chord.',
+      'Pick which chord tone is in the bass, separate from the voicing floor. ' +
+      'Lock bass per chord to keep your choice across visits to the same chord.',
   },
   {
     id: 'borrowing',
     targetId: 'tour-borrowing',
     title: 'Voice borrowing',
     body:
-      'Four vertical sliders borrow from the opposite element. Drag up or ' +
-      'down, or tap the active node again to mute that voice.',
+      'Four vertical sliders borrow from the neighbor (the opposite vertex). ' +
+      'Drag up or down, or tap the active node again to mute that voice. ' +
+      'Learn more under Help > Borrowing from the Neighbors.',
   },
   {
     id: 'clock',

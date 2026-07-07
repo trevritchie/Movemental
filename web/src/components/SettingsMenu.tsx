@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Settings, VolumeX, Maximize2, Minimize2, X, HelpCircle } from 'lucide-react';
+import { Settings, VolumeX, Maximize2, Minimize2, X, CircleHelp } from 'lucide-react';
 import { NOTE_NAMES_FLAT, OCTAVE_RANGE_OPTIONS } from '../music/config';
 import { audioEngine } from '../audio/AudioEngine';
 import { useChordContext, type PlayStyle } from '../context/ChordContext';
@@ -12,10 +12,10 @@ import { BorrowingMemoryToggle } from './settings/BorrowingMemoryToggle';
 import { VoiceLeadingToggle } from './settings/VoiceLeadingToggle';
 import { IosInstallHintPortal } from './IosInstallHintPortal';
 import { isIphone } from '../utils/devicePlatform';
-
 import { useSettingsMenu } from '../hooks/useSettingsMenu';
 import { RecordControl } from './RecordControl';
 import { HelpPage } from './help/HelpPage';
+import { helpDialogTitle, type HelpView } from './help/helpTypes';
 import { useTour } from './tour/tourContext';
 
 const FOCUSABLE_SELECTOR =
@@ -23,6 +23,7 @@ const FOCUSABLE_SELECTOR =
 
 interface SettingsModalProps {
   isOpen: boolean;
+  openToHelp: boolean;
   onClose: () => void;
   menuId: string;
   modalRef: React.RefObject<HTMLDivElement | null>;
@@ -30,6 +31,7 @@ interface SettingsModalProps {
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({
   isOpen,
+  openToHelp,
   onClose,
   menuId,
   modalRef,
@@ -43,9 +45,17 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     setPlayStyle,
   } = useChordContext();
 
+  const {
+    isFullscreen,
+    canFullscreen,
+    showIosInstallHint,
+    toggleFullscreen,
+    dismissIosInstallHint,
+  } = useFullscreen();
+
   const [showAdsr, setShowAdsr] = React.useState(false);
   const [showEffects, setShowEffects] = React.useState(false);
-  const [showHelp, setShowHelp] = React.useState(false);
+  const [helpView, setHelpView] = React.useState<HelpView>('hub');
   const { startTour, hasCompletedTour } = useTour();
 
   const idPrefix = `${menuId}-`;
@@ -53,12 +63,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const closeModal = useCallback(() => {
     setShowAdsr(false);
     setShowEffects(false);
-    setShowHelp(false);
+    setHelpView('hub');
     onClose();
   }, [onClose]);
 
-  const closeHelp = useCallback(() => {
-    setShowHelp(false);
+  const backWithinHelp = useCallback(() => {
+    setHelpView('hub');
   }, []);
 
   const handleStartTourFromHelp = useCallback(
@@ -80,8 +90,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        if (showHelp) {
-          closeHelp();
+        if (openToHelp && helpView !== 'hub') {
+          backWithinHelp();
         } else {
           closeModal();
         }
@@ -113,7 +123,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
     document.addEventListener('keydown', onKeyDown);
     return () => document.removeEventListener('keydown', onKeyDown);
-  }, [isOpen, closeModal, closeHelp, showHelp, modalRef]);
+  }, [isOpen, closeModal, backWithinHelp, openToHelp, helpView, modalRef]);
 
   useEffect(() => {
     if (isOpen) {
@@ -127,7 +137,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     if (e.target === e.currentTarget) closeModal();
   };
 
+  const helpTitle = openToHelp ? helpDialogTitle(helpView) : 'Settings';
+
   return createPortal(
+    <>
     <div
       className="settings-modal-backdrop"
       onClick={handleBackdropClick}
@@ -139,14 +152,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         className="settings-modal glass-panel"
         role="dialog"
         aria-modal="true"
-        aria-label={showHelp ? 'Help' : 'Settings'}
+        aria-label={helpTitle}
         tabIndex={-1}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="settings-modal__header">
-          <h2 className="settings-modal__title">
-            {showHelp ? 'Help' : 'Settings'}
-          </h2>
+          <h2 className="settings-modal__title">{helpTitle}</h2>
           <button
             type="button"
             className="settings-modal__close"
@@ -158,29 +169,39 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         </div>
 
         <div className="settings-modal__body">
-          {showHelp ? (
+          {openToHelp ? (
             <HelpPage
-              onBack={closeHelp}
+              helpView={helpView}
+              onHelpViewChange={setHelpView}
+              onBackToSettings={closeModal}
               onStartTour={handleStartTourFromHelp}
               hasCompletedTour={hasCompletedTour}
             />
           ) : (
             <>
-          <section className="settings-menu-section settings-menu-section--help">
-            <button
-              type="button"
-              className="settings-help-entry"
-              onClick={() => setShowHelp(true)}
-            >
-              <HelpCircle size={22} aria-hidden="true" />
-              <span className="settings-help-entry__text">
-                <span className="settings-help-entry__title">Help</span>
-                <span className="settings-help-entry__subtitle">
-                  How Movemental works and interactive tour
+          {canFullscreen && (
+            <section className="settings-menu-section settings-menu-section--fullscreen">
+              <button
+                type="button"
+                className="settings-help-entry settings-fullscreen-entry"
+                onClick={() => void toggleFullscreen()}
+              >
+                {isFullscreen ? (
+                  <Minimize2 size={22} aria-hidden="true" />
+                ) : (
+                  <Maximize2 size={22} aria-hidden="true" />
+                )}
+                <span className="settings-help-entry__text">
+                  <span className="settings-help-entry__title">
+                    {isFullscreen ? 'Exit Full Screen' : 'Full Screen'}
+                  </span>
+                  <span className="settings-help-entry__subtitle">
+                    Expand the app to fill the display
+                  </span>
                 </span>
-              </span>
-            </button>
-          </section>
+              </button>
+            </section>
+          )}
 
           <section className="settings-menu-section">
             <h3 className="settings-menu-section__title">General</h3>
@@ -245,6 +266,16 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           </section>
 
           <section className="settings-menu-section">
+            <h3 className="settings-menu-section__title">Voice Borrowing</h3>
+            <p className="settings-menu-section__hint">
+              Choose whether borrowing settings are remembered per chord or
+              shared globally.
+            </p>
+            <BorrowingMemoryToggle />
+          </section>
+
+          <section className="settings-menu-section">
+            <h3 className="settings-menu-section__title">Sound Design</h3>
             <button
               type="button"
               className={`settings-menu-accordion${showAdsr ? ' active' : ''}`}
@@ -261,9 +292,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 <AdsrPanelContent idPrefix={idPrefix} />
               </div>
             )}
-          </section>
-
-          <section className="settings-menu-section">
             <button
               type="button"
               className={`settings-menu-accordion${showEffects ? ' active' : ''}`}
@@ -281,20 +309,16 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               </div>
             )}
           </section>
-
-          <section className="settings-menu-section">
-            <h3 className="settings-menu-section__title">Voice Borrowing</h3>
-            <p className="settings-menu-section__hint">
-              Choose whether borrowing settings are remembered per chord or
-              shared globally.
-            </p>
-            <BorrowingMemoryToggle />
-          </section>
             </>
           )}
         </div>
       </div>
-    </div>,
+    </div>
+    <IosInstallHintPortal
+      isOpen={showIosInstallHint && isIphone()}
+      onDismiss={dismissIosInstallHint}
+    />
+    </>,
     document.body,
   );
 };
@@ -303,32 +327,37 @@ interface MobileActionButtonsProps {
   side?: 'left' | 'right' | 'both';
 }
 
-/** Settings, record, panic, and fullscreen for the phone voice panel. */
+/** Settings, record, panic, and help for the phone voice panel. */
 export const MobileActionButtons: React.FC<MobileActionButtonsProps> = ({
   side = 'both',
 }) => {
   const {
     isOpen,
+    openToHelp,
     menuId,
     triggerRef,
+    helpTriggerRef,
     modalRef,
     openMenu,
+    openHelp,
     closeMenu,
   } = useSettingsMenu();
-
-  const {
-    isFullscreen,
-    canFullscreen,
-    showIosInstallHint,
-    toggleFullscreen,
-    dismissIosInstallHint,
-  } = useFullscreen();
 
   const leftColumn = (
     <div
       className="mobile-action-column mobile-action-column--left"
-      aria-label="Settings and display"
+      aria-label="Help and settings"
     >
+      <button
+        ref={helpTriggerRef}
+        type="button"
+        className="mobile-toolbar-btn mobile-toolbar-btn--help"
+        onClick={openHelp}
+        title="Help"
+        aria-label="Help"
+      >
+        <CircleHelp size={22} />
+      </button>
       <button
         ref={triggerRef}
         type="button"
@@ -341,21 +370,6 @@ export const MobileActionButtons: React.FC<MobileActionButtonsProps> = ({
       >
         <Settings size={22} />
       </button>
-      {canFullscreen && (
-        <button
-          type="button"
-          className="mobile-toolbar-btn mobile-toolbar-btn--fullscreen"
-          onClick={() => void toggleFullscreen()}
-          title={isFullscreen ? 'Exit Full Screen' : 'Full Screen'}
-          aria-label={isFullscreen ? 'Exit Full Screen' : 'Full Screen'}
-        >
-          {isFullscreen ? (
-            <Minimize2 size={20} />
-          ) : (
-            <Maximize2 size={20} />
-          )}
-        </button>
-      )}
     </div>
   );
 
@@ -366,7 +380,7 @@ export const MobileActionButtons: React.FC<MobileActionButtonsProps> = ({
     >
       <button
         type="button"
-        className="mobile-toolbar-btn stop-btn mobile-toolbar-btn--panic"
+        className="mobile-toolbar-btn mobile-toolbar-btn--panic"
         onClick={() => audioEngine.releaseActiveNotes()}
         title="Panic Switch"
         aria-label="Panic Switch: stop all notes"
@@ -379,19 +393,13 @@ export const MobileActionButtons: React.FC<MobileActionButtonsProps> = ({
   );
 
   const sharedPortals = side !== 'right' ? (
-    <>
-      <IosInstallHintPortal
-        isOpen={showIosInstallHint && isIphone()}
-        onDismiss={dismissIosInstallHint}
-      />
-
-      <SettingsModal
-        isOpen={isOpen}
-        onClose={closeMenu}
-        menuId={menuId}
-        modalRef={modalRef}
-      />
-    </>
+    <SettingsModal
+      isOpen={isOpen}
+      openToHelp={openToHelp}
+      onClose={closeMenu}
+      menuId={menuId}
+      modalRef={modalRef}
+    />
   ) : null;
 
   if (side === 'left') {

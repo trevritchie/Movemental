@@ -46,4 +46,17 @@ describe('tourSteps', () => {
     expect(resolved).toHaveLength(1);
     expect(resolved[0]?.id).toBe('diagram');
   });
+
+  it('uses neighbor and elevator floors language in tour copy', () => {
+    const tiltBorrow = TILT_TOUR_STEPS.find((step) => step.id === 'borrowing');
+    const tiltVoicing = TILT_TOUR_STEPS.find((step) => step.id === 'voicing');
+    const noTiltVoicing = NO_TILT_TOUR_STEPS.find(
+      (step) => step.id === 'voicing',
+    );
+
+    expect(tiltBorrow?.body).toMatch(/neighbor/i);
+    expect(tiltBorrow?.body).toMatch(/Borrowing from the Neighbors/i);
+    expect(tiltVoicing?.body).toMatch(/elevator floors/i);
+    expect(noTiltVoicing?.body).toMatch(/elevator floor/i);
+  });
 });

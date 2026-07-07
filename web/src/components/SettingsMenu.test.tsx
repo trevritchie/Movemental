@@ -1,5 +1,5 @@
 /// <reference types="node" />
-import { render, screen, fireEvent, act } from '@testing-library/react';
+import { render, screen, fireEvent, act, within } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { MobileActionButtons } from './SettingsMenu';
 import { audioEngine } from '../audio/AudioEngine';
@@ -86,6 +86,10 @@ function mockFullscreenState(
   };
 }
 
+function openHelpFromToolbar() {
+  fireEvent.click(screen.getByRole('button', { name: 'Help' }));
+}
+
 describe('MobileActionButtons', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -93,7 +97,7 @@ describe('MobileActionButtons', () => {
     vi.mocked(useFullscreen).mockReturnValue(mockFullscreenState());
   });
 
-  it('renders stop, settings, and fullscreen in the action column', () => {
+  it('renders stop, settings, and help in the action column', () => {
     render(<MobileActionButtons />);
 
     expect(
@@ -103,7 +107,7 @@ describe('MobileActionButtons', () => {
       screen.getByRole('button', { name: 'Settings' }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('button', { name: /full screen/i }),
+      screen.getByRole('button', { name: 'Help' }),
     ).toBeInTheDocument();
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
@@ -113,37 +117,192 @@ describe('MobileActionButtons', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Settings' }));
 
-    expect(screen.getByRole('dialog', { name: 'Settings' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /help/i })).toBeInTheDocument();
+    const dialog = screen.getByRole('dialog', { name: 'Settings' });
+    expect(
+      within(dialog).queryByText(/How Movemental works and interactive tour/i),
+    ).not.toBeInTheDocument();
+    expect(
+      within(dialog).getByRole('button', { name: /full screen/i }),
+    ).toBeInTheDocument();
     expect(screen.getByText('Tonal Center')).toBeInTheDocument();
     expect(screen.getByText('Voice Borrowing')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /per chord/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /^global$/i })).toBeInTheDocument();
   });
 
-  it('opens help from the top of the settings menu', () => {
+  it('opens help directly from the toolbar without showing settings', () => {
     render(<MobileActionButtons />);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Settings' }));
-    fireEvent.click(screen.getByRole('button', { name: /help/i }));
+    openHelpFromToolbar();
+
+    expect(screen.getByRole('dialog', { name: 'Help' })).toBeInTheDocument();
+    expect(screen.queryByText('Tonal Center')).not.toBeInTheDocument();
+    expect(screen.getByText(/How Movemental works/i)).toBeInTheDocument();
+  });
+
+  it('opens help from the toolbar Help button', () => {
+    render(<MobileActionButtons />);
+
+    openHelpFromToolbar();
 
     expect(screen.getByRole('dialog', { name: 'Help' })).toBeInTheDocument();
     expect(screen.getByText(/How Movemental works/i)).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Harmonic theory' }))
+      .toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /creation theory/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /borrowing from the neighbors/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /elevator system/i }),
+    ).toBeInTheDocument();
     expect(
       screen.getByRole('button', { name: /start interactive tour/i }),
     ).toBeInTheDocument();
+    expect(screen.getByText(/borrow from the neighbor/i)).toBeInTheDocument();
+    expect(screen.getByText(/elevator floors/i)).toBeInTheDocument();
+    expect(screen.getByText(/Base, Brother, Twin, Sister/i)).toBeInTheDocument();
   });
 
-  it('closes help on Escape but keeps settings open', () => {
+  it('opens creation theory with Barry Harris credit and video link', () => {
     render(<MobileActionButtons />);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Settings' }));
-    fireEvent.click(screen.getByRole('button', { name: /help/i }));
+    openHelpFromToolbar();
+    fireEvent.click(screen.getByRole('button', { name: /creation theory/i }));
+
+    expect(
+      screen.getByRole('dialog', { name: 'Creation Theory' }),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/Dr\. Barry Harris/i)).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', {
+        name: /watch reference video on youtube/i,
+      }),
+    ).toHaveAttribute('href', 'https://www.youtube.com/shorts/OmWSgjwroLM');
+    expect(screen.getByRole('heading', { name: /two diminished parents/i }))
+      .toBeInTheDocument();
+    expect(screen.getByText(/carrying DNA from both parents/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/Earth, Wind, and Fire/i).length)
+      .toBeGreaterThanOrEqual(1);
+    expect(screen.getByText(/Base, Brother, Twin/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/scale of chords/i).length).toBeGreaterThanOrEqual(2);
+    expect(screen.getByText(/neighbor is the opposite vertex/i)).toBeInTheDocument();
+    expect(screen.getByText(/not a parent of the child/i)).toBeInTheDocument();
+    expect(screen.getByText(/brother-and-sister pattern appears for those qualities/i))
+      .toBeInTheDocument();
+    expect(screen.getByText(/each circle is one chord quality/i)).toBeInTheDocument();
+    expect(screen.getByText(/one half step/i)).toBeInTheDocument();
+    expect(screen.getByText(/whole-tone scales/i)).toBeInTheDocument();
+    expect(screen.getByText(/twelve notes of the chromatic scale/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/In Movemental:/i).length).toBeGreaterThanOrEqual(2);
+  });
+
+  it('opens borrowing from the neighbors with Barry Harris credit and video link', () => {
+    render(<MobileActionButtons />);
+
+    openHelpFromToolbar();
+    fireEvent.click(
+      screen.getByRole('button', { name: /borrowing from the neighbors/i }),
+    );
+
+    expect(
+      screen.getByRole('dialog', { name: 'Borrowing from the Neighbors' }),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/Dr\. Barry Harris/i)).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', {
+        name: /watch reference video on youtube/i,
+      }),
+    ).toHaveAttribute(
+      'href',
+      'https://www.youtube.com/watch?v=eRgvvbGuwLo&t=172s',
+    );
+    expect(screen.getAllByText(/neighbor/i).length).toBeGreaterThanOrEqual(2);
+    expect(screen.getByText(/^On chord:/i)).toBeInTheDocument();
+    expect(screen.getByText(/^Off chord:/i)).toBeInTheDocument();
+    expect(screen.getByText(/eight related harmonies/i)).toBeInTheDocument();
+    expect(screen.getByText(/Branch is an Earth-Wind child/i)).toBeInTheDocument();
+    expect(screen.getByText(/neighbor is Fire/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/In Movemental:/i).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText(/Drag up or down to borrow/i)).toBeInTheDocument();
+  });
+
+  it('returns to help hub from borrowing neighbors via back', () => {
+    render(<MobileActionButtons />);
+
+    openHelpFromToolbar();
+    fireEvent.click(
+      screen.getByRole('button', { name: /borrowing from the neighbors/i }),
+    );
+    fireEvent.click(screen.getByRole('button', { name: /back to help/i }));
+
+    expect(screen.getByRole('dialog', { name: 'Help' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /borrowing from the neighbors/i }),
+    ).toBeInTheDocument();
+  });
+
+  it('opens elevator system with Thomas Echols credit and video link', () => {
+    render(<MobileActionButtons />);
+
+    openHelpFromToolbar();
+    fireEvent.click(screen.getByRole('button', { name: /elevator system/i }));
+
+    expect(
+      screen.getByRole('dialog', { name: 'Elevator System' }),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/Thomas Echols/i)).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: 'Labyrinth of Limitations' }),
+    ).toHaveAttribute('href', 'https://www.youtube.com/@LabyrinthofLimitations');
+    expect(
+      screen.getByRole('link', {
+        name: /watch reference video on youtube/i,
+      }),
+    ).toHaveAttribute('href', 'https://www.youtube.com/watch?v=qYoSZqWLh7E');
+    expect(screen.getAllByText(/In Movemental:/i).length).toBeGreaterThanOrEqual(3);
+    expect(screen.getByText(/roll your phone left or right/i)).toBeInTheDocument();
+    expect(screen.getByText(/Unison toward Triad/i)).toBeInTheDocument();
+  });
+
+  it('returns to help hub from a theory article via back', () => {
+    render(<MobileActionButtons />);
+
+    openHelpFromToolbar();
+    fireEvent.click(screen.getByRole('button', { name: /creation theory/i }));
+    fireEvent.click(screen.getByRole('button', { name: /back to help/i }));
+
+    expect(screen.getByRole('dialog', { name: 'Help' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Harmonic theory' }))
+      .toBeInTheDocument();
+  });
+
+  it('returns from theory article to help hub on Escape before closing', () => {
+    render(<MobileActionButtons />);
+
+    openHelpFromToolbar();
+    fireEvent.click(screen.getByRole('button', { name: /elevator system/i }));
+    expect(
+      screen.getByRole('dialog', { name: 'Elevator System' }),
+    ).toBeInTheDocument();
+
+    fireEvent.keyDown(document, { key: 'Escape' });
     expect(screen.getByRole('dialog', { name: 'Help' })).toBeInTheDocument();
 
     fireEvent.keyDown(document, { key: 'Escape' });
-    expect(screen.getByRole('dialog', { name: 'Settings' })).toBeInTheDocument();
-    expect(screen.queryByRole('dialog', { name: 'Help' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  it('closes help hub on Escape when opened from toolbar', () => {
+    render(<MobileActionButtons />);
+
+    openHelpFromToolbar();
+    expect(screen.getByRole('dialog', { name: 'Help' })).toBeInTheDocument();
+
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
   it('calls panic stop without opening the menu', () => {
@@ -157,8 +316,10 @@ describe('MobileActionButtons', () => {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
-  it('calls toggleFullscreen without opening the settings sheet', async () => {
+  it('calls toggleFullscreen from settings without opening help', async () => {
     render(<MobileActionButtons />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Settings' }));
 
     await act(async () => {
       fireEvent.click(
@@ -167,7 +328,7 @@ describe('MobileActionButtons', () => {
     });
 
     expect(toggleFullscreen).toHaveBeenCalledTimes(1);
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(screen.getByRole('dialog', { name: 'Settings' })).toBeInTheDocument();
   });
 
   it('closes the sheet on Escape', () => {
@@ -201,7 +362,20 @@ describe('MobileActionButtons', () => {
     expect(dialog.contains(document.activeElement)).toBe(true);
   });
 
-  it('shows iOS install hint near the action column on iPhone', () => {
+  it('shows iOS install hint when Full Screen is tapped on iPhone', () => {
+    vi.mocked(isIphone).mockReturnValue(true);
+    vi.mocked(useFullscreen).mockReturnValue(
+      mockFullscreenState({ showIosInstallHint: true }),
+    );
+
+    render(<MobileActionButtons />);
+    fireEvent.click(screen.getByRole('button', { name: 'Settings' }));
+
+    expect(screen.getByText(/Full Screen on iPhone/i)).toBeInTheDocument();
+    expect(screen.getByText(/Share button, then Add to Home Screen/i)).toBeInTheDocument();
+  });
+
+  it('does not show iOS install hint when settings are closed on iPhone', () => {
     vi.mocked(isIphone).mockReturnValue(true);
     vi.mocked(useFullscreen).mockReturnValue(
       mockFullscreenState({ showIosInstallHint: true }),
@@ -209,8 +383,7 @@ describe('MobileActionButtons', () => {
 
     render(<MobileActionButtons />);
 
-    expect(screen.getByText(/Full Screen on iPhone/i)).toBeInTheDocument();
-    expect(screen.getByText(/Share button, then Add to Home Screen/i)).toBeInTheDocument();
+    expect(screen.queryByText(/Full Screen on iPhone/i)).not.toBeInTheDocument();
   });
 
   it('does not show iOS install hint when not on iPhone', () => {

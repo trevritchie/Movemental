@@ -62,8 +62,13 @@ vi.mock('../hooks/useFullscreen', () => ({
   })),
 }));
 
+vi.mock('../utils/devicePlatform', () => ({
+  isIphone: vi.fn(() => false),
+}));
+
 import { useLayoutTier } from '../hooks/useLayoutTier';
 import { useFullscreen } from '../hooks/useFullscreen';
+import { isIphone } from '../utils/devicePlatform';
 
 function mockFullscreenState(
   overrides: Partial<ReturnType<typeof useFullscreen>> = {},
@@ -82,10 +87,11 @@ describe('DiagramCornerActions', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(useLayoutTier).mockReturnValue('desktop');
+    vi.mocked(isIphone).mockReturnValue(false);
     vi.mocked(useFullscreen).mockReturnValue(mockFullscreenState());
   });
 
-  it('renders panic, settings, and fullscreen in diagram corners', () => {
+  it('renders panic, settings, and help in diagram corners', () => {
     render(<DiagramCornerActions />);
 
     expect(
@@ -98,7 +104,7 @@ describe('DiagramCornerActions', () => {
       screen.getByRole('button', { name: 'Settings' }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('button', { name: /full screen/i }),
+      screen.getByRole('button', { name: 'Help' }),
     ).toBeInTheDocument();
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
@@ -111,7 +117,20 @@ describe('DiagramCornerActions', () => {
     expect(screen.getByRole('dialog', { name: 'Settings' })).toBeInTheDocument();
     expect(screen.getByText('Play Style')).toBeInTheDocument();
     expect(screen.getByText('Tonal Center')).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /full screen/i }),
+    ).toBeInTheDocument();
     expect(screen.queryByRole('option', { name: 'Tilt' })).not.toBeInTheDocument();
+  });
+
+  it('opens Help dialog directly from the toolbar', () => {
+    render(<DiagramCornerActions />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Help' }));
+
+    expect(screen.getByRole('dialog', { name: 'Help' })).toBeInTheDocument();
+    expect(screen.queryByText('Tonal Center')).not.toBeInTheDocument();
+    expect(screen.getByText(/How Movemental works/i)).toBeInTheDocument();
   });
 
   it('shows only drone and click-and-hold play styles on tablet', () => {
@@ -136,8 +155,10 @@ describe('DiagramCornerActions', () => {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
-  it('calls toggleFullscreen without opening the settings sheet', async () => {
+  it('calls toggleFullscreen from settings General section', async () => {
     render(<DiagramCornerActions />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Settings' }));
 
     await act(async () => {
       fireEvent.click(
@@ -146,16 +167,17 @@ describe('DiagramCornerActions', () => {
     });
 
     expect(toggleFullscreen).toHaveBeenCalledTimes(1);
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(screen.getByRole('dialog', { name: 'Settings' })).toBeInTheDocument();
   });
 
-  it('shows iOS install hint on tablet when enabled', () => {
-    vi.mocked(useLayoutTier).mockReturnValue('tablet');
+  it('shows iOS install hint in settings on iPhone when enabled', () => {
+    vi.mocked(isIphone).mockReturnValue(true);
     vi.mocked(useFullscreen).mockReturnValue(
       mockFullscreenState({ showIosInstallHint: true }),
     );
 
     render(<DiagramCornerActions />);
+    fireEvent.click(screen.getByRole('button', { name: 'Settings' }));
 
     expect(screen.getByText(/Full Screen on iPhone/i)).toBeInTheDocument();
     expect(screen.getByText(/Share button, then Add to Home Screen/i)).toBeInTheDocument();
