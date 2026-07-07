@@ -1,7 +1,7 @@
 /// <reference types="node" />
-import { render, screen, fireEvent, act, within } from '@testing-library/react';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { MobileActionButtons } from './SettingsMenu';
+import { render, screen, fireEvent, act, within, waitFor } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach, beforeAll } from 'vitest';
+import { MobileActionButtons } from './AppToolbar';
 import { audioEngine } from '../audio/AudioEngine';
 
 const setTonalCenter = vi.fn();
@@ -86,11 +86,31 @@ function mockFullscreenState(
   };
 }
 
-function openHelpFromToolbar() {
+async function openHelpFromToolbar() {
   fireEvent.click(screen.getByRole('button', { name: 'Help' }));
+  await waitFor(
+    () => {
+      expect(screen.getByRole('dialog', { name: 'Help' })).toBeInTheDocument();
+    },
+    { timeout: 3000 },
+  );
+}
+
+async function openSettingsFromToolbar() {
+  fireEvent.click(screen.getByRole('button', { name: 'Settings' }));
+  await waitFor(
+    () => {
+      expect(screen.getByRole('dialog', { name: 'Settings' })).toBeInTheDocument();
+    },
+    { timeout: 3000 },
+  );
 }
 
 describe('MobileActionButtons', () => {
+  beforeAll(async () => {
+    await import('./SettingsModal');
+  });
+
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(isIphone).mockReturnValue(true);
@@ -112,11 +132,10 @@ describe('MobileActionButtons', () => {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
-  it('opens the settings sheet with tonal center and borrowing memory', () => {
+  it('opens the settings sheet with tonal center and borrowing memory', async () => {
     render(<MobileActionButtons />);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Settings' }));
-
+    await openSettingsFromToolbar();
     const dialog = screen.getByRole('dialog', { name: 'Settings' });
     expect(
       within(dialog).queryByText(/How Movemental works and interactive tour/i),
@@ -130,20 +149,20 @@ describe('MobileActionButtons', () => {
     expect(screen.getByRole('button', { name: /^global$/i })).toBeInTheDocument();
   });
 
-  it('opens help directly from the toolbar without showing settings', () => {
+  it('opens help directly from the toolbar without showing settings', async () => {
     render(<MobileActionButtons />);
 
-    openHelpFromToolbar();
+    await openHelpFromToolbar();
 
     expect(screen.getByRole('dialog', { name: 'Help' })).toBeInTheDocument();
     expect(screen.queryByText('Tonal Center')).not.toBeInTheDocument();
     expect(screen.getByText(/How Movemental works/i)).toBeInTheDocument();
   });
 
-  it('opens help from the toolbar Help button', () => {
+  it('opens help from the toolbar Help button', async () => {
     render(<MobileActionButtons />);
 
-    openHelpFromToolbar();
+    await openHelpFromToolbar();
 
     expect(screen.getByRole('dialog', { name: 'Help' })).toBeInTheDocument();
     expect(screen.getByText(/How Movemental works/i)).toBeInTheDocument();
@@ -166,10 +185,10 @@ describe('MobileActionButtons', () => {
     expect(screen.getByText(/Base, Brother, Twin, Sister/i)).toBeInTheDocument();
   });
 
-  it('opens creation theory with Barry Harris credit and video link', () => {
+  it('opens creation theory with Barry Harris credit and video link', async () => {
     render(<MobileActionButtons />);
 
-    openHelpFromToolbar();
+    await openHelpFromToolbar();
     fireEvent.click(screen.getByRole('button', { name: /creation theory/i }));
 
     expect(
@@ -199,10 +218,10 @@ describe('MobileActionButtons', () => {
     expect(screen.getAllByText(/^In Movemental/i).length).toBeGreaterThanOrEqual(2);
   });
 
-  it('opens borrowing from the neighbors with Barry Harris credit and video link', () => {
+  it('opens borrowing from the neighbors with Barry Harris credit and video link', async () => {
     render(<MobileActionButtons />);
 
-    openHelpFromToolbar();
+    await openHelpFromToolbar();
     fireEvent.click(
       screen.getByRole('button', { name: /borrowing from the neighbors/i }),
     );
@@ -229,10 +248,10 @@ describe('MobileActionButtons', () => {
     expect(screen.getByText(/Drag up or down to borrow/i)).toBeInTheDocument();
   });
 
-  it('returns to help hub from borrowing neighbors via back', () => {
+  it('returns to help hub from borrowing neighbors via back', async () => {
     render(<MobileActionButtons />);
 
-    openHelpFromToolbar();
+    await openHelpFromToolbar();
     fireEvent.click(
       screen.getByRole('button', { name: /borrowing from the neighbors/i }),
     );
@@ -244,10 +263,10 @@ describe('MobileActionButtons', () => {
     ).toBeInTheDocument();
   });
 
-  it('opens elevator system with Thomas Echols credit and video link', () => {
+  it('opens elevator system with Thomas Echols credit and video link', async () => {
     render(<MobileActionButtons />);
 
-    openHelpFromToolbar();
+    await openHelpFromToolbar();
     fireEvent.click(screen.getByRole('button', { name: /elevator system/i }));
 
     expect(
@@ -267,10 +286,10 @@ describe('MobileActionButtons', () => {
     expect(screen.getByText(/Unison toward Triad/i)).toBeInTheDocument();
   });
 
-  it('returns to help hub from a theory article via back', () => {
+  it('returns to help hub from a theory article via back', async () => {
     render(<MobileActionButtons />);
 
-    openHelpFromToolbar();
+    await openHelpFromToolbar();
     fireEvent.click(screen.getByRole('button', { name: /creation theory/i }));
     fireEvent.click(screen.getByRole('button', { name: /back to help/i }));
 
@@ -279,10 +298,10 @@ describe('MobileActionButtons', () => {
       .toBeInTheDocument();
   });
 
-  it('returns from theory article to help hub on Escape before closing', () => {
+  it('returns from theory article to help hub on Escape before closing', async () => {
     render(<MobileActionButtons />);
 
-    openHelpFromToolbar();
+    await openHelpFromToolbar();
     fireEvent.click(screen.getByRole('button', { name: /elevator system/i }));
     expect(
       screen.getByRole('dialog', { name: 'Elevator System' }),
@@ -295,10 +314,10 @@ describe('MobileActionButtons', () => {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
-  it('closes help hub on Escape when opened from toolbar', () => {
+  it('closes help hub on Escape when opened from toolbar', async () => {
     render(<MobileActionButtons />);
 
-    openHelpFromToolbar();
+    await openHelpFromToolbar();
     expect(screen.getByRole('dialog', { name: 'Help' })).toBeInTheDocument();
 
     fireEvent.keyDown(document, { key: 'Escape' });
@@ -319,7 +338,7 @@ describe('MobileActionButtons', () => {
   it('calls toggleFullscreen from settings without opening help', async () => {
     render(<MobileActionButtons />);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Settings' }));
+    await openSettingsFromToolbar();
 
     await act(async () => {
       fireEvent.click(
@@ -331,20 +350,20 @@ describe('MobileActionButtons', () => {
     expect(screen.getByRole('dialog', { name: 'Settings' })).toBeInTheDocument();
   });
 
-  it('closes the sheet on Escape', () => {
+  it('closes the sheet on Escape', async () => {
     render(<MobileActionButtons />);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Settings' }));
+    await openSettingsFromToolbar();
     expect(screen.getByRole('dialog')).toBeInTheDocument();
 
     fireEvent.keyDown(document, { key: 'Escape' });
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
-  it('keeps keyboard focus inside the settings dialog on Tab', () => {
+  it('keeps keyboard focus inside the settings dialog on Tab', async () => {
     render(<MobileActionButtons />);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Settings' }));
+    await openSettingsFromToolbar();
     const dialog = screen.getByRole('dialog', { name: 'Settings' });
     const focusable = dialog.querySelectorAll(
       'button:not([disabled]), select:not([disabled])',
@@ -362,14 +381,14 @@ describe('MobileActionButtons', () => {
     expect(dialog.contains(document.activeElement)).toBe(true);
   });
 
-  it('shows iOS install hint when Full Screen is tapped on iPhone', () => {
+  it('shows iOS install hint when Full Screen is tapped on iPhone', async () => {
     vi.mocked(isIphone).mockReturnValue(true);
     vi.mocked(useFullscreen).mockReturnValue(
       mockFullscreenState({ showIosInstallHint: true }),
     );
 
     render(<MobileActionButtons />);
-    fireEvent.click(screen.getByRole('button', { name: 'Settings' }));
+    await openSettingsFromToolbar();
 
     expect(screen.getByText(/Full Screen on iPhone/i)).toBeInTheDocument();
     expect(screen.getByText(/Share button, then Add to Home Screen/i)).toBeInTheDocument();

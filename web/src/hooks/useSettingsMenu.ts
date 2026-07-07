@@ -6,6 +6,7 @@ import { useCallback, useId, useRef, useState } from 'react';
 export function useSettingsMenu() {
   const [isOpen, setIsOpen] = useState(false);
   const [openToHelp, setOpenToHelp] = useState(false);
+  const [shouldMountModal, setShouldMountModal] = useState(false);
   const openToHelpRef = useRef(false);
   const menuId = useId();
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -13,12 +14,14 @@ export function useSettingsMenu() {
   const modalRef = useRef<HTMLDivElement>(null);
 
   const openMenu = useCallback(() => {
+    setShouldMountModal(true);
     openToHelpRef.current = false;
     setOpenToHelp(false);
     setIsOpen(true);
   }, []);
 
   const openHelp = useCallback(() => {
+    setShouldMountModal(true);
     openToHelpRef.current = true;
     setOpenToHelp(true);
     setIsOpen(true);
@@ -39,6 +42,7 @@ export function useSettingsMenu() {
   return {
     isOpen,
     openToHelp,
+    shouldMountModal,
     menuId,
     triggerRef,
     helpTriggerRef,

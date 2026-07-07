@@ -9,7 +9,7 @@ import {
   parentElementColor,
 } from '../music/elementTokens';
 import { relativePitchClass } from '../music/pitchClass';
-import { MobileActionButtons } from './SettingsMenu';
+import { MobileActionButtons } from './AppToolbar';
 
 interface BorrowingControlsProps {
   disabled: boolean;

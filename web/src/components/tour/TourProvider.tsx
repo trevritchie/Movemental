@@ -2,6 +2,8 @@
  * Product tour context and overlay portal.
  */
 import React, {
+  Suspense,
+  lazy,
   useCallback,
   useMemo,
   useState,
@@ -14,9 +16,19 @@ import {
   writeTourPromptDismissed,
 } from '../../hooks/useProductTour';
 import { measureTourTarget } from '../../tour/tourSteps';
-import { TourOverlay } from './TourOverlay';
-import { FirstRunTourPrompt } from './FirstRunTourPrompt';
 import { TourContext, type TourContextValue } from './tourContext';
+
+const LazyTourOverlay = lazy(() =>
+  import('./TourOverlay').then((module) => ({
+    default: module.TourOverlay,
+  })),
+);
+
+const LazyFirstRunTourPrompt = lazy(() =>
+  import('./FirstRunTourPrompt').then((module) => ({
+    default: module.FirstRunTourPrompt,
+  })),
+);
 
 interface TourProviderProps {
   children: React.ReactNode;
@@ -122,24 +134,26 @@ export const TourProvider: React.FC<TourProviderProps> = ({ children }) => {
   return (
     <TourContext.Provider value={value}>
       {children}
-      {showOverlay && tour.currentStep && (
-        <TourOverlay
-          step={tour.currentStep}
-          stepIndex={tour.stepIndex}
-          totalSteps={tour.totalSteps}
-          isFirstStep={tour.isFirstStep}
-          isLastStep={tour.isLastStep}
-          onBack={tour.prevStep}
-          onNext={nextStep}
-          onSkip={skipTour}
-        />
-      )}
-      {shouldShowFirstRunPrompt && (
-        <FirstRunTourPrompt
-          onStart={() => startTour()}
-          onDismiss={dismissFirstRunPrompt}
-        />
-      )}
+      <Suspense fallback={null}>
+        {showOverlay && tour.currentStep && (
+          <LazyTourOverlay
+            step={tour.currentStep}
+            stepIndex={tour.stepIndex}
+            totalSteps={tour.totalSteps}
+            isFirstStep={tour.isFirstStep}
+            isLastStep={tour.isLastStep}
+            onBack={tour.prevStep}
+            onNext={nextStep}
+            onSkip={skipTour}
+          />
+        )}
+        {shouldShowFirstRunPrompt && (
+          <LazyFirstRunTourPrompt
+            onStart={() => startTour()}
+            onDismiss={dismissFirstRunPrompt}
+          />
+        )}
+      </Suspense>
     </TourContext.Provider>
   );
 };

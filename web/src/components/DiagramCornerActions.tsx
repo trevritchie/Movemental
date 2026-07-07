@@ -1,15 +1,16 @@
 import React from 'react';
 import { Settings, VolumeX, CircleHelp } from 'lucide-react';
 import { audioEngine } from '../audio/AudioEngine';
-import { SettingsModal } from './SettingsMenu';
 import { useSettingsMenu } from '../hooks/useSettingsMenu';
 import { RecordControl } from './RecordControl';
+import { SettingsMenuPortal } from './SettingsMenuPortal';
 
 /** Panic, settings, and help controls for desktop/tablet diagram corners. */
 export const DiagramCornerActions: React.FC = () => {
   const {
     isOpen,
     openToHelp,
+    shouldMountModal,
     menuId,
     triggerRef,
     helpTriggerRef,
@@ -62,13 +63,15 @@ export const DiagramCornerActions: React.FC = () => {
         </div>
       </div>
 
-      <SettingsModal
-        isOpen={isOpen}
-        openToHelp={openToHelp}
-        onClose={closeMenu}
-        menuId={menuId}
-        modalRef={modalRef}
-      />
+      {shouldMountModal ? (
+        <SettingsMenuPortal
+          isOpen={isOpen}
+          openToHelp={openToHelp}
+          onClose={closeMenu}
+          menuId={menuId}
+          modalRef={modalRef}
+        />
+      ) : null}
     </>
   );
 };

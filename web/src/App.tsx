@@ -10,6 +10,7 @@ import { useLayoutTier, LayoutTierProvider } from './hooks/useLayoutTier';
 import { usePhoneLandscapeBlocked } from './hooks/usePhoneLandscapeBlocked';
 import { TourProvider } from './components/tour/TourProvider';
 import { useTour } from './components/tour/tourContext';
+import { preloadSettingsModalAfterSplash } from './components/preloadSettingsModal';
 
 const PRIMARY_ELEMENT_NAMES = new Set(['Earth', 'Wind', 'Fire']);
 
@@ -61,6 +62,7 @@ function AppShell() {
   useEffect(() => {
     if (hasStarted) {
       markAppEntered();
+      preloadSettingsModalAfterSplash();
     }
   }, [hasStarted, markAppEntered]);
 
