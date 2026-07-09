@@ -202,7 +202,7 @@ $$\text{Earth}_x \text{Wind}_y \text{Fire}_z \quad (\text{e.g., } \mathbf{Earth_
 
 ## Tone.js Audio Engine & DSP Signal Chain
 
-The application's synthesizer features an optimized DSP signal chain with selectable **output profiles** (Small Speakers / Studio) and **instrument presets** (Warm Pad, Super Saw, Electric Cello, Kalimba, Harmonics, Pianoetta).
+The application's synthesizer features an optimized DSP signal chain with selectable **playback EQ** (Small Speakers / Large Speakers / Flat) and **instrument presets** (Warm Pad, Super Saw, Electric Cello, Kalimba, Harmonics, Pianoetta).
 
 ```mermaid
 graph LR
@@ -211,23 +211,24 @@ graph LR
     Harmonic --> Chorus[3. Chorus]
     Chorus --> Delay[4. Ping-Pong Delay]
     Delay --> Reverb[5. Reverb]
-    Reverb --> EQ3[6. EQ3 Output Profile]
+    Reverb --> EQ3[6. EQ3 Playback EQ]
     EQ3 --> Compressor[7. Compressor]
     Compressor --> Makeup[7a. Master Makeup]
     Makeup --> Limiter[8. Limiter]
     Limiter --> Output[Destination]
 ```
 
-### Output Profiles (Settings → Sound Design)
+### Playback EQ (Settings → Sound Design)
 
-| Profile | Default platform | EQ | Harmonic Enhance | Loudness | Use case |
-|---------|------------------|-----|------------------|----------|----------|
-| **Studio** | Desktop | Flat 0/0/0 dB reference | OFF | Synth -9 dB, makeup +2 dB, limiter -1 dBTP | Headphones, monitors, subwoofers; preferred for session exports |
+| Mode | Default platform | EQ | Harmonic Enhance | Loudness | Use case |
+|------|------------------|-----|------------------|----------|----------|
+| **Large Speakers** | Desktop | +2 dB low @ 100 Hz, +1 dB mid, -1.5 dB high | OFF | Synth -7 dB, makeup +4 dB, limiter -1 dBTP | Monitors, subwoofers, car stereos, PA |
 | **Small Speakers** | Phone / tablet | -6 dB low @ 180 Hz, +3 dB mid, -2.5 dB high | ON: HPF 180 Hz → light distortion, 20% wet | Platform-adapted (see below) | Phones, laptops, built-in speakers |
+| **Flat** | (opt-in) | 0/0/0 dB reference | OFF | Synth -9 dB, makeup +2 dB, limiter -1 dBTP | Exports, calibration, A/B reference |
 
-**Platform defaults:** first visit opens in **Studio** on desktop and **Small Speakers** on phone/tablet. Users who already saved a profile in localStorage keep that choice.
+**Platform defaults:** first visit opens in **Large Speakers** on desktop and **Small Speakers** on phone/tablet. Users who already saved a profile in localStorage keep that choice (legacy `studio` migrates to `flat`).
 
-**Small Speakers platform adaptation:** the stored profile id stays `smallSpeakers`, but effective DSP values differ by layout tier:
+**Small Speakers platform adaptation:** the stored mode stays `smallSpeakers`, but effective DSP values differ by layout tier:
 
 | Parameter | Phone / tablet | Desktop (manual Small Speakers) |
 |-----------|----------------|----------------------------------|
@@ -238,7 +239,7 @@ graph LR
 | FX scale | 0.8 | 0.85 |
 | Compressor threshold | -26 dB | -22 dB |
 
-Mobile adaptation targets louder perceived level on phone speakers; desktop adaptation reduces harmonic distortion and makeup so full-range monitors do not clip. Studio is identical on all platforms.
+Mobile adaptation targets louder perceived level on phone speakers; desktop adaptation reduces harmonic distortion and makeup so full-range monitors do not clip. Large Speakers and Flat are identical on all platforms.
 
 The harmonic enhance path uses a parallel high-passed distortion branch to generate upper harmonics in the 150–500 Hz range, helping low bass notes remain perceptible on devices that cannot reproduce sub-bass (missing-fundamental psychoacoustics).
 
@@ -249,7 +250,7 @@ Perceived volume on phones is optimized through standard mastering practice, not
 1. **Source level** — Synth voices use a Small Speakers reference level with per-preset matching so FM/AM timbres are not quieter than pads. Mobile adaptation runs hotter (-4 dB); desktop Small Speakers runs cooler (-7 dB).
 2. **FX balance** — Small Speakers scales chorus/reverb wet by platform (`0.8` mobile, `0.85` desktop) so more energy stays in the direct signal.
 3. **Bus compression** — Lower threshold with soft knee glues polyphonic chords (target 2–4 dB gain reduction on attacks). Mobile uses -26 dB; desktop Small Speakers uses -22 dB.
-4. **Master makeup gain** — Post-compressor `Tone.Gain` restores level (+6 dB mobile Small Speakers, +2 dB desktop Small Speakers and Studio).
+4. **Master makeup gain** — Post-compressor `Tone.Gain` restores level (+6 dB mobile Small Speakers, +4 dB Large Speakers, +2 dB Flat and desktop Small Speakers).
 5. **Limiter** — Ceiling at -1.0 dBTP (EBU R128 / streaming-safe) catches peaks without brick-wall distortion.
 
 In development builds, post-makeup peak levels log to the console when notes play.
@@ -291,20 +292,23 @@ FM/AM/MonoSynth presets use max polyphony of 8; `Synth` presets use 12.
 ### 5. Reverb
 *   **Configuration**: `3.5s` decay, `0.02s` pre-delay, `0.30` default wet mix (user controllable).
 
-### 6. EQ3 (Output Profile)
+### 6. EQ3 (Playback EQ)
 *   **Small Speakers**: Low cut, mid boost, high tame (see table above). Mid boost is +3 dB on phone/tablet, +2 dB when Small Speakers is selected on desktop.
-*   **Studio**: Flat reference curve for full-range playback.
+*   **Large Speakers**: Low/mid weight, high tame for full-range systems (see table above).
+*   **Flat**: Neutral 0/0/0 reference curve.
 
 ### 7. Compressor
 *   **Small Speakers**: Threshold `-26dB` mobile / `-22dB` desktop, ratio `3:1`, knee `6dB`.
-*   **Studio**: Threshold `-20dB`, ratio `2.5:1`, knee `4dB`.
+*   **Large Speakers**: Threshold `-22dB`, ratio `2.8:1`, knee `5dB`.
+*   **Flat**: Threshold `-20dB`, ratio `2.5:1`, knee `4dB`.
 
 ### 7a. Master Makeup Gain
 *   **Small Speakers**: `+6dB` mobile / `+2dB` desktop post-compression restore.
-*   **Studio**: `+2dB` post-compression restore.
+*   **Large Speakers**: `+4dB` post-compression restore.
+*   **Flat**: `+2dB` post-compression restore.
 
 ### 8. Limiter
-*   **Configuration**: Ceiling `-1.0dBTP` on both profiles.
+*   **Configuration**: Ceiling `-1.0dBTP` on all EQ modes.
 
 ---
 

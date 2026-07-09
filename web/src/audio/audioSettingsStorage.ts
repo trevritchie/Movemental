@@ -2,32 +2,47 @@
  * localStorage persistence for Sound Design settings.
  */
 import type { LayoutTier } from '../layout/breakpoints';
-import type { OutputProfileId } from './outputProfiles';
-import { resolveDefaultOutputProfileId } from './outputProfiles';
+import {
+  normalizeEqProfileId,
+  resolveDefaultEqProfileId,
+  type EqProfileId,
+} from './outputProfiles';
 import { DEFAULT_SYNTH_PRESET_ID } from './synthPresets';
 
 export const OUTPUT_PROFILE_STORAGE_KEY = 'movemental-output-profile';
 export const SYNTH_PRESET_STORAGE_KEY = 'movemental-synth-preset';
 
-export function readOutputProfileId(tier?: LayoutTier): OutputProfileId {
+export function readEqProfileId(tier?: LayoutTier): EqProfileId {
   try {
     const value = localStorage.getItem(OUTPUT_PROFILE_STORAGE_KEY);
-    if (value === 'smallSpeakers' || value === 'studio') {
-      return value;
+    if (value) {
+      const normalized = normalizeEqProfileId(value);
+      if (normalized) {
+        if (normalized !== value) {
+          localStorage.setItem(OUTPUT_PROFILE_STORAGE_KEY, normalized);
+        }
+        return normalized;
+      }
     }
   } catch {
     /* ignore quota / private mode */
   }
-  return resolveDefaultOutputProfileId(tier);
+  return resolveDefaultEqProfileId(tier);
 }
 
-export function writeOutputProfileId(id: OutputProfileId): void {
+/** @deprecated Use readEqProfileId */
+export const readOutputProfileId = readEqProfileId;
+
+export function writeEqProfileId(id: EqProfileId): void {
   try {
     localStorage.setItem(OUTPUT_PROFILE_STORAGE_KEY, id);
   } catch {
     /* ignore */
   }
 }
+
+/** @deprecated Use writeEqProfileId */
+export const writeOutputProfileId = writeEqProfileId;
 
 export function readSynthPresetId(): string {
   try {

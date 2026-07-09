@@ -27,14 +27,14 @@ describe('AudioEngine.playNotes', () => {
   });
 });
 
-describe('AudioEngine output profiles', () => {
+describe('AudioEngine EQ profiles', () => {
   beforeEach(async () => {
     await audioEngine.startContext();
     audioEngine.releaseActiveNotes();
     audioEngine.setOutputProfile(getAdaptedOutputProfile('smallSpeakers', 'desktop'));
   });
 
-  it('switches to studio profile with harmonic enhance bypassed', () => {
+  it('switches to flat profile with harmonic enhance bypassed', () => {
     const engine = audioEngine as unknown as {
       eq: Tone.EQ3;
       harmonicWetGain: Tone.Gain;
@@ -43,14 +43,35 @@ describe('AudioEngine output profiles', () => {
       limiter: Tone.Limiter;
     };
 
-    audioEngine.setOutputProfile(getOutputProfile('studio'));
+    audioEngine.setOutputProfile(getOutputProfile('flat'));
 
-    expect(audioEngine.getOutputProfileId()).toBe('studio');
+    expect(audioEngine.getEqProfileId()).toBe('flat');
     expect(engine.eq.low.value).toBe(0);
     expect(engine.eq.mid.value).toBe(0);
     expect(engine.harmonicWetGain.gain.value).toBe(0);
     expect(engine.compressor.threshold.value).toBe(-20);
     expect(engine.masterMakeup.gain.value).toBeCloseTo(dbToGain(2), 4);
+    expect(engine.limiter.threshold.value).toBe(-1);
+  });
+
+  it('applies large speakers full-range EQ curve', () => {
+    const engine = audioEngine as unknown as {
+      harmonicWetGain: Tone.Gain;
+      eq: Tone.EQ3;
+      masterMakeup: Tone.Gain;
+      limiter: Tone.Limiter;
+      compressor: Tone.Compressor;
+    };
+
+    audioEngine.setOutputProfile(getOutputProfile('largeSpeakers'));
+
+    expect(audioEngine.getEqProfileId()).toBe('largeSpeakers');
+    expect(engine.eq.low.value).toBe(2);
+    expect(engine.eq.mid.value).toBe(1);
+    expect(engine.eq.high.value).toBe(-1.5);
+    expect(engine.harmonicWetGain.gain.value).toBe(0);
+    expect(engine.masterMakeup.gain.value).toBeCloseTo(dbToGain(4), 4);
+    expect(engine.compressor.threshold.value).toBe(-22);
     expect(engine.limiter.threshold.value).toBe(-1);
   });
 

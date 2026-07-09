@@ -1,13 +1,16 @@
 /**
- * Output translation profiles for small-device vs studio reference playback.
+ * Playback EQ profiles for small, large, and flat reference playback.
  */
 import { resolveLayoutTier, type LayoutTier } from '../layout/breakpoints';
 import type { SynthPreset } from './synthPresets';
 
-export type OutputProfileId = 'smallSpeakers' | 'studio';
+export type EqProfileId = 'smallSpeakers' | 'largeSpeakers' | 'flat';
+
+/** @deprecated Use EqProfileId */
+export type OutputProfileId = EqProfileId;
 
 export interface OutputProfile {
-  id: OutputProfileId;
+  id: EqProfileId;
   label: string;
   eq: {
     low: number;
@@ -37,7 +40,9 @@ export interface OutputProfile {
   };
 }
 
-export const OUTPUT_PROFILES: Record<OutputProfileId, OutputProfile> = {
+export type EqProfile = OutputProfile;
+
+export const OUTPUT_PROFILES: Record<EqProfileId, OutputProfile> = {
   smallSpeakers: {
     id: 'smallSpeakers',
     label: 'Small Speakers',
@@ -68,9 +73,39 @@ export const OUTPUT_PROFILES: Record<OutputProfileId, OutputProfile> = {
       },
     },
   },
-  studio: {
-    id: 'studio',
-    label: 'Studio',
+  largeSpeakers: {
+    id: 'largeSpeakers',
+    label: 'Large Speakers',
+    eq: {
+      low: 2,
+      mid: 1,
+      high: -1.5,
+      lowFrequency: 100,
+      highFrequency: 3500,
+    },
+    harmonicEnhance: {
+      enabled: false,
+      hpfHz: 180,
+      distortion: 0.15,
+      wet: 0,
+    },
+    loudness: {
+      synthVolumeDb: -7,
+      masterMakeupDb: 4,
+      limiterCeilingDb: -1.0,
+      fxScale: 0.95,
+      compressor: {
+        threshold: -22,
+        ratio: 2.8,
+        knee: 5,
+        attack: 0.03,
+        release: 0.08,
+      },
+    },
+  },
+  flat: {
+    id: 'flat',
+    label: 'Flat',
     eq: {
       low: 0,
       mid: 0,
@@ -100,25 +135,43 @@ export const OUTPUT_PROFILES: Record<OutputProfileId, OutputProfile> = {
   },
 };
 
-/** @deprecated Use resolveDefaultOutputProfileId() for tier-aware defaults. */
-export const DEFAULT_OUTPUT_PROFILE_ID: OutputProfileId = 'smallSpeakers';
+/** @deprecated Use resolveDefaultEqProfileId() for tier-aware defaults. */
+export const DEFAULT_OUTPUT_PROFILE_ID: EqProfileId = 'smallSpeakers';
 
 const REFERENCE_SYNTH_VOLUME_DB =
   OUTPUT_PROFILES.smallSpeakers.loudness.synthVolumeDb;
 
-export function resolveDefaultOutputProfileId(
-  tier?: LayoutTier,
-): OutputProfileId {
-  const layoutTier = tier ?? resolveLayoutTier();
-  return layoutTier === 'desktop' ? 'studio' : 'smallSpeakers';
+const EQ_PROFILE_IDS: EqProfileId[] = ['smallSpeakers', 'largeSpeakers', 'flat'];
+
+export function isEqProfileId(value: string): value is EqProfileId {
+  return (EQ_PROFILE_IDS as string[]).includes(value);
 }
 
-export function getOutputProfile(id: OutputProfileId): OutputProfile {
+/** Migrate legacy stored profile ids. */
+export function normalizeEqProfileId(value: string): EqProfileId | null {
+  if (value === 'studio') {
+    return 'flat';
+  }
+  if (isEqProfileId(value)) {
+    return value;
+  }
+  return null;
+}
+
+export function resolveDefaultEqProfileId(tier?: LayoutTier): EqProfileId {
+  const layoutTier = tier ?? resolveLayoutTier();
+  return layoutTier === 'desktop' ? 'largeSpeakers' : 'smallSpeakers';
+}
+
+/** @deprecated Use resolveDefaultEqProfileId */
+export const resolveDefaultOutputProfileId = resolveDefaultEqProfileId;
+
+export function getOutputProfile(id: EqProfileId): OutputProfile {
   return OUTPUT_PROFILES[id];
 }
 
 export function getAdaptedOutputProfile(
-  id: OutputProfileId,
+  id: EqProfileId,
   tier?: LayoutTier,
 ): OutputProfile {
   const base = getOutputProfile(id);
@@ -168,7 +221,7 @@ export function dbToGain(db: number): number {
   return Math.pow(10, db / 20);
 }
 
-/** Profile-adjusted synth level: preset trim plus studio/small-speaker offset. */
+/** Profile-adjusted synth level: preset trim plus EQ-mode offset. */
 export function getEffectiveSynthVolumeDb(
   preset: SynthPreset,
   profile: OutputProfile,

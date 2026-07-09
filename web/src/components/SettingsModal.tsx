@@ -9,7 +9,7 @@ import { AdsrPanelContent } from './settings/AdsrPanelContent';
 import { EffectsPanelContent } from './settings/EffectsPanelContent';
 import { BorrowingMemoryToggle } from './settings/BorrowingMemoryToggle';
 import { VoiceLeadingToggle } from './settings/VoiceLeadingToggle';
-import { OutputProfileToggle } from './settings/OutputProfileToggle';
+import { EqProfileToggle } from './settings/EqProfileToggle';
 import { InstrumentPresetPicker } from './settings/InstrumentPresetPicker';
 import { IosInstallHintPortal } from './IosInstallHintPortal';
 import { isIphone } from '../utils/devicePlatform';
@@ -280,9 +280,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 <section className="settings-menu-section">
                   <h3 className="settings-menu-section__title">Sound Design</h3>
                   <p className="settings-menu-section__hint">
-                    Output profile and instrument timbre for playback and recording.
+                    Playback EQ and instrument timbre for playback and recording.
                   </p>
-                  <OutputProfileToggle />
+                  <h4 className="settings-menu-subsection__title">Playback EQ</h4>
+                  <p className="settings-menu-section__hint">
+                    Choose how chords are equalized for your playback system.
+                  </p>
+                  <EqProfileToggle />
                   <button
                     type="button"
                     className={`settings-menu-accordion${showInstrument ? ' active' : ''}`}

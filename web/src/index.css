@@ -601,6 +601,16 @@ body.scroll-locked {
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--text-secondary);
+}
+
+.settings-menu-subsection__title {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  margin: 8px 0 0;
+}
   margin-bottom: 10px;
 }
 
@@ -634,7 +644,7 @@ body.scroll-locked {
   margin: 0;
 }
 
-.output-profile-toggle {
+.eq-profile-toggle {
   display: flex;
   flex-direction: column;
   gap: 10px;

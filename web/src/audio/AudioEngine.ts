@@ -18,9 +18,9 @@ import {
   dbToGain,
   getAdaptedOutputProfile,
   getEffectiveSynthVolumeDb,
-  resolveDefaultOutputProfileId,
+  resolveDefaultEqProfileId,
   type OutputProfile,
-  type OutputProfileId,
+  type EqProfileId,
 } from './outputProfiles';
 import {
   DEFAULT_SYNTH_PRESET_ID,
@@ -102,7 +102,7 @@ export class AudioEngine {
   private activeNotes: string[] = [];
   private isPointerDown: boolean = false;
 
-  private outputProfileId: OutputProfileId;
+  private eqProfileId: EqProfileId;
   private activeOutputProfile: OutputProfile;
   private currentPreset: SynthPreset = getSynthPreset(DEFAULT_SYNTH_PRESET_ID);
 
@@ -119,9 +119,9 @@ export class AudioEngine {
 
   constructor() {
     const tier = resolveLayoutTierSafe();
-    this.outputProfileId = resolveDefaultOutputProfileId(tier);
+    this.eqProfileId = resolveDefaultEqProfileId(tier);
     this.activeOutputProfile = getAdaptedOutputProfile(
-      this.outputProfileId,
+      this.eqProfileId,
       tier,
     );
     // Initialized on first user gesture via startContext()
@@ -255,7 +255,7 @@ export class AudioEngine {
     });
     this.compressor.connect(this.masterMakeup);
 
-    // 6. EQ3 - output translation profile (small speakers or studio reference)
+    // 6. EQ3 - playback EQ profile
     this.eq = new Tone.EQ3({
       low: profile.eq.low,
       mid: profile.eq.mid,
@@ -662,15 +662,20 @@ export class AudioEngine {
   }
 
   public setOutputProfile(profile: OutputProfile): void {
-    this.outputProfileId = profile.id;
+    this.eqProfileId = profile.id;
     this.activeOutputProfile = profile;
     this.applyEqProfile(profile);
     this.applyHarmonicEnhance(profile);
     this.applyLoudnessProfile(profile);
   }
 
-  public getOutputProfileId(): OutputProfileId {
-    return this.outputProfileId;
+  public getEqProfileId(): EqProfileId {
+    return this.eqProfileId;
+  }
+
+  /** @deprecated Use getEqProfileId */
+  public getOutputProfileId(): EqProfileId {
+    return this.eqProfileId;
   }
 
   public applyPreset(preset: SynthPreset): void {

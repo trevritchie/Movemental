@@ -1,9 +1,13 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import {
   getAdaptedOutputProfile,
-  resolveDefaultOutputProfileId,
+  normalizeEqProfileId,
+  resolveDefaultEqProfileId,
 } from './outputProfiles';
-import { readOutputProfileId, OUTPUT_PROFILE_STORAGE_KEY } from './audioSettingsStorage';
+import {
+  readEqProfileId,
+  OUTPUT_PROFILE_STORAGE_KEY,
+} from './audioSettingsStorage';
 
 function mockLayoutTier(
   innerWidth: number,
@@ -35,25 +39,44 @@ function mockLayoutTier(
   });
 }
 
-describe('resolveDefaultOutputProfileId', () => {
-  it('returns studio on desktop', () => {
-    expect(resolveDefaultOutputProfileId('desktop')).toBe('studio');
+describe('normalizeEqProfileId', () => {
+  it('migrates legacy studio id to flat', () => {
+    expect(normalizeEqProfileId('studio')).toBe('flat');
+  });
+
+  it('accepts current eq profile ids', () => {
+    expect(normalizeEqProfileId('largeSpeakers')).toBe('largeSpeakers');
+    expect(normalizeEqProfileId('smallSpeakers')).toBe('smallSpeakers');
+    expect(normalizeEqProfileId('flat')).toBe('flat');
+  });
+});
+
+describe('resolveDefaultEqProfileId', () => {
+  it('returns largeSpeakers on desktop', () => {
+    expect(resolveDefaultEqProfileId('desktop')).toBe('largeSpeakers');
   });
 
   it('returns smallSpeakers on phone', () => {
-    expect(resolveDefaultOutputProfileId('phone')).toBe('smallSpeakers');
+    expect(resolveDefaultEqProfileId('phone')).toBe('smallSpeakers');
   });
 
   it('returns smallSpeakers on tablet', () => {
-    expect(resolveDefaultOutputProfileId('tablet')).toBe('smallSpeakers');
+    expect(resolveDefaultEqProfileId('tablet')).toBe('smallSpeakers');
   });
 });
 
 describe('getAdaptedOutputProfile', () => {
-  it('returns studio profile unchanged on all tiers', () => {
-    const studio = getAdaptedOutputProfile('studio', 'phone');
-    expect(studio.loudness.masterMakeupDb).toBe(2);
-    expect(studio.harmonicEnhance.enabled).toBe(false);
+  it('returns flat profile unchanged on all tiers', () => {
+    const flat = getAdaptedOutputProfile('flat', 'phone');
+    expect(flat.loudness.masterMakeupDb).toBe(2);
+    expect(flat.harmonicEnhance.enabled).toBe(false);
+  });
+
+  it('returns largeSpeakers profile unchanged on all tiers', () => {
+    const large = getAdaptedOutputProfile('largeSpeakers', 'phone');
+    expect(large.loudness.masterMakeupDb).toBe(4);
+    expect(large.eq.low).toBe(2);
+    expect(large.harmonicEnhance.enabled).toBe(false);
   });
 
   it('applies desktop-safe small speakers overrides', () => {
@@ -83,19 +106,25 @@ describe('getAdaptedOutputProfile', () => {
   });
 });
 
-describe('readOutputProfileId', () => {
+describe('readEqProfileId', () => {
   beforeEach(() => {
     localStorage.clear();
   });
 
   it('returns tier-based default when localStorage is empty', () => {
     mockLayoutTier(1400);
-    expect(readOutputProfileId('desktop')).toBe('studio');
-    expect(readOutputProfileId('phone')).toBe('smallSpeakers');
+    expect(readEqProfileId('desktop')).toBe('largeSpeakers');
+    expect(readEqProfileId('phone')).toBe('smallSpeakers');
   });
 
   it('returns stored profile when user has an explicit choice', () => {
     localStorage.setItem(OUTPUT_PROFILE_STORAGE_KEY, 'smallSpeakers');
-    expect(readOutputProfileId('desktop')).toBe('smallSpeakers');
+    expect(readEqProfileId('desktop')).toBe('smallSpeakers');
+  });
+
+  it('migrates studio to flat and rewrites localStorage', () => {
+    localStorage.setItem(OUTPUT_PROFILE_STORAGE_KEY, 'studio');
+    expect(readEqProfileId('desktop')).toBe('flat');
+    expect(localStorage.getItem(OUTPUT_PROFILE_STORAGE_KEY)).toBe('flat');
   });
 });
