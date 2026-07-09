@@ -3,20 +3,19 @@
  */
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { audioEngine } from '../audio/AudioEngine';
-import {
-  readEqProfileId,
-  readSynthPresetId,
-  writeEqProfileId,
-  writeSynthPresetId,
-} from '../audio/audioSettingsStorage';
+import { readEqProfileId } from '../audio/audioSettingsStorage';
 import {
   getAdaptedOutputProfile,
   scaleFxWet,
   type EqProfileId,
 } from '../audio/outputProfiles';
 import {
+  getPresetClickHoldEnvelope,
+  getPresetDroneEnvelope,
+  getPresetFxDefaults,
   getSynthPreset,
   SYNTH_PRESETS,
+  type PresetEnvelopeSettings,
   type SynthPreset,
 } from '../audio/synthPresets';
 import { resolveLayoutTier } from '../layout/breakpoints';
@@ -24,38 +23,44 @@ import { useLayoutTier } from './useLayoutTier';
 import type { PlayStyle } from '../context/types';
 
 function applyPresetDefaultsToState(preset: SynthPreset) {
-  const fx = preset.fxDefaults ?? {
-    chorusWet: 0.35,
-    delayWet: 0.0,
-    reverbWet: 0.3,
+  return {
+    fx: getPresetFxDefaults(preset),
+    clickHold: getPresetClickHoldEnvelope(preset),
+    drone: getPresetDroneEnvelope(preset),
   };
-  const clickHold = preset.envelopeDefaults?.clickHold ?? {
-    attack: 0.15,
-    decay: 2.0,
-    sustain: 0.5,
-    release: 2.5,
-  };
-  const drone = preset.envelopeDefaults?.drone ?? {
-    attack: 0.6,
-    decay: 3.5,
-    sustain: 0.2,
-    release: 0.5,
-  };
-  return { fx, clickHold, drone };
 }
+
+function envelopeToEngineSettings(
+  values: AdsrFromPreset,
+  curves: PresetEnvelopeSettings,
+): PresetEnvelopeSettings {
+  return {
+    attack: values.attack,
+    decay: values.decay,
+    sustain: values.sustain,
+    release: values.release,
+    attackCurve: curves.attackCurve,
+    decayCurve: curves.decayCurve,
+    sustainCurve: curves.sustainCurve,
+    releaseCurve: curves.releaseCurve,
+  };
+}
+
+type AdsrFromPreset = Pick<
+  PresetEnvelopeSettings,
+  'attack' | 'decay' | 'sustain' | 'release'
+>;
 
 export function useAudioSettings(playStyle: PlayStyle) {
   const layoutTier = useLayoutTier();
   const initialProfileId = readEqProfileId(resolveLayoutTier());
-  const initialPreset = getSynthPreset(readSynthPresetId());
+  const initialPreset = getSynthPreset('warmPad');
   const initialDefaults = applyPresetDefaultsToState(initialPreset);
 
   const [eqProfileId, setEqProfileIdState] = useState<EqProfileId>(
     () => initialProfileId,
   );
-  const [synthPresetId, setSynthPresetIdState] = useState<string>(
-    () => readSynthPresetId(),
-  );
+  const [synthPresetId, setSynthPresetIdState] = useState<string>('warmPad');
 
   const [chorusWet, setChorusWetState] = useState(initialDefaults.fx.chorusWet);
   const [delayWet, setDelayWetState] = useState(initialDefaults.fx.delayWet);
@@ -78,6 +83,9 @@ export function useAudioSettings(playStyle: PlayStyle) {
   const [droneDecay, setDroneDecay] = useState(initialDefaults.drone.decay);
   const [droneSustain, setDroneSustain] = useState(initialDefaults.drone.sustain);
   const [droneRelease, setDroneRelease] = useState(initialDefaults.drone.release);
+
+  const clickHoldCurvesRef = useRef<PresetEnvelopeSettings>(initialDefaults.clickHold);
+  const droneCurvesRef = useRef<PresetEnvelopeSettings>(initialDefaults.drone);
 
   const didSyncPresetOnMount = useRef(false);
 
@@ -123,15 +131,29 @@ export function useAudioSettings(playStyle: PlayStyle) {
   ]);
 
   useEffect(() => {
-    // The tilt style drones, so it shares the drone envelope.
     if (playStyle === 'drone') {
-      audioEngine.setEnvelope(droneAttack, droneDecay, droneSustain, droneRelease);
+      audioEngine.applyEnvelopeSettings(
+        envelopeToEngineSettings(
+          {
+            attack: droneAttack,
+            decay: droneDecay,
+            sustain: droneSustain,
+            release: droneRelease,
+          },
+          droneCurvesRef.current,
+        ),
+      );
     } else {
-      audioEngine.setEnvelope(
-        envelopeAttack,
-        envelopeDecay,
-        envelopeSustain,
-        envelopeRelease
+      audioEngine.applyEnvelopeSettings(
+        envelopeToEngineSettings(
+          {
+            attack: envelopeAttack,
+            decay: envelopeDecay,
+            sustain: envelopeSustain,
+            release: envelopeRelease,
+          },
+          clickHoldCurvesRef.current,
+        ),
       );
     }
   }, [
@@ -148,15 +170,16 @@ export function useAudioSettings(playStyle: PlayStyle) {
 
   const setEqProfileId = (id: EqProfileId) => {
     setEqProfileIdState(id);
-    writeEqProfileId(id);
   };
 
   const setSynthPresetId = (id: string) => {
     const preset = getSynthPreset(id);
     const defaults = applyPresetDefaultsToState(preset);
 
+    clickHoldCurvesRef.current = defaults.clickHold;
+    droneCurvesRef.current = defaults.drone;
+
     setSynthPresetIdState(id);
-    writeSynthPresetId(id);
     audioEngine.applyPreset(preset);
 
     setChorusWetState(defaults.fx.chorusWet);
@@ -178,6 +201,12 @@ export function useAudioSettings(playStyle: PlayStyle) {
     setDroneDecay(defaults.drone.decay);
     setDroneSustain(defaults.drone.sustain);
     setDroneRelease(defaults.drone.release);
+
+    if (playStyle === 'drone') {
+      audioEngine.applyEnvelopeSettings(defaults.drone);
+    } else {
+      audioEngine.applyEnvelopeSettings(defaults.clickHold);
+    }
   };
 
   const setChorusWet = (val: number) => {

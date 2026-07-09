@@ -1,13 +1,10 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import {
   getAdaptedOutputProfile,
   normalizeEqProfileId,
   resolveDefaultEqProfileId,
 } from './outputProfiles';
-import {
-  readEqProfileId,
-  OUTPUT_PROFILE_STORAGE_KEY,
-} from './audioSettingsStorage';
+import { readEqProfileId } from './audioSettingsStorage';
 
 function mockLayoutTier(
   innerWidth: number,
@@ -107,24 +104,9 @@ describe('getAdaptedOutputProfile', () => {
 });
 
 describe('readEqProfileId', () => {
-  beforeEach(() => {
-    localStorage.clear();
-  });
-
-  it('returns tier-based default when localStorage is empty', () => {
+  it('returns tier-based default without localStorage', () => {
     mockLayoutTier(1400);
     expect(readEqProfileId('desktop')).toBe('smallSpeakers');
     expect(readEqProfileId('phone')).toBe('smallSpeakers');
-  });
-
-  it('returns stored profile when user has an explicit choice', () => {
-    localStorage.setItem(OUTPUT_PROFILE_STORAGE_KEY, 'smallSpeakers');
-    expect(readEqProfileId('desktop')).toBe('smallSpeakers');
-  });
-
-  it('migrates studio to flat and rewrites localStorage', () => {
-    localStorage.setItem(OUTPUT_PROFILE_STORAGE_KEY, 'studio');
-    expect(readEqProfileId('desktop')).toBe('flat');
-    expect(localStorage.getItem(OUTPUT_PROFILE_STORAGE_KEY)).toBe('flat');
   });
 });

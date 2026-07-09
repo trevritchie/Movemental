@@ -138,4 +138,25 @@ describe('AudioEngine instrument presets', () => {
     const engine = audioEngine as unknown as { currentSynthClass: string };
     expect(engine.currentSynthClass).toBe('Synth');
   });
+
+  it('applies JSON envelope settings including attackCurve', () => {
+    const engine = audioEngine as unknown as {
+      synth: Tone.PolySynth;
+    };
+    const setSpy = vi.spyOn(engine.synth, 'set');
+
+    audioEngine.applyEnvelopeSettings({
+      attack: 0.01,
+      decay: 0.1,
+      sustain: 0.5,
+      release: 0.4,
+      attackCurve: 'exponential',
+    });
+
+    expect(setSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        envelope: expect.objectContaining({ attackCurve: 'exponential' }),
+      }),
+    );
+  });
 });

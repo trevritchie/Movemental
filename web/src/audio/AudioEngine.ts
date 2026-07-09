@@ -26,6 +26,8 @@ import {
   DEFAULT_SYNTH_PRESET_ID,
   getMaxPolyphony,
   getSynthPreset,
+  voiceOptionsWithoutEnvelope,
+  type PresetEnvelopeSettings,
   type SynthClassName,
   type SynthPreset,
 } from './synthPresets';
@@ -112,10 +114,16 @@ export class AudioEngine {
   private reverbWetVal: number = 0.30;
 
   // Cached envelope settings
-  private envelopeAttackVal: number = 0.08;
-  private envelopeDecayVal: number = 1.5;
-  private envelopeSustainVal: number = 0.6;
-  private envelopeReleaseVal: number = 1.2;
+  private envelopeAttackVal: number = 0.15;
+  private envelopeDecayVal: number = 2.0;
+  private envelopeSustainVal: number = 0.5;
+  private envelopeReleaseVal: number = 2.5;
+  private envelopeCurveOpts: Partial<
+    Pick<
+      PresetEnvelopeSettings,
+      'attackCurve' | 'decayCurve' | 'sustainCurve' | 'releaseCurve'
+    >
+  > = {};
 
   constructor() {
     const tier = resolveLayoutTierSafe();
@@ -127,19 +135,31 @@ export class AudioEngine {
     // Initialized on first user gesture via startContext()
   }
 
+  private getEnvelopePayload(): Record<string, unknown> {
+    return {
+      attack: this.envelopeAttackVal,
+      decay: this.envelopeDecayVal,
+      sustain: this.envelopeSustainVal,
+      release: this.envelopeReleaseVal,
+      ...this.envelopeCurveOpts,
+    };
+  }
+
+  private syncEnvelopeToSynth(): void {
+    if (!this.synth) {
+      return;
+    }
+    this.synth.set({ envelope: this.getEnvelopePayload() });
+  }
+
   private createSynth(preset: SynthPreset): Tone.PolySynth {
     const profile = this.activeOutputProfile;
     const SynthClass = SYNTH_CLASS_MAP[preset.synthClass];
     const synth = new Tone.PolySynth(
       SynthClass as unknown as typeof Tone.Synth,
       {
-        ...preset.voiceOptions,
-        envelope: {
-          attack: this.envelopeAttackVal,
-          decay: this.envelopeDecayVal,
-          sustain: this.envelopeSustainVal,
-          release: this.envelopeReleaseVal,
-        },
+        ...voiceOptionsWithoutEnvelope(preset.voiceOptions),
+        envelope: this.getEnvelopePayload(),
         volume: getEffectiveSynthVolumeDb(preset, profile),
       },
     );
@@ -696,15 +716,10 @@ export class AudioEngine {
       this.synth.connect(this.filter);
     } else {
       this.synth.set({
-        ...preset.voiceOptions,
+        ...voiceOptionsWithoutEnvelope(preset.voiceOptions),
         volume: getEffectiveSynthVolumeDb(preset, this.activeOutputProfile),
       });
-      this.setEnvelope(
-        this.envelopeAttackVal,
-        this.envelopeDecayVal,
-        this.envelopeSustainVal,
-        this.envelopeReleaseVal,
-      );
+      this.syncEnvelopeToSynth();
     }
 
     if (preset.filterCutoffHz !== undefined) {
@@ -738,21 +753,35 @@ export class AudioEngine {
     }
   }
 
+  public applyEnvelopeSettings(settings: PresetEnvelopeSettings): void {
+    this.envelopeAttackVal = settings.attack;
+    this.envelopeDecayVal = settings.decay;
+    this.envelopeSustainVal = settings.sustain;
+    this.envelopeReleaseVal = settings.release;
+
+    this.envelopeCurveOpts = {};
+    if (settings.attackCurve !== undefined) {
+      this.envelopeCurveOpts.attackCurve = settings.attackCurve;
+    }
+    if (settings.decayCurve !== undefined) {
+      this.envelopeCurveOpts.decayCurve = settings.decayCurve;
+    }
+    if (settings.sustainCurve !== undefined) {
+      this.envelopeCurveOpts.sustainCurve = settings.sustainCurve;
+    }
+    if (settings.releaseCurve !== undefined) {
+      this.envelopeCurveOpts.releaseCurve = settings.releaseCurve;
+    }
+
+    this.syncEnvelopeToSynth();
+  }
+
   public setEnvelope(attack: number, decay: number, sustain: number, release: number) {
     this.envelopeAttackVal = attack;
     this.envelopeDecayVal = decay;
     this.envelopeSustainVal = sustain;
     this.envelopeReleaseVal = release;
-    if (this.synth) {
-      this.synth.set({
-        envelope: {
-          attack,
-          decay,
-          sustain,
-          release
-        }
-      });
-    }
+    this.syncEnvelopeToSynth();
   }
 }
 

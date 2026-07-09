@@ -226,7 +226,7 @@ graph LR
 | **Small Speakers** | All platforms | -6 dB low @ 180 Hz, +3 dB mid, -2.5 dB high | ON: HPF 180 Hz → light distortion, 20% wet | Platform-adapted (see below) | Phones, laptops, built-in speakers |
 | **Flat** | (opt-in) | 0/0/0 dB reference | OFF | Synth -9 dB, makeup +2 dB, limiter -1 dBTP | Exports, calibration, A/B reference |
 
-**Platform defaults:** first visit opens in **Small Speakers** on all platforms. Users who already saved a profile in localStorage keep that choice (legacy `studio` migrates to `flat`).
+**Platform defaults:** first visit opens in **Small Speakers** on all platforms. EQ and instrument preset choices are session-only (not persisted to localStorage).
 
 **Small Speakers platform adaptation:** the stored mode stays `smallSpeakers`, but effective DSP values differ by layout tier:
 
@@ -257,7 +257,7 @@ In development builds, post-makeup peak levels log to the console when notes pla
 
 ### Instrument Presets
 
-Presets are defined in [`src/audio/synthPresets.ts`](src/audio/synthPresets.ts). Community JSON starting points are vendored from [Tonejs/Presets](https://github.com/Tonejs/Presets) (see [`PRESET_ATTRIBUTION.md`](src/audio/PRESET_ATTRIBUTION.md)).
+Presets are defined in [`src/audio/synthPresets.ts`](src/audio/synthPresets.ts). Community JSON starting points are vendored from [Tonejs/Presets](https://github.com/Tonejs/Presets) (see [`PRESET_ATTRIBUTION.md`](src/audio/PRESET_ATTRIBUTION.md)). On preset switch, vendored presets apply their JSON amplitude envelope (including `attackCurve` where present) and run dry bus FX; **Warm Pad** keeps the app's pad envelope and default chorus/reverb.
 
 | Preset | Synth class | Character |
 |--------|-------------|-----------|
