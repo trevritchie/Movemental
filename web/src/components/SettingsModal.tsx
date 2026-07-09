@@ -42,6 +42,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     setOctaveRange,
     playStyle,
     setPlayStyle,
+    synthPresetId,
+    synthPresets,
   } = useChordContext();
 
   const {
@@ -59,6 +61,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const { startTour, hasCompletedTour } = useTour();
 
   const idPrefix = `${menuId}-`;
+  const selectedInstrumentName =
+    synthPresets.find((preset) => preset.id === synthPresetId)?.name ??
+    'Warm Pad';
 
   const closeModal = useCallback(() => {
     setShowAdsr(false);
@@ -270,7 +275,14 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     }}
                     aria-expanded={showInstrument}
                   >
-                    Instrument
+                    <span className="settings-menu-accordion__row">
+                      <span>Instrument</span>
+                      {!showInstrument && (
+                        <span className="settings-menu-accordion__value">
+                          {selectedInstrumentName}
+                        </span>
+                      )}
+                    </span>
                   </button>
                   {showInstrument && (
                     <div className="settings-menu-accordion__panel">
