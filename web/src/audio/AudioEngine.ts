@@ -1,9 +1,10 @@
 /**
- * PolySynth master bus: filter, modulation, EQ, dynamics, and session capture.
+ * PolySynth master bus: filter, harmonic enhance, modulation, EQ, dynamics, and session capture.
  *
  * Signal chain (synth to speakers):
- * PolySynth -> Filter -> Chorus -> Delay -> Reverb -> EQ3 -> Compressor ->
- * Limiter -> Destination. SessionRecorder taps Limiter -> recordTailGain.
+ * PolySynth -> Filter -> [dry + harmonic enhance] -> Chorus -> Delay -> Reverb ->
+ * EQ3 -> Compressor -> Limiter -> Destination. SessionRecorder taps Limiter ->
+ * recordTailGain.
  */
 import * as Tone from 'tone';
 import {
@@ -12,20 +13,24 @@ import {
 } from './iosMediaChannel';
 import { SessionRecorder } from './SessionRecorder';
 import { SessionMidiRecorder } from './SessionMidiRecorder';
+import {
+  DEFAULT_OUTPUT_PROFILE_ID,
+  getOutputProfile,
+  type OutputProfile,
+  type OutputProfileId,
+} from './outputProfiles';
+import {
+  DEFAULT_SYNTH_PRESET_ID,
+  getMaxPolyphony,
+  getSynthPreset,
+  type SynthClassName,
+  type SynthPreset,
+} from './synthPresets';
 
 /** Final peak limiter ceiling (dB). */
 const LIMITER_CEILING_DB = -1.5;
-/** Master bus compressor. */
-const COMPRESSOR_THRESHOLD_DB = -16;
-const COMPRESSOR_RATIO = 4.0;
 const COMPRESSOR_ATTACK_SEC = 0.03;
 const COMPRESSOR_RELEASE_SEC = 0.08;
-/** EQ3 laptop-speaker translation (dB and crossover Hz). */
-const EQ_LOW_DB = -6;
-const EQ_MID_DB = 2.5;
-const EQ_HIGH_DB = -2.5;
-const EQ_LOW_FREQ_HZ = 180;
-const EQ_HIGH_FREQ_HZ = 2400;
 /** Reverb tail. */
 const REVERB_DECAY_SEC = 3.5;
 const REVERB_PRE_DELAY_SEC = 0.02;
@@ -39,16 +44,19 @@ const CHORUS_DEPTH = 0.7;
 /** Post-synth lowpass warmth. */
 const FILTER_CUTOFF_HZ = 900;
 const FILTER_ROLLOFF_DB = -12;
-/** PolySynth voice stack. */
-const SYNTH_DETUNE_COUNT = 3;
-const SYNTH_DETUNE_SPREAD = 15;
 const SYNTH_VOLUME_DB = -12;
-const SYNTH_MAX_POLYPHONY = 12;
 /** Piano MIDI range (A0 through C8). */
 const MIDI_NOTE_MIN = 21;
 const MIDI_NOTE_MAX = 108;
 /** Micro-delay before attack to avoid release/attack clicks. */
 const ATTACK_SCHEDULE_OFFSET_SEC = 0.015;
+
+const SYNTH_CLASS_MAP = {
+  Synth: Tone.Synth,
+  FMSynth: Tone.FMSynth,
+  AMSynth: Tone.AMSynth,
+  MonoSynth: Tone.MonoSynth,
+} as const;
 
 const devLog = (...args: unknown[]) => {
   if (import.meta.env.DEV) {
@@ -71,7 +79,13 @@ const RECORDING_TAP_MIN_GAIN = 0.001;
 
 export class AudioEngine {
   private synth: Tone.PolySynth | null = null;
+  private currentSynthClass: SynthClassName = 'Synth';
   private filter: Tone.Filter | null = null;
+  private harmonicHpf: Tone.Filter | null = null;
+  private harmonicDistortion: Tone.Distortion | null = null;
+  private harmonicDryGain: Tone.Gain | null = null;
+  private harmonicWetGain: Tone.Gain | null = null;
+  private harmonicMerge: Tone.Gain | null = null;
   private chorus: Tone.Chorus | null = null;
   private delay: Tone.PingPongDelay | null = null;
   private reverb: Tone.Reverb | null = null;
@@ -88,6 +102,9 @@ export class AudioEngine {
   private activeNotes: string[] = [];
   private isPointerDown: boolean = false;
 
+  private outputProfileId: OutputProfileId = DEFAULT_OUTPUT_PROFILE_ID;
+  private currentPreset: SynthPreset = getSynthPreset(DEFAULT_SYNTH_PRESET_ID);
+
   // Cached effect intensity values (handles settings changed before AudioContext initialization)
   private chorusWetVal: number = 0.35;
   private delayWetVal: number = 0.0;
@@ -103,31 +120,86 @@ export class AudioEngine {
     // Initialized on first user gesture via startContext()
   }
 
+  private createSynth(preset: SynthPreset): Tone.PolySynth {
+    const SynthClass = SYNTH_CLASS_MAP[preset.synthClass];
+    const synth = new Tone.PolySynth(
+      SynthClass as unknown as typeof Tone.Synth,
+      {
+        ...preset.voiceOptions,
+        envelope: {
+          attack: this.envelopeAttackVal,
+          decay: this.envelopeDecayVal,
+          sustain: this.envelopeSustainVal,
+          release: this.envelopeReleaseVal,
+        },
+        volume: preset.volumeDb ?? SYNTH_VOLUME_DB,
+      },
+    );
+    synth.maxPolyphony = getMaxPolyphony(preset.synthClass);
+    this.currentSynthClass = preset.synthClass;
+    return synth;
+  }
+
+  private applyHarmonicEnhance(profile: OutputProfile): void {
+    const { harmonicEnhance } = profile;
+    if (this.harmonicHpf) {
+      this.harmonicHpf.frequency.value = harmonicEnhance.hpfHz;
+    }
+    if (this.harmonicDistortion) {
+      this.harmonicDistortion.distortion = harmonicEnhance.distortion;
+    }
+    if (this.harmonicWetGain) {
+      this.harmonicWetGain.gain.value = harmonicEnhance.enabled
+        ? harmonicEnhance.wet
+        : 0;
+    }
+    if (this.harmonicDryGain) {
+      this.harmonicDryGain.gain.value = 1;
+    }
+  }
+
+  private applyEqProfile(profile: OutputProfile): void {
+    if (!this.eq) {
+      return;
+    }
+    const { eq } = profile;
+    this.eq.low.value = eq.low;
+    this.eq.mid.value = eq.mid;
+    this.eq.high.value = eq.high;
+    this.eq.lowFrequency.value = eq.lowFrequency;
+    this.eq.highFrequency.value = eq.highFrequency;
+  }
+
+  private applyCompressorProfile(profile: OutputProfile): void {
+    if (!this.compressor) {
+      return;
+    }
+    this.compressor.threshold.value = profile.compressor.threshold;
+    this.compressor.ratio.value = profile.compressor.ratio;
+  }
+
   private async initSynth() {
-    // Signal chain: PolySynth -> Filter -> Chorus -> Delay -> Reverb -> EQ3 -> Compressor -> Limiter -> Destination
+    const profile = getOutputProfile(this.outputProfileId);
 
     // 8. Limiter - final peak control to guarantee no digital clipping
     this.limiter = new Tone.Limiter(LIMITER_CEILING_DB).toDestination();
 
     // 7. Compressor - glues the polyphonic voices and smooths out transient spikes
     this.compressor = new Tone.Compressor({
-      threshold: COMPRESSOR_THRESHOLD_DB,
-      ratio: COMPRESSOR_RATIO,
+      threshold: profile.compressor.threshold,
+      ratio: profile.compressor.ratio,
       attack: COMPRESSOR_ATTACK_SEC,
       release: COMPRESSOR_RELEASE_SEC,
     });
     this.compressor.connect(this.limiter);
 
-    // 6. EQ3 - Tailored specifically for laptop speaker translation:
-    // - Low shelf cut (-6dB at 180Hz) to prevent speaker rattling and muddy distortion on small diaphragms.
-    // - Presence boost (+2.5dB between 250Hz and 2400Hz) to bring out mid-range warmth and body.
-    // - High shelf cut (-2.5dB) to smooth out synth brightness and tame high-register beeps.
+    // 6. EQ3 - output translation profile (small speakers or studio reference)
     this.eq = new Tone.EQ3({
-      low: EQ_LOW_DB,
-      mid: EQ_MID_DB,
-      high: EQ_HIGH_DB,
-      lowFrequency: EQ_LOW_FREQ_HZ,
-      highFrequency: EQ_HIGH_FREQ_HZ,
+      low: profile.eq.low,
+      mid: profile.eq.mid,
+      high: profile.eq.high,
+      lowFrequency: profile.eq.lowFrequency,
+      highFrequency: profile.eq.highFrequency,
     });
     this.eq.connect(this.compressor);
 
@@ -156,40 +228,50 @@ export class AudioEngine {
       wet: this.chorusWetVal,
     });
     this.chorus.connect(this.delay);
-    this.chorus.start(); // Start the LFO for the chorus effect
+    this.chorus.start();
+
+    // 2b. Harmonic enhance parallel path (missing-fundamental aid for small speakers)
+    this.harmonicMerge = new Tone.Gain(1);
+    this.harmonicMerge.connect(this.chorus);
+
+    this.harmonicDryGain = new Tone.Gain(1);
+    this.harmonicWetGain = new Tone.Gain(0);
+    this.harmonicHpf = new Tone.Filter({
+      type: 'highpass',
+      frequency: profile.harmonicEnhance.hpfHz,
+      rolloff: -12,
+    });
+    this.harmonicDistortion = new Tone.Distortion(
+      profile.harmonicEnhance.distortion,
+    );
+    this.harmonicDryGain.connect(this.harmonicMerge);
+    this.harmonicHpf.connect(this.harmonicDistortion);
+    this.harmonicDistortion.connect(this.harmonicWetGain);
+    this.harmonicWetGain.connect(this.harmonicMerge);
+    this.applyHarmonicEnhance(profile);
 
     // 2. Master Lowpass Filter - analog warmth sweep applied to all voices collectively
     this.filter = new Tone.Filter({
-      frequency: FILTER_CUTOFF_HZ,
+      frequency: this.currentPreset.filterCutoffHz ?? FILTER_CUTOFF_HZ,
       type: 'lowpass',
       rolloff: FILTER_ROLLOFF_DB,
     });
-    this.filter.connect(this.chorus);
+    this.filter.connect(this.harmonicDryGain);
+    this.filter.connect(this.harmonicHpf);
 
-    // 1. Synthesizer - PolySynth wrapping standard Synth (highly optimized, 4x more CPU-efficient)
-    // - Oscillator: fatsawtooth (3 detuned saw waves for rich, wide analog warmth)
-    // - Envelopes: generous release for smooth ambient overlaps
-    this.synth = new Tone.PolySynth(Tone.Synth, {
-      oscillator: {
-        type: 'fatsawtooth',
-        count: SYNTH_DETUNE_COUNT,
-        spread: SYNTH_DETUNE_SPREAD,
-      },
-      envelope: {
-        attack: this.envelopeAttackVal,        // prevents zero-crossing popping clicks
-        decay: this.envelopeDecayVal,
-        sustain: this.envelopeSustainVal,      // sits beautifully in the drone background
-        release: this.envelopeReleaseVal,      // generous release for smooth legato transitions
-      },
-      volume: SYNTH_VOLUME_DB,
-    });
-    this.synth.maxPolyphony = SYNTH_MAX_POLYPHONY;
+    // 1. Synthesizer
+    this.synth = this.createSynth(this.currentPreset);
     this.synth.connect(this.filter);
 
     this.ensureSessionRecorder();
 
     this.isReady = true;
-    devLog('[AudioEngine] Optimized Premium PolySynth (Synth) & Master Filter ready');
+    devLog(
+      '[AudioEngine] PolySynth ready:',
+      this.currentPreset.name,
+      '| Output:',
+      profile.label,
+    );
   }
 
   private ensureSessionRecorder(): void {
@@ -512,6 +594,55 @@ export class AudioEngine {
     if (this.synth) {
       this.synth.volume.value = db;
     }
+  }
+
+  public setOutputProfile(profile: OutputProfile): void {
+    this.outputProfileId = profile.id;
+    this.applyEqProfile(profile);
+    this.applyHarmonicEnhance(profile);
+    this.applyCompressorProfile(profile);
+  }
+
+  public getOutputProfileId(): OutputProfileId {
+    return this.outputProfileId;
+  }
+
+  public applyPreset(preset: SynthPreset): void {
+    this.currentPreset = preset;
+
+    if (!this.synth || !this.filter) {
+      return;
+    }
+
+    this.releaseActiveNotes();
+
+    const needsRecreate = this.currentSynthClass !== preset.synthClass;
+
+    if (needsRecreate) {
+      this.synth.disconnect();
+      this.synth.dispose();
+      this.synth = this.createSynth(preset);
+      this.synth.connect(this.filter);
+    } else {
+      this.synth.set({
+        ...preset.voiceOptions,
+        volume: preset.volumeDb ?? SYNTH_VOLUME_DB,
+      });
+      this.setEnvelope(
+        this.envelopeAttackVal,
+        this.envelopeDecayVal,
+        this.envelopeSustainVal,
+        this.envelopeReleaseVal,
+      );
+    }
+
+    if (preset.filterCutoffHz !== undefined) {
+      this.filter.frequency.value = preset.filterCutoffHz;
+    }
+  }
+
+  public getSynthPresetId(): string {
+    return this.currentPreset.id;
   }
 
   // Real-time control setters

@@ -35,6 +35,8 @@ import { useDeviceTilt } from '../hooks/useDeviceTilt';
 import { TiltReadoutProvider } from './TiltReadoutContext';
 import { useNoTiltChordLocks } from '../hooks/useNoTiltChordLocks';
 import type { ElementalPlaybackResolution } from '../music/tiltVoicingPlayback';
+import type { OutputProfileId } from '../audio/outputProfiles';
+import type { SynthPreset } from '../audio/synthPresets';
 import type { PlayStyle, VoiceLeadingMode } from './types';
 
 export type { PlayStyle, VoiceLeadingMode } from './types';
@@ -60,6 +62,11 @@ interface ChordContextType {
   setDelayWet: (val: number) => void;
   reverbWet: number;
   setReverbWet: (val: number) => void;
+  outputProfileId: OutputProfileId;
+  setOutputProfileId: (id: OutputProfileId) => void;
+  synthPresetId: string;
+  setSynthPresetId: (id: string) => void;
+  synthPresets: SynthPreset[];
   playStyle: PlayStyle;
   setPlayStyle: (mode: PlayStyle) => void;
   tiltModeEnabled: boolean;
@@ -290,6 +297,11 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
       setDelayWet: audio.setDelayWet,
       reverbWet: audio.reverbWet,
       setReverbWet: audio.setReverbWet,
+      outputProfileId: audio.outputProfileId,
+      setOutputProfileId: audio.setOutputProfileId,
+      synthPresetId: audio.synthPresetId,
+      setSynthPresetId: audio.setSynthPresetId,
+      synthPresets: audio.synthPresets,
       playStyle: playback.playStyle,
       setPlayStyle: playback.setPlayStyle,
       tiltModeEnabled: playback.tiltModeEnabled,
@@ -356,6 +368,11 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
       audio.setDelayWet,
       audio.reverbWet,
       audio.setReverbWet,
+      audio.outputProfileId,
+      audio.setOutputProfileId,
+      audio.synthPresetId,
+      audio.setSynthPresetId,
+      audio.synthPresets,
       audio.envelopeAttack,
       audio.setEnvelopeAttack,
       audio.envelopeDecay,

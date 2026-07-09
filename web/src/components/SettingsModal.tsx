@@ -9,6 +9,8 @@ import { AdsrPanelContent } from './settings/AdsrPanelContent';
 import { EffectsPanelContent } from './settings/EffectsPanelContent';
 import { BorrowingMemoryToggle } from './settings/BorrowingMemoryToggle';
 import { VoiceLeadingToggle } from './settings/VoiceLeadingToggle';
+import { OutputProfileToggle } from './settings/OutputProfileToggle';
+import { InstrumentPresetPicker } from './settings/InstrumentPresetPicker';
 import { IosInstallHintPortal } from './IosInstallHintPortal';
 import { isIphone } from '../utils/devicePlatform';
 import { HelpPage } from './help/HelpPage';
@@ -52,6 +54,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
   const [showAdsr, setShowAdsr] = React.useState(false);
   const [showEffects, setShowEffects] = React.useState(false);
+  const [showInstrument, setShowInstrument] = React.useState(false);
   const [helpView, setHelpView] = React.useState<HelpView>('hub');
   const { startTour, hasCompletedTour } = useTour();
 
@@ -276,12 +279,38 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
                 <section className="settings-menu-section">
                   <h3 className="settings-menu-section__title">Sound Design</h3>
+                  <p className="settings-menu-section__hint">
+                    Output profile and instrument timbre for playback and recording.
+                  </p>
+                  <OutputProfileToggle />
+                  <button
+                    type="button"
+                    className={`settings-menu-accordion${showInstrument ? ' active' : ''}`}
+                    onClick={() => {
+                      setShowInstrument(!showInstrument);
+                      if (!showInstrument) {
+                        setShowAdsr(false);
+                        setShowEffects(false);
+                      }
+                    }}
+                    aria-expanded={showInstrument}
+                  >
+                    Instrument
+                  </button>
+                  {showInstrument && (
+                    <div className="settings-menu-accordion__panel">
+                      <InstrumentPresetPicker />
+                    </div>
+                  )}
                   <button
                     type="button"
                     className={`settings-menu-accordion${showAdsr ? ' active' : ''}`}
                     onClick={() => {
                       setShowAdsr(!showAdsr);
-                      if (!showAdsr) setShowEffects(false);
+                      if (!showAdsr) {
+                        setShowEffects(false);
+                        setShowInstrument(false);
+                      }
                     }}
                     aria-expanded={showAdsr}
                   >
@@ -297,7 +326,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     className={`settings-menu-accordion${showEffects ? ' active' : ''}`}
                     onClick={() => {
                       setShowEffects(!showEffects);
-                      if (!showEffects) setShowAdsr(false);
+                      if (!showEffects) {
+                        setShowAdsr(false);
+                        setShowInstrument(false);
+                      }
                     }}
                     aria-expanded={showEffects}
                   >

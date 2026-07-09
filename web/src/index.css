@@ -634,6 +634,46 @@ body.scroll-locked {
   margin: 0;
 }
 
+.output-profile-toggle {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.instrument-preset-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.instrument-preset-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.instrument-preset-btn {
+  min-height: 40px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border-subtle);
+  background: var(--surface-raised);
+  color: var(--text-primary);
+  font-size: 0.78rem;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.instrument-preset-btn.active {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 18%, var(--surface-raised));
+}
+
+.instrument-preset-btn:hover {
+  border-color: var(--accent);
+}
+
 .settings-menu-fields {
   display: flex;
   flex-direction: column;
