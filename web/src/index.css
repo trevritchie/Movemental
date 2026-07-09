@@ -615,6 +615,60 @@ body.scroll-locked {
   margin: 8px 0 0;
 }
 
+.settings-menu-section__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.settings-menu-section__header .settings-menu-section__title {
+  margin-bottom: 0;
+}
+
+.settings-menu-section__reset {
+  flex-shrink: 0;
+  padding: 2px 0;
+  border: none;
+  background: transparent;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  cursor: pointer;
+  opacity: 0.85;
+}
+
+.settings-menu-section__reset:hover {
+  opacity: 1;
+  color: var(--text-primary);
+}
+
+.settings-menu-reset-all {
+  display: flex;
+  justify-content: center;
+  padding-top: 8px;
+  margin-top: 4px;
+}
+
+.settings-menu-reset-all__btn {
+  border: none;
+  background: transparent;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--text-secondary);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.settings-menu-reset-all__btn:hover {
+  color: var(--text-primary);
+}
+
 .settings-menu-section__hint {
   font-size: 0.82rem;
   color: var(--text-secondary);
