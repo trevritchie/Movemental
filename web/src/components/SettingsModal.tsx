@@ -9,6 +9,7 @@ import { AdsrPanelContent } from './settings/AdsrPanelContent';
 import { EffectsPanelContent } from './settings/EffectsPanelContent';
 import { BorrowingMemoryToggle } from './settings/BorrowingMemoryToggle';
 import { VoiceLeadingToggle } from './settings/VoiceLeadingToggle';
+import { ClockLayoutToggle } from './settings/ClockLayoutToggle';
 import { IosInstallHintPortal } from './IosInstallHintPortal';
 import { isIphone } from '../utils/devicePlatform';
 import { HelpPage } from './help/HelpPage';
@@ -199,6 +200,14 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     </button>
                   </section>
                 )}
+
+                <section className="settings-menu-section">
+                  <h3 className="settings-menu-section__title">Clock Face</h3>
+                  <p className="settings-menu-section__hint">
+                    Choose how note positions are arranged on the clock.
+                  </p>
+                  <ClockLayoutToggle />
+                </section>
 
                 <section className="settings-menu-section">
                   <h3 className="settings-menu-section__title">General</h3>

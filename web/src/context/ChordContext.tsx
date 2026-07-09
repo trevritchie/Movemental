@@ -22,6 +22,7 @@ import {
   DEFAULT_TONAL_CENTER_OFFSET,
   DEFAULT_OCTAVE_RANGE,
   DEFAULT_VOICE_LEADING_MODE,
+  DEFAULT_CLOCK_LAYOUT_MODE,
 } from '../music/config';
 import {
   DEFAULT_NO_TILT_POSITION_LEVEL,
@@ -35,9 +36,9 @@ import { useDeviceTilt } from '../hooks/useDeviceTilt';
 import { TiltReadoutProvider } from './TiltReadoutContext';
 import { useNoTiltChordLocks } from '../hooks/useNoTiltChordLocks';
 import type { ElementalPlaybackResolution } from '../music/tiltVoicingPlayback';
-import type { PlayStyle, VoiceLeadingMode } from './types';
+import type { ClockLayoutMode, PlayStyle, VoiceLeadingMode } from './types';
 
-export type { PlayStyle, VoiceLeadingMode } from './types';
+export type { ClockLayoutMode, PlayStyle, VoiceLeadingMode } from './types';
 
 interface ChordContextType {
   tonalCenter: number;
@@ -88,6 +89,8 @@ interface ChordContextType {
   setBorrowingMemory: (mode: 'global' | 'per-chord') => void;
   voiceLeadingMode: VoiceLeadingMode;
   setVoiceLeadingMode: (mode: VoiceLeadingMode) => void;
+  clockLayoutMode: ClockLayoutMode;
+  setClockLayoutMode: (mode: ClockLayoutMode) => void;
   lastTapTilt: TiltSample;
   lastCommittedPlaybackTilt: TiltSample;
   smoothBaseParallel: number;
@@ -126,6 +129,9 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
   const [selectedChord, setSelectedChord] = useState<Chord | null>(null);
   const [voiceLeadingMode, setVoiceLeadingMode] = useState<VoiceLeadingMode>(
     DEFAULT_VOICE_LEADING_MODE
+  );
+  const [clockLayoutMode, setClockLayoutMode] = useState<ClockLayoutMode>(
+    DEFAULT_CLOCK_LAYOUT_MODE
   );
 
   const selectedChordNameRef = useRef<string | null>(null);
@@ -318,6 +324,8 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
       setBorrowingMemory: borrowing.setBorrowingMemory,
       voiceLeadingMode,
       setVoiceLeadingMode,
+      clockLayoutMode,
+      setClockLayoutMode,
       lastTapTilt: playback.lastTapTilt,
       lastCommittedPlaybackTilt: playback.lastCommittedPlaybackTilt,
       smoothBaseParallel: playback.smoothBaseParallel,
@@ -373,6 +381,7 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
       audio.droneRelease,
       audio.setDroneRelease,
       voiceLeadingMode,
+      clockLayoutMode,
       playback.lastTapTilt,
       playback.lastCommittedPlaybackTilt,
       playback.smoothBaseParallel,

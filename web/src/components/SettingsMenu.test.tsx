@@ -8,6 +8,7 @@ const setTonalCenter = vi.fn();
 const setOctaveRange = vi.fn();
 const setBorrowingMemory = vi.fn();
 const setPlayStyle = vi.fn();
+const setClockLayoutMode = vi.fn();
 const toggleFullscreen = vi.fn();
 const dismissIosInstallHint = vi.fn();
 
@@ -41,6 +42,8 @@ vi.mock('../context/ChordContext', () => ({
     setBorrowingMemory,
     playStyle: 'drone',
     setPlayStyle,
+    clockLayoutMode: 'chromatic',
+    setClockLayoutMode,
     tiltModeEnabled: false,
   }),
 }));

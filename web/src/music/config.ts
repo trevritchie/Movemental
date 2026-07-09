@@ -4,7 +4,7 @@
  * surface in ChordContext and playback.
  */
 
-import type { VoiceLeadingMode } from '../context/types';
+import type { ClockLayoutMode, VoiceLeadingMode } from '../context/types';
 
 export const NOTE_NAMES_FLAT = [
   "C", "Db", "D", "Eb", "E", "F", "Gb", "G", "Ab", "A", "Bb", "B"
@@ -25,6 +25,7 @@ export const OCTAVE_RANGE_OPTIONS = Array.from(
 );
 export const DEFAULT_VOICING = "Drop 2 & 4";
 export const DEFAULT_VOICE_LEADING_MODE: VoiceLeadingMode = 'smooth';
+export const DEFAULT_CLOCK_LAYOUT_MODE: ClockLayoutMode = 'chromatic';
 export const DEFAULT_CHORD_DURATION = "2n"; // Half note in Tone.js
 
 export const VOICING_TO_INDICES: Record<string, number[]> = {
