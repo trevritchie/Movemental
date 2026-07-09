@@ -213,18 +213,31 @@ graph LR
     Delay --> Reverb[5. Reverb]
     Reverb --> EQ3[6. EQ3 Output Profile]
     EQ3 --> Compressor[7. Compressor]
-    Compressor --> Limiter[8. Limiter]
+    Compressor --> Makeup[7a. Master Makeup]
+    Makeup --> Limiter[8. Limiter]
     Limiter --> Output[Destination]
 ```
 
 ### Output Profiles (Settings → Sound Design)
 
-| Profile | EQ | Harmonic Enhance | Use case |
-|---------|-----|------------------|----------|
-| **Small Speakers** (default) | -6 dB low @ 180 Hz, +3 dB mid, -2.5 dB high | ON: HPF 180 Hz → light distortion, 20% wet blend | Phones, laptops, built-in speakers |
-| **Studio** | Flat 0/0/0 dB reference | OFF | Headphones, monitors, subwoofers; preferred for session exports |
+| Profile | EQ | Harmonic Enhance | Loudness | Use case |
+|---------|-----|------------------|----------|----------|
+| **Small Speakers** (default) | -6 dB low @ 180 Hz, +3 dB mid, -2.5 dB high | ON: HPF 180 Hz → light distortion, 20% wet | Synth -6 dB, makeup +4 dB, limiter -1 dBTP | Phones, laptops, built-in speakers |
+| **Studio** | Flat 0/0/0 dB reference | OFF | Synth -9 dB, makeup +2 dB, limiter -1 dBTP | Headphones, monitors, subwoofers; preferred for session exports |
 
 The harmonic enhance path uses a parallel high-passed distortion branch to generate upper harmonics in the 150–500 Hz range, helping low bass notes remain perceptible on devices that cannot reproduce sub-bass (missing-fundamental psychoacoustics).
+
+### Loudness and gain staging
+
+Perceived volume on phones is optimized through standard mastering practice, not by disabling the limiter:
+
+1. **Source level** — Synth voices run hotter (-6 dB Small Speakers reference) with per-preset matching so FM/AM timbres are not quieter than pads.
+2. **FX balance** — Small Speakers scales chorus/reverb wet by 0.85 so more energy stays in the direct signal.
+3. **Bus compression** — Lower threshold with soft knee glues polyphonic chords (target 2–4 dB gain reduction on attacks).
+4. **Master makeup gain** — Post-compressor `Tone.Gain` restores level (+4 dB Small Speakers, +2 dB Studio).
+5. **Limiter** — Ceiling at -1.0 dBTP (EBU R128 / streaming-safe) catches peaks without brick-wall distortion.
+
+In development builds, post-makeup peak levels log to the console when notes play.
 
 ### Instrument Presets
 
@@ -268,11 +281,15 @@ FM/AM/MonoSynth presets use max polyphony of 8; `Synth` presets use 12.
 *   **Studio**: Flat reference curve for full-range playback.
 
 ### 7. Compressor
-*   **Small Speakers**: Threshold `-18dB`, ratio `4:1`.
-*   **Studio**: Threshold `-16dB`, ratio `4:1`.
+*   **Small Speakers**: Threshold `-24dB`, ratio `3:1`, knee `6dB`.
+*   **Studio**: Threshold `-20dB`, ratio `2.5:1`, knee `4dB`.
+
+### 7a. Master Makeup Gain
+*   **Small Speakers**: `+4dB` post-compression restore.
+*   **Studio**: `+2dB` post-compression restore.
 
 ### 8. Limiter
-*   **Configuration**: Ceiling `-1.5dB`.
+*   **Configuration**: Ceiling `-1.0dBTP` on both profiles.
 
 ---
 

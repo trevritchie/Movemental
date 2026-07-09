@@ -3,8 +3,8 @@
  *
  * Signal chain (synth to speakers):
  * PolySynth -> Filter -> [dry + harmonic enhance] -> Chorus -> Delay -> Reverb ->
- * EQ3 -> Compressor -> Limiter -> Destination. SessionRecorder taps Limiter ->
- * recordTailGain.
+ * EQ3 -> Compressor -> MasterMakeup -> Limiter -> Destination. SessionRecorder
+ * taps Limiter -> recordTailGain.
  */
 import * as Tone from 'tone';
 import {
@@ -15,6 +15,8 @@ import { SessionRecorder } from './SessionRecorder';
 import { SessionMidiRecorder } from './SessionMidiRecorder';
 import {
   DEFAULT_OUTPUT_PROFILE_ID,
+  dbToGain,
+  getEffectiveSynthVolumeDb,
   getOutputProfile,
   type OutputProfile,
   type OutputProfileId,
@@ -27,10 +29,6 @@ import {
   type SynthPreset,
 } from './synthPresets';
 
-/** Final peak limiter ceiling (dB). */
-const LIMITER_CEILING_DB = -1.5;
-const COMPRESSOR_ATTACK_SEC = 0.03;
-const COMPRESSOR_RELEASE_SEC = 0.08;
 /** Reverb tail. */
 const REVERB_DECAY_SEC = 3.5;
 const REVERB_PRE_DELAY_SEC = 0.02;
@@ -44,7 +42,6 @@ const CHORUS_DEPTH = 0.7;
 /** Post-synth lowpass warmth. */
 const FILTER_CUTOFF_HZ = 900;
 const FILTER_ROLLOFF_DB = -12;
-const SYNTH_VOLUME_DB = -12;
 /** Piano MIDI range (A0 through C8). */
 const MIDI_NOTE_MIN = 21;
 const MIDI_NOTE_MAX = 108;
@@ -91,6 +88,8 @@ export class AudioEngine {
   private reverb: Tone.Reverb | null = null;
   private eq: Tone.EQ3 | null = null;
   private compressor: Tone.Compressor | null = null;
+  private masterMakeup: Tone.Gain | null = null;
+  private peakMeter: Tone.Meter | null = null;
   private limiter: Tone.Limiter | null = null;
   /** Recorder-only tap; faded before stop so live speakers are unaffected. */
   private recordTailGain: Tone.Gain | null = null;
@@ -121,6 +120,7 @@ export class AudioEngine {
   }
 
   private createSynth(preset: SynthPreset): Tone.PolySynth {
+    const profile = getOutputProfile(this.outputProfileId);
     const SynthClass = SYNTH_CLASS_MAP[preset.synthClass];
     const synth = new Tone.PolySynth(
       SynthClass as unknown as typeof Tone.Synth,
@@ -132,7 +132,7 @@ export class AudioEngine {
           sustain: this.envelopeSustainVal,
           release: this.envelopeReleaseVal,
         },
-        volume: preset.volumeDb ?? SYNTH_VOLUME_DB,
+        volume: getEffectiveSynthVolumeDb(preset, profile),
       },
     );
     synth.maxPolyphony = getMaxPolyphony(preset.synthClass);
@@ -174,24 +174,78 @@ export class AudioEngine {
     if (!this.compressor) {
       return;
     }
-    this.compressor.threshold.value = profile.compressor.threshold;
-    this.compressor.ratio.value = profile.compressor.ratio;
+    const { compressor } = profile.loudness;
+    this.compressor.threshold.value = compressor.threshold;
+    this.compressor.ratio.value = compressor.ratio;
+    this.compressor.knee.value = compressor.knee;
+    this.compressor.attack.value = compressor.attack;
+    this.compressor.release.value = compressor.release;
+  }
+
+  private applyLoudnessProfile(profile: OutputProfile): void {
+    if (this.masterMakeup) {
+      this.masterMakeup.gain.value = dbToGain(profile.loudness.masterMakeupDb);
+    }
+    if (this.limiter) {
+      this.limiter.threshold.value = profile.loudness.limiterCeilingDb;
+    }
+    this.applyCompressorProfile(profile);
+    this.applySynthVolumeForProfile();
+  }
+
+  private applySynthVolumeForProfile(): void {
+    if (!this.synth) {
+      return;
+    }
+    const profile = getOutputProfile(this.outputProfileId);
+    this.synth.volume.value = getEffectiveSynthVolumeDb(
+      this.currentPreset,
+      profile,
+    );
+  }
+
+  private logPeakLevelIfDev(): void {
+    if (!import.meta.env.DEV || !this.peakMeter) {
+      return;
+    }
+    window.setTimeout(() => {
+      const reading = this.peakMeter?.getValue();
+      const peakDb = Array.isArray(reading)
+        ? Math.max(...reading)
+        : (reading ?? -Infinity);
+      if (Number.isFinite(peakDb)) {
+        devLog('[AudioEngine] Post-makeup peak (dB):', peakDb.toFixed(1));
+      }
+    }, 80);
   }
 
   private async initSynth() {
     const profile = getOutputProfile(this.outputProfileId);
 
-    // 8. Limiter - final peak control to guarantee no digital clipping
-    this.limiter = new Tone.Limiter(LIMITER_CEILING_DB).toDestination();
+    // 8. Limiter - final peak control (-1.0 dBTP streaming-safe ceiling)
+    this.limiter = new Tone.Limiter(profile.loudness.limiterCeilingDb).toDestination();
 
-    // 7. Compressor - glues the polyphonic voices and smooths out transient spikes
+    // 7b. Dev peak meter tap (post-makeup, pre-limiter)
+    if (import.meta.env.DEV) {
+      this.peakMeter = new Tone.Meter({ smoothing: 0.3 });
+    }
+
+    // 7a. Master makeup gain - restores level after bus compression
+    this.masterMakeup = new Tone.Gain(dbToGain(profile.loudness.masterMakeupDb));
+    this.masterMakeup.connect(this.limiter);
+    if (this.peakMeter) {
+      this.masterMakeup.connect(this.peakMeter);
+    }
+
+    // 7. Compressor - glues voices and raises average level before makeup/limiter
     this.compressor = new Tone.Compressor({
-      threshold: profile.compressor.threshold,
-      ratio: profile.compressor.ratio,
-      attack: COMPRESSOR_ATTACK_SEC,
-      release: COMPRESSOR_RELEASE_SEC,
+      threshold: profile.loudness.compressor.threshold,
+      ratio: profile.loudness.compressor.ratio,
+      knee: profile.loudness.compressor.knee,
+      attack: profile.loudness.compressor.attack,
+      release: profile.loudness.compressor.release,
     });
-    this.compressor.connect(this.limiter);
+    this.compressor.connect(this.masterMakeup);
 
     // 6. EQ3 - output translation profile (small speakers or studio reference)
     this.eq = new Tone.EQ3({
@@ -440,6 +494,7 @@ export class AudioEngine {
     // Add a microscopic 15ms delay to the attack to prevent popping/clicks against the release
     const attackTime = now + ATTACK_SCHEDULE_OFFSET_SEC;
     this.synth.triggerAttackRelease(noteNames, duration, attackTime);
+    this.logPeakLevelIfDev();
 
     if (this.sessionMidiRecorder.isRecording()) {
       const durationSec = Tone.Time(duration).toSeconds();
@@ -501,6 +556,7 @@ export class AudioEngine {
       devLog('[AudioEngine] Retriggering:', noteNames);
       const attackTime = now + ATTACK_SCHEDULE_OFFSET_SEC;
       this.synth.triggerAttack(noteNames, attackTime);
+      this.logPeakLevelIfDev();
       if (this.sessionMidiRecorder.isRecording()) {
         this.sessionMidiRecorder.logNoteOns(clamped, undefined, attackTime);
       }
@@ -533,6 +589,7 @@ export class AudioEngine {
       // Schedule immediately at `now`. Removing the arbitrary delay prevents
       // chronological inversions from rapid subsequent clicks.
       this.synth.triggerAttack(notesToAttack, now);
+      this.logPeakLevelIfDev();
       if (this.sessionMidiRecorder.isRecording()) {
         this.sessionMidiRecorder.logNoteOns(
           this.noteNamesToMidi(notesToAttack),
@@ -600,7 +657,7 @@ export class AudioEngine {
     this.outputProfileId = profile.id;
     this.applyEqProfile(profile);
     this.applyHarmonicEnhance(profile);
-    this.applyCompressorProfile(profile);
+    this.applyLoudnessProfile(profile);
   }
 
   public getOutputProfileId(): OutputProfileId {
@@ -626,7 +683,10 @@ export class AudioEngine {
     } else {
       this.synth.set({
         ...preset.voiceOptions,
-        volume: preset.volumeDb ?? SYNTH_VOLUME_DB,
+        volume: getEffectiveSynthVolumeDb(
+          preset,
+          getOutputProfile(this.outputProfileId),
+        ),
       });
       this.setEnvelope(
         this.envelopeAttackVal,

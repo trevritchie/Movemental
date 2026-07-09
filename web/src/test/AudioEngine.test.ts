@@ -1,7 +1,10 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import * as Tone from 'tone';
 import { audioEngine } from '../audio/AudioEngine';
-import { getOutputProfile } from '../audio/outputProfiles';
+import {
+  dbToGain,
+  getOutputProfile,
+} from '../audio/outputProfiles';
 import { getSynthPreset } from '../audio/synthPresets';
 
 describe('AudioEngine.playNotes', () => {
@@ -35,6 +38,8 @@ describe('AudioEngine output profiles', () => {
       eq: Tone.EQ3;
       harmonicWetGain: Tone.Gain;
       compressor: Tone.Compressor;
+      masterMakeup: Tone.Gain;
+      limiter: Tone.Limiter;
     };
 
     audioEngine.setOutputProfile(getOutputProfile('studio'));
@@ -43,19 +48,25 @@ describe('AudioEngine output profiles', () => {
     expect(engine.eq.low.value).toBe(0);
     expect(engine.eq.mid.value).toBe(0);
     expect(engine.harmonicWetGain.gain.value).toBe(0);
-    expect(engine.compressor.threshold.value).toBe(-16);
+    expect(engine.compressor.threshold.value).toBe(-20);
+    expect(engine.masterMakeup.gain.value).toBeCloseTo(dbToGain(2), 4);
+    expect(engine.limiter.threshold.value).toBe(-1);
   });
 
   it('enables harmonic enhance in small speakers profile', () => {
     const engine = audioEngine as unknown as {
       harmonicWetGain: Tone.Gain;
       eq: Tone.EQ3;
+      masterMakeup: Tone.Gain;
+      limiter: Tone.Limiter;
     };
 
     audioEngine.setOutputProfile(getOutputProfile('smallSpeakers'));
 
     expect(engine.eq.mid.value).toBe(3);
     expect(engine.harmonicWetGain.gain.value).toBe(0.2);
+    expect(engine.masterMakeup.gain.value).toBeCloseTo(dbToGain(4), 4);
+    expect(engine.limiter.threshold.value).toBe(-1);
   });
 });
 

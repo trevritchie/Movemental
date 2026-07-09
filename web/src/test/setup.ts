@@ -156,13 +156,22 @@ vi.mock('tone', () => {
   class Compressor {
     threshold = { value: -16 };
     ratio = { value: 4 };
+    knee = { value: 4 };
+    attack = { value: 0.03 };
+    release = { value: 0.08 };
     connect = vi.fn().mockReturnThis();
   }
 
   class Limiter {
+    threshold = { value: -1 };
     connect = vi.fn().mockReturnThis();
     toDestination = vi.fn().mockReturnThis();
     constructor() {}
+  }
+
+  class Meter {
+    getValue = vi.fn(() => -12);
+    connect = vi.fn().mockReturnThis();
   }
 
   return {
@@ -184,5 +193,6 @@ vi.mock('tone', () => {
     EQ3,
     Compressor,
     Limiter,
+    Meter,
   };
 });

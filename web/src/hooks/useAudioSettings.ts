@@ -1,7 +1,7 @@
 /**
  * Effect wet/dry, envelope, output profile, and instrument preset settings synced to AudioEngine.
  */
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { audioEngine } from '../audio/AudioEngine';
 import {
   readOutputProfileId,
@@ -11,6 +11,7 @@ import {
 } from '../audio/audioSettingsStorage';
 import {
   getOutputProfile,
+  scaleFxWet,
   type OutputProfileId,
 } from '../audio/outputProfiles';
 import {
@@ -42,11 +43,12 @@ function applyPresetDefaultsToState(preset: SynthPreset) {
 }
 
 export function useAudioSettings(playStyle: PlayStyle) {
+  const initialProfileId = readOutputProfileId();
   const initialPreset = getSynthPreset(readSynthPresetId());
   const initialDefaults = applyPresetDefaultsToState(initialPreset);
 
   const [outputProfileId, setOutputProfileIdState] = useState<OutputProfileId>(
-    () => readOutputProfileId(),
+    () => initialProfileId,
   );
   const [synthPresetId, setSynthPresetIdState] = useState<string>(
     () => readSynthPresetId(),
@@ -76,6 +78,16 @@ export function useAudioSettings(playStyle: PlayStyle) {
 
   const didSyncOnMount = useRef(false);
 
+  const syncScaledFxToEngine = useCallback(
+    (profileId: OutputProfileId, chorus: number, delay: number, reverb: number) => {
+      const profile = getOutputProfile(profileId);
+      audioEngine.setChorusWet(scaleFxWet(chorus, profile));
+      audioEngine.setDelayWet(scaleFxWet(delay, profile));
+      audioEngine.setReverbWet(scaleFxWet(reverb, profile));
+    },
+    [],
+  );
+
   useEffect(() => {
     if (didSyncOnMount.current) {
       return;
@@ -83,15 +95,14 @@ export function useAudioSettings(playStyle: PlayStyle) {
     didSyncOnMount.current = true;
     audioEngine.setOutputProfile(getOutputProfile(outputProfileId));
     audioEngine.applyPreset(getSynthPreset(synthPresetId));
-    audioEngine.setChorusWet(chorusWet);
-    audioEngine.setDelayWet(delayWet);
-    audioEngine.setReverbWet(reverbWet);
+    syncScaledFxToEngine(outputProfileId, chorusWet, delayWet, reverbWet);
   }, [
     outputProfileId,
     synthPresetId,
     chorusWet,
     delayWet,
     reverbWet,
+    syncScaledFxToEngine,
   ]);
 
   useEffect(() => {
@@ -122,6 +133,7 @@ export function useAudioSettings(playStyle: PlayStyle) {
     setOutputProfileIdState(id);
     writeOutputProfileId(id);
     audioEngine.setOutputProfile(getOutputProfile(id));
+    syncScaledFxToEngine(id, chorusWet, delayWet, reverbWet);
   };
 
   const setSynthPresetId = (id: string) => {
@@ -135,9 +147,12 @@ export function useAudioSettings(playStyle: PlayStyle) {
     setChorusWetState(defaults.fx.chorusWet);
     setDelayWetState(defaults.fx.delayWet);
     setReverbWetState(defaults.fx.reverbWet);
-    audioEngine.setChorusWet(defaults.fx.chorusWet);
-    audioEngine.setDelayWet(defaults.fx.delayWet);
-    audioEngine.setReverbWet(defaults.fx.reverbWet);
+    syncScaledFxToEngine(
+      outputProfileId,
+      defaults.fx.chorusWet,
+      defaults.fx.delayWet,
+      defaults.fx.reverbWet,
+    );
 
     setEnvelopeAttack(defaults.clickHold.attack);
     setEnvelopeDecay(defaults.clickHold.decay);
@@ -151,17 +166,17 @@ export function useAudioSettings(playStyle: PlayStyle) {
 
   const setChorusWet = (val: number) => {
     setChorusWetState(val);
-    audioEngine.setChorusWet(val);
+    syncScaledFxToEngine(outputProfileId, val, delayWet, reverbWet);
   };
 
   const setDelayWet = (val: number) => {
     setDelayWetState(val);
-    audioEngine.setDelayWet(val);
+    syncScaledFxToEngine(outputProfileId, chorusWet, val, reverbWet);
   };
 
   const setReverbWet = (val: number) => {
     setReverbWetState(val);
-    audioEngine.setReverbWet(val);
+    syncScaledFxToEngine(outputProfileId, chorusWet, delayWet, val);
   };
 
   return {

@@ -68,7 +68,7 @@ export const SYNTH_PRESETS: SynthPreset[] = [
         spread: 15,
       },
     },
-    volumeDb: -12,
+    volumeDb: -6,
     filterCutoffHz: 900,
     fxDefaults: PAD_FX,
     envelopeDefaults: {
@@ -81,7 +81,7 @@ export const SYNTH_PRESETS: SynthPreset[] = [
     name: 'Super Saw',
     synthClass: 'Synth',
     voiceOptions: superSawJson as Record<string, unknown>,
-    volumeDb: -12,
+    volumeDb: -6,
     filterCutoffHz: 1200,
     fxDefaults: { chorusWet: 0.4, delayWet: 0.05, reverbWet: 0.25 },
     envelopeDefaults: {
@@ -94,7 +94,7 @@ export const SYNTH_PRESETS: SynthPreset[] = [
     name: 'Electric Cello',
     synthClass: 'FMSynth',
     voiceOptions: electricCelloJson as Record<string, unknown>,
-    volumeDb: -10,
+    volumeDb: -4,
     filterCutoffHz: 1000,
     fxDefaults: { chorusWet: 0.3, delayWet: 0.0, reverbWet: 0.4 },
     envelopeDefaults: {
@@ -107,7 +107,7 @@ export const SYNTH_PRESETS: SynthPreset[] = [
     name: 'Kalimba',
     synthClass: 'FMSynth',
     voiceOptions: kalimbaJson as Record<string, unknown>,
-    volumeDb: -8,
+    volumeDb: -3,
     filterCutoffHz: 1400,
     fxDefaults: { chorusWet: 0.2, delayWet: 0.1, reverbWet: 0.35 },
     envelopeDefaults: {
@@ -120,7 +120,7 @@ export const SYNTH_PRESETS: SynthPreset[] = [
     name: 'Harmonics',
     synthClass: 'AMSynth',
     voiceOptions: harmonicsJson as Record<string, unknown>,
-    volumeDb: -10,
+    volumeDb: -4,
     filterCutoffHz: 1100,
     fxDefaults: { chorusWet: 0.35, delayWet: 0.0, reverbWet: 0.35 },
     envelopeDefaults: {
@@ -133,7 +133,7 @@ export const SYNTH_PRESETS: SynthPreset[] = [
     name: 'Pianoetta',
     synthClass: 'MonoSynth',
     voiceOptions: pianoettaJson as Record<string, unknown>,
-    volumeDb: -10,
+    volumeDb: -5,
     filterCutoffHz: 2000,
     fxDefaults: { chorusWet: 0.15, delayWet: 0.0, reverbWet: 0.25 },
     envelopeDefaults: {
