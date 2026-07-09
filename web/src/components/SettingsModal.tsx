@@ -9,6 +9,8 @@ import { AdsrPanelContent } from './settings/AdsrPanelContent';
 import { EffectsPanelContent } from './settings/EffectsPanelContent';
 import { BorrowingMemoryToggle } from './settings/BorrowingMemoryToggle';
 import { VoiceLeadingToggle } from './settings/VoiceLeadingToggle';
+import { EqProfileToggle } from './settings/EqProfileToggle';
+import { InstrumentPresetPicker } from './settings/InstrumentPresetPicker';
 import { IosInstallHintPortal } from './IosInstallHintPortal';
 import { isIphone } from '../utils/devicePlatform';
 import { HelpPage } from './help/HelpPage';
@@ -40,6 +42,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     setOctaveRange,
     playStyle,
     setPlayStyle,
+    synthPresetId,
+    synthPresets,
   } = useChordContext();
 
   const {
@@ -52,10 +56,14 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
   const [showAdsr, setShowAdsr] = React.useState(false);
   const [showEffects, setShowEffects] = React.useState(false);
+  const [showInstrument, setShowInstrument] = React.useState(false);
   const [helpView, setHelpView] = React.useState<HelpView>('hub');
   const { startTour, hasCompletedTour } = useTour();
 
   const idPrefix = `${menuId}-`;
+  const selectedInstrumentName =
+    synthPresets?.find((preset) => preset.id === synthPresetId)?.name ??
+    'Warm Pad';
 
   const closeModal = useCallback(() => {
     setShowAdsr(false);
@@ -146,7 +154,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         <div
           ref={modalRef}
           id={menuId}
-          className="settings-modal glass-panel"
+          className="settings-modal"
           role="dialog"
           aria-modal="true"
           aria-label={helpTitle}
@@ -253,6 +261,75 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 </section>
 
                 <section className="settings-menu-section">
+                  <h3 className="settings-menu-section__title">Sound Design</h3>
+                  <EqProfileToggle />
+                  <button
+                    type="button"
+                    className={`settings-menu-accordion${showInstrument ? ' active' : ''}`}
+                    onClick={() => {
+                      setShowInstrument(!showInstrument);
+                      if (!showInstrument) {
+                        setShowAdsr(false);
+                        setShowEffects(false);
+                      }
+                    }}
+                    aria-expanded={showInstrument}
+                  >
+                    <span className="settings-menu-accordion__row">
+                      <span>Instrument</span>
+                      {!showInstrument && (
+                        <span className="settings-menu-accordion__value">
+                          {selectedInstrumentName}
+                        </span>
+                      )}
+                    </span>
+                  </button>
+                  {showInstrument && (
+                    <div className="settings-menu-accordion__panel">
+                      <InstrumentPresetPicker />
+                    </div>
+                  )}
+                  <button
+                    type="button"
+                    className={`settings-menu-accordion${showAdsr ? ' active' : ''}`}
+                    onClick={() => {
+                      setShowAdsr(!showAdsr);
+                      if (!showAdsr) {
+                        setShowEffects(false);
+                        setShowInstrument(false);
+                      }
+                    }}
+                    aria-expanded={showAdsr}
+                  >
+                    Envelope (ADSR)
+                  </button>
+                  {showAdsr && (
+                    <div className="settings-menu-accordion__panel">
+                      <AdsrPanelContent idPrefix={idPrefix} />
+                    </div>
+                  )}
+                  <button
+                    type="button"
+                    className={`settings-menu-accordion${showEffects ? ' active' : ''}`}
+                    onClick={() => {
+                      setShowEffects(!showEffects);
+                      if (!showEffects) {
+                        setShowAdsr(false);
+                        setShowInstrument(false);
+                      }
+                    }}
+                    aria-expanded={showEffects}
+                  >
+                    Synth Effects
+                  </button>
+                  {showEffects && (
+                    <div className="settings-menu-accordion__panel">
+                      <EffectsPanelContent idPrefix={idPrefix} />
+                    </div>
+                  )}
+                </section>
+
+                <section className="settings-menu-section">
                   <h3 className="settings-menu-section__title">
                     Voice Leading
                   </h3>
@@ -272,42 +349,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     shared globally.
                   </p>
                   <BorrowingMemoryToggle />
-                </section>
-
-                <section className="settings-menu-section">
-                  <h3 className="settings-menu-section__title">Sound Design</h3>
-                  <button
-                    type="button"
-                    className={`settings-menu-accordion${showAdsr ? ' active' : ''}`}
-                    onClick={() => {
-                      setShowAdsr(!showAdsr);
-                      if (!showAdsr) setShowEffects(false);
-                    }}
-                    aria-expanded={showAdsr}
-                  >
-                    Envelope (ADSR)
-                  </button>
-                  {showAdsr && (
-                    <div className="settings-menu-accordion__panel">
-                      <AdsrPanelContent idPrefix={idPrefix} />
-                    </div>
-                  )}
-                  <button
-                    type="button"
-                    className={`settings-menu-accordion${showEffects ? ' active' : ''}`}
-                    onClick={() => {
-                      setShowEffects(!showEffects);
-                      if (!showEffects) setShowAdsr(false);
-                    }}
-                    aria-expanded={showEffects}
-                  >
-                    Synth Effects
-                  </button>
-                  {showEffects && (
-                    <div className="settings-menu-accordion__panel">
-                      <EffectsPanelContent idPrefix={idPrefix} />
-                    </div>
-                  )}
                 </section>
               </>
             )}

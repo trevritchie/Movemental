@@ -537,6 +537,8 @@ body.scroll-locked {
   overflow: hidden;
   animation: settingsModalIn 0.22s cubic-bezier(0.4, 0, 0.2, 1) forwards;
   box-shadow: 0 24px 48px rgba(0, 0, 0, 0.45);
+  background: #18181b;
+  border: 1px solid var(--panel-border);
 }
 
 @keyframes settingsModalIn {
@@ -604,6 +606,15 @@ body.scroll-locked {
   margin-bottom: 10px;
 }
 
+.settings-menu-subsection__title {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  margin: 8px 0 0;
+}
+
 .settings-menu-section__hint {
   font-size: 0.82rem;
   color: var(--text-secondary);
@@ -632,6 +643,79 @@ body.scroll-locked {
   color: var(--text-secondary);
   line-height: 1.45;
   margin: 0;
+}
+
+.eq-profile-toggle {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.instrument-preset-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.instrument-preset-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.instrument-preset-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 44px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(0, 0, 0, 0.35);
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.instrument-preset-btn__label {
+  text-align: left;
+}
+
+.instrument-preset-btn__check {
+  flex-shrink: 0;
+  color: #c084fc;
+}
+
+.instrument-preset-btn.active {
+  border-color: rgba(155, 114, 248, 0.55);
+  background: rgba(155, 114, 248, 0.14);
+  color: #f8fafc;
+  box-shadow:
+    0 0 0 1px rgba(155, 114, 248, 0.2),
+    0 2px 8px rgba(0, 0, 0, 0.25);
+}
+
+.instrument-preset-btn:hover {
+  border-color: rgba(155, 114, 248, 0.35);
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.instrument-preset-btn.active:hover {
+  border-color: rgba(155, 114, 248, 0.65);
+  color: #ffffff;
+}
+
+.instrument-preset-btn:focus-visible {
+  outline: 2px solid rgba(155, 114, 248, 0.55);
+  outline-offset: 2px;
 }
 
 .settings-menu-fields {
@@ -670,6 +754,20 @@ body.scroll-locked {
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   min-height: 44px;
+}
+
+.settings-menu-accordion__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+}
+
+.settings-menu-accordion__value {
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: #c084fc;
 }
 
 .settings-menu-accordion.active {
