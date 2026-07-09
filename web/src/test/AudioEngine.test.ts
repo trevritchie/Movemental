@@ -3,6 +3,7 @@ import * as Tone from 'tone';
 import { audioEngine } from '../audio/AudioEngine';
 import {
   dbToGain,
+  getAdaptedOutputProfile,
   getOutputProfile,
 } from '../audio/outputProfiles';
 import { getSynthPreset } from '../audio/synthPresets';
@@ -30,7 +31,7 @@ describe('AudioEngine output profiles', () => {
   beforeEach(async () => {
     await audioEngine.startContext();
     audioEngine.releaseActiveNotes();
-    audioEngine.setOutputProfile(getOutputProfile('smallSpeakers'));
+    audioEngine.setOutputProfile(getAdaptedOutputProfile('smallSpeakers', 'desktop'));
   });
 
   it('switches to studio profile with harmonic enhance bypassed', () => {
@@ -53,19 +54,39 @@ describe('AudioEngine output profiles', () => {
     expect(engine.limiter.threshold.value).toBe(-1);
   });
 
-  it('enables harmonic enhance in small speakers profile', () => {
+  it('applies desktop-safe small speakers adaptation', () => {
     const engine = audioEngine as unknown as {
       harmonicWetGain: Tone.Gain;
       eq: Tone.EQ3;
       masterMakeup: Tone.Gain;
       limiter: Tone.Limiter;
+      compressor: Tone.Compressor;
     };
 
-    audioEngine.setOutputProfile(getOutputProfile('smallSpeakers'));
+    audioEngine.setOutputProfile(getAdaptedOutputProfile('smallSpeakers', 'desktop'));
+
+    expect(engine.eq.mid.value).toBe(2);
+    expect(engine.harmonicWetGain.gain.value).toBe(0.08);
+    expect(engine.masterMakeup.gain.value).toBeCloseTo(dbToGain(2), 4);
+    expect(engine.compressor.threshold.value).toBe(-22);
+    expect(engine.limiter.threshold.value).toBe(-1);
+  });
+
+  it('applies louder mobile small speakers adaptation', () => {
+    const engine = audioEngine as unknown as {
+      harmonicWetGain: Tone.Gain;
+      eq: Tone.EQ3;
+      masterMakeup: Tone.Gain;
+      limiter: Tone.Limiter;
+      compressor: Tone.Compressor;
+    };
+
+    audioEngine.setOutputProfile(getAdaptedOutputProfile('smallSpeakers', 'phone'));
 
     expect(engine.eq.mid.value).toBe(3);
     expect(engine.harmonicWetGain.gain.value).toBe(0.2);
-    expect(engine.masterMakeup.gain.value).toBeCloseTo(dbToGain(4), 4);
+    expect(engine.masterMakeup.gain.value).toBeCloseTo(dbToGain(6), 4);
+    expect(engine.compressor.threshold.value).toBe(-26);
     expect(engine.limiter.threshold.value).toBe(-1);
   });
 });

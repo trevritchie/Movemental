@@ -10,7 +10,7 @@ import {
   writeSynthPresetId,
 } from '../audio/audioSettingsStorage';
 import {
-  getOutputProfile,
+  getAdaptedOutputProfile,
   scaleFxWet,
   type OutputProfileId,
 } from '../audio/outputProfiles';
@@ -19,6 +19,8 @@ import {
   SYNTH_PRESETS,
   type SynthPreset,
 } from '../audio/synthPresets';
+import { resolveLayoutTier } from '../layout/breakpoints';
+import { useLayoutTier } from './useLayoutTier';
 import type { PlayStyle } from '../context/types';
 
 function applyPresetDefaultsToState(preset: SynthPreset) {
@@ -43,7 +45,8 @@ function applyPresetDefaultsToState(preset: SynthPreset) {
 }
 
 export function useAudioSettings(playStyle: PlayStyle) {
-  const initialProfileId = readOutputProfileId();
+  const layoutTier = useLayoutTier();
+  const initialProfileId = readOutputProfileId(resolveLayoutTier());
   const initialPreset = getSynthPreset(readSynthPresetId());
   const initialDefaults = applyPresetDefaultsToState(initialPreset);
 
@@ -76,11 +79,17 @@ export function useAudioSettings(playStyle: PlayStyle) {
   const [droneSustain, setDroneSustain] = useState(initialDefaults.drone.sustain);
   const [droneRelease, setDroneRelease] = useState(initialDefaults.drone.release);
 
-  const didSyncOnMount = useRef(false);
+  const didSyncPresetOnMount = useRef(false);
 
   const syncScaledFxToEngine = useCallback(
-    (profileId: OutputProfileId, chorus: number, delay: number, reverb: number) => {
-      const profile = getOutputProfile(profileId);
+    (
+      profileId: OutputProfileId,
+      tier: typeof layoutTier,
+      chorus: number,
+      delay: number,
+      reverb: number,
+    ) => {
+      const profile = getAdaptedOutputProfile(profileId, tier);
       audioEngine.setChorusWet(scaleFxWet(chorus, profile));
       audioEngine.setDelayWet(scaleFxWet(delay, profile));
       audioEngine.setReverbWet(scaleFxWet(reverb, profile));
@@ -89,15 +98,23 @@ export function useAudioSettings(playStyle: PlayStyle) {
   );
 
   useEffect(() => {
-    if (didSyncOnMount.current) {
-      return;
+    if (!didSyncPresetOnMount.current) {
+      didSyncPresetOnMount.current = true;
+      audioEngine.applyPreset(getSynthPreset(synthPresetId));
     }
-    didSyncOnMount.current = true;
-    audioEngine.setOutputProfile(getOutputProfile(outputProfileId));
-    audioEngine.applyPreset(getSynthPreset(synthPresetId));
-    syncScaledFxToEngine(outputProfileId, chorusWet, delayWet, reverbWet);
+    audioEngine.setOutputProfile(
+      getAdaptedOutputProfile(outputProfileId, layoutTier),
+    );
+    syncScaledFxToEngine(
+      outputProfileId,
+      layoutTier,
+      chorusWet,
+      delayWet,
+      reverbWet,
+    );
   }, [
     outputProfileId,
+    layoutTier,
     synthPresetId,
     chorusWet,
     delayWet,
@@ -132,8 +149,6 @@ export function useAudioSettings(playStyle: PlayStyle) {
   const setOutputProfileId = (id: OutputProfileId) => {
     setOutputProfileIdState(id);
     writeOutputProfileId(id);
-    audioEngine.setOutputProfile(getOutputProfile(id));
-    syncScaledFxToEngine(id, chorusWet, delayWet, reverbWet);
   };
 
   const setSynthPresetId = (id: string) => {
@@ -149,6 +164,7 @@ export function useAudioSettings(playStyle: PlayStyle) {
     setReverbWetState(defaults.fx.reverbWet);
     syncScaledFxToEngine(
       outputProfileId,
+      layoutTier,
       defaults.fx.chorusWet,
       defaults.fx.delayWet,
       defaults.fx.reverbWet,
@@ -166,17 +182,17 @@ export function useAudioSettings(playStyle: PlayStyle) {
 
   const setChorusWet = (val: number) => {
     setChorusWetState(val);
-    syncScaledFxToEngine(outputProfileId, val, delayWet, reverbWet);
+    syncScaledFxToEngine(outputProfileId, layoutTier, val, delayWet, reverbWet);
   };
 
   const setDelayWet = (val: number) => {
     setDelayWetState(val);
-    syncScaledFxToEngine(outputProfileId, chorusWet, val, reverbWet);
+    syncScaledFxToEngine(outputProfileId, layoutTier, chorusWet, val, reverbWet);
   };
 
   const setReverbWet = (val: number) => {
     setReverbWetState(val);
-    syncScaledFxToEngine(outputProfileId, chorusWet, delayWet, val);
+    syncScaledFxToEngine(outputProfileId, layoutTier, chorusWet, delayWet, val);
   };
 
   return {

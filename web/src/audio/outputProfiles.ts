@@ -1,6 +1,7 @@
 /**
  * Output translation profiles for small-device vs studio reference playback.
  */
+import { resolveLayoutTier, type LayoutTier } from '../layout/breakpoints';
 import type { SynthPreset } from './synthPresets';
 
 export type OutputProfileId = 'smallSpeakers' | 'studio';
@@ -99,13 +100,68 @@ export const OUTPUT_PROFILES: Record<OutputProfileId, OutputProfile> = {
   },
 };
 
+/** @deprecated Use resolveDefaultOutputProfileId() for tier-aware defaults. */
 export const DEFAULT_OUTPUT_PROFILE_ID: OutputProfileId = 'smallSpeakers';
 
 const REFERENCE_SYNTH_VOLUME_DB =
   OUTPUT_PROFILES.smallSpeakers.loudness.synthVolumeDb;
 
+export function resolveDefaultOutputProfileId(
+  tier?: LayoutTier,
+): OutputProfileId {
+  const layoutTier = tier ?? resolveLayoutTier();
+  return layoutTier === 'desktop' ? 'studio' : 'smallSpeakers';
+}
+
 export function getOutputProfile(id: OutputProfileId): OutputProfile {
   return OUTPUT_PROFILES[id];
+}
+
+export function getAdaptedOutputProfile(
+  id: OutputProfileId,
+  tier?: LayoutTier,
+): OutputProfile {
+  const base = getOutputProfile(id);
+  if (id !== 'smallSpeakers') {
+    return base;
+  }
+
+  const layoutTier = tier ?? resolveLayoutTier();
+  if (layoutTier === 'desktop') {
+    return {
+      ...base,
+      eq: { ...base.eq, mid: 2 },
+      harmonicEnhance: {
+        ...base.harmonicEnhance,
+        distortion: 0.08,
+        wet: 0.08,
+      },
+      loudness: {
+        ...base.loudness,
+        synthVolumeDb: -7,
+        masterMakeupDb: 2,
+        fxScale: 0.85,
+        compressor: {
+          ...base.loudness.compressor,
+          threshold: -22,
+        },
+      },
+    };
+  }
+
+  return {
+    ...base,
+    loudness: {
+      ...base.loudness,
+      synthVolumeDb: -4,
+      masterMakeupDb: 6,
+      fxScale: 0.8,
+      compressor: {
+        ...base.loudness.compressor,
+        threshold: -26,
+      },
+    },
+  };
 }
 
 export function dbToGain(db: number): number {

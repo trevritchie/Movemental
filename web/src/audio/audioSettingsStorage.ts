@@ -1,14 +1,15 @@
 /**
  * localStorage persistence for Sound Design settings.
  */
+import type { LayoutTier } from '../layout/breakpoints';
 import type { OutputProfileId } from './outputProfiles';
-import { DEFAULT_OUTPUT_PROFILE_ID } from './outputProfiles';
+import { resolveDefaultOutputProfileId } from './outputProfiles';
 import { DEFAULT_SYNTH_PRESET_ID } from './synthPresets';
 
 export const OUTPUT_PROFILE_STORAGE_KEY = 'movemental-output-profile';
 export const SYNTH_PRESET_STORAGE_KEY = 'movemental-synth-preset';
 
-export function readOutputProfileId(): OutputProfileId {
+export function readOutputProfileId(tier?: LayoutTier): OutputProfileId {
   try {
     const value = localStorage.getItem(OUTPUT_PROFILE_STORAGE_KEY);
     if (value === 'smallSpeakers' || value === 'studio') {
@@ -17,7 +18,7 @@ export function readOutputProfileId(): OutputProfileId {
   } catch {
     /* ignore quota / private mode */
   }
-  return DEFAULT_OUTPUT_PROFILE_ID;
+  return resolveDefaultOutputProfileId(tier);
 }
 
 export function writeOutputProfileId(id: OutputProfileId): void {

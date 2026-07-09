@@ -13,11 +13,12 @@ import {
 } from './iosMediaChannel';
 import { SessionRecorder } from './SessionRecorder';
 import { SessionMidiRecorder } from './SessionMidiRecorder';
+import { resolveLayoutTierSafe } from '../layout/breakpoints';
 import {
-  DEFAULT_OUTPUT_PROFILE_ID,
   dbToGain,
+  getAdaptedOutputProfile,
   getEffectiveSynthVolumeDb,
-  getOutputProfile,
+  resolveDefaultOutputProfileId,
   type OutputProfile,
   type OutputProfileId,
 } from './outputProfiles';
@@ -101,7 +102,8 @@ export class AudioEngine {
   private activeNotes: string[] = [];
   private isPointerDown: boolean = false;
 
-  private outputProfileId: OutputProfileId = DEFAULT_OUTPUT_PROFILE_ID;
+  private outputProfileId: OutputProfileId;
+  private activeOutputProfile: OutputProfile;
   private currentPreset: SynthPreset = getSynthPreset(DEFAULT_SYNTH_PRESET_ID);
 
   // Cached effect intensity values (handles settings changed before AudioContext initialization)
@@ -116,11 +118,17 @@ export class AudioEngine {
   private envelopeReleaseVal: number = 1.2;
 
   constructor() {
+    const tier = resolveLayoutTierSafe();
+    this.outputProfileId = resolveDefaultOutputProfileId(tier);
+    this.activeOutputProfile = getAdaptedOutputProfile(
+      this.outputProfileId,
+      tier,
+    );
     // Initialized on first user gesture via startContext()
   }
 
   private createSynth(preset: SynthPreset): Tone.PolySynth {
-    const profile = getOutputProfile(this.outputProfileId);
+    const profile = this.activeOutputProfile;
     const SynthClass = SYNTH_CLASS_MAP[preset.synthClass];
     const synth = new Tone.PolySynth(
       SynthClass as unknown as typeof Tone.Synth,
@@ -197,7 +205,7 @@ export class AudioEngine {
     if (!this.synth) {
       return;
     }
-    const profile = getOutputProfile(this.outputProfileId);
+    const profile = this.activeOutputProfile;
     this.synth.volume.value = getEffectiveSynthVolumeDb(
       this.currentPreset,
       profile,
@@ -220,7 +228,7 @@ export class AudioEngine {
   }
 
   private async initSynth() {
-    const profile = getOutputProfile(this.outputProfileId);
+    const profile = this.activeOutputProfile;
 
     // 8. Limiter - final peak control (-1.0 dBTP streaming-safe ceiling)
     this.limiter = new Tone.Limiter(profile.loudness.limiterCeilingDb).toDestination();
@@ -655,6 +663,7 @@ export class AudioEngine {
 
   public setOutputProfile(profile: OutputProfile): void {
     this.outputProfileId = profile.id;
+    this.activeOutputProfile = profile;
     this.applyEqProfile(profile);
     this.applyHarmonicEnhance(profile);
     this.applyLoudnessProfile(profile);
@@ -683,10 +692,7 @@ export class AudioEngine {
     } else {
       this.synth.set({
         ...preset.voiceOptions,
-        volume: getEffectiveSynthVolumeDb(
-          preset,
-          getOutputProfile(this.outputProfileId),
-        ),
+        volume: getEffectiveSynthVolumeDb(preset, this.activeOutputProfile),
       });
       this.setEnvelope(
         this.envelopeAttackVal,

@@ -1,6 +1,7 @@
 import React from 'react';
 import { useChordContext } from '../../context/ChordContext';
 import { OUTPUT_PROFILES } from '../../audio/outputProfiles';
+import { useLayoutTier } from '../../hooks/useLayoutTier';
 
 const OUTPUT_PROFILE_DESCRIPTIONS = {
   smallSpeakers:
@@ -9,8 +10,12 @@ const OUTPUT_PROFILE_DESCRIPTIONS = {
     'Flat reference mix for headphones, monitors, and subwoofers. Full-range EQ with no bass enhancement.',
 } as const;
 
+const DESKTOP_DEFAULT_HINT =
+  'Defaults to Studio on desktop. Choose Small Speakers for phone-style translation.';
+
 export const OutputProfileToggle: React.FC = () => {
   const { outputProfileId, setOutputProfileId } = useChordContext();
+  const layoutTier = useLayoutTier();
 
   return (
     <div className="output-profile-toggle">
@@ -32,6 +37,11 @@ export const OutputProfileToggle: React.FC = () => {
           {OUTPUT_PROFILES.studio.label}
         </button>
       </div>
+      {layoutTier === 'desktop' && (
+        <p className="voice-leading-mode-desc" role="status">
+          {DESKTOP_DEFAULT_HINT}
+        </p>
+      )}
       <p className="voice-leading-mode-desc" role="status" aria-live="polite">
         {OUTPUT_PROFILE_DESCRIPTIONS[outputProfileId]}
       </p>

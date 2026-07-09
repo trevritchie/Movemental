@@ -220,10 +220,25 @@ graph LR
 
 ### Output Profiles (Settings → Sound Design)
 
-| Profile | EQ | Harmonic Enhance | Loudness | Use case |
-|---------|-----|------------------|----------|----------|
-| **Small Speakers** (default) | -6 dB low @ 180 Hz, +3 dB mid, -2.5 dB high | ON: HPF 180 Hz → light distortion, 20% wet | Synth -6 dB, makeup +4 dB, limiter -1 dBTP | Phones, laptops, built-in speakers |
-| **Studio** | Flat 0/0/0 dB reference | OFF | Synth -9 dB, makeup +2 dB, limiter -1 dBTP | Headphones, monitors, subwoofers; preferred for session exports |
+| Profile | Default platform | EQ | Harmonic Enhance | Loudness | Use case |
+|---------|------------------|-----|------------------|----------|----------|
+| **Studio** | Desktop | Flat 0/0/0 dB reference | OFF | Synth -9 dB, makeup +2 dB, limiter -1 dBTP | Headphones, monitors, subwoofers; preferred for session exports |
+| **Small Speakers** | Phone / tablet | -6 dB low @ 180 Hz, +3 dB mid, -2.5 dB high | ON: HPF 180 Hz → light distortion, 20% wet | Platform-adapted (see below) | Phones, laptops, built-in speakers |
+
+**Platform defaults:** first visit opens in **Studio** on desktop and **Small Speakers** on phone/tablet. Users who already saved a profile in localStorage keep that choice.
+
+**Small Speakers platform adaptation:** the stored profile id stays `smallSpeakers`, but effective DSP values differ by layout tier:
+
+| Parameter | Phone / tablet | Desktop (manual Small Speakers) |
+|-----------|----------------|----------------------------------|
+| Synth level | -4 dB | -7 dB |
+| Master makeup | +6 dB | +2 dB |
+| Harmonic wet / distortion | 0.2 / 0.15 | 0.08 / 0.08 |
+| Mid EQ | +3 dB | +2 dB |
+| FX scale | 0.8 | 0.85 |
+| Compressor threshold | -26 dB | -22 dB |
+
+Mobile adaptation targets louder perceived level on phone speakers; desktop adaptation reduces harmonic distortion and makeup so full-range monitors do not clip. Studio is identical on all platforms.
 
 The harmonic enhance path uses a parallel high-passed distortion branch to generate upper harmonics in the 150–500 Hz range, helping low bass notes remain perceptible on devices that cannot reproduce sub-bass (missing-fundamental psychoacoustics).
 
@@ -231,10 +246,10 @@ The harmonic enhance path uses a parallel high-passed distortion branch to gener
 
 Perceived volume on phones is optimized through standard mastering practice, not by disabling the limiter:
 
-1. **Source level** — Synth voices run hotter (-6 dB Small Speakers reference) with per-preset matching so FM/AM timbres are not quieter than pads.
-2. **FX balance** — Small Speakers scales chorus/reverb wet by 0.85 so more energy stays in the direct signal.
-3. **Bus compression** — Lower threshold with soft knee glues polyphonic chords (target 2–4 dB gain reduction on attacks).
-4. **Master makeup gain** — Post-compressor `Tone.Gain` restores level (+4 dB Small Speakers, +2 dB Studio).
+1. **Source level** — Synth voices use a Small Speakers reference level with per-preset matching so FM/AM timbres are not quieter than pads. Mobile adaptation runs hotter (-4 dB); desktop Small Speakers runs cooler (-7 dB).
+2. **FX balance** — Small Speakers scales chorus/reverb wet by platform (`0.8` mobile, `0.85` desktop) so more energy stays in the direct signal.
+3. **Bus compression** — Lower threshold with soft knee glues polyphonic chords (target 2–4 dB gain reduction on attacks). Mobile uses -26 dB; desktop Small Speakers uses -22 dB.
+4. **Master makeup gain** — Post-compressor `Tone.Gain` restores level (+6 dB mobile Small Speakers, +2 dB desktop Small Speakers and Studio).
 5. **Limiter** — Ceiling at -1.0 dBTP (EBU R128 / streaming-safe) catches peaks without brick-wall distortion.
 
 In development builds, post-makeup peak levels log to the console when notes play.
@@ -277,15 +292,15 @@ FM/AM/MonoSynth presets use max polyphony of 8; `Synth` presets use 12.
 *   **Configuration**: `3.5s` decay, `0.02s` pre-delay, `0.30` default wet mix (user controllable).
 
 ### 6. EQ3 (Output Profile)
-*   **Small Speakers**: Low cut, mid boost, high tame (see table above).
+*   **Small Speakers**: Low cut, mid boost, high tame (see table above). Mid boost is +3 dB on phone/tablet, +2 dB when Small Speakers is selected on desktop.
 *   **Studio**: Flat reference curve for full-range playback.
 
 ### 7. Compressor
-*   **Small Speakers**: Threshold `-24dB`, ratio `3:1`, knee `6dB`.
+*   **Small Speakers**: Threshold `-26dB` mobile / `-22dB` desktop, ratio `3:1`, knee `6dB`.
 *   **Studio**: Threshold `-20dB`, ratio `2.5:1`, knee `4dB`.
 
 ### 7a. Master Makeup Gain
-*   **Small Speakers**: `+4dB` post-compression restore.
+*   **Small Speakers**: `+6dB` mobile / `+2dB` desktop post-compression restore.
 *   **Studio**: `+2dB` post-compression restore.
 
 ### 8. Limiter
