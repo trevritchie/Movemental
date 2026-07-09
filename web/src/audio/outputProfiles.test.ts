@@ -52,8 +52,8 @@ describe('normalizeEqProfileId', () => {
 });
 
 describe('resolveDefaultEqProfileId', () => {
-  it('returns largeSpeakers on desktop', () => {
-    expect(resolveDefaultEqProfileId('desktop')).toBe('largeSpeakers');
+  it('returns smallSpeakers on desktop', () => {
+    expect(resolveDefaultEqProfileId('desktop')).toBe('smallSpeakers');
   });
 
   it('returns smallSpeakers on phone', () => {
@@ -113,7 +113,7 @@ describe('readEqProfileId', () => {
 
   it('returns tier-based default when localStorage is empty', () => {
     mockLayoutTier(1400);
-    expect(readEqProfileId('desktop')).toBe('largeSpeakers');
+    expect(readEqProfileId('desktop')).toBe('smallSpeakers');
     expect(readEqProfileId('phone')).toBe('smallSpeakers');
   });
 

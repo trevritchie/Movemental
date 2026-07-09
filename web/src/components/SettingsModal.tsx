@@ -149,7 +149,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         <div
           ref={modalRef}
           id={menuId}
-          className="settings-modal glass-panel"
+          className="settings-modal"
           role="dialog"
           aria-modal="true"
           aria-label={helpTitle}
@@ -256,36 +256,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 </section>
 
                 <section className="settings-menu-section">
-                  <h3 className="settings-menu-section__title">
-                    Voice Leading
-                  </h3>
-                  <p className="settings-menu-section__hint">
-                    Choose how parallel position is set when you move between
-                    chords.
-                  </p>
-                  <VoiceLeadingToggle />
-                </section>
-
-                <section className="settings-menu-section">
-                  <h3 className="settings-menu-section__title">
-                    Voice Borrowing
-                  </h3>
-                  <p className="settings-menu-section__hint">
-                    Choose whether borrowing settings are remembered per chord or
-                    shared globally.
-                  </p>
-                  <BorrowingMemoryToggle />
-                </section>
-
-                <section className="settings-menu-section">
                   <h3 className="settings-menu-section__title">Sound Design</h3>
-                  <p className="settings-menu-section__hint">
-                    Playback EQ and instrument timbre for playback and recording.
-                  </p>
-                  <h4 className="settings-menu-subsection__title">Playback EQ</h4>
-                  <p className="settings-menu-section__hint">
-                    Choose how chords are equalized for your playback system.
-                  </p>
                   <EqProfileToggle />
                   <button
                     type="button"
@@ -344,6 +315,28 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                       <EffectsPanelContent idPrefix={idPrefix} />
                     </div>
                   )}
+                </section>
+
+                <section className="settings-menu-section">
+                  <h3 className="settings-menu-section__title">
+                    Voice Leading
+                  </h3>
+                  <p className="settings-menu-section__hint">
+                    Choose how parallel position is set when you move between
+                    chords.
+                  </p>
+                  <VoiceLeadingToggle />
+                </section>
+
+                <section className="settings-menu-section">
+                  <h3 className="settings-menu-section__title">
+                    Voice Borrowing
+                  </h3>
+                  <p className="settings-menu-section__hint">
+                    Choose whether borrowing settings are remembered per chord or
+                    shared globally.
+                  </p>
+                  <BorrowingMemoryToggle />
                 </section>
               </>
             )}

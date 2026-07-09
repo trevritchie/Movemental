@@ -158,9 +158,8 @@ export function normalizeEqProfileId(value: string): EqProfileId | null {
   return null;
 }
 
-export function resolveDefaultEqProfileId(tier?: LayoutTier): EqProfileId {
-  const layoutTier = tier ?? resolveLayoutTier();
-  return layoutTier === 'desktop' ? 'largeSpeakers' : 'smallSpeakers';
+export function resolveDefaultEqProfileId(_tier?: LayoutTier): EqProfileId {
+  return 'smallSpeakers';
 }
 
 /** @deprecated Use resolveDefaultEqProfileId */

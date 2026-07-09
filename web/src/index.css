@@ -537,6 +537,8 @@ body.scroll-locked {
   overflow: hidden;
   animation: settingsModalIn 0.22s cubic-bezier(0.4, 0, 0.2, 1) forwards;
   box-shadow: 0 24px 48px rgba(0, 0, 0, 0.45);
+  background: #18181b;
+  border: 1px solid var(--panel-border);
 }
 
 @keyframes settingsModalIn {

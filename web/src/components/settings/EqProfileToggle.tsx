@@ -1,7 +1,6 @@
 import React from 'react';
 import { useChordContext } from '../../context/ChordContext';
 import { OUTPUT_PROFILES, type EqProfileId } from '../../audio/outputProfiles';
-import { useLayoutTier } from '../../hooks/useLayoutTier';
 
 const EQ_PROFILE_DESCRIPTIONS: Record<EqProfileId, string> = {
   smallSpeakers:
@@ -12,9 +11,6 @@ const EQ_PROFILE_DESCRIPTIONS: Record<EqProfileId, string> = {
     'Neutral reference with no EQ coloration or harmonic enhancement. Best for exports, calibration, and A/B comparison.',
 };
 
-const DESKTOP_DEFAULT_HINT =
-  'Defaults to Large Speakers on desktop, Small Speakers on phone and tablet.';
-
 const EQ_PROFILE_ORDER: EqProfileId[] = [
   'smallSpeakers',
   'largeSpeakers',
@@ -23,7 +19,6 @@ const EQ_PROFILE_ORDER: EqProfileId[] = [
 
 export const EqProfileToggle: React.FC = () => {
   const { eqProfileId, setEqProfileId } = useChordContext();
-  const layoutTier = useLayoutTier();
 
   return (
     <div className="eq-profile-toggle">
@@ -40,11 +35,6 @@ export const EqProfileToggle: React.FC = () => {
           </button>
         ))}
       </div>
-      {layoutTier === 'desktop' && (
-        <p className="voice-leading-mode-desc" role="status">
-          {DESKTOP_DEFAULT_HINT}
-        </p>
-      )}
       <p className="voice-leading-mode-desc" role="status" aria-live="polite">
         {EQ_PROFILE_DESCRIPTIONS[eqProfileId]}
       </p>
