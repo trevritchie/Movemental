@@ -102,6 +102,24 @@ vi.mock('tone', () => {
     maxPolyphony = 12;
   }
 
+  class Sampler {
+    connect = vi.fn().mockReturnThis();
+    disconnect = vi.fn().mockReturnThis();
+    dispose = vi.fn();
+    triggerAttackRelease = vi.fn();
+    triggerAttack = vi.fn();
+    triggerRelease = vi.fn();
+    releaseAll = vi.fn();
+    volume = { value: 0 };
+    set = vi.fn();
+
+    constructor(options?: { onload?: () => void }) {
+      queueMicrotask(() => {
+        options?.onload?.();
+      });
+    }
+  }
+
   class Synth {
     toDestination = vi.fn().mockReturnThis();
     connect = vi.fn().mockReturnThis();
@@ -181,6 +199,7 @@ vi.mock('tone', () => {
     Time,
     Gain,
     PolySynth,
+    Sampler,
     Synth,
     FMSynth,
     AMSynth,

@@ -66,6 +66,9 @@ interface ChordContextType {
   setEqProfileId: (id: EqProfileId) => void;
   synthPresetId: string;
   setSynthPresetId: (id: string) => void;
+  synthPresetLoading: boolean;
+  isSamplerInstrumentActive: boolean;
+  isSamplerAdsrDisabled: boolean;
   synthPresets: SynthPreset[];
   playStyle: PlayStyle;
   setPlayStyle: (mode: PlayStyle) => void;
@@ -301,6 +304,9 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
       setEqProfileId: audio.setEqProfileId,
       synthPresetId: audio.synthPresetId,
       setSynthPresetId: audio.setSynthPresetId,
+      synthPresetLoading: audio.synthPresetLoading,
+      isSamplerInstrumentActive: audio.isSamplerInstrumentActive,
+      isSamplerAdsrDisabled: audio.isSamplerAdsrDisabled,
       synthPresets: audio.synthPresets,
       playStyle: playback.playStyle,
       setPlayStyle: playback.setPlayStyle,
@@ -372,6 +378,9 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
       audio.setEqProfileId,
       audio.synthPresetId,
       audio.setSynthPresetId,
+      audio.synthPresetLoading,
+      audio.isSamplerInstrumentActive,
+      audio.isSamplerAdsrDisabled,
       audio.synthPresets,
       audio.envelopeAttack,
       audio.setEnvelopeAttack,

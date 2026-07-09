@@ -69,37 +69,57 @@ describe('getAdaptedOutputProfile', () => {
     expect(flat.harmonicEnhance.enabled).toBe(false);
   });
 
-  it('returns largeSpeakers profile unchanged on all tiers', () => {
-    const large = getAdaptedOutputProfile('largeSpeakers', 'phone');
-    expect(large.loudness.masterMakeupDb).toBe(4);
+  it('returns base largeSpeakers EQ unchanged while adapting loudness on desktop', () => {
+    const large = getAdaptedOutputProfile('largeSpeakers', 'desktop');
+    expect(large.loudness.masterMakeupDb).toBe(0);
+    expect(large.loudness.synthVolumeDb).toBe(-8);
+    expect(large.loudness.limiterCeilingDb).toBe(-2.5);
     expect(large.eq.low).toBe(2);
     expect(large.harmonicEnhance.enabled).toBe(false);
+    expect(large.loudness.compressor.threshold).toBe(-20);
+    expect(large.loudness.compressor.ratio).toBe(2.5);
+    expect(large.loudness.compressor.release).toBe(0.12);
   });
 
-  it('applies desktop-safe small speakers overrides', () => {
+  it('applies a modest loudness bump for largeSpeakers on phone', () => {
+    const large = getAdaptedOutputProfile('largeSpeakers', 'phone');
+    expect(large.loudness.masterMakeupDb).toBe(3);
+    expect(large.loudness.synthVolumeDb).toBe(-6.5);
+    expect(large.loudness.limiterCeilingDb).toBe(-1.75);
+    expect(large.loudness.compressor.threshold).toBe(-23);
+  });
+
+  it('applies conservative small speakers overrides on desktop', () => {
     const profile = getAdaptedOutputProfile('smallSpeakers', 'desktop');
-    expect(profile.loudness.masterMakeupDb).toBe(2);
+    expect(profile.loudness.masterMakeupDb).toBe(0);
     expect(profile.loudness.synthVolumeDb).toBe(-7);
+    expect(profile.loudness.limiterCeilingDb).toBe(-2.5);
     expect(profile.eq.mid).toBe(2);
     expect(profile.harmonicEnhance.wet).toBe(0.08);
     expect(profile.harmonicEnhance.distortion).toBe(0.08);
     expect(profile.loudness.fxScale).toBe(0.85);
-    expect(profile.loudness.compressor.threshold).toBe(-22);
+    expect(profile.loudness.compressor.threshold).toBe(-20);
+    expect(profile.loudness.compressor.ratio).toBe(2.5);
+    expect(profile.loudness.compressor.release).toBe(0.12);
   });
 
-  it('applies louder mobile small speakers overrides', () => {
+  it('applies a modest loudness bump on phone between legacy and desktop-safe', () => {
     const profile = getAdaptedOutputProfile('smallSpeakers', 'phone');
-    expect(profile.loudness.masterMakeupDb).toBe(6);
-    expect(profile.loudness.synthVolumeDb).toBe(-4);
-    expect(profile.eq.mid).toBe(3);
-    expect(profile.harmonicEnhance.wet).toBe(0.2);
-    expect(profile.loudness.fxScale).toBe(0.8);
-    expect(profile.loudness.compressor.threshold).toBe(-26);
+    expect(profile.loudness.masterMakeupDb).toBe(3);
+    expect(profile.loudness.synthVolumeDb).toBe(-5.5);
+    expect(profile.loudness.limiterCeilingDb).toBe(-1.75);
+    expect(profile.eq.mid).toBe(2.5);
+    expect(profile.harmonicEnhance.wet).toBe(0.14);
+    expect(profile.loudness.fxScale).toBe(0.825);
+    expect(profile.loudness.compressor.threshold).toBe(-23);
+    expect(profile.loudness.compressor.ratio).toBe(2.5);
+    expect(profile.loudness.compressor.release).toBe(0.12);
   });
 
-  it('applies the same mobile overrides on tablet', () => {
+  it('applies the same mobile small speakers overrides on tablet', () => {
     const profile = getAdaptedOutputProfile('smallSpeakers', 'tablet');
-    expect(profile.loudness.masterMakeupDb).toBe(6);
+    expect(profile.loudness.masterMakeupDb).toBe(3);
+    expect(profile.loudness.limiterCeilingDb).toBe(-1.75);
   });
 });
 

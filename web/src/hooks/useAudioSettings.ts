@@ -1,7 +1,7 @@
 /**
  * Effect wet/dry, envelope, EQ profile, and instrument preset settings synced to AudioEngine.
  */
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { audioEngine } from '../audio/AudioEngine';
 import { readEqProfileId } from '../audio/audioSettingsStorage';
 import {
@@ -14,6 +14,7 @@ import {
   getPresetDroneEnvelope,
   getPresetFxDefaults,
   getSynthPreset,
+  isSamplerPreset,
   SYNTH_PRESETS,
   type PresetEnvelopeSettings,
   type SynthPreset,
@@ -22,12 +23,18 @@ import { resolveLayoutTier } from '../layout/breakpoints';
 import { useLayoutTier } from './useLayoutTier';
 import type { PlayStyle } from '../context/types';
 
+const SAMPLER_DRY_FX = { chorusWet: 0, delayWet: 0, reverbWet: 0 };
+
 function applyPresetDefaultsToState(preset: SynthPreset) {
-  return {
+  const defaults = {
     fx: getPresetFxDefaults(preset),
     clickHold: getPresetClickHoldEnvelope(preset),
     drone: getPresetDroneEnvelope(preset),
   };
+  if (isSamplerPreset(preset)) {
+    defaults.fx = { ...SAMPLER_DRY_FX };
+  }
+  return defaults;
 }
 
 function envelopeToEngineSettings(
@@ -61,33 +68,48 @@ export function useAudioSettings(playStyle: PlayStyle) {
     () => initialProfileId,
   );
   const [synthPresetId, setSynthPresetIdState] = useState<string>('warmPad');
+  const [synthPresetLoading, setSynthPresetLoading] = useState(false);
 
   const [chorusWet, setChorusWetState] = useState(initialDefaults.fx.chorusWet);
   const [delayWet, setDelayWetState] = useState(initialDefaults.fx.delayWet);
   const [reverbWet, setReverbWetState] = useState(initialDefaults.fx.reverbWet);
 
-  const [envelopeAttack, setEnvelopeAttack] = useState(
+  const [envelopeAttack, setEnvelopeAttackState] = useState(
     initialDefaults.clickHold.attack,
   );
-  const [envelopeDecay, setEnvelopeDecay] = useState(
+  const [envelopeDecay, setEnvelopeDecayState] = useState(
     initialDefaults.clickHold.decay,
   );
-  const [envelopeSustain, setEnvelopeSustain] = useState(
+  const [envelopeSustain, setEnvelopeSustainState] = useState(
     initialDefaults.clickHold.sustain,
   );
-  const [envelopeRelease, setEnvelopeRelease] = useState(
+  const [envelopeRelease, setEnvelopeReleaseState] = useState(
     initialDefaults.clickHold.release,
   );
 
-  const [droneAttack, setDroneAttack] = useState(initialDefaults.drone.attack);
-  const [droneDecay, setDroneDecay] = useState(initialDefaults.drone.decay);
-  const [droneSustain, setDroneSustain] = useState(initialDefaults.drone.sustain);
-  const [droneRelease, setDroneRelease] = useState(initialDefaults.drone.release);
+  const [droneAttack, setDroneAttackState] = useState(initialDefaults.drone.attack);
+  const [droneDecay, setDroneDecayState] = useState(initialDefaults.drone.decay);
+  const [droneSustain, setDroneSustainState] = useState(initialDefaults.drone.sustain);
+  const [droneRelease, setDroneReleaseState] = useState(initialDefaults.drone.release);
 
   const clickHoldCurvesRef = useRef<PresetEnvelopeSettings>(initialDefaults.clickHold);
   const droneCurvesRef = useRef<PresetEnvelopeSettings>(initialDefaults.drone);
 
   const didSyncPresetOnMount = useRef(false);
+
+  const isSamplerInstrumentActive = useMemo(
+    () => isSamplerPreset(getSynthPreset(synthPresetId)),
+    [synthPresetId],
+  );
+
+  const isSamplerAdsrDisabled = useMemo(
+    () => isSamplerInstrumentActive && playStyle === 'drone',
+    [isSamplerInstrumentActive, playStyle],
+  );
+
+  useEffect(() => {
+    audioEngine.setSamplerNaturalEnvelope(isSamplerAdsrDisabled);
+  }, [isSamplerAdsrDisabled]);
 
   const syncScaledFxToEngine = useCallback(
     (
@@ -106,20 +128,30 @@ export function useAudioSettings(playStyle: PlayStyle) {
   );
 
   useEffect(() => {
-    if (!didSyncPresetOnMount.current) {
-      didSyncPresetOnMount.current = true;
-      audioEngine.applyPreset(getSynthPreset(synthPresetId));
-    }
-    audioEngine.setOutputProfile(
-      getAdaptedOutputProfile(eqProfileId, layoutTier),
-    );
-    syncScaledFxToEngine(
-      eqProfileId,
-      layoutTier,
-      chorusWet,
-      delayWet,
-      reverbWet,
-    );
+    void (async () => {
+      if (!didSyncPresetOnMount.current) {
+        didSyncPresetOnMount.current = true;
+        const preset = getSynthPreset(synthPresetId);
+        if (isSamplerPreset(preset)) {
+          setSynthPresetLoading(true);
+        }
+        try {
+          await audioEngine.applyPreset(preset);
+        } finally {
+          setSynthPresetLoading(false);
+        }
+      }
+      audioEngine.setOutputProfile(
+        getAdaptedOutputProfile(eqProfileId, layoutTier),
+      );
+      syncScaledFxToEngine(
+        eqProfileId,
+        layoutTier,
+        chorusWet,
+        delayWet,
+        reverbWet,
+      );
+    })();
   }, [
     eqProfileId,
     layoutTier,
@@ -131,6 +163,9 @@ export function useAudioSettings(playStyle: PlayStyle) {
   ]);
 
   useEffect(() => {
+    if (isSamplerAdsrDisabled) {
+      return;
+    }
     if (playStyle === 'drone') {
       audioEngine.applyEnvelopeSettings(
         envelopeToEngineSettings(
@@ -157,6 +192,7 @@ export function useAudioSettings(playStyle: PlayStyle) {
       );
     }
   }, [
+    isSamplerAdsrDisabled,
     playStyle,
     envelopeAttack,
     envelopeDecay,
@@ -180,7 +216,6 @@ export function useAudioSettings(playStyle: PlayStyle) {
     droneCurvesRef.current = defaults.drone;
 
     setSynthPresetIdState(id);
-    audioEngine.applyPreset(preset);
 
     setChorusWetState(defaults.fx.chorusWet);
     setDelayWetState(defaults.fx.delayWet);
@@ -193,35 +228,115 @@ export function useAudioSettings(playStyle: PlayStyle) {
       defaults.fx.reverbWet,
     );
 
-    setEnvelopeAttack(defaults.clickHold.attack);
-    setEnvelopeDecay(defaults.clickHold.decay);
-    setEnvelopeSustain(defaults.clickHold.sustain);
-    setEnvelopeRelease(defaults.clickHold.release);
-    setDroneAttack(defaults.drone.attack);
-    setDroneDecay(defaults.drone.decay);
-    setDroneSustain(defaults.drone.sustain);
-    setDroneRelease(defaults.drone.release);
+    setEnvelopeAttackState(defaults.clickHold.attack);
+    setEnvelopeDecayState(defaults.clickHold.decay);
+    setEnvelopeSustainState(defaults.clickHold.sustain);
+    setEnvelopeReleaseState(defaults.clickHold.release);
+    setDroneAttackState(defaults.drone.attack);
+    setDroneDecayState(defaults.drone.decay);
+    setDroneSustainState(defaults.drone.sustain);
+    setDroneReleaseState(defaults.drone.release);
 
-    if (playStyle === 'drone') {
+    if (playStyle === 'drone' && !isSamplerPreset(preset)) {
       audioEngine.applyEnvelopeSettings(defaults.drone);
-    } else {
+    } else if (playStyle !== 'drone') {
       audioEngine.applyEnvelopeSettings(defaults.clickHold);
     }
+
+    if (isSamplerPreset(preset)) {
+      setSynthPresetLoading(true);
+    }
+
+    void (async () => {
+      try {
+        await audioEngine.applyPreset(preset);
+      } catch {
+        setSynthPresetIdState(audioEngine.getSynthPresetId());
+        return;
+      } finally {
+        setSynthPresetLoading(false);
+      }
+    })();
   };
 
   const setChorusWet = (val: number) => {
+    if (isSamplerInstrumentActive) {
+      return;
+    }
     setChorusWetState(val);
     syncScaledFxToEngine(eqProfileId, layoutTier, val, delayWet, reverbWet);
   };
 
   const setDelayWet = (val: number) => {
+    if (isSamplerInstrumentActive) {
+      return;
+    }
     setDelayWetState(val);
     syncScaledFxToEngine(eqProfileId, layoutTier, chorusWet, val, reverbWet);
   };
 
   const setReverbWet = (val: number) => {
+    if (isSamplerInstrumentActive) {
+      return;
+    }
     setReverbWetState(val);
     syncScaledFxToEngine(eqProfileId, layoutTier, chorusWet, delayWet, val);
+  };
+
+  const setEnvelopeAttack = (val: number) => {
+    if (isSamplerAdsrDisabled) {
+      return;
+    }
+    setEnvelopeAttackState(val);
+  };
+
+  const setEnvelopeDecay = (val: number) => {
+    if (isSamplerAdsrDisabled) {
+      return;
+    }
+    setEnvelopeDecayState(val);
+  };
+
+  const setEnvelopeSustain = (val: number) => {
+    if (isSamplerAdsrDisabled) {
+      return;
+    }
+    setEnvelopeSustainState(val);
+  };
+
+  const setEnvelopeRelease = (val: number) => {
+    if (isSamplerAdsrDisabled) {
+      return;
+    }
+    setEnvelopeReleaseState(val);
+  };
+
+  const setDroneAttack = (val: number) => {
+    if (isSamplerAdsrDisabled) {
+      return;
+    }
+    setDroneAttackState(val);
+  };
+
+  const setDroneDecay = (val: number) => {
+    if (isSamplerAdsrDisabled) {
+      return;
+    }
+    setDroneDecayState(val);
+  };
+
+  const setDroneSustain = (val: number) => {
+    if (isSamplerAdsrDisabled) {
+      return;
+    }
+    setDroneSustainState(val);
+  };
+
+  const setDroneRelease = (val: number) => {
+    if (isSamplerAdsrDisabled) {
+      return;
+    }
+    setDroneReleaseState(val);
   };
 
   return {
@@ -229,6 +344,9 @@ export function useAudioSettings(playStyle: PlayStyle) {
     setEqProfileId,
     synthPresetId,
     setSynthPresetId,
+    synthPresetLoading,
+    isSamplerInstrumentActive,
+    isSamplerAdsrDisabled,
     synthPresets: SYNTH_PRESETS,
     chorusWet,
     setChorusWet,

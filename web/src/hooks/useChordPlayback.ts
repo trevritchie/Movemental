@@ -567,7 +567,7 @@ export function useChordPlayback({
         return;
       }
 
-      audioEngine.triggerAttack(pitches);
+      audioEngine.triggerAttack(pitches, retrigger);
     },
     []
   );
@@ -821,7 +821,8 @@ export function useChordPlayback({
       setBorrowingState(newState);
       voiceAndPlay(chord, newState, {
         retrigger:
-          tiltModeRef.current && playStyleRef.current === 'drone',
+          playStyleRef.current === 'drone' &&
+          previousChordRef.current?.name === chord.name,
         fromPointer: true,
       });
       return newState;

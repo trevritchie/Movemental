@@ -4,6 +4,8 @@ import {
   getPresetClickHoldEnvelope,
   getPresetFxDefaults,
   getSynthPreset,
+  SAMPLER_ENGINE_PRESETS,
+  SYNTH_ENGINE_PRESETS,
 } from './synthPresets';
 
 describe('extractEnvelopeFromVoiceOptions', () => {
@@ -70,5 +72,31 @@ describe('getPresetFxDefaults', () => {
       delayWet: 0,
       reverbWet: 0,
     });
+  });
+
+  it('uses light room reverb for Warm Piano', () => {
+    expect(getPresetFxDefaults(getSynthPreset('grandPiano'))).toEqual({
+      chorusWet: 0,
+      delayWet: 0,
+      reverbWet: 0.12,
+    });
+  });
+
+  it('groups presets by engine type', () => {
+    expect(SYNTH_ENGINE_PRESETS.map((p) => p.id)).toEqual([
+      'warmPad',
+      'superSaw',
+      'electricCello',
+    ]);
+    expect(SAMPLER_ENGINE_PRESETS[0]?.id).toBe('grandPiano');
+    expect(SAMPLER_ENGINE_PRESETS.some((p) => p.id === 'violin')).toBe(true);
+    expect(SAMPLER_ENGINE_PRESETS.some((p) => p.id === 'piano')).toBe(true);
+    expect(SAMPLER_ENGINE_PRESETS.some((p) => p.id === 'bass-electric')).toBe(
+      false,
+    );
+    expect(SAMPLER_ENGINE_PRESETS.some((p) => p.id === 'contrabass')).toBe(
+      false,
+    );
+    expect(SAMPLER_ENGINE_PRESETS.length).toBeGreaterThan(18);
   });
 });

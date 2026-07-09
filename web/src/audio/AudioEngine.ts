@@ -22,15 +22,21 @@ import {
   type OutputProfile,
   type EqProfileId,
 } from './outputProfiles';
+import { resolveSampleBaseUrl } from './samplePaths';
 import {
   DEFAULT_SYNTH_PRESET_ID,
   getMaxPolyphony,
   getSynthPreset,
+  isSamplerPreset,
   voiceOptionsWithoutEnvelope,
+  type InstrumentEngine,
   type PresetEnvelopeSettings,
   type SynthClassName,
   type SynthPreset,
 } from './synthPresets';
+
+/** PolySynth or sample-based Sampler; shared note trigger API. */
+type InstrumentVoice = Tone.PolySynth | Tone.Sampler;
 
 /** Reverb tail. */
 const REVERB_DECAY_SEC = 3.5;
@@ -78,8 +84,13 @@ const RECORDING_FADE_SAFETY_MS = 50;
 const RECORDING_TAP_MIN_GAIN = 0.001;
 
 export class AudioEngine {
-  private synth: Tone.PolySynth | null = null;
+  private voice: InstrumentVoice | null = null;
+  private voiceEngine: InstrumentEngine = 'synth';
   private currentSynthClass: SynthClassName = 'Synth';
+  /** Loaded sampler instances keyed by preset id (samples stay decoded in memory). */
+  private samplerCache = new Map<string, Tone.Sampler>();
+  private presetLoadPromise: Promise<void> | null = null;
+  private presetLoadGeneration = 0;
   private filter: Tone.Filter | null = null;
   private harmonicHpf: Tone.Filter | null = null;
   private harmonicDistortion: Tone.Distortion | null = null;
@@ -124,6 +135,8 @@ export class AudioEngine {
       'attackCurve' | 'decayCurve' | 'sustainCurve' | 'releaseCurve'
     >
   > = {};
+  /** When true, sampler uses preset-native release instead of user ADSR (drone mode). */
+  private samplerNaturalEnvelope = false;
 
   constructor() {
     const tier = resolveLayoutTierSafe();
@@ -145,31 +158,126 @@ export class AudioEngine {
     };
   }
 
-  private syncEnvelopeToSynth(): void {
-    if (!this.synth) {
+  private getSamplerNaturalRelease(): number {
+    return this.currentPreset.sampler?.release ?? this.envelopeReleaseVal;
+  }
+
+  private getSamplerEnvelopePayload(): {
+    attack: number;
+    release: number;
+  } {
+    if (this.samplerNaturalEnvelope) {
+      return {
+        attack: 0.001,
+        release: this.getSamplerNaturalRelease(),
+      };
+    }
+
+    return {
+      attack: this.envelopeAttackVal,
+      release: this.envelopeReleaseVal,
+    };
+  }
+
+  private syncEnvelopeToVoice(): void {
+    if (!this.voice) {
       return;
     }
-    this.synth.set({ envelope: this.getEnvelopePayload() });
+
+    if (this.voiceEngine === 'sampler') {
+      this.voice.set(this.getSamplerEnvelopePayload());
+      return;
+    }
+
+    (this.voice as Tone.PolySynth).set({
+      envelope: this.getEnvelopePayload(),
+    });
   }
 
   private createSynth(preset: SynthPreset): Tone.PolySynth {
     const profile = this.activeOutputProfile;
-    const SynthClass = SYNTH_CLASS_MAP[preset.synthClass];
+    const synthClass = preset.synthClass ?? 'Synth';
+    const SynthClass = SYNTH_CLASS_MAP[synthClass];
     const synth = new Tone.PolySynth(
       SynthClass as unknown as typeof Tone.Synth,
       {
-        ...voiceOptionsWithoutEnvelope(preset.voiceOptions),
+        ...voiceOptionsWithoutEnvelope(preset.voiceOptions ?? {}),
         envelope: this.getEnvelopePayload(),
         volume: getEffectiveSynthVolumeDb(preset, profile),
       },
     );
-    synth.maxPolyphony = getMaxPolyphony(preset.synthClass);
-    this.currentSynthClass = preset.synthClass;
+    synth.maxPolyphony = getMaxPolyphony(synthClass);
+    this.currentSynthClass = synthClass;
+    this.voiceEngine = 'synth';
     return synth;
+  }
+
+  private loadSampler(preset: SynthPreset): Promise<Tone.Sampler> {
+    const cached = this.samplerCache.get(preset.id);
+    if (cached) {
+      cached.volume.value = getEffectiveSynthVolumeDb(
+        preset,
+        this.activeOutputProfile,
+      );
+      cached.set(this.getSamplerEnvelopePayload());
+      return Promise.resolve(cached);
+    }
+
+    const samplerConfig = preset.sampler;
+    if (!samplerConfig) {
+      return Promise.reject(
+        new Error(`Sampler preset "${preset.id}" is missing sample map`),
+      );
+    }
+
+    return new Promise((resolve, reject) => {
+      const envelope = this.getSamplerEnvelopePayload();
+      const sampler = new Tone.Sampler({
+        urls: samplerConfig.urls,
+        baseUrl: resolveSampleBaseUrl(samplerConfig.baseUrl),
+        attack: envelope.attack,
+        release: envelope.release,
+        volume: getEffectiveSynthVolumeDb(preset, this.activeOutputProfile),
+        onload: () => {
+          this.samplerCache.set(preset.id, sampler);
+          resolve(sampler);
+        },
+        onerror: (error) => {
+          reject(error);
+        },
+      });
+    });
+  }
+
+  private disposeVoice(voice: InstrumentVoice, engine: InstrumentEngine): void {
+    voice.disconnect();
+    if (engine === 'sampler') {
+      return;
+    }
+    if (engine === 'synth') {
+      (voice as Tone.PolySynth).dispose();
+    }
+  }
+
+  private voiceIsReady(): boolean {
+    return Boolean(this.voice && this.isReady && !this.presetLoadPromise);
+  }
+
+  private getVoice(): InstrumentVoice | null {
+    return this.voiceIsReady() ? this.voice : null;
+  }
+
+  public isPresetLoading(): boolean {
+    return this.presetLoadPromise !== null;
+  }
+
+  public waitForPresetLoad(): Promise<void> {
+    return this.presetLoadPromise ?? Promise.resolve();
   }
 
   private applyHarmonicEnhance(profile: OutputProfile): void {
     const { harmonicEnhance } = profile;
+    const presetAllows = this.currentPreset.harmonicEnhanceEnabled !== false;
     if (this.harmonicHpf) {
       this.harmonicHpf.frequency.value = harmonicEnhance.hpfHz;
     }
@@ -177,9 +285,8 @@ export class AudioEngine {
       this.harmonicDistortion.distortion = harmonicEnhance.distortion;
     }
     if (this.harmonicWetGain) {
-      this.harmonicWetGain.gain.value = harmonicEnhance.enabled
-        ? harmonicEnhance.wet
-        : 0;
+      this.harmonicWetGain.gain.value =
+        presetAllows && harmonicEnhance.enabled ? harmonicEnhance.wet : 0;
     }
     if (this.harmonicDryGain) {
       this.harmonicDryGain.gain.value = 1;
@@ -222,11 +329,11 @@ export class AudioEngine {
   }
 
   private applySynthVolumeForProfile(): void {
-    if (!this.synth) {
+    if (!this.voice) {
       return;
     }
     const profile = this.activeOutputProfile;
-    this.synth.volume.value = getEffectiveSynthVolumeDb(
+    this.voice.volume.value = getEffectiveSynthVolumeDb(
       this.currentPreset,
       profile,
     );
@@ -341,9 +448,9 @@ export class AudioEngine {
     this.filter.connect(this.harmonicDryGain);
     this.filter.connect(this.harmonicHpf);
 
-    // 1. Synthesizer
-    this.synth = this.createSynth(this.currentPreset);
-    this.synth.connect(this.filter);
+    // 1. Instrument voice (synth default; sampler presets load on applyPreset)
+    this.voice = this.createSynth(this.currentPreset);
+    this.voice.connect(this.filter);
 
     this.ensureSessionRecorder();
 
@@ -494,7 +601,8 @@ export class AudioEngine {
   }
 
   public playNotes(midiNotes: number[], duration: string = "2n") {
-    if (!this.synth || !this.isReady) {
+    const voice = this.getVoice();
+    if (!voice) {
       // startContext wasn't called yet — try to initialize
       this.startContext().then(() => this.playNotes(midiNotes, duration));
       return;
@@ -521,7 +629,7 @@ export class AudioEngine {
 
     // Add a microscopic 15ms delay to the attack to prevent popping/clicks against the release
     const attackTime = now + ATTACK_SCHEDULE_OFFSET_SEC;
-    this.synth.triggerAttackRelease(noteNames, duration, attackTime);
+    voice.triggerAttackRelease(noteNames, duration, attackTime);
     this.logPeakLevelIfDev();
 
     if (this.sessionMidiRecorder.isRecording()) {
@@ -537,11 +645,13 @@ export class AudioEngine {
 
   public triggerAttack(midiNotes: number[], retrigger: boolean = false) {
     this.isPointerDown = true;
-    if (this.synth && this.isReady) {
+    const voice = this.getVoice();
+    if (voice) {
       this.triggerAttackSync(midiNotes, retrigger);
     } else {
       // Async initialization path for the first gesture
-      this.startContext().then(() => {
+      this.startContext().then(async () => {
+        await this.waitForPresetLoad();
         if (this.isPointerDown) {
           this.triggerAttackSync(midiNotes, retrigger);
         } else {
@@ -552,7 +662,8 @@ export class AudioEngine {
   }
 
   private triggerAttackSync(midiNotes: number[], retrigger: boolean = false) {
-    if (!this.synth || !this.isReady) return;
+    const voice = this.getVoice();
+    if (!voice) return;
 
     const now = Tone.now();
 
@@ -569,7 +680,7 @@ export class AudioEngine {
       // so each tap produces clear audible feedback.
       if (this.activeNotes.length > 0) {
         try {
-          this.synth.triggerRelease(this.activeNotes, now);
+          voice.triggerRelease(this.activeNotes, now);
         } catch (err) {
           devWarn('[AudioEngine] Retrigger release error:', err);
         }
@@ -583,7 +694,7 @@ export class AudioEngine {
       this.activeNotes = noteNames;
       devLog('[AudioEngine] Retriggering:', noteNames);
       const attackTime = now + ATTACK_SCHEDULE_OFFSET_SEC;
-      this.synth.triggerAttack(noteNames, attackTime);
+      voice.triggerAttack(noteNames, attackTime);
       this.logPeakLevelIfDev();
       if (this.sessionMidiRecorder.isRecording()) {
         this.sessionMidiRecorder.logNoteOns(clamped, undefined, attackTime);
@@ -600,7 +711,7 @@ export class AudioEngine {
 
     if (notesToRelease.length > 0) {
       try {
-        this.synth.triggerRelease(notesToRelease, now);
+        voice.triggerRelease(notesToRelease, now);
       } catch (err) {
         devWarn('[AudioEngine] Transition release error:', err);
       }
@@ -616,7 +727,7 @@ export class AudioEngine {
       devLog('[AudioEngine] Attacking:', notesToAttack, '| Sustaining:', noteNames.filter(n => !notesToAttack.includes(n)), '| Releasing:', notesToRelease);
       // Schedule immediately at `now`. Removing the arbitrary delay prevents
       // chronological inversions from rapid subsequent clicks.
-      this.synth.triggerAttack(notesToAttack, now);
+      voice.triggerAttack(notesToAttack, now);
       this.logPeakLevelIfDev();
       if (this.sessionMidiRecorder.isRecording()) {
         this.sessionMidiRecorder.logNoteOns(
@@ -635,7 +746,8 @@ export class AudioEngine {
    */
   public releaseActiveNotes() {
     this.isPointerDown = false;
-    if (this.synth && this.isReady) {
+    const voice = this.getVoice();
+    if (voice) {
       devLog('[AudioEngine] Hard stop. Releasing all voices.');
       if (this.sessionMidiRecorder.isRecording()) {
         // Match synth panic: instant MIDI offs, not envelope release length.
@@ -644,9 +756,9 @@ export class AudioEngine {
       try {
         // Redundancy: release specific tracked notes, then trigger releaseAll
         if (this.activeNotes.length > 0) {
-          this.synth.triggerRelease(this.activeNotes, Tone.now());
+          voice.triggerRelease(this.activeNotes, Tone.now());
         }
-        this.synth.releaseAll();
+        voice.releaseAll();
       } catch (err) {
         devWarn('[AudioEngine] ReleaseAll error:', err);
       }
@@ -659,7 +771,8 @@ export class AudioEngine {
    * tracked active notes at a precise scheduled time for clean crossfading.
    */
   private releasePreviousNotes(time: number) {
-    if (this.synth && this.isReady && this.activeNotes.length > 0) {
+    const voice = this.getVoice();
+    if (voice && this.activeNotes.length > 0) {
       if (this.sessionMidiRecorder.isRecording()) {
         this.sessionMidiRecorder.logNoteOffs(
           this.noteNamesToMidi(this.activeNotes),
@@ -667,7 +780,7 @@ export class AudioEngine {
         );
       }
       try {
-        this.synth.triggerRelease(this.activeNotes, time);
+        voice.triggerRelease(this.activeNotes, time);
       } catch (err) {
         devWarn('[AudioEngine] Preview release error:', err);
       }
@@ -676,8 +789,8 @@ export class AudioEngine {
   }
 
   public setVolume(db: number) {
-    if (this.synth) {
-      this.synth.volume.value = db;
+    if (this.voice) {
+      this.voice.volume.value = db;
     }
   }
 
@@ -698,33 +811,76 @@ export class AudioEngine {
     return this.eqProfileId;
   }
 
-  public applyPreset(preset: SynthPreset): void {
-    this.currentPreset = preset;
-
-    if (!this.synth || !this.filter) {
+  public async applyPreset(preset: SynthPreset): Promise<void> {
+    if (!this.voice || !this.filter) {
+      this.currentPreset = preset;
       return;
     }
 
     this.releaseActiveNotes();
 
-    const needsRecreate = this.currentSynthClass !== preset.synthClass;
+    const previousPreset = this.currentPreset;
+    this.currentPreset = preset;
+
+    const loadGeneration = ++this.presetLoadGeneration;
+    const previousVoice = this.voice;
+    const previousEngine = this.voiceEngine;
+
+    const needsRecreate =
+      preset.engine !== this.voiceEngine ||
+      (preset.engine === 'synth' &&
+        preset.synthClass !== this.currentSynthClass) ||
+      (isSamplerPreset(preset) &&
+        isSamplerPreset(previousPreset) &&
+        preset.id !== previousPreset.id);
 
     if (needsRecreate) {
-      this.synth.disconnect();
-      this.synth.dispose();
-      this.synth = this.createSynth(preset);
-      this.synth.connect(this.filter);
-    } else {
-      this.synth.set({
-        ...voiceOptionsWithoutEnvelope(preset.voiceOptions),
+      if (isSamplerPreset(preset)) {
+        const loadPromise = this.loadSampler(preset);
+        this.presetLoadPromise = loadPromise.then(() => undefined);
+        try {
+          const sampler = await loadPromise;
+          if (loadGeneration !== this.presetLoadGeneration) {
+            return;
+          }
+          this.disposeVoice(previousVoice, previousEngine);
+          this.voice = sampler;
+          this.voiceEngine = 'sampler';
+          sampler.connect(this.filter);
+        } catch (err) {
+          this.currentPreset = previousPreset;
+          devWarn('[AudioEngine] Sampler load failed:', err);
+          throw err;
+        } finally {
+          if (loadGeneration === this.presetLoadGeneration) {
+            this.presetLoadPromise = null;
+          }
+        }
+      } else {
+        this.disposeVoice(previousVoice, previousEngine);
+        this.voice = this.createSynth(preset);
+        this.voice.connect(this.filter);
+        this.presetLoadPromise = null;
+      }
+    } else if (preset.engine === 'synth') {
+      (this.voice as Tone.PolySynth).set({
+        ...voiceOptionsWithoutEnvelope(preset.voiceOptions ?? {}),
         volume: getEffectiveSynthVolumeDb(preset, this.activeOutputProfile),
       });
-      this.syncEnvelopeToSynth();
+      this.syncEnvelopeToVoice();
+    } else {
+      this.voice.volume.value = getEffectiveSynthVolumeDb(
+        preset,
+        this.activeOutputProfile,
+      );
+      this.syncEnvelopeToVoice();
     }
 
     if (preset.filterCutoffHz !== undefined) {
       this.filter.frequency.value = preset.filterCutoffHz;
     }
+
+    this.applyHarmonicEnhance(this.activeOutputProfile);
   }
 
   public getSynthPresetId(): string {
@@ -753,6 +909,14 @@ export class AudioEngine {
     }
   }
 
+  public setSamplerNaturalEnvelope(enabled: boolean): void {
+    if (this.samplerNaturalEnvelope === enabled) {
+      return;
+    }
+    this.samplerNaturalEnvelope = enabled;
+    this.syncEnvelopeToVoice();
+  }
+
   public applyEnvelopeSettings(settings: PresetEnvelopeSettings): void {
     this.envelopeAttackVal = settings.attack;
     this.envelopeDecayVal = settings.decay;
@@ -773,7 +937,7 @@ export class AudioEngine {
       this.envelopeCurveOpts.releaseCurve = settings.releaseCurve;
     }
 
-    this.syncEnvelopeToSynth();
+    this.syncEnvelopeToVoice();
   }
 
   public setEnvelope(attack: number, decay: number, sustain: number, release: number) {
@@ -781,7 +945,7 @@ export class AudioEngine {
     this.envelopeDecayVal = decay;
     this.envelopeSustainVal = sustain;
     this.envelopeReleaseVal = release;
-    this.syncEnvelopeToSynth();
+    this.syncEnvelopeToVoice();
   }
 }
 

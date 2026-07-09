@@ -3,8 +3,21 @@
  */
 import superSawJson from './presets/SuperSaw.json';
 import electricCelloJson from './presets/ElectricCello.json';
+import {
+  SALAMANDER_BASE_URL,
+  SALAMANDER_PIANO_URLS,
+} from './salamanderPiano';
+import { TONEJS_SAMPLER_PRESETS } from './samplerPresetProfiles';
 
 export type SynthClassName = 'Synth' | 'FMSynth' | 'AMSynth' | 'MonoSynth';
+export type InstrumentEngine = 'synth' | 'sampler';
+
+export interface SamplerPresetConfig {
+  baseUrl: string;
+  urls: Record<string, string>;
+  /** Amplitude release time passed to Tone.Sampler (seconds). */
+  release: number;
+}
 
 export interface AdsrValues {
   attack: number;
@@ -23,10 +36,14 @@ export interface PresetEnvelopeSettings extends AdsrValues {
 export interface SynthPreset {
   id: string;
   name: string;
-  synthClass: SynthClassName;
-  voiceOptions: Record<string, unknown>;
+  engine: InstrumentEngine;
+  synthClass?: SynthClassName;
+  voiceOptions?: Record<string, unknown>;
+  sampler?: SamplerPresetConfig;
   volumeDb?: number;
   filterCutoffHz?: number;
+  /** When false, bypass harmonic enhance regardless of output profile. */
+  harmonicEnhanceEnabled?: boolean;
   fxDefaults?: {
     chorusWet: number;
     delayWet: number;
@@ -36,6 +53,14 @@ export interface SynthPreset {
     clickHold: AdsrValues;
     drone: AdsrValues;
   };
+}
+
+export function isSamplerPreset(preset: SynthPreset): boolean {
+  return preset.engine === 'sampler';
+}
+
+export function isSynthPreset(preset: SynthPreset): boolean {
+  return preset.engine === 'synth';
 }
 
 /** Shared click-and-hold envelope for Warm Pad. */
@@ -73,10 +98,45 @@ const FALLBACK_ENVELOPE: AdsrValues = {
   release: 0.5,
 };
 
+/** Salamander multisamples (same files as tonejs.github.io CDN), vendored locally. */
+const GRAND_PIANO_PRESET: SynthPreset = {
+  id: 'grandPiano',
+  name: 'Warm Piano',
+  engine: 'sampler',
+  sampler: {
+    baseUrl: SALAMANDER_BASE_URL,
+    urls: SALAMANDER_PIANO_URLS,
+    release: 1.2,
+  },
+  volumeDb: -4,
+  filterCutoffHz: 12000,
+  harmonicEnhanceEnabled: false,
+  fxDefaults: {
+    chorusWet: 0,
+    delayWet: 0,
+    reverbWet: 0.12,
+  },
+  envelopeDefaults: {
+    clickHold: {
+      attack: 0.001,
+      decay: 0.3,
+      sustain: 0.85,
+      release: 1.2,
+    },
+    drone: {
+      attack: 0.05,
+      decay: 0.5,
+      sustain: 0.6,
+      release: 0.8,
+    },
+  },
+};
+
 export const SYNTH_PRESETS: SynthPreset[] = [
   {
     id: 'warmPad',
     name: 'Warm Pad',
+    engine: 'synth',
     synthClass: 'Synth',
     voiceOptions: {
       oscillator: {
@@ -96,6 +156,7 @@ export const SYNTH_PRESETS: SynthPreset[] = [
   {
     id: 'superSaw',
     name: 'Super Saw',
+    engine: 'synth',
     synthClass: 'Synth',
     voiceOptions: superSawJson as Record<string, unknown>,
     volumeDb: -6,
@@ -108,6 +169,7 @@ export const SYNTH_PRESETS: SynthPreset[] = [
   {
     id: 'electricCello',
     name: 'Electric Cello',
+    engine: 'synth',
     synthClass: 'FMSynth',
     voiceOptions: electricCelloJson as Record<string, unknown>,
     volumeDb: -4,
@@ -117,7 +179,12 @@ export const SYNTH_PRESETS: SynthPreset[] = [
       drone: { attack: 0.8, decay: 3.0, sustain: 0.2, release: 0.6 },
     },
   },
+  GRAND_PIANO_PRESET,
+  ...TONEJS_SAMPLER_PRESETS,
 ];
+
+export const SYNTH_ENGINE_PRESETS = SYNTH_PRESETS.filter(isSynthPreset);
+export const SAMPLER_ENGINE_PRESETS = SYNTH_PRESETS.filter(isSamplerPreset);
 
 export const DEFAULT_SYNTH_PRESET_ID = 'warmPad';
 
@@ -182,11 +249,14 @@ export function getPresetClickHoldEnvelope(
   if (preset.envelopeDefaults?.clickHold) {
     return { ...preset.envelopeDefaults.clickHold };
   }
-  return (
-    extractEnvelopeFromVoiceOptions(preset.voiceOptions) ?? {
-      ...FALLBACK_ENVELOPE,
-    }
-  );
+  if (preset.voiceOptions) {
+    return (
+      extractEnvelopeFromVoiceOptions(preset.voiceOptions) ?? {
+        ...FALLBACK_ENVELOPE,
+      }
+    );
+  }
+  return { ...FALLBACK_ENVELOPE };
 }
 
 export function getPresetDroneEnvelope(
@@ -195,11 +265,14 @@ export function getPresetDroneEnvelope(
   if (preset.envelopeDefaults?.drone) {
     return { ...preset.envelopeDefaults.drone };
   }
-  return (
-    extractEnvelopeFromVoiceOptions(preset.voiceOptions) ?? {
-      ...FALLBACK_ENVELOPE,
-    }
-  );
+  if (preset.voiceOptions) {
+    return (
+      extractEnvelopeFromVoiceOptions(preset.voiceOptions) ?? {
+        ...FALLBACK_ENVELOPE,
+      }
+    );
+  }
+  return { ...FALLBACK_ENVELOPE };
 }
 
 export function getPresetFxDefaults(preset: SynthPreset) {

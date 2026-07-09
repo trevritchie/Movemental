@@ -170,51 +170,102 @@ export function getOutputProfile(id: EqProfileId): OutputProfile {
   return OUTPUT_PROFILES[id];
 }
 
+const SMALL_SPEAKERS_DESKTOP: OutputProfile = {
+  ...OUTPUT_PROFILES.smallSpeakers,
+  eq: { ...OUTPUT_PROFILES.smallSpeakers.eq, mid: 2 },
+  harmonicEnhance: {
+    ...OUTPUT_PROFILES.smallSpeakers.harmonicEnhance,
+    distortion: 0.08,
+    wet: 0.08,
+  },
+  loudness: {
+    ...OUTPUT_PROFILES.smallSpeakers.loudness,
+    synthVolumeDb: -7,
+    masterMakeupDb: 0,
+    limiterCeilingDb: -2.5,
+    fxScale: 0.85,
+    compressor: {
+      ...OUTPUT_PROFILES.smallSpeakers.loudness.compressor,
+      threshold: -20,
+      ratio: 2.5,
+      release: 0.12,
+    },
+  },
+};
+
+/** Midway loudness between legacy mobile and desktop-safe tuning; keeps gentler bus. */
+const SMALL_SPEAKERS_MOBILE: OutputProfile = {
+  ...SMALL_SPEAKERS_DESKTOP,
+  eq: { ...SMALL_SPEAKERS_DESKTOP.eq, mid: 2.5 },
+  harmonicEnhance: {
+    ...SMALL_SPEAKERS_DESKTOP.harmonicEnhance,
+    distortion: 0.115,
+    wet: 0.14,
+  },
+  loudness: {
+    ...SMALL_SPEAKERS_DESKTOP.loudness,
+    synthVolumeDb: -5.5,
+    masterMakeupDb: 3,
+    limiterCeilingDb: -1.75,
+    fxScale: 0.825,
+    compressor: {
+      ...SMALL_SPEAKERS_DESKTOP.loudness.compressor,
+      threshold: -23,
+    },
+  },
+};
+
+const LARGE_SPEAKERS_DESKTOP: OutputProfile = {
+  ...OUTPUT_PROFILES.largeSpeakers,
+  loudness: {
+    ...OUTPUT_PROFILES.largeSpeakers.loudness,
+    synthVolumeDb: -8,
+    masterMakeupDb: 0,
+    limiterCeilingDb: -2.5,
+    fxScale: 0.9,
+    compressor: {
+      ...OUTPUT_PROFILES.largeSpeakers.loudness.compressor,
+      threshold: -20,
+      ratio: 2.5,
+      release: 0.12,
+    },
+  },
+};
+
+/** Midway loudness between legacy and desktop-safe tuning; keeps gentler bus. */
+const LARGE_SPEAKERS_MOBILE: OutputProfile = {
+  ...LARGE_SPEAKERS_DESKTOP,
+  loudness: {
+    ...LARGE_SPEAKERS_DESKTOP.loudness,
+    synthVolumeDb: -6.5,
+    masterMakeupDb: 3,
+    limiterCeilingDb: -1.75,
+    fxScale: 0.875,
+    compressor: {
+      ...LARGE_SPEAKERS_DESKTOP.loudness.compressor,
+      threshold: -23,
+    },
+  },
+};
+
 export function getAdaptedOutputProfile(
   id: EqProfileId,
   tier?: LayoutTier,
 ): OutputProfile {
-  const base = getOutputProfile(id);
-  if (id !== 'smallSpeakers') {
-    return base;
-  }
-
   const layoutTier = tier ?? resolveLayoutTier();
-  if (layoutTier === 'desktop') {
-    return {
-      ...base,
-      eq: { ...base.eq, mid: 2 },
-      harmonicEnhance: {
-        ...base.harmonicEnhance,
-        distortion: 0.08,
-        wet: 0.08,
-      },
-      loudness: {
-        ...base.loudness,
-        synthVolumeDb: -7,
-        masterMakeupDb: 2,
-        fxScale: 0.85,
-        compressor: {
-          ...base.loudness.compressor,
-          threshold: -22,
-        },
-      },
-    };
+  if (id === 'smallSpeakers') {
+    if (layoutTier === 'desktop') {
+      return SMALL_SPEAKERS_DESKTOP;
+    }
+    return SMALL_SPEAKERS_MOBILE;
   }
-
-  return {
-    ...base,
-    loudness: {
-      ...base.loudness,
-      synthVolumeDb: -4,
-      masterMakeupDb: 6,
-      fxScale: 0.8,
-      compressor: {
-        ...base.loudness.compressor,
-        threshold: -26,
-      },
-    },
-  };
+  if (id === 'largeSpeakers') {
+    if (layoutTier === 'desktop') {
+      return LARGE_SPEAKERS_DESKTOP;
+    }
+    return LARGE_SPEAKERS_MOBILE;
+  }
+  return getOutputProfile(id);
 }
 
 export function dbToGain(db: number): number {

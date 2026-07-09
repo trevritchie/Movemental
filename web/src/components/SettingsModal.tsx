@@ -44,6 +44,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     setPlayStyle,
     synthPresetId,
     synthPresets,
+    isSamplerInstrumentActive,
+    isSamplerAdsrDisabled,
   } = useChordContext();
 
   const {
@@ -59,6 +61,18 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const [showInstrument, setShowInstrument] = React.useState(false);
   const [helpView, setHelpView] = React.useState<HelpView>('hub');
   const { startTour, hasCompletedTour } = useTour();
+
+  useEffect(() => {
+    if (isSamplerInstrumentActive) {
+      setShowEffects(false);
+    }
+  }, [isSamplerInstrumentActive]);
+
+  useEffect(() => {
+    if (isSamplerAdsrDisabled) {
+      setShowAdsr(false);
+    }
+  }, [isSamplerAdsrDisabled]);
 
   const idPrefix = `${menuId}-`;
   const selectedInstrumentName =
@@ -291,8 +305,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   )}
                   <button
                     type="button"
-                    className={`settings-menu-accordion${showAdsr ? ' active' : ''}`}
+                    className={`settings-menu-accordion${showAdsr ? ' active' : ''}${isSamplerAdsrDisabled ? ' settings-menu-accordion--disabled' : ''}`}
                     onClick={() => {
+                      if (isSamplerAdsrDisabled) {
+                        return;
+                      }
                       setShowAdsr(!showAdsr);
                       if (!showAdsr) {
                         setShowEffects(false);
@@ -300,18 +317,23 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                       }
                     }}
                     aria-expanded={showAdsr}
+                    disabled={isSamplerAdsrDisabled}
+                    aria-disabled={isSamplerAdsrDisabled}
                   >
                     Envelope (ADSR)
                   </button>
-                  {showAdsr && (
+                  {showAdsr && !isSamplerAdsrDisabled && (
                     <div className="settings-menu-accordion__panel">
                       <AdsrPanelContent idPrefix={idPrefix} />
                     </div>
                   )}
                   <button
                     type="button"
-                    className={`settings-menu-accordion${showEffects ? ' active' : ''}`}
+                    className={`settings-menu-accordion${showEffects ? ' active' : ''}${isSamplerInstrumentActive ? ' settings-menu-accordion--disabled' : ''}`}
                     onClick={() => {
+                      if (isSamplerInstrumentActive) {
+                        return;
+                      }
                       setShowEffects(!showEffects);
                       if (!showEffects) {
                         setShowAdsr(false);
@@ -319,10 +341,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                       }
                     }}
                     aria-expanded={showEffects}
+                    disabled={isSamplerInstrumentActive}
+                    aria-disabled={isSamplerInstrumentActive}
                   >
                     Synth Effects
                   </button>
-                  {showEffects && (
+                  {showEffects && !isSamplerInstrumentActive && (
                     <div className="settings-menu-accordion__panel">
                       <EffectsPanelContent idPrefix={idPrefix} />
                     </div>
