@@ -158,7 +158,8 @@ export function normalizeEqProfileId(value: string): EqProfileId | null {
   return null;
 }
 
-export function resolveDefaultEqProfileId(_tier?: LayoutTier): EqProfileId {
+export function resolveDefaultEqProfileId(tier?: LayoutTier): EqProfileId {
+  void tier;
   return 'smallSpeakers';
 }
 

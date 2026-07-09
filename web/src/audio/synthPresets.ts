@@ -210,7 +210,8 @@ export function extractEnvelopeFromVoiceOptions(
 export function voiceOptionsWithoutEnvelope(
   voiceOptions: Record<string, unknown>,
 ): Record<string, unknown> {
-  const { envelope: _envelope, ...rest } = voiceOptions;
+  const rest = { ...voiceOptions };
+  delete rest.envelope;
   return rest;
 }
 

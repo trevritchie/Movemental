@@ -12,8 +12,8 @@ export function readEqProfileId(tier?: LayoutTier): EqProfileId {
 /** @deprecated Use readEqProfileId */
 export const readOutputProfileId = readEqProfileId;
 
-export function writeEqProfileId(_id: EqProfileId): void {
-  /* session-only */
+export function writeEqProfileId(id: EqProfileId): void {
+  void id;
 }
 
 /** @deprecated Use writeEqProfileId */
@@ -23,6 +23,6 @@ export function readSynthPresetId(): string {
   return DEFAULT_SYNTH_PRESET_ID;
 }
 
-export function writeSynthPresetId(_id: string): void {
-  /* session-only */
+export function writeSynthPresetId(id: string): void {
+  void id;
 }
