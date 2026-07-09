@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { ClockFace } from './ClockFace';
+import type { ClockLayoutMode } from '../context/types';
 import {
   clockSlotToAngle,
   relativePcToClockSlot,
@@ -19,11 +20,16 @@ const branchChord = {
   rootPositionIndex: 0,
 };
 
-const mockContext = {
+const mockContext: {
+  tonalCenter: number;
+  activePitches: number[];
+  selectedChord: typeof branchChord;
+  clockLayoutMode: ClockLayoutMode;
+} = {
   tonalCenter: 10,
   activePitches: [58, 62, 65, 69],
   selectedChord: branchChord,
-  clockLayoutMode: 'chromatic' as const,
+  clockLayoutMode: 'chromatic',
 };
 
 vi.mock('../context/ChordContext', () => ({
