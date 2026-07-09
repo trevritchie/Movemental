@@ -601,6 +601,7 @@ body.scroll-locked {
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--text-secondary);
+  margin-bottom: 10px;
 }
 
 .settings-menu-subsection__title {
@@ -610,8 +611,6 @@ body.scroll-locked {
   text-transform: uppercase;
   color: var(--text-secondary);
   margin: 8px 0 0;
-}
-  margin-bottom: 10px;
 }
 
 .settings-menu-section__hint {
