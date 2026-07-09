@@ -257,7 +257,7 @@ In development builds, post-makeup peak levels log to the console when notes pla
 
 ### Instrument Presets
 
-Presets are defined in [`src/audio/synthPresets.ts`](src/audio/synthPresets.ts). Community JSON starting points are vendored from [Tonejs/Presets](https://github.com/Tonejs/Presets) (see [`PRESET_ATTRIBUTION.md`](src/audio/PRESET_ATTRIBUTION.md)). On preset switch, vendored presets apply their JSON amplitude envelope (including `attackCurve` where present) and run dry bus FX; **Warm Pad** keeps the app's pad envelope and default chorus/reverb.
+Presets are defined in [`src/audio/synthPresets.ts`](src/audio/synthPresets.ts). Community JSON starting points are vendored from [Tonejs/Presets](https://github.com/Tonejs/Presets) (see [`PRESET_ATTRIBUTION.md`](src/audio/PRESET_ATTRIBUTION.md)). Vendored presets use their JSON voice parameters (oscillator, FM/AM settings, modulation envelopes) with app-tuned ADSR for chord playback. On preset switch, **Warm Pad** keeps default chorus/reverb; other presets start with bus FX dry.
 
 | Preset | Synth class | Character |
 |--------|-------------|-----------|

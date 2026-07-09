@@ -103,6 +103,10 @@ export const SYNTH_PRESETS: SynthPreset[] = [
     voiceOptions: superSawJson as Record<string, unknown>,
     volumeDb: -6,
     filterCutoffHz: 1200,
+    envelopeDefaults: {
+      clickHold: { attack: 0.08, decay: 1.2, sustain: 0.55, release: 1.8 },
+      drone: { attack: 0.5, decay: 2.5, sustain: 0.25, release: 0.4 },
+    },
   },
   {
     id: 'electricCello',
@@ -111,6 +115,10 @@ export const SYNTH_PRESETS: SynthPreset[] = [
     voiceOptions: electricCelloJson as Record<string, unknown>,
     volumeDb: -4,
     filterCutoffHz: 1000,
+    envelopeDefaults: {
+      clickHold: { attack: 0.2, decay: 1.5, sustain: 0.45, release: 2.0 },
+      drone: { attack: 0.8, decay: 3.0, sustain: 0.2, release: 0.6 },
+    },
   },
   {
     id: 'kalimba',
@@ -119,6 +127,10 @@ export const SYNTH_PRESETS: SynthPreset[] = [
     voiceOptions: kalimbaJson as Record<string, unknown>,
     volumeDb: -3,
     filterCutoffHz: 1400,
+    envelopeDefaults: {
+      clickHold: { attack: 0.05, decay: 1.8, sustain: 0.35, release: 2.2 },
+      drone: { attack: 0.4, decay: 2.8, sustain: 0.15, release: 0.5 },
+    },
   },
   {
     id: 'harmonics',
@@ -127,6 +139,10 @@ export const SYNTH_PRESETS: SynthPreset[] = [
     voiceOptions: harmonicsJson as Record<string, unknown>,
     volumeDb: -4,
     filterCutoffHz: 1100,
+    envelopeDefaults: {
+      clickHold: { attack: 0.1, decay: 1.6, sustain: 0.5, release: 2.0 },
+      drone: { attack: 0.7, decay: 3.2, sustain: 0.2, release: 0.55 },
+    },
   },
   {
     id: 'pianoetta',
@@ -135,6 +151,10 @@ export const SYNTH_PRESETS: SynthPreset[] = [
     voiceOptions: pianoettaJson as Record<string, unknown>,
     volumeDb: -5,
     filterCutoffHz: 2000,
+    envelopeDefaults: {
+      clickHold: { attack: 0.01, decay: 1.2, sustain: 0.3, release: 1.5 },
+      drone: { attack: 0.3, decay: 2.0, sustain: 0.15, release: 0.35 },
+    },
   },
 ];
 

@@ -40,17 +40,18 @@ describe('getPresetClickHoldEnvelope', () => {
     expect(warmPad.release).toBe(2.5);
   });
 
-  it('uses Electric Cello JSON envelope', () => {
+  it('uses Electric Cello pad-style envelope defaults', () => {
     const cello = getPresetClickHoldEnvelope(getSynthPreset('electricCello'));
     expect(cello.attack).toBe(0.2);
-    expect(cello.decay).toBe(0.3);
-    expect(cello.sustain).toBe(0.1);
-    expect(cello.release).toBe(1.2);
+    expect(cello.decay).toBe(1.5);
+    expect(cello.sustain).toBe(0.45);
+    expect(cello.release).toBe(2.0);
   });
 
-  it('uses Super Saw attackCurve from JSON', () => {
+  it('prefers envelopeDefaults over JSON attackCurve', () => {
     const superSaw = getPresetClickHoldEnvelope(getSynthPreset('superSaw'));
-    expect(superSaw.attackCurve).toBe('exponential');
+    expect(superSaw.attack).toBe(0.08);
+    expect(superSaw.attackCurve).toBeUndefined();
   });
 });
 
