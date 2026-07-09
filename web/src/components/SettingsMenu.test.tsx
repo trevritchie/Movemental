@@ -42,6 +42,11 @@ vi.mock('../context/ChordContext', () => ({
     playStyle: 'drone',
     setPlayStyle,
     tiltModeEnabled: false,
+    synthPresetId: 'warmPad',
+    setSynthPresetId: vi.fn(),
+    synthPresets: [{ id: 'warmPad', name: 'Warm Pad' }],
+    eqProfileId: 'smallSpeakers',
+    setEqProfileId: vi.fn(),
   }),
 }));
 

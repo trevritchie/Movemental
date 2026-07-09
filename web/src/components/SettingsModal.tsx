@@ -62,7 +62,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
   const idPrefix = `${menuId}-`;
   const selectedInstrumentName =
-    synthPresets.find((preset) => preset.id === synthPresetId)?.name ??
+    synthPresets?.find((preset) => preset.id === synthPresetId)?.name ??
     'Warm Pad';
 
   const closeModal = useCallback(() => {
