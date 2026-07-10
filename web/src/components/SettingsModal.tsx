@@ -11,6 +11,7 @@ import { BorrowingMemoryToggle } from './settings/BorrowingMemoryToggle';
 import { VoiceLeadingToggle } from './settings/VoiceLeadingToggle';
 import { EqProfileToggle } from './settings/EqProfileToggle';
 import { InstrumentPresetPicker } from './settings/InstrumentPresetPicker';
+import { SettingsSectionHeader } from './settings/SettingsSectionHeader';
 import { IosInstallHintPortal } from './IosInstallHintPortal';
 import { isIphone } from '../utils/devicePlatform';
 import { getSynthPreset, isSamplerPreset } from '../audio/synthPresets';
@@ -48,6 +49,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     synthPresets,
     isSamplerInstrumentActive,
     isSamplerAdsrDisabled,
+    resetSettingsSection,
+    resetAllSettings,
   } = useChordContext();
 
   const {
@@ -95,6 +98,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const closeModal = useCallback(() => {
     setShowAdsr(false);
     setShowEffects(false);
+    setShowInstrument(false);
     setHelpView('hub');
     onClose();
   }, [onClose]);
@@ -236,7 +240,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 )}
 
                 <section className="settings-menu-section">
-                  <h3 className="settings-menu-section__title">General</h3>
+                  <SettingsSectionHeader
+                    sectionId="general"
+                    onReset={resetSettingsSection}
+                  />
                   <div className="settings-menu-fields">
                     <label className="settings-menu-field">
                       <span className="settings-menu-field__label">
@@ -288,7 +295,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 </section>
 
                 <section className="settings-menu-section">
-                  <h3 className="settings-menu-section__title">Sound Design</h3>
+                  <SettingsSectionHeader
+                    sectionId="soundDesign"
+                    onReset={resetSettingsSection}
+                  />
                   <EqProfileToggle />
                   <button
                     type="button"
@@ -367,9 +377,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 </section>
 
                 <section className="settings-menu-section">
-                  <h3 className="settings-menu-section__title">
-                    Voice Leading
-                  </h3>
+                  <SettingsSectionHeader
+                    sectionId="voiceLeading"
+                    onReset={resetSettingsSection}
+                  />
                   <p className="settings-menu-section__hint">
                     Choose how parallel position is set when you move between
                     chords.
@@ -378,15 +389,26 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 </section>
 
                 <section className="settings-menu-section">
-                  <h3 className="settings-menu-section__title">
-                    Voice Borrowing
-                  </h3>
+                  <SettingsSectionHeader
+                    sectionId="voiceBorrowing"
+                    onReset={resetSettingsSection}
+                  />
                   <p className="settings-menu-section__hint">
                     Choose whether borrowing settings are remembered per chord or
                     shared globally.
                   </p>
                   <BorrowingMemoryToggle />
                 </section>
+
+                <div className="settings-menu-reset-all">
+                  <button
+                    type="button"
+                    className="settings-menu-reset-all__btn"
+                    onClick={resetAllSettings}
+                  >
+                    Reset all settings
+                  </button>
+                </div>
               </>
             )}
           </div>

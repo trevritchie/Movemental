@@ -14,7 +14,6 @@ import {
   getPresetDroneEnvelope,
   getPresetFxDefaults,
   getSynthPreset,
-  DEFAULT_SYNTH_PRESET_ID,
   isSamplerPreset,
   SYNTH_PRESETS,
   type PresetEnvelopeSettings,
@@ -23,6 +22,10 @@ import {
 import { resolveLayoutTier } from '../layout/breakpoints';
 import { useLayoutTier } from './useLayoutTier';
 import type { PlayStyle } from '../context/types';
+import {
+  getDefaultSoundDesignSettings,
+  type SoundDesignSettings,
+} from '../settings/userSettingsSchema';
 
 const SAMPLER_DRY_FX = { chorusWet: 0, delayWet: 0, reverbWet: 0 };
 
@@ -59,43 +62,63 @@ type AdsrFromPreset = Pick<
   'attack' | 'decay' | 'sustain' | 'release'
 >;
 
-export function useAudioSettings(playStyle: PlayStyle) {
+function resolveInitialSoundDesign(
+  initial: Partial<SoundDesignSettings>,
+  hasPersistedSettings: boolean,
+): SoundDesignSettings {
+  const fallback = getDefaultSoundDesignSettings();
+  if (!hasPersistedSettings) {
+    return {
+      ...fallback,
+      eqProfileId: readEqProfileId(resolveLayoutTier()),
+    };
+  }
+  return { ...fallback, ...initial };
+}
+
+export function useAudioSettings(
+  playStyle: PlayStyle,
+  initial: Partial<SoundDesignSettings> = {},
+  hasPersistedSettings = false,
+) {
   const layoutTier = useLayoutTier();
-  const initialProfileId = readEqProfileId(resolveLayoutTier());
-  const initialPreset = getSynthPreset(DEFAULT_SYNTH_PRESET_ID);
+  const soundDesign = resolveInitialSoundDesign(initial, hasPersistedSettings);
+  const initialPreset = getSynthPreset(soundDesign.synthPresetId);
   const initialDefaults = applyPresetDefaultsToState(initialPreset);
 
   const [eqProfileId, setEqProfileIdState] = useState<EqProfileId>(
-    () => initialProfileId,
+    () => soundDesign.eqProfileId,
   );
   const [synthPresetId, setSynthPresetIdState] = useState<string>(
-    () => DEFAULT_SYNTH_PRESET_ID,
+    () => soundDesign.synthPresetId,
   );
   const [synthPresetLoading, setSynthPresetLoading] = useState(false);
 
-  const [chorusWet, setChorusWetState] = useState(initialDefaults.fx.chorusWet);
-  const [delayWet, setDelayWetState] = useState(initialDefaults.fx.delayWet);
-  const [reverbWet, setReverbWetState] = useState(initialDefaults.fx.reverbWet);
+  const [chorusWet, setChorusWetState] = useState(soundDesign.chorusWet);
+  const [delayWet, setDelayWetState] = useState(soundDesign.delayWet);
+  const [reverbWet, setReverbWetState] = useState(soundDesign.reverbWet);
 
   const [envelopeAttack, setEnvelopeAttackState] = useState(
-    initialDefaults.clickHold.attack,
+    soundDesign.envelopeAttack,
   );
   const [envelopeDecay, setEnvelopeDecayState] = useState(
-    initialDefaults.clickHold.decay,
+    soundDesign.envelopeDecay,
   );
   const [envelopeSustain, setEnvelopeSustainState] = useState(
-    initialDefaults.clickHold.sustain,
+    soundDesign.envelopeSustain,
   );
   const [envelopeRelease, setEnvelopeReleaseState] = useState(
-    initialDefaults.clickHold.release,
+    soundDesign.envelopeRelease,
   );
 
-  const [droneAttack, setDroneAttackState] = useState(initialDefaults.drone.attack);
-  const [droneDecay, setDroneDecayState] = useState(initialDefaults.drone.decay);
-  const [droneSustain, setDroneSustainState] = useState(initialDefaults.drone.sustain);
-  const [droneRelease, setDroneReleaseState] = useState(initialDefaults.drone.release);
+  const [droneAttack, setDroneAttackState] = useState(soundDesign.droneAttack);
+  const [droneDecay, setDroneDecayState] = useState(soundDesign.droneDecay);
+  const [droneSustain, setDroneSustainState] = useState(soundDesign.droneSustain);
+  const [droneRelease, setDroneReleaseState] = useState(soundDesign.droneRelease);
 
-  const clickHoldCurvesRef = useRef<PresetEnvelopeSettings>(initialDefaults.clickHold);
+  const clickHoldCurvesRef = useRef<PresetEnvelopeSettings>(
+    initialDefaults.clickHold,
+  );
   const droneCurvesRef = useRef<PresetEnvelopeSettings>(initialDefaults.drone);
 
   const didSyncPresetOnMount = useRef(false);

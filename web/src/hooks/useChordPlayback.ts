@@ -79,6 +79,8 @@ interface UseChordPlaybackOptions {
   noTiltLockMapsRef: RefObject<NoTiltChordLockMaps>;
   applyNoTiltLocksForChord: (chordName: string) => void;
   clearNoTiltChordLocks: () => void;
+  initialPlayStyle?: PlayStyle;
+  hasPersistedSettings?: boolean;
 }
 
 function pitchesEqual(a: number[], b: number[]): boolean {
@@ -110,8 +112,10 @@ export function useChordPlayback({
   noTiltLockMapsRef,
   applyNoTiltLocksForChord,
   clearNoTiltChordLocks,
+  initialPlayStyle = 'drone',
+  hasPersistedSettings = false,
 }: UseChordPlaybackOptions) {
-  const [playStyle, setPlayStyle] = useState<PlayStyle>('drone');
+  const [playStyle, setPlayStyle] = useState<PlayStyle>(initialPlayStyle);
   const [tiltModeEnabled, setTiltModeEnabled] = useState(false);
   const [activePitches, setActivePitches] = useState<(number | null)[]>([]);
   const [previousPlayedChord, setPreviousPlayedChord] = useState<Chord | null>(
@@ -132,8 +136,9 @@ export function useChordPlayback({
   >(null);
 
   const isPointerDownRef = useRef(false);
-  const playStyleRef = useRef(playStyle);
+  const playStyleRef = useRef(initialPlayStyle);
   const tiltModeRef = useRef(tiltModeEnabled);
+  const hasPersistedSettingsRef = useRef(hasPersistedSettings);
   /** Last *resolved* chord (elemental root applied). Drives contrary-motion chains. */
   const previousChordRef = useRef<Chord | null>(null);
   /** Mirror of activePitches for skipIfUnchanged without re-rendering. */
@@ -161,6 +166,10 @@ export function useChordPlayback({
   useEffect(() => {
     tiltModeRef.current = tiltModeEnabled;
   }, [tiltModeEnabled]);
+
+  useEffect(() => {
+    hasPersistedSettingsRef.current = hasPersistedSettings;
+  }, [hasPersistedSettings]);
 
   const buildAnchorKey = useCallback(
     (displayChord: Chord, tilt: TiltSample): string => {
@@ -439,8 +448,10 @@ export function useChordPlayback({
   const enterTiltSession = useCallback(() => {
     tiltModeRef.current = true;
     setTiltModeEnabled(true);
-    playStyleRef.current = 'drone';
-    setPlayStyle('drone');
+    if (!hasPersistedSettingsRef.current) {
+      playStyleRef.current = 'drone';
+      setPlayStyle('drone');
+    }
     clearNoTiltChordLocks();
     resetVoiceLeadingSession();
   }, [clearNoTiltChordLocks, resetVoiceLeadingSession]);
@@ -448,8 +459,10 @@ export function useChordPlayback({
   const enterNoTiltSession = useCallback(() => {
     tiltModeRef.current = false;
     setTiltModeEnabled(false);
-    playStyleRef.current = 'drone';
-    setPlayStyle('drone');
+    if (!hasPersistedSettingsRef.current) {
+      playStyleRef.current = 'drone';
+      setPlayStyle('drone');
+    }
     resetVoiceLeadingSession();
   }, [resetVoiceLeadingSession]);
 
@@ -860,6 +873,7 @@ export function useChordPlayback({
     tiltModeEnabled,
     enterTiltSession,
     enterNoTiltSession,
+    resetVoiceLeadingSession,
     activePitches,
     previousPlayedChord,
     lastTapTilt,

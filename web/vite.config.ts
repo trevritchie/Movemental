@@ -53,7 +53,7 @@ export default defineConfig({
           name: 'unit',
           environment: 'jsdom',
           setupFiles: ['./src/test/setup.ts'],
-          include: ['src/**/*.test.ts'],
+          include: ['src/**/*.test.ts', 'src/**/*.test.tsx'],
           exclude: ['src/**/*.offline.test.ts', 'src/**/*.live.test.ts'],
           globals: true,
         },
