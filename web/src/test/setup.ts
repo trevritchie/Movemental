@@ -192,6 +192,61 @@ vi.mock('tone', () => {
     connect = vi.fn().mockReturnThis();
   }
 
+  let activeContext: Context | null = null;
+
+  class Context {
+    lookAhead = 0.1;
+    updateInterval = 0.05;
+    latencyHint = 'interactive';
+    sampleRate = 44100;
+    rawContext = {
+      state: 'running',
+      baseLatency: 0,
+      outputLatency: 0.01,
+      destination: {},
+      currentTime: 0,
+    };
+    resume = vi.fn().mockResolvedValue(undefined);
+    close = vi.fn().mockResolvedValue(undefined);
+    createConstantSource = vi.fn(() => ({
+      offset: { value: 0 },
+      connect: vi.fn(),
+      start: vi.fn(),
+      stop: vi.fn(),
+      disconnect: vi.fn(),
+    }));
+    createAnalyser = vi.fn(() => ({
+      fftSize: 2048,
+      connect: vi.fn(),
+      disconnect: vi.fn(),
+      getFloatTimeDomainData: vi.fn(),
+    }));
+
+    constructor(
+      options?: Partial<{
+        lookAhead: number;
+        latencyHint: string;
+        updateInterval: number;
+      }>,
+    ) {
+      if (options?.lookAhead != null) {
+        this.lookAhead = options.lookAhead;
+      }
+      if (options?.latencyHint != null) {
+        this.latencyHint = options.latencyHint;
+      }
+      if (options?.updateInterval != null) {
+        this.updateInterval = options.updateInterval;
+      }
+    }
+  }
+
+  const setContext = vi.fn((context: Context) => {
+    activeContext = context;
+  });
+
+  const getContext = vi.fn(() => activeContext ?? new Context());
+
   return {
     start: vi.fn().mockResolvedValue(undefined),
     now: mockNow,
@@ -213,5 +268,8 @@ vi.mock('tone', () => {
     Compressor,
     Limiter,
     Meter,
+    Context,
+    setContext,
+    getContext,
   };
 });
