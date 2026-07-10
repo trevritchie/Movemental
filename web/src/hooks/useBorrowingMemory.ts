@@ -14,11 +14,13 @@ const BORROWING_LINE_COUNT = 4;
 interface UseBorrowingMemoryOptions {
   selectedChord: Chord | null;
   playAndDisplayChord: (chord: Chord, state: BorrowingState) => void;
+  initialBorrowingMemory?: 'global' | 'per-chord';
 }
 
 export function useBorrowingMemory({
   selectedChord,
   playAndDisplayChord,
+  initialBorrowingMemory = 'per-chord',
 }: UseBorrowingMemoryOptions) {
   const [borrowingState, setBorrowingState] = useState<BorrowingState>(
     getInitialBorrowingState()
@@ -31,7 +33,7 @@ export function useBorrowingMemory({
 
   const [borrowingMemory, setBorrowingMemoryState] = useState<
     'global' | 'per-chord'
-  >('per-chord');
+  >(initialBorrowingMemory);
   const [chordBorrowingStates, setChordBorrowingStates] = useState<
     Record<string, BorrowingState>
   >({});
@@ -111,6 +113,10 @@ export function useBorrowingMemory({
     [selectedChord]
   );
 
+  const clearChordBorrowingStates = useCallback(() => {
+    setChordBorrowingStates({});
+  }, []);
+
   return {
     borrowingState,
     setBorrowingState,
@@ -119,5 +125,6 @@ export function useBorrowingMemory({
     setBorrowingMemory,
     getBorrowingStateForChord,
     handleBorrowingStateChange,
+    clearChordBorrowingStates,
   };
 }

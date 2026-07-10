@@ -202,68 +202,112 @@ $$\text{Earth}_x \text{Wind}_y \text{Fire}_z \quad (\text{e.g., } \mathbf{Earth_
 
 ## Tone.js Audio Engine & DSP Signal Chain
 
-The application's synthesizer features an optimized **8-stage DSP Signal Chain** configured for high-fidelity stereo width, lush environments, and balanced small-diaphragm performance.
+The application's synthesizer features an optimized DSP signal chain with selectable **playback EQ** (Small Speakers / Large Speakers / Flat) and **instrument presets** (Warm Pad, Super Saw, Electric Cello).
 
 ```mermaid
 graph LR
-    Synth[1. PolySynth <br> fatsawtooth] --> Filter[2. Lowpass Filter <br> @ 900Hz, -12dB/oct]
-    Filter --> Chorus[3. Chorus <br> 1.5Hz, 0.7 depth]
-    Chorus --> Delay[4. Ping-Pong Delay <br> Dotted 4th, 0.25 feed]
-    Delay --> Reverb[5. Reverb <br> 3.5s decay]
-    Reverb --> EQ3[6. EQ3 <br> Laptop-Speaker Tune]
-    EQ3 --> Compressor[7. Compressor <br> Threshold -16dB]
-    Compressor --> Limiter[8. Limiter <br> Limit -1.5dB]
+    Synth[1. PolySynth] --> Filter[2. Lowpass Filter]
+    Filter --> Harmonic[2b. Harmonic Enhance optional]
+    Harmonic --> Chorus[3. Chorus]
+    Chorus --> Delay[4. Ping-Pong Delay]
+    Delay --> Reverb[5. Reverb]
+    Reverb --> EQ3[6. EQ3 Playback EQ]
+    EQ3 --> Compressor[7. Compressor]
+    Compressor --> Makeup[7a. Master Makeup]
+    Makeup --> Limiter[8. Limiter]
     Limiter --> Output[Destination]
-    
-    style EQ3 fill:#238636,stroke:#30363d,color:#ffffff
-    style Limiter fill:#851414,stroke:#30363d,color:#ffffff
 ```
 
+### Playback EQ (Settings → Sound Design)
+
+| Mode | Default platform | EQ | Harmonic Enhance | Loudness | Use case |
+|------|------------------|-----|------------------|----------|----------|
+| **Large Speakers** | (opt-in) | +2 dB low @ 100 Hz, +1 dB mid, -1.5 dB high | OFF | Synth -7 dB, makeup +4 dB, limiter -1 dBTP | Monitors, subwoofers, car stereos, PA |
+| **Small Speakers** | All platforms | -6 dB low @ 180 Hz, +3 dB mid, -2.5 dB high | ON: HPF 180 Hz → light distortion, 20% wet | Platform-adapted (see below) | Phones, laptops, built-in speakers |
+| **Flat** | (opt-in) | 0/0/0 dB reference | OFF | Synth -9 dB, makeup +2 dB, limiter -1 dBTP | Exports, calibration, A/B reference |
+
+**Platform defaults:** first visit opens in **Small Speakers** on all platforms. EQ and instrument preset choices are session-only (not persisted to localStorage).
+
+**Small Speakers platform adaptation:** the stored mode stays `smallSpeakers`, but effective DSP values differ by layout tier:
+
+| Parameter | Phone / tablet | Desktop (manual Small Speakers) |
+|-----------|----------------|----------------------------------|
+| Synth level | -4 dB | -7 dB |
+| Master makeup | +6 dB | +2 dB |
+| Harmonic wet / distortion | 0.2 / 0.15 | 0.08 / 0.08 |
+| Mid EQ | +3 dB | +2 dB |
+| FX scale | 0.8 | 0.85 |
+| Compressor threshold | -26 dB | -22 dB |
+
+Mobile adaptation targets louder perceived level on phone speakers; desktop adaptation reduces harmonic distortion and makeup so full-range monitors do not clip. Large Speakers and Flat are identical on all platforms.
+
+The harmonic enhance path uses a parallel high-passed distortion branch to generate upper harmonics in the 150–500 Hz range, helping low bass notes remain perceptible on devices that cannot reproduce sub-bass (missing-fundamental psychoacoustics).
+
+### Loudness and gain staging
+
+Perceived volume on phones is optimized through standard mastering practice, not by disabling the limiter:
+
+1. **Source level** — Synth voices use a Small Speakers reference level with per-preset matching so FM/AM timbres are not quieter than pads. Mobile adaptation runs hotter (-4 dB); desktop Small Speakers runs cooler (-7 dB).
+2. **FX balance** — Small Speakers scales chorus/reverb wet by platform (`0.8` mobile, `0.85` desktop) so more energy stays in the direct signal.
+3. **Bus compression** — Lower threshold with soft knee glues polyphonic chords (target 2–4 dB gain reduction on attacks). Mobile uses -26 dB; desktop Small Speakers uses -22 dB.
+4. **Master makeup gain** — Post-compressor `Tone.Gain` restores level (+6 dB mobile Small Speakers, +4 dB Large Speakers, +2 dB Flat and desktop Small Speakers).
+5. **Limiter** — Ceiling at -1.0 dBTP (EBU R128 / streaming-safe) catches peaks without brick-wall distortion.
+
+In development builds, post-makeup peak levels log to the console when notes play.
+
+Offline gain-staging and preset loudness tests: [`docs/gain-staging-tests.md`](docs/gain-staging-tests.md).
+
+### Instrument Presets
+
+Presets are defined in [`src/audio/synthPresets.ts`](src/audio/synthPresets.ts). Community JSON starting points are vendored from [Tonejs/Presets](https://github.com/Tonejs/Presets) (see [`PRESET_ATTRIBUTION.md`](src/audio/PRESET_ATTRIBUTION.md)). Vendored presets use their JSON voice parameters (oscillator, FM/AM settings, modulation envelopes) with app-tuned ADSR for chord playback. On preset switch, **Warm Pad** keeps default chorus/reverb; other presets start with bus FX dry.
+
+| Preset | Synth class | Character |
+|--------|-------------|-----------|
+| Warm Pad | `Synth` | Default fatsawtooth ambient pad |
+| Super Saw | `Synth` | Brighter detuned saw |
+| Electric Cello | `FMSynth` | Warm FM pad |
+
+FM presets use max polyphony of 8; `Synth` presets use 12.
+
 ### 1. Synthesizer Core (`PolySynth`)
-*   **Architecture**: PolySynth wrapping standard `Tone.Synth` (4x CPU gain compared to heavy multi-node synth configurations).
-*   **Oscillator**: `fatsawtooth` utilizing `3` detuned oscillators per voice, with a tight detune spread of `15` cents to ensure high-density analog warmth without losing clear harmonic focus.
-*   **Polyphony**: Max polyphony of `12` voices, designed for smooth 4-note polyphonic changes and long legato crossfading release overlaps.
-*   **ADSR Click-and-Hold Envelope**:
-    *   `Attack`: `0.08s` (prevents zero-crossing pops/clicks)
-    *   `Decay`: `1.5s`
-    *   `Sustain`: `0.6` (sits smoothly in the background)
-    *   `Release`: `1.2s` (ambient, trailing legato overlap)
-*   **Legato Drone Envelope**:
-    *   `Attack`: `3.5s` (luxurious, atmospheric swell)
-    *   `Decay`: `2.5s`
-    *   `Sustain`: `0.2`
-    *   `Release`: `0.2s` (rapid transition release to crossfade into new notes)
+*   **Architecture**: PolySynth wrapping `Tone.Synth`, `FMSynth`, `AMSynth`, or `MonoSynth` depending on the selected preset.
+*   **Default (Warm Pad)**: `fatsawtooth` with `3` detuned oscillators per voice, 15 cent spread.
+*   **Polyphony**: 12 voices for `Synth`, 8 for heavier synth classes.
 
 ### 2. Master Lowpass Filter
-*   **Configuration**: `Tone.Filter` set to `lowpass` with a `-12dB/octave` rolloff.
-*   **Cutoff Frequency**: `900Hz`.
-*   **Purpose**: Softens harsh high-register harmonics to produce rich, warm, ambient pad textures, preventing high-frequency small-speaker buzzing.
+*   **Configuration**: `Tone.Filter` lowpass, `-12dB/octave` rolloff.
+*   **Cutoff**: Per-preset (default `900Hz` for Warm Pad).
+
+### 2b. Harmonic Enhance (Small Speakers only)
+*   **Configuration**: Parallel path: highpass @ 180 Hz → `Tone.Distortion` (0.15) → 20% wet blend before chorus.
+*   **Purpose**: Adds midrange harmonics so low chord roots translate on phone/laptop speakers.
 
 ### 3. Stereo Chorus
-*   **Configuration**: LFO speed of `1.5Hz`, `3.5ms` delay time, LFO depth of `0.7`, and `0.35` default wet mix.
-*   **Purpose**: Employs an active stereo LFO to introduce high-end harmonic shimmer and wide stereo panning.
+*   **Configuration**: LFO `1.5Hz`, `3.5ms` delay, depth `0.7`, default `0.35` wet mix (user controllable).
 
 ### 4. Ping-Pong Delay
-*   **Configuration**: Feedback of `0.25` and rhythmic delay time of `"4n."` (dotted quarter notes), default `0.0` wet mix (user controllable).
-*   **Purpose**: Adds bouncy, rhythmically active echo tails that sit off-beat to expand spatial depth.
+*   **Configuration**: Dotted quarter (`"4n."`), feedback `0.25`, default dry (user controllable).
 
-### 5. Convolution & Algorithmic Reverb
-*   **Configuration**: Lush decay time of `3.5s`, `0.02s` pre-delay, and `0.30` default wet mix.
-*   **Purpose**: Generates expensive, diffuse spatial textures using asynchronous background impulse response calculation to keep the main application thread fluid.
+### 5. Reverb
+*   **Configuration**: `3.5s` decay, `0.02s` pre-delay, `0.30` default wet mix (user controllable).
 
-### 6. Laptop-Speaker Optimized EQ3
-*   **Configuration**:
-    *   **Low Shelf**: `-6dB` cut at `180Hz`. Prevents small, thin speaker diaphragms (found on laptops, iPads, and phones) from attempting to reproduce muddy bass frequencies, eliminating speaker rattle and harmonic distortion.
-    *   **Mid Peaking**: `+2.5dB` presence boost between `180Hz` and `2400Hz`. Accentuates midrange fundamental pitches, delivering warm, audible, and clear chord translation on built-in laptop/mobile speakers.
-    *   **High Shelf**: `-2.5dB` smooth high-frequency cut. Tames high-frequency click transients.
+### 6. EQ3 (Playback EQ)
+*   **Small Speakers**: Low cut, mid boost, high tame (see table above). Mid boost is +3 dB on phone/tablet, +2 dB when Small Speakers is selected on desktop.
+*   **Large Speakers**: Low/mid weight, high tame for full-range systems (see table above).
+*   **Flat**: Neutral 0/0/0 reference curve.
 
-### 7. Core Compressor
-*   **Configuration**: Threshold: `-16dB`, Ratio: `4.0`, Attack time: `0.03s`, Release time: `0.08s`.
-*   **Purpose**: Dynamically glues individual voices together, smoothing transient peaks and enhancing overall clarity.
+### 7. Compressor
+*   **Small Speakers**: Threshold `-26dB` mobile / `-22dB` desktop, ratio `3:1`, knee `6dB`.
+*   **Large Speakers**: Threshold `-22dB`, ratio `2.8:1`, knee `5dB`.
+*   **Flat**: Threshold `-20dB`, ratio `2.5:1`, knee `4dB`.
 
-### 8. Mastering Limiter
-*   **Configuration**: Threshold of `-1.5dB`.
-*   **Purpose**: Acts as a safety barrier against digital clipping, guaranteeing clear, pristine sound summing under any combination of voicings and shifting.
+### 7a. Master Makeup Gain
+*   **Small Speakers**: `+6dB` mobile / `+2dB` desktop post-compression restore.
+*   **Large Speakers**: `+4dB` post-compression restore.
+*   **Flat**: `+2dB` post-compression restore.
+
+### 8. Limiter
+*   **Configuration**: Ceiling `-1.0dBTP` on all EQ modes.
 
 ---
 
@@ -333,7 +377,8 @@ npm run lint
 ### Unit tests
 Run the Vitest suite (voicing engine, borrowing, playback helpers, components):
 ```bash
-npm test
+npm test              # unit project (mocked Tone)
+npm run test:audio    # offline bus renders (Playwright); see docs/gain-staging-tests.md
 ```
 
 ### Production Build

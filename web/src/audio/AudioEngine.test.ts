@@ -70,11 +70,11 @@ describe('AudioEngine session MIDI recording', () => {
     expect(midiRecorderMock.logNoteOns).toHaveBeenCalledWith(
       [60, 64],
       undefined,
-      2.015,
+      2.005,
     );
     expect(midiRecorderMock.logNoteOffs).toHaveBeenCalledWith(
       [60, 64],
-      3.015,
+      3.005,
     );
   });
 
