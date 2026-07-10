@@ -70,23 +70,14 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
   const showAdsrPanel = !isSamplerAdsrDisabled;
   const showEffectsPanel = !isSamplerInstrumentActive;
-
-  useEffect(() => {
-    if (!showAdsrPanel) {
-      setShowAdsr(false);
-    }
-  }, [showAdsrPanel]);
-
-  useEffect(() => {
-    if (!showEffectsPanel) {
-      setShowEffects(false);
-    }
-  }, [showEffectsPanel]);
+  const isAdsrExpanded = showAdsr && showAdsrPanel;
+  const isEffectsExpanded = showEffects && showEffectsPanel;
 
   const handlePresetSelect = useCallback(
     (id: string) => {
       setSynthPresetId(id);
       if (isSamplerPreset(getSynthPreset(id))) {
+        setShowAdsr(false);
         setShowEffects(false);
       }
     },
@@ -283,7 +274,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     <>
                       <button
                         type="button"
-                        className={`settings-menu-accordion${showAdsr ? ' active' : ''}`}
+                        className={`settings-menu-accordion${isAdsrExpanded ? ' active' : ''}`}
                         onClick={() => {
                           setShowAdsr(!showAdsr);
                           if (!showAdsr) {
@@ -291,11 +282,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                             setShowInstrument(false);
                           }
                         }}
-                        aria-expanded={showAdsr}
+                        aria-expanded={isAdsrExpanded}
                       >
                         {SETTINGS_RESET_GROUP_LABELS.envelopeAdsr}
                       </button>
-                      {showAdsr && (
+                      {isAdsrExpanded && (
                         <div className="settings-menu-accordion__panel">
                           <AdsrPanelContent idPrefix={idPrefix} />
                         </div>
@@ -306,7 +297,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     <>
                       <button
                         type="button"
-                        className={`settings-menu-accordion${showEffects ? ' active' : ''}`}
+                        className={`settings-menu-accordion${isEffectsExpanded ? ' active' : ''}`}
                         onClick={() => {
                           setShowEffects(!showEffects);
                           if (!showEffects) {
@@ -314,11 +305,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                             setShowInstrument(false);
                           }
                         }}
-                        aria-expanded={showEffects}
+                        aria-expanded={isEffectsExpanded}
                       >
                         {SETTINGS_RESET_GROUP_LABELS.synthEffects}
                       </button>
-                      {showEffects && (
+                      {isEffectsExpanded && (
                         <div className="settings-menu-accordion__panel">
                           <EffectsPanelContent idPrefix={idPrefix} />
                         </div>
