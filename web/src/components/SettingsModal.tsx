@@ -212,7 +212,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               <HelpPage
                 helpView={helpView}
                 onHelpViewChange={setHelpView}
-                onBackToSettings={closeModal}
                 onStartTour={handleStartTourFromHelp}
                 hasCompletedTour={hasCompletedTour}
               />

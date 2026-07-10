@@ -3,7 +3,6 @@
  */
 import React from 'react';
 import {
-  ArrowLeft,
   ArrowUpDown,
   BookOpen,
   Layers,
@@ -26,7 +25,6 @@ import {
 interface HelpPageProps {
   helpView: HelpView;
   onHelpViewChange: (view: HelpView) => void;
-  onBackToSettings: () => void;
   onStartTour: (options?: { restart?: boolean }) => void;
   hasCompletedTour: boolean;
 }
@@ -34,7 +32,6 @@ interface HelpPageProps {
 export const HelpPage: React.FC<HelpPageProps> = ({
   helpView,
   onHelpViewChange,
-  onBackToSettings,
   onStartTour,
   hasCompletedTour,
 }) => {
@@ -64,18 +61,6 @@ export const HelpPage: React.FC<HelpPageProps> = ({
 
   return (
     <div className="help-page">
-      <div className="help-page__toolbar">
-        <button
-          type="button"
-          className="help-page__back"
-          onClick={onBackToSettings}
-          aria-label="Close help"
-        >
-          <ArrowLeft size={18} />
-          <span>Close</span>
-        </button>
-      </div>
-
       <div className="help-page__tour-actions">
         <button
           type="button"
