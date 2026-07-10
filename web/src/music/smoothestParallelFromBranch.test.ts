@@ -11,7 +11,6 @@ import {
   buildSmoothestParallelFromBranchTable,
   computeSmoothestParallelFromBranch,
 } from './smoothestParallelFromBranch';
-import { getChordQuality } from './chordQuality';
 import { BASE_GROUPS, CHORD_TO_GROUP, SLICE_VARIANTS } from './diagramMetadata';
 import { ELEMENTAL_NAMES } from './elementalRoot';
 import {
@@ -53,55 +52,10 @@ function orderedChordEntries(
   return entries;
 }
 
-function formatGroupedTsLines(table: Record<string, number>): string[] {
-  const lines: string[] = [];
-  lines.push('  // Elemental diminished (triangle corners)');
-  for (const element of ELEMENTAL_NAMES) {
-    if (element === 'Wind') {
-      lines.push(
-        `  '${element}': ${table[element]},  // Smoothest; Smooth CHORD_FLAT_PARALLEL uses -2`
-      );
-    } else {
-      lines.push(`  '${element}': ${table[element]},`);
-    }
-  }
-  lines.push('');
-  for (const group of BASE_GROUPS) {
-    const quality = getChordQuality(group).trim();
-    const edge = EDGE_LABELS[group] ?? '';
-    lines.push(`  // ${edge}, ${group} (${quality})`);
-    for (const variant of SLICE_VARIANTS) {
-      const name = `${variant.prefix}${group}`;
-      lines.push(`  '${name}': ${table[name]},`);
-    }
-    lines.push('');
-  }
-  return lines;
-}
-
-function writeSmoothestFlatTableArtifacts(
+function writeSmoothestFlatTableMarkdown(
   manager: ChordManager,
   table: Record<string, number>
 ): void {
-  const groupedLines = formatGroupedTsLines(table);
-  writeFileSync(
-    join(docsDir, 'smoothest-flat-parallel-from-branch.txt'),
-    [
-      '# Generated: Smoothest parallel steps from flat double-octave Branch',
-      '# Tonal center: Bb (10), home octave: 2, contrary anchor',
-      '# Edit predeterminedVoiceLeading.ts CHORD_FLAT_PARALLEL to override Smooth defaults.',
-      '',
-      'export const CHORD_FLAT_PARALLEL = {',
-      ...groupedLines,
-      '};',
-      '',
-      '# Smooth Wind overrides (see smoothest-flat-parallel-from-branch.md):',
-      "#   CHORD_FLAT_PARALLEL['Wind'] = -2 (5th in bass at flat tilt)",
-      '#   Navigating to Wind from Earth-Wind or Wind-Fire (non-opposite): -1 (6th)',
-      '',
-    ].join('\n')
-  );
-
   const ordered = orderedChordEntries(table);
   const mdSections: string[] = [];
   let currentSection = '';
@@ -142,7 +96,7 @@ function writeSmoothestFlatTableArtifacts(
       '',
       'To change Smooth mode defaults, edit `CHORD_FLAT_PARALLEL` in',
       '`web/src/music/predeterminedVoiceLeading.ts`. Re-run the vitest',
-      '`writes smoothest-from-branch table artifacts for review` test in',
+      '`writes smoothest-from-branch table markdown for review` test in',
       '`smoothestParallelFromBranch.test.ts` to regenerate this file.',
       '',
       ...mdSections,
@@ -189,9 +143,9 @@ describe('computeSmoothestParallelFromBranch', () => {
     }
   });
 
-  it('writes smoothest-from-branch table artifacts for review', () => {
+  it('writes smoothest-from-branch table markdown for review', () => {
     const table = buildSmoothestParallelFromBranchTable(manager);
-    writeSmoothestFlatTableArtifacts(manager, table);
+    writeSmoothestFlatTableMarkdown(manager, table);
     expect(table.Branch).toBe(0);
     expect(Object.keys(table)).toHaveLength(51);
   });

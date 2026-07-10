@@ -285,6 +285,13 @@ export function getSectionDefaults<S extends SettingsSectionId>(
   return collectSectionDefaults(sectionId);
 }
 
+/** Session default: tilt uses smooth, no-tilt uses smoothest (matches splash). */
+export function getDefaultVoiceLeadingMode(
+  tiltModeEnabled: boolean,
+): VoiceLeadingMode {
+  return tiltModeEnabled ? 'smooth' : 'smoothest';
+}
+
 function validateSection<S extends SettingsSectionId>(
   sectionId: S,
   rawSection: unknown

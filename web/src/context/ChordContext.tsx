@@ -36,6 +36,7 @@ import type { SynthPreset } from '../audio/synthPresets';
 import type { PlayStyle, VoiceLeadingMode } from './types';
 import { loadUserSettings, clearUserSettings } from '../settings/userSettingsStorage';
 import {
+  getDefaultVoiceLeadingMode,
   getSectionDefaults,
   SETTINGS_SECTION_IDS,
   type SettingsSectionId,
@@ -310,13 +311,19 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
 
   const resetSettingsSection = useCallback(
     (sectionId: SettingsSectionId) => {
-      const defaults = getSectionDefaults(sectionId);
+      const defaults =
+        sectionId === 'voiceLeading'
+          ? {
+              ...getSectionDefaults('voiceLeading'),
+              mode: getDefaultVoiceLeadingMode(playback.tiltModeEnabled),
+            }
+          : getSectionDefaults(sectionId);
       for (const [key, value] of Object.entries(defaults)) {
         applySetting[key as SettingKey](value as never);
       }
       runSectionSideEffects(sectionId);
     },
-    [applySetting, runSectionSideEffects]
+    [applySetting, runSectionSideEffects, playback.tiltModeEnabled]
   );
 
   const resetAllSettings = useCallback(() => {

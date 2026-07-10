@@ -11,12 +11,21 @@ vi.mock('../audio/AudioEngine', () => ({
     setDelayWet: vi.fn(),
     setReverbWet: vi.fn(),
     setEnvelope: vi.fn(),
+    setSamplerNaturalEnvelope: vi.fn(),
+    setOutputProfile: vi.fn(),
+    applyEnvelopeSettings: vi.fn(),
+    applyPreset: vi.fn().mockResolvedValue(undefined),
+    getSynthPresetId: vi.fn(() => 'trumpet'),
     releaseActiveNotes: vi.fn(),
     playChord: vi.fn(),
     startDrone: vi.fn(),
     stopDrone: vi.fn(),
     startContext: vi.fn(),
   },
+}));
+
+vi.mock('../hooks/useLayoutTier', () => ({
+  useLayoutTier: vi.fn(() => 'desktop'),
 }));
 
 vi.mock('../hooks/useDeviceTilt', () => ({
@@ -35,6 +44,15 @@ function wrapper({ children }: { children: React.ReactNode }) {
 describe('ChordProvider persistence', () => {
   beforeEach(() => {
     localStorage.clear();
+    Object.defineProperty(window, 'matchMedia', {
+      writable: true,
+      value: vi.fn().mockImplementation((query: string) => ({
+        matches: false,
+        media: query,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+      })),
+    });
   });
 
   it('initializes from saved settings including instrument preset', () => {
@@ -110,5 +128,54 @@ describe('ChordProvider persistence', () => {
       DEFAULT_USER_SETTINGS.soundDesign.chorusWet
     );
     expect(localStorage.getItem(STORAGE_KEY)).toBeNull();
+  });
+
+  it('resetSettingsSection voiceLeading uses smoothest in no-tilt session', () => {
+    const { result } = renderHook(() => useChordContext(), { wrapper });
+
+    act(() => {
+      result.current.enterNoTiltSession();
+      result.current.setVoiceLeadingMode('root_position');
+    });
+
+    act(() => {
+      result.current.resetSettingsSection('voiceLeading');
+    });
+
+    expect(result.current.voiceLeadingMode).toBe('smoothest');
+  });
+
+  it('resetSettingsSection voiceLeading uses smooth in tilt session', () => {
+    const { result } = renderHook(() => useChordContext(), { wrapper });
+
+    act(() => {
+      result.current.enterTiltSession();
+      result.current.setVoiceLeadingMode('root_position');
+    });
+
+    act(() => {
+      result.current.resetSettingsSection('voiceLeading');
+    });
+
+    expect(result.current.voiceLeadingMode).toBe('smooth');
+  });
+
+  it('resetAllSettings uses session voice leading default in no-tilt', () => {
+    saveUserSettings({
+      ...DEFAULT_USER_SETTINGS,
+      voiceLeading: { mode: 'root_position' },
+    });
+
+    const { result } = renderHook(() => useChordContext(), { wrapper });
+
+    act(() => {
+      result.current.enterNoTiltSession();
+    });
+
+    act(() => {
+      result.current.resetAllSettings();
+    });
+
+    expect(result.current.voiceLeadingMode).toBe('smoothest');
   });
 });

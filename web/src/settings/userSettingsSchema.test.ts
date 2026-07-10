@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   DEFAULT_USER_SETTINGS,
   getDefaultSoundDesignSettings,
+  getDefaultVoiceLeadingMode,
   getSectionDefaults,
   validateLoadedSettings,
 } from './userSettingsSchema';
@@ -80,6 +81,11 @@ describe('userSettingsSchema', () => {
 
     expect(result.soundDesign.synthPresetId).toBe('warmPad');
     expect(result.soundDesign.eqProfileId).toBe('flat');
+  });
+
+  it('getDefaultVoiceLeadingMode follows session tilt mode', () => {
+    expect(getDefaultVoiceLeadingMode(true)).toBe('smooth');
+    expect(getDefaultVoiceLeadingMode(false)).toBe('smoothest');
   });
 
   it('validateLoadedSettings accepts valid partial overrides', () => {
