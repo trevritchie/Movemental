@@ -8,7 +8,7 @@ export type SamplerInstrumentCategoryId =
   | 'strings'
   | 'woodwinds'
   | 'brass'
-  | 'harpAndPercussion'
+  | 'percussion'
   | 'other';
 
 export interface SamplerInstrumentCategory {
@@ -31,6 +31,7 @@ export const SAMPLER_INSTRUMENT_CATEGORIES: readonly SamplerInstrumentCategory[]
       presetIds: [
         'violin',
         'cello',
+        'harp',
         'guitar-nylon',
         'guitar-acoustic',
         'guitar-electric',
@@ -47,9 +48,9 @@ export const SAMPLER_INSTRUMENT_CATEGORIES: readonly SamplerInstrumentCategory[]
       presetIds: ['trumpet', 'trombone', 'french-horn', 'tuba'],
     },
     {
-      id: 'harpAndPercussion',
-      label: 'Harp & Percussion',
-      presetIds: ['harp', 'xylophone'],
+      id: 'percussion',
+      label: 'Percussion',
+      presetIds: ['xylophone'],
     },
   ];
 

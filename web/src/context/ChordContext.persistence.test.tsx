@@ -160,6 +160,54 @@ describe('ChordProvider persistence', () => {
     expect(result.current.voiceLeadingMode).toBe('smooth');
   });
 
+  it('resetSettingsGroup restores only play style', () => {
+    saveUserSettings({
+      ...DEFAULT_USER_SETTINGS,
+      general: {
+        tonalCenter: 4,
+        octaveRange: 3,
+        playStyle: 'click_and_hold',
+      },
+    });
+
+    const { result } = renderHook(() => useChordContext(), { wrapper });
+
+    act(() => {
+      result.current.resetSettingsGroup('playStyle');
+    });
+
+    expect(result.current.playStyle).toBe(
+      DEFAULT_USER_SETTINGS.general.playStyle,
+    );
+    expect(result.current.tonalCenter).toBe(4);
+    expect(result.current.octaveRange).toBe(3);
+  });
+
+  it('resetSettingsGroup restores tonal center note and octave together', () => {
+    saveUserSettings({
+      ...DEFAULT_USER_SETTINGS,
+      general: {
+        tonalCenter: 4,
+        octaveRange: 3,
+        playStyle: 'click_and_hold',
+      },
+    });
+
+    const { result } = renderHook(() => useChordContext(), { wrapper });
+
+    act(() => {
+      result.current.resetSettingsGroup('tonalCenter');
+    });
+
+    expect(result.current.tonalCenter).toBe(
+      DEFAULT_USER_SETTINGS.general.tonalCenter,
+    );
+    expect(result.current.octaveRange).toBe(
+      DEFAULT_USER_SETTINGS.general.octaveRange,
+    );
+    expect(result.current.playStyle).toBe('click_and_hold');
+  });
+
   it('resetAllSettings uses session voice leading default in no-tilt', () => {
     saveUserSettings({
       ...DEFAULT_USER_SETTINGS,

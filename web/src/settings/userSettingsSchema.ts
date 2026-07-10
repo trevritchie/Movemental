@@ -42,11 +42,11 @@ export const SETTINGS_SECTION_IDS: readonly SettingsSectionId[] = [
 ] as const;
 
 export const SETTINGS_SECTION_LABELS: Record<SettingsSectionId, string> = {
-  general: 'General',
-  clockFace: 'Clock Face',
+  general: 'Playback',
+  clockFace: 'Clock Face Diagram',
   voiceLeading: 'Voice Leading',
   voiceBorrowing: 'Voice Borrowing',
-  soundDesign: 'Sound Design',
+  soundDesign: 'Sound',
 };
 
 export type BorrowingMemoryMode = 'global' | 'per-chord';

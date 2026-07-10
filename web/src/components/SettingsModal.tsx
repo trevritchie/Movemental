@@ -2,7 +2,7 @@ import React, { useCallback, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Maximize2, Minimize2, X } from 'lucide-react';
 import { NOTE_NAMES_FLAT, OCTAVE_RANGE_OPTIONS } from '../music/config';
-import { useChordContext, type PlayStyle } from '../context/ChordContext';
+import { useChordContext } from '../context/ChordContext';
 import { useBodyScrollLock } from '../hooks/useBodyScrollLock';
 import { useFullscreen } from '../hooks/useFullscreen';
 import { AdsrPanelContent } from './settings/AdsrPanelContent';
@@ -11,8 +11,10 @@ import { BorrowingMemoryToggle } from './settings/BorrowingMemoryToggle';
 import { VoiceLeadingToggle } from './settings/VoiceLeadingToggle';
 import { ClockLayoutToggle } from './settings/ClockLayoutToggle';
 import { EqProfileToggle } from './settings/EqProfileToggle';
+import { PlayStyleToggle } from './settings/PlayStyleToggle';
 import { InstrumentPresetPicker } from './settings/InstrumentPresetPicker';
-import { SettingsSectionHeader } from './settings/SettingsSectionHeader';
+import { SettingsSettingHeader } from './settings/SettingsSettingHeader';
+import { SETTINGS_RESET_GROUP_LABELS } from '../settings/settingsResetGroups';
 import { IosInstallHintPortal } from './IosInstallHintPortal';
 import { isIphone } from '../utils/devicePlatform';
 import { getSynthPreset, isSamplerPreset } from '../audio/synthPresets';
@@ -43,14 +45,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     setTonalCenter,
     octaveRange,
     setOctaveRange,
-    playStyle,
-    setPlayStyle,
     synthPresetId,
     setSynthPresetId,
     synthPresets,
     isSamplerInstrumentActive,
     isSamplerAdsrDisabled,
-    resetSettingsSection,
+    resetSettingsGroup,
     resetAllSettings,
   } = useChordContext();
 
@@ -91,13 +91,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       }
     },
     [setSynthPresetId],
-  );
-
-  const handlePlayStyleChange = useCallback(
-    (style: PlayStyle) => {
-      setPlayStyle(style);
-    },
-    [setPlayStyle],
   );
 
   const idPrefix = `${menuId}-`;
@@ -249,67 +242,22 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   </section>
                 )}
 
-                <section className="settings-menu-section">
-                  <SettingsSectionHeader
-                    sectionId="general"
-                    onReset={resetSettingsSection}
+                <div className="settings-menu-setting">
+                  <SettingsSettingHeader
+                    groupId="playStyle"
+                    onReset={resetSettingsGroup}
                   />
-                  <div className="settings-menu-fields">
-                    <label className="settings-menu-field">
-                      <span className="settings-menu-field__label">
-                        Tonal Center
-                      </span>
-                      <select
-                        value={tonalCenter}
-                        onChange={(e) => setTonalCenter(Number(e.target.value))}
-                      >
-                        {NOTE_NAMES_FLAT.map((note, idx) => (
-                          <option key={idx} value={idx}>
-                            {note}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-
-                    <label className="settings-menu-field">
-                      <span className="settings-menu-field__label">
-                        Home Octave
-                      </span>
-                      <select
-                        value={octaveRange}
-                        onChange={(e) => setOctaveRange(Number(e.target.value))}
-                      >
-                        {OCTAVE_RANGE_OPTIONS.map((o) => (
-                          <option key={o} value={o}>
-                            Octave {o}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-
-                    <label className="settings-menu-field">
-                      <span className="settings-menu-field__label">
-                        Play Style
-                      </span>
-                      <select
-                        value={playStyle}
-                        onChange={(e) =>
-                          handlePlayStyleChange(e.target.value as PlayStyle)
-                        }
-                      >
-                        <option value="click_and_hold">Click & Hold</option>
-                        <option value="drone">Drone</option>
-                      </select>
-                    </label>
+                  <div className="settings-menu-section__panel">
+                    <PlayStyleToggle />
                   </div>
-                </section>
+                </div>
 
-                <section className="settings-menu-section">
-                  <SettingsSectionHeader
-                    sectionId="soundDesign"
-                    onReset={resetSettingsSection}
+                <div className="settings-menu-setting">
+                  <SettingsSettingHeader
+                    groupId="instrument"
+                    onReset={resetSettingsGroup}
                   />
-                  <EqProfileToggle />
+                  <div className="settings-menu-section__panel">
                   <button
                     type="button"
                     className={`settings-menu-accordion${showInstrument ? ' active' : ''}`}
@@ -321,18 +269,14 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                       }
                     }}
                     aria-expanded={showInstrument}
+                    aria-label={`Instrument: ${selectedInstrumentName}`}
                   >
-                    <span className="settings-menu-accordion__row">
-                      <span>Instrument</span>
-                      {!showInstrument && (
-                        <span className="settings-menu-accordion__value">
-                          {selectedInstrumentName}
-                        </span>
-                      )}
+                    <span className="settings-menu-accordion__value">
+                      {selectedInstrumentName}
                     </span>
                   </button>
                   {showInstrument && (
-                    <div className="settings-menu-accordion__panel">
+                    <div className="settings-menu-accordion__panel settings-menu-accordion__panel--instrument">
                       <InstrumentPresetPicker onPresetSelect={handlePresetSelect} />
                     </div>
                   )}
@@ -350,7 +294,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                         }}
                         aria-expanded={showAdsr}
                       >
-                        Envelope (ADSR)
+                        {SETTINGS_RESET_GROUP_LABELS.envelopeAdsr}
                       </button>
                       {showAdsr && (
                         <div className="settings-menu-accordion__panel">
@@ -373,7 +317,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                         }}
                         aria-expanded={showEffects}
                       >
-                        Synth Effects
+                        {SETTINGS_RESET_GROUP_LABELS.synthEffects}
                       </button>
                       {showEffects && (
                         <div className="settings-menu-accordion__panel">
@@ -382,42 +326,94 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                       )}
                     </>
                   )}
-                </section>
+                  </div>
+                </div>
 
-                <section className="settings-menu-section">
-                  <SettingsSectionHeader
-                    sectionId="voiceLeading"
-                    onReset={resetSettingsSection}
+                <div className="settings-menu-setting">
+                  <SettingsSettingHeader
+                    groupId="eq"
+                    onReset={resetSettingsGroup}
                   />
+                  <div className="settings-menu-section__panel">
+                  <EqProfileToggle />
+                  </div>
+                </div>
+
+                <div className="settings-menu-setting">
+                  <SettingsSettingHeader
+                    groupId="tonalCenter"
+                    onReset={resetSettingsGroup}
+                  />
+                  <div className="settings-menu-section__panel">
+                  <div className="settings-menu-tonal-center">
+                    <select
+                      className="settings-menu-tonal-center__note"
+                      value={tonalCenter}
+                      onChange={(e) => setTonalCenter(Number(e.target.value))}
+                      aria-label="Tonal center note"
+                    >
+                      {NOTE_NAMES_FLAT.map((note, idx) => (
+                        <option key={idx} value={idx}>
+                          {note}
+                        </option>
+                      ))}
+                    </select>
+                    <select
+                      className="settings-menu-tonal-center__octave"
+                      value={octaveRange}
+                      onChange={(e) => setOctaveRange(Number(e.target.value))}
+                      aria-label="Tonal center octave"
+                    >
+                      {OCTAVE_RANGE_OPTIONS.map((o) => (
+                        <option key={o} value={o}>
+                          {o}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  </div>
+                </div>
+
+                <div className="settings-menu-setting">
+                  <SettingsSettingHeader
+                    groupId="voiceLeading"
+                    onReset={resetSettingsGroup}
+                  />
+                  <div className="settings-menu-section__panel">
                   <p className="settings-menu-section__hint">
                     Choose how parallel position is set when you move between
                     chords.
                   </p>
                   <VoiceLeadingToggle />
-                </section>
+                  </div>
+                </div>
 
-                <section className="settings-menu-section">
-                  <SettingsSectionHeader
-                    sectionId="voiceBorrowing"
-                    onReset={resetSettingsSection}
+                <div className="settings-menu-setting">
+                  <SettingsSettingHeader
+                    groupId="voiceBorrowing"
+                    onReset={resetSettingsGroup}
                   />
+                  <div className="settings-menu-section__panel">
                   <p className="settings-menu-section__hint">
                     Choose whether borrowing settings are remembered per chord or
                     shared globally.
                   </p>
                   <BorrowingMemoryToggle />
-                </section>
+                  </div>
+                </div>
 
-                <section className="settings-menu-section">
-                  <SettingsSectionHeader
-                    sectionId="clockFace"
-                    onReset={resetSettingsSection}
+                <div className="settings-menu-setting">
+                  <SettingsSettingHeader
+                    groupId="clockFace"
+                    onReset={resetSettingsGroup}
                   />
+                  <div className="settings-menu-section__panel">
                   <p className="settings-menu-section__hint">
-                    Choose how note positions are arranged on the diagram.
+                    Choose how note names are arranged around the diagram.
                   </p>
                   <ClockLayoutToggle />
-                </section>
+                  </div>
+                </div>
 
                 <div className="settings-menu-reset-all">
                   <button

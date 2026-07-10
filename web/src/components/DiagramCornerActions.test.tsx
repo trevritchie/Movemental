@@ -168,9 +168,10 @@ describe('DiagramCornerActions', () => {
     render(<DiagramCornerActions />);
     await openSettingsFromToolbar();
 
-    expect(screen.getByRole('option', { name: 'Drone' })).toBeInTheDocument();
-    expect(screen.getByRole('option', { name: /click/i })).toBeInTheDocument();
-    expect(screen.queryByRole('option', { name: 'Tilt' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Drone' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /click & hold/i }),
+    ).toBeInTheDocument();
   });
 
   it('calls panic stop without opening the menu', () => {
@@ -184,7 +185,7 @@ describe('DiagramCornerActions', () => {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
-  it('calls toggleFullscreen from settings General section', async () => {
+  it('calls toggleFullscreen from settings without opening help', async () => {
     render(<DiagramCornerActions />);
 
     await openSettingsFromToolbar();

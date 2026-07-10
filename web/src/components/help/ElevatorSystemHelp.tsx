@@ -72,9 +72,9 @@ export const ElevatorSystemHelp: React.FC<ElevatorSystemHelpProps> = ({
       </p>
       <HelpCallout label="In Movemental: tilt and no-tilt">
         In Tilt mode, phone <strong>roll</strong> steps through the nine
-        voicing floors (the Voicing readout). Phone <strong>pitch</strong>{' '}
+        voicing floors (the VOICING readout). Phone <strong>pitch</strong>{' '}
         moves parallel positions and sets IN THE BASS. No Tilt mode reaches the
-        same floors from the Voicing and IN THE BASS dropdowns on the diagram.
+        same floors from the VOICING and IN THE BASS dropdowns on the diagram.
       </HelpCallout>
       {ELEVATOR_MOTION_TOPICS.map((topic) => (
         <div key={topic.title} className="help-article__subsection">
@@ -110,7 +110,7 @@ export const ElevatorSystemHelp: React.FC<ElevatorSystemHelpProps> = ({
     </section>
 
     <section className="help-page__section">
-      <h3 className="help-page__section-title">Voicing and the bass</h3>
+      <h3 className="help-page__section-title">Voicing and the bass note</h3>
       <p>{ELEVATOR_VOICING_BASS_NOTE}</p>
     </section>
   </HelpArticleLayout>

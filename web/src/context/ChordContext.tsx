@@ -42,6 +42,10 @@ import {
   type SettingsSectionId,
   type SettingKey,
 } from '../settings/userSettingsSchema';
+import {
+  getSettingsGroupDefaults,
+  type SettingsResetGroupId,
+} from '../settings/settingsResetGroups';
 
 export type { ClockLayoutMode, PlayStyle, VoiceLeadingMode } from './types';
 
@@ -115,6 +119,7 @@ interface ChordContextType {
   toggleNoTiltVoicingLock: () => void;
   toggleNoTiltBassLock: () => void;
   resetSettingsSection: (sectionId: SettingsSectionId) => void;
+  resetSettingsGroup: (groupId: SettingsResetGroupId) => void;
   resetAllSettings: () => void;
 }
 
@@ -333,6 +338,42 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
     [applySetting, runSectionSideEffects, playback.tiltModeEnabled]
   );
 
+  const resetSettingsGroup = useCallback(
+    (groupId: SettingsResetGroupId) => {
+      if (groupId === 'instrument') {
+        const { synthPresetId } = getSettingsGroupDefaults('instrument', {
+          tiltModeEnabled: playback.tiltModeEnabled,
+          synthPresetId: audio.synthPresetId,
+        });
+        audio.setSynthPresetId(synthPresetId as string);
+        return;
+      }
+
+      const defaults = getSettingsGroupDefaults(groupId, {
+        tiltModeEnabled: playback.tiltModeEnabled,
+        synthPresetId: audio.synthPresetId,
+      });
+
+      for (const [key, value] of Object.entries(defaults)) {
+        applySetting[key as SettingKey](value as never);
+      }
+
+      if (groupId === 'voiceLeading') {
+        resetVoiceLeadingSession();
+      } else if (groupId === 'voiceBorrowing') {
+        clearChordBorrowingStates();
+      }
+    },
+    [
+      applySetting,
+      audio.synthPresetId,
+      audio.setSynthPresetId,
+      playback.tiltModeEnabled,
+      resetVoiceLeadingSession,
+      clearChordBorrowingStates,
+    ],
+  );
+
   const resetAllSettings = useCallback(() => {
     clearUserSettings();
     for (const sectionId of SETTINGS_SECTION_IDS) {
@@ -517,6 +558,7 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
       toggleNoTiltVoicingLock: noTiltLocks.toggleVoicingLock,
       toggleNoTiltBassLock: noTiltLocks.toggleBassLock,
       resetSettingsSection,
+      resetSettingsGroup,
       resetAllSettings,
     }),
     [
@@ -585,6 +627,7 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
       noTiltLocks.setNoTiltVoicingLevel,
       noTiltLocks.setNoTiltPositionLevel,
       resetSettingsSection,
+      resetSettingsGroup,
       resetAllSettings,
     ]
   );

@@ -23,17 +23,17 @@ export const EqProfileToggle: React.FC = () => {
   return (
     <div className="eq-profile-toggle">
       <div className="memory-toggle">
-        {EQ_PROFILE_ORDER.map((id) => (
-          <button
-            key={id}
-            type="button"
-            className={`memory-btn ${eqProfileId === id ? 'active' : ''}`}
-            onClick={() => setEqProfileId(id)}
-            aria-pressed={eqProfileId === id}
-          >
-            {OUTPUT_PROFILES[id].label}
-          </button>
-        ))}
+          {EQ_PROFILE_ORDER.map((id) => (
+            <button
+              key={id}
+              type="button"
+              className={`memory-btn ${eqProfileId === id ? 'active' : ''}`}
+              onClick={() => setEqProfileId(id)}
+              aria-pressed={eqProfileId === id}
+            >
+              {OUTPUT_PROFILES[id].label}
+            </button>
+          ))}
       </div>
       <p className="voice-leading-mode-desc" role="status" aria-live="polite">
         {EQ_PROFILE_DESCRIPTIONS[eqProfileId]}

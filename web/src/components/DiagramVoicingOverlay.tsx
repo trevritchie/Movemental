@@ -258,7 +258,7 @@ export const DiagramVoicingOverlay: React.FC = () => {
         {renderVoicingValue()}
       </DiagramOverlayPill>
       <DiagramOverlayPill
-        label="IN THE BASS"
+        label="In the bass"
         corner="top-right"
         sizerText={TILT_BASS_DEGREE_MOBILE_MAX_LABEL}
         dataTourId="tour-bass"

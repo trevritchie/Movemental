@@ -156,7 +156,7 @@ export const HelpPage: React.FC<HelpPageProps> = ({
       </section>
 
       <section className="help-page__section">
-        <h4 className="help-page__section-title">Voicing and IN THE BASS</h4>
+        <h4 className="help-page__section-title">VOICING and IN THE BASS</h4>
         <p>
           {tiltModeEnabled
             ? HELP_HUB_VOICING_TILT_BODY
@@ -172,7 +172,7 @@ export const HelpPage: React.FC<HelpPageProps> = ({
       <section className="help-page__section">
         <h4 className="help-page__section-title">Tilt vs No Tilt</h4>
         <p>
-          Tilt mode (phone) uses motion sensors for voicing and bass. No Tilt
+          Tilt mode (phone) uses motion sensors for voicing and bass note selection. No Tilt
           mode uses manual dropdowns and locks. Desktop Start always enters No
           Tilt with smoothest voice leading.
         </p>

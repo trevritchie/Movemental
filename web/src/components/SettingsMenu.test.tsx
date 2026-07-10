@@ -52,7 +52,7 @@ vi.mock('../context/ChordContext', () => ({
     setEqProfileId: vi.fn(),
     isSamplerInstrumentActive: false,
     isSamplerAdsrDisabled: false,
-    resetSettingsSection: vi.fn(),
+    resetSettingsGroup: vi.fn(),
     resetAllSettings: vi.fn(),
   }),
 }));
@@ -159,6 +159,34 @@ describe('MobileActionButtons', () => {
     expect(screen.getByText('Voice Borrowing')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /per chord/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /^global$/i })).toBeInTheDocument();
+  });
+
+  it('lists settings with per-setting headers and reset buttons', async () => {
+    render(<MobileActionButtons />);
+
+    await openSettingsFromToolbar();
+    const dialog = screen.getByRole('dialog', { name: 'Settings' });
+    const text = dialog.textContent ?? '';
+    const instrumentIndex = text.indexOf('Instrument');
+    const playStyleIndex = text.indexOf('Play Style');
+    const tonalCenterIndex = text.indexOf('Tonal Center');
+    const voiceLeadingIndex = text.indexOf('Voice Leading');
+    const clockFaceIndex = text.indexOf('Clock Face Diagram');
+
+    expect(instrumentIndex).toBeGreaterThan(-1);
+    expect(playStyleIndex).toBeGreaterThan(-1);
+    expect(playStyleIndex).toBeLessThan(instrumentIndex);
+    expect(tonalCenterIndex).toBeGreaterThan(playStyleIndex);
+    expect(voiceLeadingIndex).toBeGreaterThan(tonalCenterIndex);
+    expect(clockFaceIndex).toBeGreaterThan(voiceLeadingIndex);
+    expect(screen.queryByText('Sound')).not.toBeInTheDocument();
+    expect(screen.queryByText('Playback')).not.toBeInTheDocument();
+    expect(
+      screen.getAllByRole('button', { name: /reset .* to defaults/i }).length,
+    ).toBeGreaterThanOrEqual(7);
+    expect(
+      screen.getByRole('heading', { level: 3, name: 'Voice Leading' }),
+    ).toBeInTheDocument();
   });
 
   it('opens help directly from the toolbar without showing settings', async () => {
