@@ -8,7 +8,7 @@ const EQ_PROFILE_DESCRIPTIONS: Record<EqProfileId, string> = {
   largeSpeakers:
     'Tuned for studio monitors, subwoofers, car stereos, and PA systems. Adds low-end weight and gentle warmth without small-speaker translation.',
   flat:
-    'Neutral reference with no EQ coloration or harmonic enhancement. Best for exports, calibration, and A/B comparison.',
+    'Neutral reference with no EQ or harmonic enhancement. Best for exports to a DAW for further processing.',
 };
 
 const EQ_PROFILE_ORDER: EqProfileId[] = [

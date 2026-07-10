@@ -24,11 +24,6 @@ export const ClockLayoutToggle: React.FC = () => {
           Circle of Fifths
         </button>
       </div>
-      <p className="clock-layout-mode-desc" role="status" aria-live="polite">
-        {clockLayoutMode === 'chromatic'
-          ? 'Notes are arranged by semitone around the clock.'
-          : 'Notes are arranged by perfect fifth around the clock.'}
-      </p>
     </div>
   );
 };

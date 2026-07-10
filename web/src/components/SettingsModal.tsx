@@ -68,8 +68,20 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const [helpView, setHelpView] = React.useState<HelpView>('hub');
   const { startTour, hasCompletedTour } = useTour();
 
-  const adsrExpanded = showAdsr && !isSamplerAdsrDisabled;
-  const effectsExpanded = showEffects && !isSamplerInstrumentActive;
+  const showAdsrPanel = !isSamplerAdsrDisabled;
+  const showEffectsPanel = !isSamplerInstrumentActive;
+
+  useEffect(() => {
+    if (!showAdsrPanel) {
+      setShowAdsr(false);
+    }
+  }, [showAdsrPanel]);
+
+  useEffect(() => {
+    if (!showEffectsPanel) {
+      setShowEffects(false);
+    }
+  }, [showEffectsPanel]);
 
   const handlePresetSelect = useCallback(
     (id: string) => {
@@ -84,11 +96,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const handlePlayStyleChange = useCallback(
     (style: PlayStyle) => {
       setPlayStyle(style);
-      if (style === 'drone' && isSamplerInstrumentActive) {
-        setShowAdsr(false);
-      }
     },
-    [isSamplerInstrumentActive, setPlayStyle],
+    [setPlayStyle],
   );
 
   const idPrefix = `${menuId}-`;
@@ -242,17 +251,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
                 <section className="settings-menu-section">
                   <SettingsSectionHeader
-                    sectionId="clockFace"
-                    onReset={resetSettingsSection}
-                  />
-                  <p className="settings-menu-section__hint">
-                    Choose how note positions are arranged on the clock.
-                  </p>
-                  <ClockLayoutToggle />
-                </section>
-
-                <section className="settings-menu-section">
-                  <SettingsSectionHeader
                     sectionId="general"
                     onReset={resetSettingsSection}
                   />
@@ -338,53 +336,51 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                       <InstrumentPresetPicker onPresetSelect={handlePresetSelect} />
                     </div>
                   )}
-                  <button
-                    type="button"
-                    className={`settings-menu-accordion${adsrExpanded ? ' active' : ''}${isSamplerAdsrDisabled ? ' settings-menu-accordion--disabled' : ''}`}
-                    onClick={() => {
-                      if (isSamplerAdsrDisabled) {
-                        return;
-                      }
-                      setShowAdsr(!showAdsr);
-                      if (!showAdsr) {
-                        setShowEffects(false);
-                        setShowInstrument(false);
-                      }
-                    }}
-                    aria-expanded={adsrExpanded}
-                    disabled={isSamplerAdsrDisabled}
-                    aria-disabled={isSamplerAdsrDisabled}
-                  >
-                    Envelope (ADSR)
-                  </button>
-                  {adsrExpanded && (
-                    <div className="settings-menu-accordion__panel">
-                      <AdsrPanelContent idPrefix={idPrefix} />
-                    </div>
+                  {showAdsrPanel && (
+                    <>
+                      <button
+                        type="button"
+                        className={`settings-menu-accordion${showAdsr ? ' active' : ''}`}
+                        onClick={() => {
+                          setShowAdsr(!showAdsr);
+                          if (!showAdsr) {
+                            setShowEffects(false);
+                            setShowInstrument(false);
+                          }
+                        }}
+                        aria-expanded={showAdsr}
+                      >
+                        Envelope (ADSR)
+                      </button>
+                      {showAdsr && (
+                        <div className="settings-menu-accordion__panel">
+                          <AdsrPanelContent idPrefix={idPrefix} />
+                        </div>
+                      )}
+                    </>
                   )}
-                  <button
-                    type="button"
-                    className={`settings-menu-accordion${effectsExpanded ? ' active' : ''}${isSamplerInstrumentActive ? ' settings-menu-accordion--disabled' : ''}`}
-                    onClick={() => {
-                      if (isSamplerInstrumentActive) {
-                        return;
-                      }
-                      setShowEffects(!showEffects);
-                      if (!showEffects) {
-                        setShowAdsr(false);
-                        setShowInstrument(false);
-                      }
-                    }}
-                    aria-expanded={effectsExpanded}
-                    disabled={isSamplerInstrumentActive}
-                    aria-disabled={isSamplerInstrumentActive}
-                  >
-                    Synth Effects
-                  </button>
-                  {effectsExpanded && (
-                    <div className="settings-menu-accordion__panel">
-                      <EffectsPanelContent idPrefix={idPrefix} />
-                    </div>
+                  {showEffectsPanel && (
+                    <>
+                      <button
+                        type="button"
+                        className={`settings-menu-accordion${showEffects ? ' active' : ''}`}
+                        onClick={() => {
+                          setShowEffects(!showEffects);
+                          if (!showEffects) {
+                            setShowAdsr(false);
+                            setShowInstrument(false);
+                          }
+                        }}
+                        aria-expanded={showEffects}
+                      >
+                        Synth Effects
+                      </button>
+                      {showEffects && (
+                        <div className="settings-menu-accordion__panel">
+                          <EffectsPanelContent idPrefix={idPrefix} />
+                        </div>
+                      )}
+                    </>
                   )}
                 </section>
 
@@ -410,6 +406,17 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     shared globally.
                   </p>
                   <BorrowingMemoryToggle />
+                </section>
+
+                <section className="settings-menu-section">
+                  <SettingsSectionHeader
+                    sectionId="clockFace"
+                    onReset={resetSettingsSection}
+                  />
+                  <p className="settings-menu-section__hint">
+                    Choose how note positions are arranged on the diagram.
+                  </p>
+                  <ClockLayoutToggle />
                 </section>
 
                 <div className="settings-menu-reset-all">
