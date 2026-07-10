@@ -31,7 +31,7 @@ export const HELP_HUB_VOICING_NO_TILT_BODY =
 
 export const HELP_HUB_THEORY_POINTER =
   'For deeper reading, open Creation Theory, Borrowing from the Neighbors, ' +
-  'or Elevator System under Harmonic theory above.';
+  'or Elevator System under Harmonic Theory above.';
 
 export const CREATION_THEORY_VIDEO_URL =
   'https://www.youtube.com/shorts/OmWSgjwroLM';

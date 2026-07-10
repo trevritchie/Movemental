@@ -615,16 +615,24 @@ body.scroll-locked {
   gap: 6px;
 }
 
-.settings-menu-section__title {
-  font-size: 1.25rem;
-  font-weight: 600;
-  letter-spacing: 0.03em;
-  margin-bottom: 0;
+.elemental-heading,
+.settings-menu-section__title,
+.help-page__section-title {
+  display: inline-block;
+  width: fit-content;
+  max-width: 100%;
   color: transparent;
   background: var(--gradient-elemental-heading);
   background-size: 100% 100%;
   -webkit-background-clip: text;
   background-clip: text;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+}
+
+.settings-menu-section__title {
+  font-size: 1.25rem;
+  margin-bottom: 0;
 }
 
 .settings-menu-section__panel {
@@ -2777,27 +2785,6 @@ input[type="range"] {
   outline-offset: 2px;
 }
 
-.help-page__intro {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 12px 14px;
-  border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.03);
-}
-
-.help-page__heading {
-  font-size: 1rem;
-  font-weight: 700;
-}
-
-.help-page__lede {
-  font-size: 0.875rem;
-  color: var(--text-secondary);
-  line-height: 1.65;
-}
-
 .help-page__section {
   display: flex;
   flex-direction: column;
@@ -2809,12 +2796,8 @@ input[type="range"] {
 }
 
 .help-page__section-title {
+  font-size: 1rem;
   margin: 0;
-  font-size: 0.95rem;
-  font-weight: 700;
-  color: var(--text-primary);
-  border-left: 3px solid rgba(155, 114, 248, 0.55);
-  padding-left: 10px;
   line-height: 1.35;
 }
 

@@ -38,7 +38,7 @@ export const BorrowingNeighborsHelp: React.FC<BorrowingNeighborsHelpProps> = ({
 
     <section className="help-page__section">
       <h3 className="help-page__section-title">
-        The eight-note scale of chords
+        The Eight-Note Scale of Chords
       </h3>
       <p>{BORROWING_SCALE_ON_OFF_BODY}</p>
       <ul className="help-article__list">
@@ -57,12 +57,12 @@ export const BorrowingNeighborsHelp: React.FC<BorrowingNeighborsHelpProps> = ({
     </section>
 
     <section className="help-page__section">
-      <h3 className="help-page__section-title">Why each tone has neighbors</h3>
+      <h3 className="help-page__section-title">Why Each Tone Has Neighbors</h3>
       <p>{BORROWING_NEIGHBOR_TONES_BODY}</p>
     </section>
 
     <section className="help-page__section">
-      <h3 className="help-page__section-title">Borrowing from the neighbors</h3>
+      <h3 className="help-page__section-title">Borrowing From the Neighbors</h3>
       <ol className="help-article__list help-article__list--ordered">
         {BORROWING_PRACTICE_METHODS.map((method) => (
           <li key={method.label} className="help-article__list-item">
@@ -79,13 +79,13 @@ export const BorrowingNeighborsHelp: React.FC<BorrowingNeighborsHelpProps> = ({
     </section>
 
     <section className="help-page__section">
-      <h3 className="help-page__section-title">Practice on the diagram</h3>
+      <h3 className="help-page__section-title">Practice on the Diagram</h3>
       <p>{BORROWING_DIAGRAM_PRACTICE_BODY}</p>
       <HelpCallout>{BORROWING_DIAGRAM_PRACTICE_MOVEMENTAL}</HelpCallout>
     </section>
 
     <section className="help-page__section">
-      <h3 className="help-page__section-title">Advanced borrowing</h3>
+      <h3 className="help-page__section-title">Advanced Borrowing</h3>
       <p>{BORROWING_ADVANCED_BODY}</p>
     </section>
   </HelpArticleLayout>

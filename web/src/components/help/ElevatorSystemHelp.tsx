@@ -50,7 +50,7 @@ export const ElevatorSystemHelp: React.FC<ElevatorSystemHelpProps> = ({
     </section>
 
     <section className="help-page__section">
-      <h3 className="help-page__section-title">The nine floors</h3>
+      <h3 className="help-page__section-title">The Nine Floors</h3>
       <ol className="help-article__list help-article__list--ordered">
         {ELEVATOR_FLOORS.map((item) => (
           <li key={item.floor} className="help-article__list-item">
@@ -64,7 +64,7 @@ export const ElevatorSystemHelp: React.FC<ElevatorSystemHelpProps> = ({
     </section>
 
     <section className="help-page__section">
-      <h3 className="help-page__section-title">Relative motion</h3>
+      <h3 className="help-page__section-title">Relative Motion</h3>
       <p>
         The Elevator is especially useful for polyphonic lines: several
         melodies moving at once. Three classical motion types map cleanly onto
@@ -100,7 +100,7 @@ export const ElevatorSystemHelp: React.FC<ElevatorSystemHelpProps> = ({
     </section>
 
     <section className="help-page__section">
-      <h3 className="help-page__section-title">Subset and superset</h3>
+      <h3 className="help-page__section-title">Subset and Superset</h3>
       <p>
         Treat a full chord shape as a superset. Small subset intervals inside
         that frame can move on their own. An inner voice might walk through
@@ -110,7 +110,7 @@ export const ElevatorSystemHelp: React.FC<ElevatorSystemHelpProps> = ({
     </section>
 
     <section className="help-page__section">
-      <h3 className="help-page__section-title">Voicing and the bass note</h3>
+      <h3 className="help-page__section-title">Voicing and the Bass Note</h3>
       <p>{ELEVATOR_VOICING_BASS_NOTE}</p>
     </section>
   </HelpArticleLayout>

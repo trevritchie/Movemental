@@ -6,7 +6,6 @@ import {
   ArrowLeft,
   ArrowUpDown,
   BookOpen,
-  Compass,
   Layers,
   PlayCircle,
 } from 'lucide-react';
@@ -89,7 +88,7 @@ export const HelpPage: React.FC<HelpPageProps> = ({
       </div>
 
       <section className="help-page__section">
-        <h4 className="help-page__section-title">Harmonic theory</h4>
+        <h4 className="help-page__section-title">Harmonic Theory</h4>
         <div className="help-page__theory-entries">
           <button
             type="button"
@@ -139,19 +138,18 @@ export const HelpPage: React.FC<HelpPageProps> = ({
         </div>
       </section>
 
-      <div className="help-page__intro">
-        <Compass size={28} aria-hidden="true" />
-        <h3 className="help-page__heading">How Movemental works</h3>
-        <p className="help-page__lede">{HELP_HUB_LEDE}</p>
-      </div>
+      <section className="help-page__section">
+        <h4 className="help-page__section-title">How Movemental Works</h4>
+        <p>{HELP_HUB_LEDE}</p>
+      </section>
 
       <section className="help-page__section">
-        <h4 className="help-page__section-title">Elemental diagram</h4>
+        <h4 className="help-page__section-title">Elemental Diagram</h4>
         <p>{HELP_HUB_DIAGRAM_BODY}</p>
       </section>
 
       <section className="help-page__section">
-        <h4 className="help-page__section-title">Voice borrowing</h4>
+        <h4 className="help-page__section-title">Voice Borrowing</h4>
         <p>{HELP_HUB_BORROWING_BODY}</p>
       </section>
 
@@ -165,7 +163,7 @@ export const HelpPage: React.FC<HelpPageProps> = ({
       </section>
 
       <section className="help-page__section">
-        <h4 className="help-page__section-title">Learn more</h4>
+        <h4 className="help-page__section-title">Learn More</h4>
         <p>{HELP_HUB_THEORY_POINTER}</p>
       </section>
 
@@ -179,7 +177,7 @@ export const HelpPage: React.FC<HelpPageProps> = ({
       </section>
 
       <section className="help-page__section">
-        <h4 className="help-page__section-title">Play style and voice leading</h4>
+        <h4 className="help-page__section-title">Play Style and Voice Leading</h4>
         <p>
           Drone holds notes until you tap again or hit panic. Click &amp; Hold
           releases when you let go. Voice leading modes (Root Position, Smooth,
@@ -189,7 +187,7 @@ export const HelpPage: React.FC<HelpPageProps> = ({
       </section>
 
       <section className="help-page__section">
-        <h4 className="help-page__section-title">Recording and panic</h4>
+        <h4 className="help-page__section-title">Recording and Panic</h4>
         <p>
           Session recording captures audio (WebM, exportable as M4A) and MIDI.
           Stop triggers the panic switch with a 300 ms fade out. The panic
@@ -198,7 +196,7 @@ export const HelpPage: React.FC<HelpPageProps> = ({
       </section>
 
       <section className="help-page__section">
-        <h4 className="help-page__section-title">Phone vs desktop</h4>
+        <h4 className="help-page__section-title">Phone vs Desktop</h4>
         <p>
           On phone, the diagram fills the screen with borrowing sliders below
           and toolbar buttons on the sides. On desktop, the clock face and

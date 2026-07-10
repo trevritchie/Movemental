@@ -206,7 +206,7 @@ describe('MobileActionButtons', () => {
 
     expect(screen.getByRole('dialog', { name: 'Help' })).toBeInTheDocument();
     expect(screen.getByText(/How Movemental works/i)).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Harmonic theory' }))
+    expect(screen.getByRole('heading', { name: 'Harmonic Theory' }))
       .toBeInTheDocument();
     expect(
       screen.getByRole('button', { name: /creation theory/i }),
@@ -334,7 +334,7 @@ describe('MobileActionButtons', () => {
     fireEvent.click(screen.getByRole('button', { name: /back to help/i }));
 
     expect(screen.getByRole('dialog', { name: 'Help' })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Harmonic theory' }))
+    expect(screen.getByRole('heading', { name: 'Harmonic Theory' }))
       .toBeInTheDocument();
   });
 
