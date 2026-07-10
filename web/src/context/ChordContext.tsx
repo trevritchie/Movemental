@@ -246,6 +246,7 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
     enterNoTiltSession: enterNoTiltPlayback,
     resetVoiceLeadingSession,
   } = playback;
+  const { synthPresetId, setSynthPresetId } = audio;
 
   const enterTiltSession = useCallback(() => {
     enterTiltPlayback();
@@ -341,17 +342,20 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
   const resetSettingsGroup = useCallback(
     (groupId: SettingsResetGroupId) => {
       if (groupId === 'instrument') {
-        const { synthPresetId } = getSettingsGroupDefaults('instrument', {
-          tiltModeEnabled: playback.tiltModeEnabled,
-          synthPresetId: audio.synthPresetId,
-        });
-        audio.setSynthPresetId(synthPresetId as string);
+        const { synthPresetId: defaultPresetId } = getSettingsGroupDefaults(
+          'instrument',
+          {
+            tiltModeEnabled: playback.tiltModeEnabled,
+            synthPresetId,
+          },
+        );
+        setSynthPresetId(defaultPresetId as string);
         return;
       }
 
       const defaults = getSettingsGroupDefaults(groupId, {
         tiltModeEnabled: playback.tiltModeEnabled,
-        synthPresetId: audio.synthPresetId,
+        synthPresetId,
       });
 
       for (const [key, value] of Object.entries(defaults)) {
@@ -366,8 +370,8 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
     },
     [
       applySetting,
-      audio.synthPresetId,
-      audio.setSynthPresetId,
+      synthPresetId,
+      setSynthPresetId,
       playback.tiltModeEnabled,
       resetVoiceLeadingSession,
       clearChordBorrowingStates,
