@@ -45,3 +45,11 @@ export function resolveLayoutTier(): LayoutTier {
   }
   return 'desktop';
 }
+
+/** Safe for module init / test environments without matchMedia. */
+export function resolveLayoutTierSafe(): LayoutTier {
+  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
+    return 'desktop';
+  }
+  return resolveLayoutTier();
+}

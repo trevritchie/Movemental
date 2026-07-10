@@ -35,6 +35,8 @@ import { useDeviceTilt } from '../hooks/useDeviceTilt';
 import { TiltReadoutProvider } from './TiltReadoutContext';
 import { useNoTiltChordLocks } from '../hooks/useNoTiltChordLocks';
 import type { ElementalPlaybackResolution } from '../music/tiltVoicingPlayback';
+import type { EqProfileId } from '../audio/outputProfiles';
+import type { SynthPreset } from '../audio/synthPresets';
 import type { PlayStyle, VoiceLeadingMode } from './types';
 
 export type { PlayStyle, VoiceLeadingMode } from './types';
@@ -60,6 +62,14 @@ interface ChordContextType {
   setDelayWet: (val: number) => void;
   reverbWet: number;
   setReverbWet: (val: number) => void;
+  eqProfileId: EqProfileId;
+  setEqProfileId: (id: EqProfileId) => void;
+  synthPresetId: string;
+  setSynthPresetId: (id: string) => void;
+  synthPresetLoading: boolean;
+  isSamplerInstrumentActive: boolean;
+  isSamplerAdsrDisabled: boolean;
+  synthPresets: SynthPreset[];
   playStyle: PlayStyle;
   setPlayStyle: (mode: PlayStyle) => void;
   tiltModeEnabled: boolean;
@@ -290,6 +300,14 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
       setDelayWet: audio.setDelayWet,
       reverbWet: audio.reverbWet,
       setReverbWet: audio.setReverbWet,
+      eqProfileId: audio.eqProfileId,
+      setEqProfileId: audio.setEqProfileId,
+      synthPresetId: audio.synthPresetId,
+      setSynthPresetId: audio.setSynthPresetId,
+      synthPresetLoading: audio.synthPresetLoading,
+      isSamplerInstrumentActive: audio.isSamplerInstrumentActive,
+      isSamplerAdsrDisabled: audio.isSamplerAdsrDisabled,
+      synthPresets: audio.synthPresets,
       playStyle: playback.playStyle,
       setPlayStyle: playback.setPlayStyle,
       tiltModeEnabled: playback.tiltModeEnabled,
@@ -356,6 +374,14 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
       audio.setDelayWet,
       audio.reverbWet,
       audio.setReverbWet,
+      audio.eqProfileId,
+      audio.setEqProfileId,
+      audio.synthPresetId,
+      audio.setSynthPresetId,
+      audio.synthPresetLoading,
+      audio.isSamplerInstrumentActive,
+      audio.isSamplerAdsrDisabled,
+      audio.synthPresets,
       audio.envelopeAttack,
       audio.setEnvelopeAttack,
       audio.envelopeDecay,

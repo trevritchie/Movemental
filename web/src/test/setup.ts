@@ -79,7 +79,9 @@ vi.mock('tone', () => {
   }));
 
   class Gain {
+    gain = { value: 1, cancelScheduledValues: vi.fn(), setValueAtTime: vi.fn(), exponentialRampToValueAtTime: vi.fn() };
     connect = vi.fn().mockReturnThis();
+    disconnect = vi.fn().mockReturnThis();
   }
 
   const Time = vi.fn((duration: string) => ({
@@ -89,6 +91,8 @@ vi.mock('tone', () => {
   class PolySynth {
     toDestination = vi.fn().mockReturnThis();
     connect = vi.fn().mockReturnThis();
+    disconnect = vi.fn().mockReturnThis();
+    dispose = vi.fn();
     triggerAttackRelease = vi.fn();
     triggerAttack = vi.fn();
     triggerRelease = vi.fn();
@@ -96,6 +100,24 @@ vi.mock('tone', () => {
     volume = { value: 0 };
     set = vi.fn();
     maxPolyphony = 12;
+  }
+
+  class Sampler {
+    connect = vi.fn().mockReturnThis();
+    disconnect = vi.fn().mockReturnThis();
+    dispose = vi.fn();
+    triggerAttackRelease = vi.fn();
+    triggerAttack = vi.fn();
+    triggerRelease = vi.fn();
+    releaseAll = vi.fn();
+    volume = { value: 0 };
+    set = vi.fn();
+
+    constructor(options?: { onload?: () => void }) {
+      queueMicrotask(() => {
+        options?.onload?.();
+      });
+    }
   }
 
   class Synth {
@@ -109,7 +131,17 @@ vi.mock('tone', () => {
     set = vi.fn();
   }
 
+  class FMSynth extends Synth {}
+  class AMSynth extends Synth {}
+  class MonoSynth extends Synth {}
+
   class Filter {
+    frequency = { value: 900 };
+    connect = vi.fn().mockReturnThis();
+  }
+
+  class Distortion {
+    distortion = 0;
     connect = vi.fn().mockReturnThis();
   }
 
@@ -131,18 +163,89 @@ vi.mock('tone', () => {
   }
 
   class EQ3 {
+    low = { value: -6 };
+    mid = { value: 2.5 };
+    high = { value: -2.5 };
+    lowFrequency = { value: 180 };
+    highFrequency = { value: 2400 };
     connect = vi.fn().mockReturnThis();
   }
 
   class Compressor {
+    threshold = { value: -16 };
+    ratio = { value: 4 };
+    knee = { value: 4 };
+    attack = { value: 0.03 };
+    release = { value: 0.08 };
     connect = vi.fn().mockReturnThis();
   }
 
   class Limiter {
+    threshold = { value: -1 };
     connect = vi.fn().mockReturnThis();
     toDestination = vi.fn().mockReturnThis();
     constructor() {}
   }
+
+  class Meter {
+    getValue = vi.fn(() => -12);
+    connect = vi.fn().mockReturnThis();
+  }
+
+  let activeContext: Context | null = null;
+
+  class Context {
+    lookAhead = 0.1;
+    updateInterval = 0.05;
+    latencyHint = 'interactive';
+    sampleRate = 44100;
+    rawContext = {
+      state: 'running',
+      baseLatency: 0,
+      outputLatency: 0.01,
+      destination: {},
+      currentTime: 0,
+    };
+    resume = vi.fn().mockResolvedValue(undefined);
+    close = vi.fn().mockResolvedValue(undefined);
+    createConstantSource = vi.fn(() => ({
+      offset: { value: 0 },
+      connect: vi.fn(),
+      start: vi.fn(),
+      stop: vi.fn(),
+      disconnect: vi.fn(),
+    }));
+    createAnalyser = vi.fn(() => ({
+      fftSize: 2048,
+      connect: vi.fn(),
+      disconnect: vi.fn(),
+      getFloatTimeDomainData: vi.fn(),
+    }));
+
+    constructor(
+      options?: Partial<{
+        lookAhead: number;
+        latencyHint: string;
+        updateInterval: number;
+      }>,
+    ) {
+      if (options?.lookAhead != null) {
+        this.lookAhead = options.lookAhead;
+      }
+      if (options?.latencyHint != null) {
+        this.latencyHint = options.latencyHint;
+      }
+      if (options?.updateInterval != null) {
+        this.updateInterval = options.updateInterval;
+      }
+    }
+  }
+
+  const setContext = vi.fn((context: Context) => {
+    activeContext = context;
+  });
+
+  const getContext = vi.fn(() => activeContext ?? new Context());
 
   return {
     start: vi.fn().mockResolvedValue(undefined),
@@ -151,13 +254,22 @@ vi.mock('tone', () => {
     Time,
     Gain,
     PolySynth,
+    Sampler,
     Synth,
+    FMSynth,
+    AMSynth,
+    MonoSynth,
     Filter,
+    Distortion,
     Chorus,
     PingPongDelay,
     Reverb,
     EQ3,
     Compressor,
     Limiter,
+    Meter,
+    Context,
+    setContext,
+    getContext,
   };
 });

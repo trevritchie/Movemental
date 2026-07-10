@@ -10,7 +10,12 @@
     "postbuild": "node scripts/postbuild-deploy.mjs",
     "lint": "eslint .",
     "preview": "vite preview",
-    "test": "vitest"
+    "test": "vitest run --project unit",
+    "test:unit": "vitest run --project unit",
+    "test:audio": "vitest run --project audio-offline",
+    "measure:gain": "npx vite-node scripts/measure-gain-staging.mts",
+    "measure:loudness": "npx vite-node scripts/measure-preset-loudness.mts",
+    "measure:latency": "npx vite-node scripts/measure-latency.mts"
   },
   "dependencies": {
     "@ffmpeg/ffmpeg": "^0.12.15",
@@ -32,12 +37,14 @@
     "@types/react-dom": "^19.2.3",
     "@types/testing-library__jest-dom": "^5.14.9",
     "@vitejs/plugin-react": "^6.0.1",
+    "@vitest/browser-playwright": "^4.1.10",
     "eslint": "^10.3.0",
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.2",
     "firebase-tools": "^14.12.0",
     "globals": "^17.6.0",
     "jsdom": "^29.1.1",
+    "playwright": "^1.61.1",
     "rollup-plugin-visualizer": "^7.0.1",
     "typescript": "~6.0.2",
     "typescript-eslint": "^8.59.2",

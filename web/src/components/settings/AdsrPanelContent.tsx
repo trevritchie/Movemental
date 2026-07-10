@@ -3,13 +3,16 @@ import { useChordContext } from '../../context/ChordContext';
 
 interface AdsrPanelContentProps {
   idPrefix?: string;
+  disabled?: boolean;
 }
 
 export const AdsrPanelContent: React.FC<AdsrPanelContentProps> = ({
   idPrefix = '',
+  disabled: disabledProp,
 }) => {
   const {
     playStyle,
+    isSamplerAdsrDisabled,
     envelopeAttack,
     setEnvelopeAttack,
     envelopeDecay,
@@ -29,6 +32,7 @@ export const AdsrPanelContent: React.FC<AdsrPanelContentProps> = ({
   } = useChordContext();
 
   const isDrone = playStyle === 'drone';
+  const disabled = disabledProp ?? isSamplerAdsrDisabled;
 
   const currentA = isDrone ? droneAttack : envelopeAttack;
   const currentD = isDrone ? droneDecay : envelopeDecay;
@@ -83,7 +87,13 @@ export const AdsrPanelContent: React.FC<AdsrPanelContentProps> = ({
   const releaseId = `${idPrefix}release-slider`;
 
   return (
-    <div className="adsr-panel-content">
+    <div className={`adsr-panel-content${disabled ? ' adsr-panel-content--disabled' : ''}`}>
+      {disabled && (
+        <p className="settings-menu-section__hint">
+          Envelope is disabled for sampled instruments in Drone mode. Switch to
+          Click and Hold to shape attack and release on timed previews.
+        </p>
+      )}
       <div className="adsr-visualizer">
         <svg className="adsr-svg" viewBox={dynamicViewBox}>
           <defs>
@@ -156,11 +166,8 @@ export const AdsrPanelContent: React.FC<AdsrPanelContentProps> = ({
         </svg>
       </div>
 
-      <div className="adsr-sliders-container">
-        <div
-          className="adsr-sliders"
-          style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}
-        >
+      <div className={`adsr-sliders-container${disabled ? ' adsr-sliders--disabled' : ''}`}>
+        <div className="adsr-sliders">
           <div className="effect-slider-group">
             <label htmlFor={attackId}>Attack</label>
             <div className="slider-container">
@@ -171,6 +178,7 @@ export const AdsrPanelContent: React.FC<AdsrPanelContentProps> = ({
                 max={isDrone ? 12.0 : 4.0}
                 step={isDrone ? 0.1 : 0.01}
                 value={currentA}
+                disabled={disabled}
                 onChange={(e) =>
                   isDrone
                     ? setDroneAttack(Number(e.target.value))
@@ -191,6 +199,7 @@ export const AdsrPanelContent: React.FC<AdsrPanelContentProps> = ({
                 max={isDrone ? 10.0 : 5.0}
                 step={isDrone ? 0.1 : 0.01}
                 value={currentD}
+                disabled={disabled}
                 onChange={(e) =>
                   isDrone
                     ? setDroneDecay(Number(e.target.value))
@@ -211,6 +220,7 @@ export const AdsrPanelContent: React.FC<AdsrPanelContentProps> = ({
                 max="1.0"
                 step="0.01"
                 value={currentS}
+                disabled={disabled}
                 onChange={(e) =>
                   isDrone
                     ? setDroneSustain(Number(e.target.value))
@@ -231,6 +241,7 @@ export const AdsrPanelContent: React.FC<AdsrPanelContentProps> = ({
                 max={isDrone ? 5.0 : 6.0}
                 step={isDrone ? 0.1 : 0.01}
                 value={currentR}
+                disabled={disabled}
                 onChange={(e) =>
                   isDrone
                     ? setDroneRelease(Number(e.target.value))
