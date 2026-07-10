@@ -2,9 +2,9 @@
  * PolySynth master bus: filter, harmonic enhance, modulation, EQ, dynamics, and session capture.
  *
  * Signal chain (synth to speakers):
- * PolySynth -> Filter -> [dry + harmonic enhance] -> Chorus -> Delay -> Reverb ->
- * EQ3 -> Compressor -> MasterMakeup -> Limiter -> Destination. SessionRecorder
- * taps Limiter -> recordTailGain.
+ * PolySynth -> Filter -> BusHeadroom -> [dry + harmonic enhance] -> FxSend ->
+ * Chorus -> Delay -> Reverb -> EQ3 -> Compressor -> MasterMakeup -> Limiter ->
+ * Destination. SessionRecorder taps Limiter -> recordTailGain.
  */
 import * as Tone from 'tone';
 import {
@@ -15,17 +15,24 @@ import { SessionRecorder } from './SessionRecorder';
 import { SessionMidiRecorder } from './SessionMidiRecorder';
 import { resolveLayoutTierSafe } from '../layout/breakpoints';
 import {
-  dbToGain,
   getAdaptedOutputProfile,
   getEffectiveSynthVolumeDb,
   resolveDefaultEqProfileId,
   type OutputProfile,
   type EqProfileId,
 } from './outputProfiles';
-import { resolveSampleBaseUrl } from './samplePaths';
+import {
+  ATTACK_SCHEDULE_OFFSET_SEC,
+  LIMITER_REDUCTION_WARN_DB,
+} from './busConstants';
+import {
+  buildMasterBusGraph,
+  type MasterBusGraph,
+} from './masterBusGraph';
 import {
   DEFAULT_SYNTH_PRESET_ID,
   getMaxPolyphony,
+  getPresetClickHoldEnvelope,
   getSynthPreset,
   isSamplerPreset,
   voiceOptionsWithoutEnvelope,
@@ -34,28 +41,14 @@ import {
   type SynthClassName,
   type SynthPreset,
 } from './synthPresets';
+import { resolveSampleBaseUrl } from './samplePaths';
 
 /** PolySynth or sample-based Sampler; shared note trigger API. */
 type InstrumentVoice = Tone.PolySynth | Tone.Sampler;
 
-/** Reverb tail. */
-const REVERB_DECAY_SEC = 3.5;
-const REVERB_PRE_DELAY_SEC = 0.02;
-/** Ping-pong delay (dotted quarter, feedback 0-1). */
-const DELAY_TIME = '4n.';
-const DELAY_FEEDBACK = 0.25;
-/** Chorus LFO and wet mix. */
-const CHORUS_LFO_HZ = 1.5;
-const CHORUS_DELAY_MS = 3.5;
-const CHORUS_DEPTH = 0.7;
-/** Post-synth lowpass warmth. */
-const FILTER_CUTOFF_HZ = 900;
-const FILTER_ROLLOFF_DB = -12;
 /** Piano MIDI range (A0 through C8). */
 const MIDI_NOTE_MIN = 21;
 const MIDI_NOTE_MAX = 108;
-/** Micro-delay before attack to avoid release/attack clicks. */
-const ATTACK_SCHEDULE_OFFSET_SEC = 0.015;
 
 const SYNTH_CLASS_MAP = {
   Synth: Tone.Synth,
@@ -91,17 +84,11 @@ export class AudioEngine {
   private samplerCache = new Map<string, Tone.Sampler>();
   private presetLoadPromise: Promise<void> | null = null;
   private presetLoadGeneration = 0;
+  private bus: MasterBusGraph | null = null;
   private filter: Tone.Filter | null = null;
-  private harmonicHpf: Tone.Filter | null = null;
-  private harmonicDistortion: Tone.Distortion | null = null;
-  private harmonicDryGain: Tone.Gain | null = null;
-  private harmonicWetGain: Tone.Gain | null = null;
-  private harmonicMerge: Tone.Gain | null = null;
   private chorus: Tone.Chorus | null = null;
   private delay: Tone.PingPongDelay | null = null;
   private reverb: Tone.Reverb | null = null;
-  private eq: Tone.EQ3 | null = null;
-  private compressor: Tone.Compressor | null = null;
   private masterMakeup: Tone.Gain | null = null;
   private peakMeter: Tone.Meter | null = null;
   private limiter: Tone.Limiter | null = null;
@@ -276,67 +263,15 @@ export class AudioEngine {
   }
 
   private applyHarmonicEnhance(profile: OutputProfile): void {
-    const { harmonicEnhance } = profile;
-    const presetAllows = this.currentPreset.harmonicEnhanceEnabled !== false;
-    if (this.harmonicHpf) {
-      this.harmonicHpf.frequency.value = harmonicEnhance.hpfHz;
-    }
-    if (this.harmonicDistortion) {
-      this.harmonicDistortion.distortion = harmonicEnhance.distortion;
-    }
-    if (this.harmonicWetGain) {
-      this.harmonicWetGain.gain.value =
-        presetAllows && harmonicEnhance.enabled ? harmonicEnhance.wet : 0;
-    }
-    if (this.harmonicDryGain) {
-      this.harmonicDryGain.gain.value = 1;
-    }
+    this.bus?.applyHarmonicEnhance(profile, this.currentPreset);
   }
 
   private applyEqProfile(profile: OutputProfile): void {
-    if (!this.eq) {
-      return;
-    }
-    const { eq } = profile;
-    this.eq.low.value = eq.low;
-    this.eq.mid.value = eq.mid;
-    this.eq.high.value = eq.high;
-    this.eq.lowFrequency.value = eq.lowFrequency;
-    this.eq.highFrequency.value = eq.highFrequency;
-  }
-
-  private applyCompressorProfile(profile: OutputProfile): void {
-    if (!this.compressor) {
-      return;
-    }
-    const { compressor } = profile.loudness;
-    this.compressor.threshold.value = compressor.threshold;
-    this.compressor.ratio.value = compressor.ratio;
-    this.compressor.knee.value = compressor.knee;
-    this.compressor.attack.value = compressor.attack;
-    this.compressor.release.value = compressor.release;
+    this.bus?.applyEqProfile(profile);
   }
 
   private applyLoudnessProfile(profile: OutputProfile): void {
-    if (this.masterMakeup) {
-      this.masterMakeup.gain.value = dbToGain(profile.loudness.masterMakeupDb);
-    }
-    if (this.limiter) {
-      this.limiter.threshold.value = profile.loudness.limiterCeilingDb;
-    }
-    this.applyCompressorProfile(profile);
-    this.applySynthVolumeForProfile();
-  }
-
-  private applySynthVolumeForProfile(): void {
-    if (!this.voice) {
-      return;
-    }
-    const profile = this.activeOutputProfile;
-    this.voice.volume.value = getEffectiveSynthVolumeDb(
-      this.currentPreset,
-      profile,
-    );
+    this.bus?.applyLoudnessProfile(profile, this.currentPreset);
   }
 
   private logPeakLevelIfDev(): void {
@@ -351,106 +286,52 @@ export class AudioEngine {
       if (Number.isFinite(peakDb)) {
         devLog('[AudioEngine] Post-makeup peak (dB):', peakDb.toFixed(1));
       }
+
+      const reduction = this.limiter?.reduction ?? 0;
+      if (Number.isFinite(reduction)) {
+        devLog('[AudioEngine] Limiter reduction (dB):', reduction.toFixed(1));
+        if (reduction < LIMITER_REDUCTION_WARN_DB) {
+          devWarn(
+            '[AudioEngine] Limiter working hard (',
+            reduction.toFixed(1),
+            'dB GR). Check gain staging.',
+          );
+        }
+      }
     }, 80);
   }
 
   private async initSynth() {
     const profile = this.activeOutputProfile;
+    const envelope = getPresetClickHoldEnvelope(this.currentPreset);
 
-    // 8. Limiter - final peak control (-1.0 dBTP streaming-safe ceiling)
-    this.limiter = new Tone.Limiter(profile.loudness.limiterCeilingDb).toDestination();
-
-    // 7b. Dev peak meter tap (post-makeup, pre-limiter)
     if (import.meta.env.DEV) {
       this.peakMeter = new Tone.Meter({ smoothing: 0.3 });
     }
 
-    // 7a. Master makeup gain - restores level after bus compression
-    this.masterMakeup = new Tone.Gain(dbToGain(profile.loudness.masterMakeupDb));
-    this.masterMakeup.connect(this.limiter);
+    const bus = await buildMasterBusGraph({
+      profile,
+      preset: this.currentPreset,
+      envelope,
+      chorusWet: this.chorusWetVal,
+      delayWet: this.delayWetVal,
+      reverbWet: this.reverbWetVal,
+    });
+
+    this.bus = bus;
+    this.voice = bus.voice;
+    this.voiceEngine = bus.voiceEngine;
+    this.currentSynthClass = bus.voiceClass;
+    this.filter = bus.filter;
+    this.chorus = bus.chorus;
+    this.delay = bus.delay;
+    this.reverb = bus.reverb;
+    this.masterMakeup = bus.masterMakeup;
+    this.limiter = bus.limiter;
+
     if (this.peakMeter) {
       this.masterMakeup.connect(this.peakMeter);
     }
-
-    // 7. Compressor - glues voices and raises average level before makeup/limiter
-    this.compressor = new Tone.Compressor({
-      threshold: profile.loudness.compressor.threshold,
-      ratio: profile.loudness.compressor.ratio,
-      knee: profile.loudness.compressor.knee,
-      attack: profile.loudness.compressor.attack,
-      release: profile.loudness.compressor.release,
-    });
-    this.compressor.connect(this.masterMakeup);
-
-    // 6. EQ3 - playback EQ profile
-    this.eq = new Tone.EQ3({
-      low: profile.eq.low,
-      mid: profile.eq.mid,
-      high: profile.eq.high,
-      lowFrequency: profile.eq.lowFrequency,
-      highFrequency: profile.eq.highFrequency,
-    });
-    this.eq.connect(this.compressor);
-
-    // 5. Reverb - creates a lush, diffuse, expensive space (async generation)
-    this.reverb = new Tone.Reverb({
-      decay: REVERB_DECAY_SEC,
-      wet: this.reverbWetVal,
-      preDelay: REVERB_PRE_DELAY_SEC,
-    });
-    this.reverb.connect(this.eq);
-    void this.reverb.generate();
-
-    // 4. Ping-Pong Delay - subtle bouncing ambient delay tail
-    this.delay = new Tone.PingPongDelay({
-      delayTime: DELAY_TIME,
-      feedback: DELAY_FEEDBACK,
-      wet: this.delayWetVal,
-    });
-    this.delay.connect(this.reverb);
-
-    // 3. Chorus - adds high-end shimmer and incredible stereo width
-    this.chorus = new Tone.Chorus({
-      frequency: CHORUS_LFO_HZ,
-      delayTime: CHORUS_DELAY_MS,
-      depth: CHORUS_DEPTH,
-      wet: this.chorusWetVal,
-    });
-    this.chorus.connect(this.delay);
-    this.chorus.start();
-
-    // 2b. Harmonic enhance parallel path (missing-fundamental aid for small speakers)
-    this.harmonicMerge = new Tone.Gain(1);
-    this.harmonicMerge.connect(this.chorus);
-
-    this.harmonicDryGain = new Tone.Gain(1);
-    this.harmonicWetGain = new Tone.Gain(0);
-    this.harmonicHpf = new Tone.Filter({
-      type: 'highpass',
-      frequency: profile.harmonicEnhance.hpfHz,
-      rolloff: -12,
-    });
-    this.harmonicDistortion = new Tone.Distortion(
-      profile.harmonicEnhance.distortion,
-    );
-    this.harmonicDryGain.connect(this.harmonicMerge);
-    this.harmonicHpf.connect(this.harmonicDistortion);
-    this.harmonicDistortion.connect(this.harmonicWetGain);
-    this.harmonicWetGain.connect(this.harmonicMerge);
-    this.applyHarmonicEnhance(profile);
-
-    // 2. Master Lowpass Filter - analog warmth sweep applied to all voices collectively
-    this.filter = new Tone.Filter({
-      frequency: this.currentPreset.filterCutoffHz ?? FILTER_CUTOFF_HZ,
-      type: 'lowpass',
-      rolloff: FILTER_ROLLOFF_DB,
-    });
-    this.filter.connect(this.harmonicDryGain);
-    this.filter.connect(this.harmonicHpf);
-
-    // 1. Instrument voice (synth default; sampler presets load on applyPreset)
-    this.voice = this.createSynth(this.currentPreset);
-    this.voice.connect(this.filter);
 
     this.ensureSessionRecorder();
 

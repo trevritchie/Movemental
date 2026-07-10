@@ -2,6 +2,7 @@
 import { defineConfig } from 'vitest/config'
 import react from '@vitejs/plugin-react'
 import path from 'path'
+import { playwright } from '@vitest/browser-playwright'
 import { visualizer } from 'rollup-plugin-visualizer'
 
 const analyzeBundle = process.env.ANALYZE === 'true'
@@ -45,8 +46,32 @@ export default defineConfig({
     },
   },
   test: {
-    environment: 'jsdom',
-    setupFiles: ['./src/test/setup.ts'],
-    globals: true,
+    projects: [
+      {
+        extends: true,
+        test: {
+          name: 'unit',
+          environment: 'jsdom',
+          setupFiles: ['./src/test/setup.ts'],
+          include: ['src/**/*.test.ts'],
+          exclude: ['src/**/*.offline.test.ts'],
+          globals: true,
+        },
+      },
+      {
+        extends: true,
+        test: {
+          name: 'audio-offline',
+          include: ['src/**/*.offline.test.ts'],
+          globals: true,
+          testTimeout: 120_000,
+          browser: {
+            enabled: true,
+            provider: playwright(),
+            instances: [{ browser: 'chromium' }],
+          },
+        },
+      },
+    ],
   },
 })

@@ -255,6 +255,8 @@ Perceived volume on phones is optimized through standard mastering practice, not
 
 In development builds, post-makeup peak levels log to the console when notes play.
 
+Offline gain-staging and preset loudness tests: [`docs/gain-staging-tests.md`](docs/gain-staging-tests.md).
+
 ### Instrument Presets
 
 Presets are defined in [`src/audio/synthPresets.ts`](src/audio/synthPresets.ts). Community JSON starting points are vendored from [Tonejs/Presets](https://github.com/Tonejs/Presets) (see [`PRESET_ATTRIBUTION.md`](src/audio/PRESET_ATTRIBUTION.md)). Vendored presets use their JSON voice parameters (oscillator, FM/AM settings, modulation envelopes) with app-tuned ADSR for chord playback. On preset switch, **Warm Pad** keeps default chorus/reverb; other presets start with bus FX dry.
@@ -375,7 +377,8 @@ npm run lint
 ### Unit tests
 Run the Vitest suite (voicing engine, borrowing, playback helpers, components):
 ```bash
-npm test
+npm test              # unit project (mocked Tone)
+npm run test:audio    # offline bus renders (Playwright); see docs/gain-staging-tests.md
 ```
 
 ### Production Build

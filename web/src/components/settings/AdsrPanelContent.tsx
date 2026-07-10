@@ -167,10 +167,7 @@ export const AdsrPanelContent: React.FC<AdsrPanelContentProps> = ({
       </div>
 
       <div className={`adsr-sliders-container${disabled ? ' adsr-sliders--disabled' : ''}`}>
-        <div
-          className="adsr-sliders"
-          style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}
-        >
+        <div className="adsr-sliders">
           <div className="effect-slider-group">
             <label htmlFor={attackId}>Attack</label>
             <div className="slider-container">

@@ -76,6 +76,15 @@ Do not run voicing-cache lookups on the audio dispatch path; playback calls
   setup utilities.
 - Run `npm test -- --run` before pushing; aim to keep the full suite green.
 
+**Gain staging and preset loudness** (offline Playwright renders, per-preset
+matching, adding instruments): see [`docs/gain-staging-tests.md`](docs/gain-staging-tests.md).
+
+```bash
+npm run test:unit      # fast mocked suite (default)
+npm run test:audio     # offline bus renders; requires Playwright Chromium
+npm run measure:loudness
+```
+
 ## Verification
 
 From the `web/` directory:

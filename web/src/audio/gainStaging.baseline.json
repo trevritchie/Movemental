@@ -1,0 +1,23 @@
+{
+  "warmPad-smallSpeakers-phone-4note": {
+    "sustainPeakDb": -10.299700275942866
+  },
+  "warmPad-smallSpeakers-phone-6note": {
+    "sustainPeakDb": -9.51879929185736
+  },
+  "superSaw-smallSpeakers-phone-4note": {
+    "sustainPeakDb": -7.792524155630688
+  },
+  "grandPiano-flat-phone-4note": {
+    "sustainPeakDb": -37.78663793413354
+  },
+  "cello-smallSpeakers-phone-4note": {
+    "sustainPeakDb": -6.742414206658596
+  },
+  "tuba-smallSpeakers-phone-low": {
+    "sustainPeakDb": -11.150220207908923
+  },
+  "warmPad-flat-desktop-4note": {
+    "sustainPeakDb": -19.22481539458952
+  }
+}

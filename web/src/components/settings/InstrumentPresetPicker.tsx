@@ -1,9 +1,8 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Check, Loader2 } from 'lucide-react';
 import { useChordContext } from '../../context/ChordContext';
+import { groupSamplerPresetsByCategory } from '../../audio/samplerInstrumentCategories';
 import {
-  getSynthPreset,
-  isSamplerPreset,
   SAMPLER_ENGINE_PRESETS,
   SYNTH_ENGINE_PRESETS,
   type SynthPreset,
@@ -16,8 +15,10 @@ export const InstrumentPresetPicker: React.FC = () => {
     synthPresetLoading,
   } = useChordContext();
 
-  const loadingSampler = synthPresetLoading &&
-    isSamplerPreset(getSynthPreset(synthPresetId));
+  const sampledCategories = useMemo(
+    () => groupSamplerPresetsByCategory(SAMPLER_ENGINE_PRESETS),
+    [],
+  );
 
   return (
     <div className="instrument-preset-picker">
@@ -28,19 +29,34 @@ export const InstrumentPresetPicker: React.FC = () => {
         synthPresetLoading={synthPresetLoading}
         onSelect={setSynthPresetId}
       />
-      <InstrumentPresetSection
-        title="Sampled"
-        presets={SAMPLER_ENGINE_PRESETS}
-        synthPresetId={synthPresetId}
-        synthPresetLoading={synthPresetLoading}
-        onSelect={setSynthPresetId}
-        className="instrument-preset-section--sampled"
-      />
-      <p className="settings-menu-section__hint">
-        {loadingSampler
-          ? 'Loading instrument samples. This may take a few seconds on first use.'
-          : 'Changing instrument resets envelope and effect defaults for that preset. You can still tweak them afterward.'}
-      </p>
+      <section
+        className="instrument-preset-section instrument-preset-section--sampled"
+        aria-label="Sampled"
+      >
+        <h4 className="instrument-preset-section__title">Sampled</h4>
+        <div
+          className="instrument-preset-categories"
+          aria-busy={synthPresetLoading}
+        >
+          {sampledCategories.map((group) => (
+            <div
+              key={group.category.id}
+              className="instrument-preset-category"
+            >
+              <p className="instrument-preset-category__label">
+                {group.category.label}
+              </p>
+              <InstrumentPresetGrid
+                presets={group.presets}
+                groupLabel={group.category.label}
+                synthPresetId={synthPresetId}
+                synthPresetLoading={synthPresetLoading}
+                onSelect={setSynthPresetId}
+              />
+            </div>
+          ))}
+        </div>
+      </section>
     </div>
   );
 };
@@ -67,43 +83,66 @@ const InstrumentPresetSection: React.FC<InstrumentPresetSectionProps> = ({
     aria-label={title}
   >
     <h4 className="instrument-preset-section__title">{title}</h4>
-    <div
-      className="instrument-preset-grid"
-      role="group"
-      aria-label={`${title} instruments`}
-      aria-busy={synthPresetLoading}
-    >
-      {presets.map((preset) => {
-        const isSelected = synthPresetId === preset.id;
-        const isLoading = isSelected && synthPresetLoading;
-        return (
-          <button
-            key={preset.id}
-            type="button"
-            className={`instrument-preset-btn${isSelected ? ' active' : ''}`}
-            onClick={() => onSelect(preset.id)}
-            aria-pressed={isSelected}
-            disabled={synthPresetLoading}
-          >
-            <span className="instrument-preset-btn__label">{preset.name}</span>
-            {isLoading ? (
-              <Loader2
-                size={15}
-                strokeWidth={2.5}
-                className="instrument-preset-btn__check instrument-preset-btn__spinner"
-                aria-hidden="true"
-              />
-            ) : isSelected ? (
-              <Check
-                size={15}
-                strokeWidth={2.5}
-                className="instrument-preset-btn__check"
-                aria-hidden="true"
-              />
-            ) : null}
-          </button>
-        );
-      })}
-    </div>
+    <InstrumentPresetGrid
+      presets={presets}
+      groupLabel={title}
+      synthPresetId={synthPresetId}
+      synthPresetLoading={synthPresetLoading}
+      onSelect={onSelect}
+    />
   </section>
+);
+
+interface InstrumentPresetGridProps {
+  presets: SynthPreset[];
+  groupLabel: string;
+  synthPresetId: string;
+  synthPresetLoading: boolean;
+  onSelect: (id: string) => void;
+}
+
+const InstrumentPresetGrid: React.FC<InstrumentPresetGridProps> = ({
+  presets,
+  groupLabel,
+  synthPresetId,
+  synthPresetLoading,
+  onSelect,
+}) => (
+  <div
+    className="instrument-preset-grid"
+    role="group"
+    aria-label={`${groupLabel} instruments`}
+  >
+    {presets.map((preset) => {
+      const isSelected = synthPresetId === preset.id;
+      const isLoading = isSelected && synthPresetLoading;
+      return (
+        <button
+          key={preset.id}
+          type="button"
+          className={`instrument-preset-btn${isSelected ? ' active' : ''}`}
+          onClick={() => onSelect(preset.id)}
+          aria-pressed={isSelected}
+          disabled={synthPresetLoading}
+        >
+          <span className="instrument-preset-btn__label">{preset.name}</span>
+          {isLoading ? (
+            <Loader2
+              size={15}
+              strokeWidth={2.5}
+              className="instrument-preset-btn__check instrument-preset-btn__spinner"
+              aria-hidden="true"
+            />
+          ) : isSelected ? (
+            <Check
+              size={15}
+              strokeWidth={2.5}
+              className="instrument-preset-btn__check"
+              aria-hidden="true"
+            />
+          ) : null}
+        </button>
+      );
+    })}
+  </div>
 );

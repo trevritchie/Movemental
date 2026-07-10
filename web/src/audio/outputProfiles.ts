@@ -42,6 +42,9 @@ export interface OutputProfile {
 
 export type EqProfile = OutputProfile;
 
+/** Streaming-safe limiter ceiling (sample peak; margin for AAC inter-sample overs). */
+export const LIMITER_CEILING_DB = -3.0;
+
 export const OUTPUT_PROFILES: Record<EqProfileId, OutputProfile> = {
   smallSpeakers: {
     id: 'smallSpeakers',
@@ -56,20 +59,20 @@ export const OUTPUT_PROFILES: Record<EqProfileId, OutputProfile> = {
     harmonicEnhance: {
       enabled: true,
       hpfHz: 180,
-      distortion: 0.15,
+      distortion: 0.1,
       wet: 0.2,
     },
     loudness: {
       synthVolumeDb: -6,
-      masterMakeupDb: 4,
-      limiterCeilingDb: -1.0,
+      masterMakeupDb: 1.5,
+      limiterCeilingDb: LIMITER_CEILING_DB,
       fxScale: 0.85,
       compressor: {
-        threshold: -24,
-        ratio: 3.0,
+        threshold: -22,
+        ratio: 2.2,
         knee: 6,
         attack: 0.03,
-        release: 0.08,
+        release: 0.12,
       },
     },
   },
@@ -86,20 +89,20 @@ export const OUTPUT_PROFILES: Record<EqProfileId, OutputProfile> = {
     harmonicEnhance: {
       enabled: false,
       hpfHz: 180,
-      distortion: 0.15,
+      distortion: 0.1,
       wet: 0,
     },
     loudness: {
       synthVolumeDb: -7,
-      masterMakeupDb: 4,
-      limiterCeilingDb: -1.0,
+      masterMakeupDb: 1.5,
+      limiterCeilingDb: LIMITER_CEILING_DB,
       fxScale: 0.95,
       compressor: {
-        threshold: -22,
-        ratio: 2.8,
+        threshold: -20,
+        ratio: 2.2,
         knee: 5,
         attack: 0.03,
-        release: 0.08,
+        release: 0.12,
       },
     },
   },
@@ -116,20 +119,20 @@ export const OUTPUT_PROFILES: Record<EqProfileId, OutputProfile> = {
     harmonicEnhance: {
       enabled: false,
       hpfHz: 180,
-      distortion: 0.15,
+      distortion: 0.1,
       wet: 0,
     },
     loudness: {
-      synthVolumeDb: -9,
-      masterMakeupDb: 2,
-      limiterCeilingDb: -1.0,
+      synthVolumeDb: -12,
+      masterMakeupDb: 0,
+      limiterCeilingDb: LIMITER_CEILING_DB,
       fxScale: 1.0,
       compressor: {
         threshold: -20,
-        ratio: 2.5,
+        ratio: 2.2,
         knee: 4,
         attack: 0.03,
-        release: 0.08,
+        release: 0.12,
       },
     },
   },
@@ -175,42 +178,43 @@ const SMALL_SPEAKERS_DESKTOP: OutputProfile = {
   eq: { ...OUTPUT_PROFILES.smallSpeakers.eq, mid: 2 },
   harmonicEnhance: {
     ...OUTPUT_PROFILES.smallSpeakers.harmonicEnhance,
-    distortion: 0.08,
+    distortion: 0.06,
     wet: 0.08,
   },
   loudness: {
     ...OUTPUT_PROFILES.smallSpeakers.loudness,
-    synthVolumeDb: -7,
+    synthVolumeDb: -8,
     masterMakeupDb: 0,
-    limiterCeilingDb: -2.5,
+    limiterCeilingDb: LIMITER_CEILING_DB,
     fxScale: 0.85,
     compressor: {
       ...OUTPUT_PROFILES.smallSpeakers.loudness.compressor,
       threshold: -20,
-      ratio: 2.5,
+      ratio: 2.2,
       release: 0.12,
     },
   },
 };
 
-/** Midway loudness between legacy mobile and desktop-safe tuning; keeps gentler bus. */
+/** Phone tier: loudness via EQ and harmonic enhance, not gain into the limiter. */
 const SMALL_SPEAKERS_MOBILE: OutputProfile = {
   ...SMALL_SPEAKERS_DESKTOP,
   eq: { ...SMALL_SPEAKERS_DESKTOP.eq, mid: 2.5 },
   harmonicEnhance: {
     ...SMALL_SPEAKERS_DESKTOP.harmonicEnhance,
-    distortion: 0.115,
-    wet: 0.14,
+    distortion: 0.08,
+    wet: 0.16,
   },
   loudness: {
     ...SMALL_SPEAKERS_DESKTOP.loudness,
-    synthVolumeDb: -5.5,
-    masterMakeupDb: 3,
-    limiterCeilingDb: -1.75,
+    synthVolumeDb: -8,
+    masterMakeupDb: 0,
+    limiterCeilingDb: LIMITER_CEILING_DB,
     fxScale: 0.825,
     compressor: {
       ...SMALL_SPEAKERS_DESKTOP.loudness.compressor,
-      threshold: -23,
+      threshold: -20,
+      ratio: 2.2,
     },
   },
 };
@@ -221,29 +225,30 @@ const LARGE_SPEAKERS_DESKTOP: OutputProfile = {
     ...OUTPUT_PROFILES.largeSpeakers.loudness,
     synthVolumeDb: -8,
     masterMakeupDb: 0,
-    limiterCeilingDb: -2.5,
+    limiterCeilingDb: LIMITER_CEILING_DB,
     fxScale: 0.9,
     compressor: {
       ...OUTPUT_PROFILES.largeSpeakers.loudness.compressor,
       threshold: -20,
-      ratio: 2.5,
+      ratio: 2.2,
       release: 0.12,
     },
   },
 };
 
-/** Midway loudness between legacy and desktop-safe tuning; keeps gentler bus. */
+/** Phone tier: same limiter ceiling as desktop; no makeup or synth boost. */
 const LARGE_SPEAKERS_MOBILE: OutputProfile = {
   ...LARGE_SPEAKERS_DESKTOP,
   loudness: {
     ...LARGE_SPEAKERS_DESKTOP.loudness,
-    synthVolumeDb: -6.5,
-    masterMakeupDb: 3,
-    limiterCeilingDb: -1.75,
+    synthVolumeDb: -8,
+    masterMakeupDb: 0,
+    limiterCeilingDb: LIMITER_CEILING_DB,
     fxScale: 0.875,
     compressor: {
       ...LARGE_SPEAKERS_DESKTOP.loudness.compressor,
-      threshold: -23,
+      threshold: -20,
+      ratio: 2.2,
     },
   },
 };

@@ -5,8 +5,15 @@ import {
   dbToGain,
   getAdaptedOutputProfile,
   getOutputProfile,
+  LIMITER_CEILING_DB,
 } from '../audio/outputProfiles';
+import { HARMONIC_WET_ATTENUATION_DB } from '../audio/busConstants';
+import type { MasterBusGraph } from '../audio/masterBusGraph';
 import { getSynthPreset } from '../audio/synthPresets';
+
+function getBusNodes(engine: typeof audioEngine): MasterBusGraph {
+  return (engine as unknown as { bus: MasterBusGraph }).bus;
+}
 
 describe('AudioEngine.playNotes', () => {
   beforeEach(async () => {
@@ -31,14 +38,13 @@ describe('AudioEngine EQ profiles', () => {
   beforeEach(async () => {
     await audioEngine.startContext();
     audioEngine.releaseActiveNotes();
+    await audioEngine.applyPreset(getSynthPreset('warmPad'));
     audioEngine.setOutputProfile(getAdaptedOutputProfile('smallSpeakers', 'desktop'));
   });
 
   it('switches to flat profile with harmonic enhance bypassed', () => {
+    const bus = getBusNodes(audioEngine);
     const engine = audioEngine as unknown as {
-      eq: Tone.EQ3;
-      harmonicWetGain: Tone.Gain;
-      compressor: Tone.Compressor;
       masterMakeup: Tone.Gain;
       limiter: Tone.Limiter;
     };
@@ -46,111 +52,107 @@ describe('AudioEngine EQ profiles', () => {
     audioEngine.setOutputProfile(getOutputProfile('flat'));
 
     expect(audioEngine.getEqProfileId()).toBe('flat');
-    expect(engine.eq.low.value).toBe(0);
-    expect(engine.eq.mid.value).toBe(0);
-    expect(engine.harmonicWetGain.gain.value).toBe(0);
-    expect(engine.compressor.threshold.value).toBe(-20);
-    expect(engine.masterMakeup.gain.value).toBeCloseTo(dbToGain(2), 4);
-    expect(engine.limiter.threshold.value).toBe(-1);
+    expect(bus.eq.low.value).toBe(0);
+    expect(bus.eq.mid.value).toBe(0);
+    expect(bus.harmonicWetGain.gain.value).toBe(0);
+    expect(bus.compressor.threshold.value).toBe(-20);
+    expect(engine.masterMakeup.gain.value).toBeCloseTo(dbToGain(0), 4);
+    expect(engine.limiter.threshold.value).toBe(LIMITER_CEILING_DB);
   });
 
   it('applies large speakers full-range EQ curve from base profile', () => {
+    const bus = getBusNodes(audioEngine);
     const engine = audioEngine as unknown as {
-      harmonicWetGain: Tone.Gain;
-      eq: Tone.EQ3;
       masterMakeup: Tone.Gain;
       limiter: Tone.Limiter;
-      compressor: Tone.Compressor;
     };
 
     audioEngine.setOutputProfile(getOutputProfile('largeSpeakers'));
 
     expect(audioEngine.getEqProfileId()).toBe('largeSpeakers');
-    expect(engine.eq.low.value).toBe(2);
-    expect(engine.eq.mid.value).toBe(1);
-    expect(engine.eq.high.value).toBe(-1.5);
-    expect(engine.harmonicWetGain.gain.value).toBe(0);
-    expect(engine.masterMakeup.gain.value).toBeCloseTo(dbToGain(4), 4);
-    expect(engine.compressor.threshold.value).toBe(-22);
-    expect(engine.limiter.threshold.value).toBe(-1);
+    expect(bus.eq.low.value).toBe(2);
+    expect(bus.eq.mid.value).toBe(1);
+    expect(bus.eq.high.value).toBe(-1.5);
+    expect(bus.harmonicWetGain.gain.value).toBe(0);
+    expect(engine.masterMakeup.gain.value).toBeCloseTo(dbToGain(1.5), 4);
+    expect(bus.compressor.threshold.value).toBe(-20);
+    expect(engine.limiter.threshold.value).toBe(LIMITER_CEILING_DB);
   });
 
   it('applies desktop-safe large speakers adaptation', () => {
+    const bus = getBusNodes(audioEngine);
     const engine = audioEngine as unknown as {
-      harmonicWetGain: Tone.Gain;
-      eq: Tone.EQ3;
       masterMakeup: Tone.Gain;
       limiter: Tone.Limiter;
-      compressor: Tone.Compressor;
     };
 
     audioEngine.setOutputProfile(getAdaptedOutputProfile('largeSpeakers', 'desktop'));
 
-    expect(engine.eq.low.value).toBe(2);
-    expect(engine.harmonicWetGain.gain.value).toBe(0);
+    expect(bus.eq.low.value).toBe(2);
+    expect(bus.harmonicWetGain.gain.value).toBe(0);
     expect(engine.masterMakeup.gain.value).toBeCloseTo(dbToGain(0), 4);
-    expect(engine.compressor.threshold.value).toBe(-20);
-    expect(engine.compressor.ratio.value).toBe(2.5);
-    expect(engine.compressor.release.value).toBe(0.12);
-    expect(engine.limiter.threshold.value).toBe(-2.5);
+    expect(bus.compressor.threshold.value).toBe(-20);
+    expect(bus.compressor.ratio.value).toBe(2.2);
+    expect(bus.compressor.release.value).toBe(0.12);
+    expect(engine.limiter.threshold.value).toBe(LIMITER_CEILING_DB);
   });
 
-  it('applies modest mobile large speakers loudness bump on phone', () => {
+  it('keeps mobile large speakers at the same limiter ceiling as desktop', () => {
+    const bus = getBusNodes(audioEngine);
     const engine = audioEngine as unknown as {
-      harmonicWetGain: Tone.Gain;
-      eq: Tone.EQ3;
       masterMakeup: Tone.Gain;
       limiter: Tone.Limiter;
-      compressor: Tone.Compressor;
     };
 
     audioEngine.setOutputProfile(getAdaptedOutputProfile('largeSpeakers', 'phone'));
 
-    expect(engine.masterMakeup.gain.value).toBeCloseTo(dbToGain(3), 4);
-    expect(engine.compressor.threshold.value).toBe(-23);
-    expect(engine.compressor.ratio.value).toBe(2.5);
-    expect(engine.compressor.release.value).toBe(0.12);
-    expect(engine.limiter.threshold.value).toBe(-1.75);
+    expect(engine.masterMakeup.gain.value).toBeCloseTo(dbToGain(0), 4);
+    expect(bus.compressor.threshold.value).toBe(-20);
+    expect(bus.compressor.ratio.value).toBe(2.2);
+    expect(bus.compressor.release.value).toBe(0.12);
+    expect(engine.limiter.threshold.value).toBe(LIMITER_CEILING_DB);
   });
 
   it('applies desktop-safe small speakers adaptation', () => {
+    const bus = getBusNodes(audioEngine);
     const engine = audioEngine as unknown as {
-      harmonicWetGain: Tone.Gain;
-      eq: Tone.EQ3;
       masterMakeup: Tone.Gain;
       limiter: Tone.Limiter;
-      compressor: Tone.Compressor;
     };
 
     audioEngine.setOutputProfile(getAdaptedOutputProfile('smallSpeakers', 'desktop'));
 
-    expect(engine.eq.mid.value).toBe(2);
-    expect(engine.harmonicWetGain.gain.value).toBe(0.08);
+    expect(bus.eq.mid.value).toBe(2);
+    expect(bus.harmonicWetGain.gain.value).toBeCloseTo(
+      0.08 * dbToGain(HARMONIC_WET_ATTENUATION_DB),
+      4,
+    );
     expect(engine.masterMakeup.gain.value).toBeCloseTo(dbToGain(0), 4);
-    expect(engine.compressor.threshold.value).toBe(-20);
-    expect(engine.compressor.ratio.value).toBe(2.5);
-    expect(engine.compressor.release.value).toBe(0.12);
-    expect(engine.limiter.threshold.value).toBe(-2.5);
+    expect(bus.compressor.threshold.value).toBe(-20);
+    expect(bus.compressor.ratio.value).toBe(2.2);
+    expect(bus.compressor.release.value).toBe(0.12);
+    expect(engine.limiter.threshold.value).toBe(LIMITER_CEILING_DB);
   });
 
-  it('applies modest mobile small speakers loudness bump on phone', () => {
+  it('uses harmonic enhance on phone without mobile makeup boost', () => {
+    const bus = getBusNodes(audioEngine);
     const engine = audioEngine as unknown as {
-      harmonicWetGain: Tone.Gain;
-      eq: Tone.EQ3;
       masterMakeup: Tone.Gain;
       limiter: Tone.Limiter;
-      compressor: Tone.Compressor;
     };
 
     audioEngine.setOutputProfile(getAdaptedOutputProfile('smallSpeakers', 'phone'));
 
-    expect(engine.eq.mid.value).toBe(2.5);
-    expect(engine.harmonicWetGain.gain.value).toBe(0.14);
-    expect(engine.masterMakeup.gain.value).toBeCloseTo(dbToGain(3), 4);
-    expect(engine.compressor.threshold.value).toBe(-23);
-    expect(engine.compressor.ratio.value).toBe(2.5);
-    expect(engine.compressor.release.value).toBe(0.12);
-    expect(engine.limiter.threshold.value).toBe(-1.75);
+    expect(bus.eq.mid.value).toBe(2.5);
+    expect(bus.harmonicWetGain.gain.value).toBeCloseTo(
+      0.16 * dbToGain(HARMONIC_WET_ATTENUATION_DB),
+      4,
+    );
+    expect(engine.masterMakeup.gain.value).toBeCloseTo(dbToGain(0), 4);
+    expect(bus.compressor.threshold.value).toBe(-20);
+    expect(bus.compressor.ratio.value).toBe(2.2);
+    expect(bus.compressor.release.value).toBe(0.12);
+    expect(engine.limiter.threshold.value).toBe(LIMITER_CEILING_DB);
   });
 });
 

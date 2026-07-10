@@ -62,7 +62,7 @@ interface SamplerProfile {
 const PROFILE_BY_KIND: Record<SamplerProfileKind, SamplerProfile> = {
   keyboard: {
     kind: 'keyboard',
-    volumeDb: -4,
+    volumeDb: -8,
     filterCutoffHz: 12000,
     release: 1.0,
     reverbWet: 0.12,
@@ -81,7 +81,7 @@ const PROFILE_BY_KIND: Record<SamplerProfileKind, SamplerProfile> = {
   },
   string: {
     kind: 'string',
-    volumeDb: -2,
+    volumeDb: -8,
     filterCutoffHz: 10000,
     release: 0.9,
     reverbWet: 0.18,
@@ -100,7 +100,7 @@ const PROFILE_BY_KIND: Record<SamplerProfileKind, SamplerProfile> = {
   },
   plucked: {
     kind: 'plucked',
-    volumeDb: -3,
+    volumeDb: -8,
     filterCutoffHz: 9000,
     release: 0.55,
     reverbWet: 0.1,
@@ -119,7 +119,7 @@ const PROFILE_BY_KIND: Record<SamplerProfileKind, SamplerProfile> = {
   },
   woodwind: {
     kind: 'woodwind',
-    volumeDb: -3,
+    volumeDb: -8,
     filterCutoffHz: 11000,
     release: 0.75,
     reverbWet: 0.14,
@@ -138,7 +138,7 @@ const PROFILE_BY_KIND: Record<SamplerProfileKind, SamplerProfile> = {
   },
   brass: {
     kind: 'brass',
-    volumeDb: -2,
+    volumeDb: -8,
     filterCutoffHz: 10000,
     release: 0.8,
     reverbWet: 0.16,
@@ -157,7 +157,7 @@ const PROFILE_BY_KIND: Record<SamplerProfileKind, SamplerProfile> = {
   },
   mallet: {
     kind: 'mallet',
-    volumeDb: -4,
+    volumeDb: -8,
     filterCutoffHz: 12000,
     release: 0.45,
     reverbWet: 0.08,
@@ -176,7 +176,7 @@ const PROFILE_BY_KIND: Record<SamplerProfileKind, SamplerProfile> = {
   },
   bass: {
     kind: 'bass',
-    volumeDb: -1,
+    volumeDb: -8,
     filterCutoffHz: 7000,
     release: 0.7,
     reverbWet: 0.08,
@@ -193,6 +193,31 @@ const PROFILE_BY_KIND: Record<SamplerProfileKind, SamplerProfile> = {
       release: 0.6,
     },
   },
+};
+
+/**
+ * Per-instrument loudness trim (measured on smallSpeakers; applied on every EQ).
+ * Falls back to the kind profile when unset.
+ */
+const PRESET_VOLUME_DB: Partial<Record<string, number>> = {
+  bassoon: -4,
+  cello: -8,
+  clarinet: -11.5,
+  flute: -8.5,
+  'french-horn': -9,
+  'guitar-acoustic': -3,
+  'guitar-electric': -6.5,
+  'guitar-nylon': -2.5,
+  harmonium: -9,
+  harp: -5,
+  organ: -8,
+  piano: -7,
+  saxophone: -8,
+  trombone: -9,
+  trumpet: -10,
+  tuba: -6,
+  violin: -6.5,
+  xylophone: -2,
 };
 
 const KIND_BY_INSTRUMENT_ID: Record<string, SamplerProfileKind> = {
@@ -233,7 +258,7 @@ function buildTonejsSamplerPreset(
       urls: instrument.urls,
       release: profile.release,
     },
-    volumeDb: profile.volumeDb,
+    volumeDb: PRESET_VOLUME_DB[instrument.id] ?? profile.volumeDb,
     filterCutoffHz: profile.filterCutoffHz,
     harmonicEnhanceEnabled: false,
     fxDefaults: {

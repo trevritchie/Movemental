@@ -108,7 +108,7 @@ const GRAND_PIANO_PRESET: SynthPreset = {
     urls: SALAMANDER_PIANO_URLS,
     release: 1.2,
   },
-  volumeDb: -4,
+  volumeDb: -2,
   filterCutoffHz: 12000,
   harmonicEnhanceEnabled: false,
   fxDefaults: {
@@ -145,7 +145,7 @@ export const SYNTH_PRESETS: SynthPreset[] = [
         spread: 15,
       },
     },
-    volumeDb: -6,
+    volumeDb: -15,
     filterCutoffHz: 900,
     fxDefaults: PAD_FX,
     envelopeDefaults: {
@@ -159,7 +159,7 @@ export const SYNTH_PRESETS: SynthPreset[] = [
     engine: 'synth',
     synthClass: 'Synth',
     voiceOptions: superSawJson as Record<string, unknown>,
-    volumeDb: -6,
+    volumeDb: -9,
     filterCutoffHz: 1200,
     envelopeDefaults: {
       clickHold: { attack: 0.08, decay: 1.2, sustain: 0.55, release: 1.8 },
@@ -172,7 +172,7 @@ export const SYNTH_PRESETS: SynthPreset[] = [
     engine: 'synth',
     synthClass: 'FMSynth',
     voiceOptions: electricCelloJson as Record<string, unknown>,
-    volumeDb: -4,
+    volumeDb: -6,
     filterCutoffHz: 1000,
     envelopeDefaults: {
       clickHold: { attack: 0.2, decay: 1.5, sustain: 0.45, release: 2.0 },
@@ -186,7 +186,7 @@ export const SYNTH_PRESETS: SynthPreset[] = [
 export const SYNTH_ENGINE_PRESETS = SYNTH_PRESETS.filter(isSynthPreset);
 export const SAMPLER_ENGINE_PRESETS = SYNTH_PRESETS.filter(isSamplerPreset);
 
-export const DEFAULT_SYNTH_PRESET_ID = 'warmPad';
+export const DEFAULT_SYNTH_PRESET_ID = 'trumpet';
 
 const PRESET_BY_ID = new Map(SYNTH_PRESETS.map((preset) => [preset.id, preset]));
 

@@ -14,6 +14,7 @@ import {
   getPresetDroneEnvelope,
   getPresetFxDefaults,
   getSynthPreset,
+  DEFAULT_SYNTH_PRESET_ID,
   isSamplerPreset,
   SYNTH_PRESETS,
   type PresetEnvelopeSettings,
@@ -61,13 +62,15 @@ type AdsrFromPreset = Pick<
 export function useAudioSettings(playStyle: PlayStyle) {
   const layoutTier = useLayoutTier();
   const initialProfileId = readEqProfileId(resolveLayoutTier());
-  const initialPreset = getSynthPreset('warmPad');
+  const initialPreset = getSynthPreset(DEFAULT_SYNTH_PRESET_ID);
   const initialDefaults = applyPresetDefaultsToState(initialPreset);
 
   const [eqProfileId, setEqProfileIdState] = useState<EqProfileId>(
     () => initialProfileId,
   );
-  const [synthPresetId, setSynthPresetIdState] = useState<string>('warmPad');
+  const [synthPresetId, setSynthPresetIdState] = useState<string>(
+    () => DEFAULT_SYNTH_PRESET_ID,
+  );
   const [synthPresetLoading, setSynthPresetLoading] = useState(false);
 
   const [chorusWet, setChorusWetState] = useState(initialDefaults.fx.chorusWet);
