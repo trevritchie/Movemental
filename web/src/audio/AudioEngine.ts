@@ -42,6 +42,10 @@ import {
   type SynthPreset,
 } from './synthPresets';
 import { resolveSampleBaseUrl } from './samplePaths';
+import {
+  applyProductionLatencyForTier,
+  readContextLatencyReport,
+} from './latencyRunner';
 
 /** PolySynth or sample-based Sampler; shared note trigger API. */
 type InstrumentVoice = Tone.PolySynth | Tone.Sampler;
@@ -124,6 +128,7 @@ export class AudioEngine {
   > = {};
   /** When true, sampler uses preset-native release instead of user ADSR (drone mode). */
   private samplerNaturalEnvelope = false;
+  private latencyContextConfigured = false;
 
   constructor() {
     const tier = resolveLayoutTierSafe();
@@ -475,6 +480,25 @@ export class AudioEngine {
   public async startContext() {
     unlockIosMediaChannel();
     await waitForIosMediaChannel();
+
+    if (!this.latencyContextConfigured) {
+      const tier = resolveLayoutTierSafe();
+      const toneContext = applyProductionLatencyForTier(tier);
+      this.latencyContextConfigured = true;
+      if (import.meta.env.DEV) {
+        const report = readContextLatencyReport(toneContext);
+        devLog(
+          '[AudioEngine] Latency profile:',
+          tier,
+          '| lookAhead',
+          report.lookAheadSec,
+          's | reported',
+          report.totalReportedMs.toFixed(1),
+          'ms',
+        );
+      }
+    }
+
     await Tone.start();
     if (!this.isReady) {
       await this.initSynth();

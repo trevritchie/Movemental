@@ -1,0 +1,70 @@
+{
+  "baseline-tone-defaults": {
+    "medianMs": 110,
+    "p95Ms": 110
+  },
+  "lookAhead-0": {
+    "medianMs": 10,
+    "p95Ms": 10
+  },
+  "lookAhead-0_005": {
+    "medianMs": 15,
+    "p95Ms": 15
+  },
+  "lookAhead-0_01": {
+    "medianMs": 20,
+    "p95Ms": 20
+  },
+  "lookAhead-0_02": {
+    "medianMs": 30,
+    "p95Ms": 30
+  },
+  "lookAhead-0_03": {
+    "medianMs": 40,
+    "p95Ms": 40
+  },
+  "lookAhead-0_05": {
+    "medianMs": 60,
+    "p95Ms": 60
+  },
+  "lookAhead-0_1": {
+    "medianMs": 110,
+    "p95Ms": 110
+  },
+  "latencyHint-interactive": {
+    "medianMs": 30,
+    "p95Ms": 30
+  },
+  "latencyHint-balanced": {
+    "medianMs": 30,
+    "p95Ms": 30
+  },
+  "latencyHint-0_01": {
+    "medianMs": 30,
+    "p95Ms": 30
+  },
+  "latencyHint-0_02": {
+    "medianMs": 40,
+    "p95Ms": 40
+  },
+  "updateInterval-fixed-10ms": {
+    "medianMs": 30,
+    "p95Ms": 30
+  },
+  "attackOffset-0": {
+    "medianMs": 30,
+    "p95Ms": 30
+  },
+  "attackOffset-15ms": {
+    "medianMs": 30,
+    "p95Ms": 30
+  },
+  "production-desktop": {
+    "medianMs": 10,
+    "p95Ms": 10
+  },
+  "production-phone": {
+    "medianMs": 10,
+    "p95Ms": 10
+  }
+}

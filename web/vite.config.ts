@@ -54,7 +54,7 @@ export default defineConfig({
           environment: 'jsdom',
           setupFiles: ['./src/test/setup.ts'],
           include: ['src/**/*.test.ts'],
-          exclude: ['src/**/*.offline.test.ts'],
+          exclude: ['src/**/*.offline.test.ts', 'src/**/*.live.test.ts'],
           globals: true,
         },
       },
@@ -62,9 +62,9 @@ export default defineConfig({
         extends: true,
         test: {
           name: 'audio-offline',
-          include: ['src/**/*.offline.test.ts'],
+          include: ['src/**/*.offline.test.ts', 'src/**/*.live.test.ts'],
           globals: true,
-          testTimeout: 120_000,
+          testTimeout: 30_000,
           browser: {
             enabled: true,
             provider: playwright(),

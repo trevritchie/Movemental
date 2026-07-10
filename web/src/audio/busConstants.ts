@@ -11,8 +11,8 @@ export const CHORUS_DEPTH = 0.7;
 /** Post-synth lowpass warmth. */
 export const FILTER_CUTOFF_HZ = 900;
 export const FILTER_ROLLOFF_DB = -12;
-/** Micro-delay before attack to avoid release/attack clicks. */
-export const ATTACK_SCHEDULE_OFFSET_SEC = 0.015;
+/** Micro-delay before attack on preview/retrigger paths to reduce release clicks. */
+export const ATTACK_SCHEDULE_OFFSET_SEC = 0.005;
 /** Pre-FX bus trim so polyphonic chords retain headroom before dynamics. */
 export const BUS_HEADROOM_DB = -6;
 /** Attenuation into modulation FX to limit resonant peak buildup. */

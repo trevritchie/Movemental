@@ -14,7 +14,8 @@
     "test:unit": "vitest run --project unit",
     "test:audio": "vitest run --project audio-offline",
     "measure:gain": "npx vite-node scripts/measure-gain-staging.mts",
-    "measure:loudness": "npx vite-node scripts/measure-preset-loudness.mts"
+    "measure:loudness": "npx vite-node scripts/measure-preset-loudness.mts",
+    "measure:latency": "npx vite-node scripts/measure-latency.mts"
   },
   "dependencies": {
     "@ffmpeg/ffmpeg": "^0.12.15",

@@ -13,6 +13,7 @@ import { EqProfileToggle } from './settings/EqProfileToggle';
 import { InstrumentPresetPicker } from './settings/InstrumentPresetPicker';
 import { IosInstallHintPortal } from './IosInstallHintPortal';
 import { isIphone } from '../utils/devicePlatform';
+import { getSynthPreset, isSamplerPreset } from '../audio/synthPresets';
 import { HelpPage } from './help/HelpPage';
 import { helpDialogTitle, type HelpView } from './help/helpTypes';
 import { useTour } from './tour/tourContext';
@@ -43,6 +44,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     playStyle,
     setPlayStyle,
     synthPresetId,
+    setSynthPresetId,
     synthPresets,
     isSamplerInstrumentActive,
     isSamplerAdsrDisabled,
@@ -62,17 +64,28 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const [helpView, setHelpView] = React.useState<HelpView>('hub');
   const { startTour, hasCompletedTour } = useTour();
 
-  useEffect(() => {
-    if (isSamplerInstrumentActive) {
-      setShowEffects(false);
-    }
-  }, [isSamplerInstrumentActive]);
+  const adsrExpanded = showAdsr && !isSamplerAdsrDisabled;
+  const effectsExpanded = showEffects && !isSamplerInstrumentActive;
 
-  useEffect(() => {
-    if (isSamplerAdsrDisabled) {
-      setShowAdsr(false);
-    }
-  }, [isSamplerAdsrDisabled]);
+  const handlePresetSelect = useCallback(
+    (id: string) => {
+      setSynthPresetId(id);
+      if (isSamplerPreset(getSynthPreset(id))) {
+        setShowEffects(false);
+      }
+    },
+    [setSynthPresetId],
+  );
+
+  const handlePlayStyleChange = useCallback(
+    (style: PlayStyle) => {
+      setPlayStyle(style);
+      if (style === 'drone' && isSamplerInstrumentActive) {
+        setShowAdsr(false);
+      }
+    },
+    [isSamplerInstrumentActive, setPlayStyle],
+  );
 
   const idPrefix = `${menuId}-`;
   const selectedInstrumentName =
@@ -264,7 +277,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                       <select
                         value={playStyle}
                         onChange={(e) =>
-                          setPlayStyle(e.target.value as PlayStyle)
+                          handlePlayStyleChange(e.target.value as PlayStyle)
                         }
                       >
                         <option value="click_and_hold">Click & Hold</option>
@@ -300,12 +313,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   </button>
                   {showInstrument && (
                     <div className="settings-menu-accordion__panel">
-                      <InstrumentPresetPicker />
+                      <InstrumentPresetPicker onPresetSelect={handlePresetSelect} />
                     </div>
                   )}
                   <button
                     type="button"
-                    className={`settings-menu-accordion${showAdsr ? ' active' : ''}${isSamplerAdsrDisabled ? ' settings-menu-accordion--disabled' : ''}`}
+                    className={`settings-menu-accordion${adsrExpanded ? ' active' : ''}${isSamplerAdsrDisabled ? ' settings-menu-accordion--disabled' : ''}`}
                     onClick={() => {
                       if (isSamplerAdsrDisabled) {
                         return;
@@ -316,20 +329,20 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                         setShowInstrument(false);
                       }
                     }}
-                    aria-expanded={showAdsr}
+                    aria-expanded={adsrExpanded}
                     disabled={isSamplerAdsrDisabled}
                     aria-disabled={isSamplerAdsrDisabled}
                   >
                     Envelope (ADSR)
                   </button>
-                  {showAdsr && !isSamplerAdsrDisabled && (
+                  {adsrExpanded && (
                     <div className="settings-menu-accordion__panel">
                       <AdsrPanelContent idPrefix={idPrefix} />
                     </div>
                   )}
                   <button
                     type="button"
-                    className={`settings-menu-accordion${showEffects ? ' active' : ''}${isSamplerInstrumentActive ? ' settings-menu-accordion--disabled' : ''}`}
+                    className={`settings-menu-accordion${effectsExpanded ? ' active' : ''}${isSamplerInstrumentActive ? ' settings-menu-accordion--disabled' : ''}`}
                     onClick={() => {
                       if (isSamplerInstrumentActive) {
                         return;
@@ -340,13 +353,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                         setShowInstrument(false);
                       }
                     }}
-                    aria-expanded={showEffects}
+                    aria-expanded={effectsExpanded}
                     disabled={isSamplerInstrumentActive}
                     aria-disabled={isSamplerInstrumentActive}
                   >
                     Synth Effects
                   </button>
-                  {showEffects && !isSamplerInstrumentActive && (
+                  {effectsExpanded && (
                     <div className="settings-menu-accordion__panel">
                       <EffectsPanelContent idPrefix={idPrefix} />
                     </div>

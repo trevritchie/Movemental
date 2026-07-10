@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { Check, Loader2 } from 'lucide-react';
 import { useChordContext } from '../../context/ChordContext';
 import { groupSamplerPresetsByCategory } from '../../audio/samplerInstrumentCategories';
@@ -8,12 +8,29 @@ import {
   type SynthPreset,
 } from '../../audio/synthPresets';
 
-export const InstrumentPresetPicker: React.FC = () => {
+export interface InstrumentPresetPickerProps {
+  onPresetSelect?: (id: string) => void;
+}
+
+export const InstrumentPresetPicker: React.FC<InstrumentPresetPickerProps> = ({
+  onPresetSelect,
+}) => {
   const {
     synthPresetId,
     setSynthPresetId,
     synthPresetLoading,
   } = useChordContext();
+
+  const handleSelect = useCallback(
+    (id: string) => {
+      if (onPresetSelect) {
+        onPresetSelect(id);
+        return;
+      }
+      setSynthPresetId(id);
+    },
+    [onPresetSelect, setSynthPresetId],
+  );
 
   const sampledCategories = useMemo(
     () => groupSamplerPresetsByCategory(SAMPLER_ENGINE_PRESETS),
@@ -27,7 +44,7 @@ export const InstrumentPresetPicker: React.FC = () => {
         presets={SYNTH_ENGINE_PRESETS}
         synthPresetId={synthPresetId}
         synthPresetLoading={synthPresetLoading}
-        onSelect={setSynthPresetId}
+        onSelect={handleSelect}
       />
       <section
         className="instrument-preset-section instrument-preset-section--sampled"
@@ -51,7 +68,7 @@ export const InstrumentPresetPicker: React.FC = () => {
                 groupLabel={group.category.label}
                 synthPresetId={synthPresetId}
                 synthPresetLoading={synthPresetLoading}
-                onSelect={setSynthPresetId}
+                onSelect={handleSelect}
               />
             </div>
           ))}
