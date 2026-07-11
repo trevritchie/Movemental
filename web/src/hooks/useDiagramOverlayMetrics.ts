@@ -24,6 +24,7 @@ export type DiagramOverlayCssVars = {
 };
 
 import { clamp } from '../utils/clamp';
+import { computePhoneLayoutScale } from '../music/diagramScaling';
 
 /** Default overlay metrics before the container is measured. */
 export const DEFAULT_OVERLAY_METRICS: DiagramOverlayCssVars = {
@@ -59,11 +60,7 @@ export function computeDiagramOverlayMetrics(
   const insetX = clamp(Math.round(shortSide * 0.006), 2, 4);
   const insetY = clamp(Math.round(shortSide * 0.012), 4, 8);
 
-  const layoutScale = clamp(
-    Math.min(height / 480, width / 360),
-    0.78,
-    1,
-  );
+  const layoutScale = computePhoneLayoutScale(width, height);
 
   const valueSize = clamp(shortSide * 0.034 * layoutScale, 12, 17);
   const labelSize = clamp(valueSize * 0.72, 9, 12);
@@ -71,20 +68,20 @@ export function computeDiagramOverlayMetrics(
   const subtitleSize = clamp(valueSize * 0.82, 10.5, 14.5);
 
   const centerGutter = clamp(Math.round(width * 0.14), 36, 56);
-  const maxCornerSpan = Math.max(
+  const maxHalfSpan = Math.max(
     72,
-    Math.round((width - centerGutter) / 2 - insetX - 4),
+    Math.floor((width - centerGutter) / 2 - insetX - 4),
   );
 
   const clockSize = Math.round(
-    clamp(width * 0.34, 72, Math.min(132, maxCornerSpan)),
+    clamp(width * 0.34, 72, Math.min(132, maxHalfSpan)),
   );
 
-  const readoutMaxW = maxCornerSpan;
+  const readoutMaxW = maxHalfSpan;
 
   const cornerMaxW = Math.max(
     72,
-    Math.round(Math.min(width * 0.44, maxCornerSpan)),
+    Math.round(Math.min(width * 0.44, maxHalfSpan)),
   );
 
   const pillPadY = clamp(Math.round(4 + layoutScale * 2), 4, 6);

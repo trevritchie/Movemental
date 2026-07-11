@@ -19,14 +19,9 @@ import {
   DIAGRAM_VIEW_H,
 } from '../music/diagramLayout';
 import {
-  computeAspectRatioCorrection,
-  getDiagramViewBox,
-  resolvePreserveAspectRatio,
+  resolveDiagramLayout,
+  type DiagramLayoutResolution,
 } from '../music/diagramScaling';
-import {
-  COMPACT_NODE_RADII,
-  DESKTOP_NODE_RADII,
-} from '../music/diagramNodeGeometry';
 import { parentElementStyle } from '../music/elementTokens';
 import { useChordContext } from '../context/ChordContext';
 import { BREAKPOINTS } from '../layout/breakpoints';
@@ -59,7 +54,9 @@ export const ElementalDiagram = React.memo(function ElementalDiagram({
   children?: React.ReactNode;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [aspectRatioCorrection, setAspectRatioCorrection] = useState(1);
+  const [diagramLayout, setDiagramLayout] = useState<DiagramLayoutResolution | null>(
+    null,
+  );
 
   const {
     selectedChord,
@@ -82,18 +79,13 @@ export const ElementalDiagram = React.memo(function ElementalDiagram({
     const { width, height } = container.getBoundingClientRect();
     setContainerWidth(width);
     if (width > 0 && height > 0) {
-      const compact =
-        layoutTier === 'phone' ||
-        layoutTier === 'tablet' ||
-        width < BREAKPOINTS.compactDiagramWidth;
-      const viewBox = getDiagramViewBox(compact);
-      setAspectRatioCorrection(
-        computeAspectRatioCorrection(
-          { width, height },
-          viewBox,
-          resolvePreserveAspectRatio(),
-        ),
-      );
+      const layout = resolveDiagramLayout({
+        containerWidth: width,
+        containerHeight: height,
+        layoutTier,
+        compactDiagramWidth: BREAKPOINTS.compactDiagramWidth,
+      });
+      setDiagramLayout(layout);
       if (layoutTier === 'phone') {
         applyDiagramOverlayMetrics(
           container,
@@ -130,18 +122,17 @@ export const ElementalDiagram = React.memo(function ElementalDiagram({
     return () => observer.disconnect();
   }, [isDiagramReady, measureContainer]);
 
-  const isCompactDiagram =
+  const layout = diagramLayout;
+  const isCompactDiagram = layout?.isCompactDiagram ?? (
     layoutTier === 'phone' ||
     layoutTier === 'tablet' ||
-    containerWidth < BREAKPOINTS.compactDiagramWidth;
-
-  const viewBoxSpec = getDiagramViewBox(isCompactDiagram);
-  const viewBox = `${viewBoxSpec.x} ${viewBoxSpec.y} ${viewBoxSpec.width} ${viewBoxSpec.height}`;
-  const preserveAspectRatio = resolvePreserveAspectRatio();
-
-  const nodeRadii = isCompactDiagram ? COMPACT_NODE_RADII : DESKTOP_NODE_RADII;
-  const R_MAIN = nodeRadii.rMain;
-  const R_GROUP = nodeRadii.rGroup;
+    containerWidth < BREAKPOINTS.compactDiagramWidth
+  );
+  const viewBox = layout?.viewBoxString ?? '0 0 1160 800';
+  const preserveAspectRatio = layout?.preserveAspectRatio ?? 'none';
+  const aspectRatioCorrection = layout?.aspectRatioCorrection ?? 1;
+  const R_MAIN = layout?.nodeRadii.rMain ?? 52;
+  const R_GROUP = layout?.nodeRadii.rGroup ?? 54;
 
   const showLabels = !isCompactDiagram;
 

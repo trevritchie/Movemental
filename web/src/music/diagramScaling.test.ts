@@ -1,17 +1,22 @@
 import { describe, it, expect } from 'vitest';
-import { VIEWPORT_FIXTURES } from './diagramScaleFixtures';
 import {
-  computeDiagramContainerSize,
+  DESKTOP_VIEWPORT_FIXTURES,
+  TABLET_VIEWPORT_FIXTURES,
+} from './diagramScaleFixtures';
+import {
+  resolveDiagramLayoutForViewport,
   computeSvgScaleAnalysis,
   computeAspectRatioCorrection,
   getDiagramViewBox,
   isCompactDiagramMode,
   resolvePreserveAspectRatio,
 } from './diagramScaling';
+import { computeGridDiagramContainerSize } from './diagramShellLayout';
+import { stretchRatioLimitsForTier } from './diagramScalePolicy';
 
-describe('computeDiagramContainerSize', () => {
+describe('computeGridDiagramContainerSize', () => {
   it('models desktop diagram column from grid fractions', () => {
-    const size = computeDiagramContainerSize(1440, 900, 'desktop');
+    const size = computeGridDiagramContainerSize(1440, 900, 'desktop');
     expect(size.width).toBeCloseTo(994.29, 0);
     expect(size.height).toBe(884);
   });
@@ -23,8 +28,8 @@ describe('desktop scaling analysis', () => {
 
   it('documents letterboxing with meet on common laptops', () => {
     let letterboxedCount = 0;
-    for (const fixture of VIEWPORT_FIXTURES.filter((f) => f.tier === 'desktop')) {
-      const container = computeDiagramContainerSize(
+    for (const fixture of DESKTOP_VIEWPORT_FIXTURES) {
+      const container = computeGridDiagramContainerSize(
         fixture.width,
         fixture.height,
         fixture.tier,
@@ -41,8 +46,8 @@ describe('desktop scaling analysis', () => {
   });
 
   it('fills container with stretch mode on desktop fixtures', () => {
-    for (const fixture of VIEWPORT_FIXTURES.filter((f) => f.tier === 'desktop')) {
-      const container = computeDiagramContainerSize(
+    for (const fixture of DESKTOP_VIEWPORT_FIXTURES) {
+      const container = computeGridDiagramContainerSize(
         fixture.width,
         fixture.height,
         fixture.tier,
@@ -58,8 +63,8 @@ describe('desktop scaling analysis', () => {
   });
 
   it('keeps stretch ratio within reasonable bounds on desktop', () => {
-    for (const fixture of VIEWPORT_FIXTURES.filter((f) => f.tier === 'desktop')) {
-      const container = computeDiagramContainerSize(
+    for (const fixture of DESKTOP_VIEWPORT_FIXTURES) {
+      const container = computeGridDiagramContainerSize(
         fixture.width,
         fixture.height,
         fixture.tier,
@@ -77,8 +82,8 @@ describe('tablet scaling analysis', () => {
   const stretch = resolvePreserveAspectRatio();
 
   it('fills container in compact stretch mode', () => {
-    for (const fixture of VIEWPORT_FIXTURES.filter((f) => f.tier === 'tablet')) {
-      const container = computeDiagramContainerSize(
+    for (const fixture of TABLET_VIEWPORT_FIXTURES) {
+      const container = computeGridDiagramContainerSize(
         fixture.width,
         fixture.height,
         fixture.tier,
@@ -95,7 +100,7 @@ describe('tablet scaling analysis', () => {
 
 describe('aspectRatioCorrection', () => {
   it('uses active viewBox AR for desktop stretch', () => {
-    const container = computeDiagramContainerSize(1440, 900, 'desktop');
+    const container = computeGridDiagramContainerSize(1440, 900, 'desktop');
     const viewBox = getDiagramViewBox(false);
     const correction = computeAspectRatioCorrection(
       container,
@@ -111,7 +116,7 @@ describe('aspectRatioCorrection', () => {
   });
 
   it('returns 1 for meet mode', () => {
-    const container = computeDiagramContainerSize(1440, 900, 'desktop');
+    const container = computeGridDiagramContainerSize(1440, 900, 'desktop');
     const viewBox = getDiagramViewBox(false);
     expect(
       computeAspectRatioCorrection(container, viewBox, 'xMidYMid meet'),
@@ -119,12 +124,28 @@ describe('aspectRatioCorrection', () => {
   });
 
   it('restores circular nodes under non-uniform stretch', () => {
-    const container = computeDiagramContainerSize(1440, 900, 'desktop');
+    const container = computeGridDiagramContainerSize(1440, 900, 'desktop');
     const viewBox = getDiagramViewBox(false);
     const analysis = computeSvgScaleAnalysis(container, viewBox, 'none');
     const correction = computeAspectRatioCorrection(container, viewBox, 'none');
 
     const renderedRadiusYOverX = (analysis.sy * correction) / analysis.sx;
     expect(renderedRadiusYOverX).toBeCloseTo(1, 5);
+  });
+});
+
+describe('desktop layout resolution', () => {
+  it('meets desktop primary screen radius and stretch policy', () => {
+    const limits = stretchRatioLimitsForTier('desktop');
+    for (const fixture of DESKTOP_VIEWPORT_FIXTURES) {
+      const layout = resolveDiagramLayoutForViewport(
+        fixture.width,
+        fixture.height,
+        'desktop',
+      );
+      expect(layout.screenMetrics.stretchRatio).toBeGreaterThanOrEqual(limits.min);
+      expect(layout.screenMetrics.stretchRatio).toBeLessThanOrEqual(limits.max);
+      expect(layout.screenMetrics.primaryNodeScreenRadius).toBeGreaterThanOrEqual(47);
+    }
   });
 });

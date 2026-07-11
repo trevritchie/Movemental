@@ -1,3 +1,4 @@
+import type { LayoutTier } from '../layout/breakpoints';
 import {
   DIAGRAM_VIEW_W,
   DIAGRAM_VIEW_H,
@@ -5,6 +6,14 @@ import {
   DIAGRAM_COMPACT_VIEW_H,
   DIAGRAM_COMPACT_VIEW_PAD,
 } from './diagramLayout';
+import {
+  COMPACT_NODE_RADII,
+  DESKTOP_NODE_RADII,
+  type DiagramNodeRadii,
+} from './diagramNodeGeometry';
+import { computeDiagramContainerSizeForTier } from './diagramShellLayout';
+import { DIAGRAM_SCALE_POLICY } from './diagramScalePolicy';
+import { clamp } from '../utils/clamp';
 
 export type DiagramPreserveAspectRatio = 'none' | 'xMidYMid meet' | 'xMidYMid slice';
 
@@ -32,46 +41,36 @@ export interface SvgScaleAnalysis {
   stretchRatio: number;
 }
 
-const APP_MAX_WIDTH = 1650;
-const APP_HORIZONTAL_PADDING = 32;
-const APP_BOTTOM_PADDING = 16;
-const GRID_GAP_DESKTOP = 16;
-const GRID_GAP_TABLET = 12;
-const DIAGRAM_GRID_FRACTION = 2.5 / 3.5;
+export interface DiagramScreenMetrics {
+  primaryNodeScreenRadius: number;
+  groupNodeScreenRadius: number;
+  stretchRatio: number;
+  layoutScale: number;
+}
 
-/** Models `.main-content` grid diagram column size from viewport dimensions. */
+export interface DiagramLayoutResolution {
+  layoutTier: LayoutTier;
+  isCompactDiagram: boolean;
+  viewBox: DiagramViewBox;
+  viewBoxString: string;
+  preserveAspectRatio: DiagramPreserveAspectRatio;
+  aspectRatioCorrection: number;
+  nodeRadii: DiagramNodeRadii;
+  scaleAnalysis: SvgScaleAnalysis;
+  screenMetrics: DiagramScreenMetrics;
+}
+
+/** @deprecated Use computeDiagramContainerSizeForTier from diagramShellLayout. */
 export function computeDiagramContainerSize(
   viewportWidth: number,
   viewportHeight: number,
-  tier: 'desktop' | 'tablet' | 'phone' = 'desktop',
+  tier: LayoutTier = 'desktop',
 ): DiagramContainerSize {
-  if (tier === 'phone') {
-    // Portrait phone: diagram column is full width; height is remaining flex space.
-    // Voice panel height is layout-dependent; use ~72% of viewport as diagram estimate.
-    return {
-      width: viewportWidth,
-      height: Math.round(viewportHeight * 0.72),
-    };
-  }
-
-  const appWidth = Math.min(viewportWidth, APP_MAX_WIDTH);
-  const horizontalPadding =
-    tier === 'tablet' ? 24 : APP_HORIZONTAL_PADDING;
-  const bottomPadding = tier === 'tablet' ? 12 : APP_BOTTOM_PADDING;
-  const gridGap = tier === 'tablet' ? GRID_GAP_TABLET : GRID_GAP_DESKTOP;
-
-  const mainWidth = appWidth - horizontalPadding;
-  const mainHeight = viewportHeight - bottomPadding;
-  const diagramWidth = (mainWidth - gridGap) * DIAGRAM_GRID_FRACTION;
-
-  return {
-    width: diagramWidth,
-    height: mainHeight,
-  };
+  return computeDiagramContainerSizeForTier(viewportWidth, viewportHeight, tier);
 }
 
 export function isCompactDiagramMode(
-  tier: 'desktop' | 'tablet' | 'phone',
+  tier: LayoutTier,
   containerWidth: number,
   compactDiagramWidth = 600,
 ): boolean {
@@ -99,6 +98,10 @@ export function getDiagramViewBox(isCompactDiagram: boolean): DiagramViewBox {
   };
 }
 
+export function viewBoxToString(viewBox: DiagramViewBox): string {
+  return `${viewBox.x} ${viewBox.y} ${viewBox.width} ${viewBox.height}`;
+}
+
 export function viewBoxAspectRatio(viewBox: DiagramViewBox): number {
   return viewBox.width / viewBox.height;
 }
@@ -106,6 +109,10 @@ export function viewBoxAspectRatio(viewBox: DiagramViewBox): number {
 /** Stretch-to-fill on all tiers; nodes stay round via aspectRatioCorrection. */
 export function resolvePreserveAspectRatio(): DiagramPreserveAspectRatio {
   return 'none';
+}
+
+export function resolveNodeRadii(isCompactDiagram: boolean): DiagramNodeRadii {
+  return isCompactDiagram ? COMPACT_NODE_RADII : DESKTOP_NODE_RADII;
 }
 
 export function computeAspectRatioCorrection(
@@ -180,15 +187,124 @@ export function computeSvgScaleAnalysis(
   };
 }
 
-/** After stretch + Y correction, a unit circle's screen-space radius scales by sx. */
-export function computeNodeScreenScale(
-  container: DiagramContainerSize,
-  viewBox: DiagramViewBox,
+/**
+ * Shared phone UI scale factor for overlay pills, clock, and readouts.
+ * Keep in sync with overlay metrics and DIAGRAM_SCALE_POLICY.mobileShell.
+ */
+export function computePhoneLayoutScale(
+  containerWidth: number,
+  containerHeight: number,
 ): number {
-  const analysis = computeSvgScaleAnalysis(
+  const { referenceShortSide, referenceHeight, layoutScaleMin, layoutScaleMax } =
+    DIAGRAM_SCALE_POLICY.mobileShell;
+  if (containerWidth <= 0 || containerHeight <= 0) {
+    return layoutScaleMin;
+  }
+  return clamp(
+    Math.min(containerHeight / referenceHeight, containerWidth / referenceShortSide),
+    layoutScaleMin,
+    layoutScaleMax,
+  );
+}
+
+/** Screen-space node radius after stretch + Y correction (uniform sx). */
+export function computeNodeScreenRadius(
+  viewBoxRadius: number,
+  scaleAnalysis: SvgScaleAnalysis,
+): number {
+  return viewBoxRadius * scaleAnalysis.sx;
+}
+
+export function computeDiagramScreenMetrics(
+  nodeRadii: DiagramNodeRadii,
+  scaleAnalysis: SvgScaleAnalysis,
+  container: DiagramContainerSize,
+  layoutTier: LayoutTier,
+): DiagramScreenMetrics {
+  return {
+    primaryNodeScreenRadius: computeNodeScreenRadius(
+      nodeRadii.rMain,
+      scaleAnalysis,
+    ),
+    groupNodeScreenRadius: computeNodeScreenRadius(
+      nodeRadii.rGroup,
+      scaleAnalysis,
+    ),
+    stretchRatio: scaleAnalysis.stretchRatio,
+    layoutScale: layoutTier === 'phone'
+      ? computePhoneLayoutScale(container.width, container.height)
+      : 1,
+  };
+}
+
+/**
+ * Single entry point for diagram SVG layout: viewBox, stretch, correction, radii.
+ * Call on every container measure (ResizeObserver) with live dimensions.
+ */
+export function resolveDiagramLayout(input: {
+  containerWidth: number;
+  containerHeight: number;
+  layoutTier: LayoutTier;
+  compactDiagramWidth?: number;
+}): DiagramLayoutResolution {
+  const container = {
+    width: input.containerWidth,
+    height: input.containerHeight,
+  };
+  const isCompactDiagram = isCompactDiagramMode(
+    input.layoutTier,
+    input.containerWidth,
+    input.compactDiagramWidth,
+  );
+  const viewBox = getDiagramViewBox(isCompactDiagram);
+  const preserveAspectRatio = resolvePreserveAspectRatio();
+  const aspectRatioCorrection = computeAspectRatioCorrection(
     container,
     viewBox,
-    resolvePreserveAspectRatio(),
+    preserveAspectRatio,
   );
-  return analysis.sx;
+  const nodeRadii = resolveNodeRadii(isCompactDiagram);
+  const scaleAnalysis = computeSvgScaleAnalysis(
+    container,
+    viewBox,
+    preserveAspectRatio,
+  );
+  const screenMetrics = computeDiagramScreenMetrics(
+    nodeRadii,
+    scaleAnalysis,
+    container,
+    input.layoutTier,
+  );
+
+  return {
+    layoutTier: input.layoutTier,
+    isCompactDiagram,
+    viewBox,
+    viewBoxString: viewBoxToString(viewBox),
+    preserveAspectRatio,
+    aspectRatioCorrection,
+    nodeRadii,
+    scaleAnalysis,
+    screenMetrics,
+  };
+}
+
+/** Resolve layout from viewport dimensions (for fixture analysis tests). */
+export function resolveDiagramLayoutForViewport(
+  viewportWidth: number,
+  viewportHeight: number,
+  tier: LayoutTier,
+  compactDiagramWidth = 600,
+): DiagramLayoutResolution {
+  const container = computeDiagramContainerSizeForTier(
+    viewportWidth,
+    viewportHeight,
+    tier,
+  );
+  return resolveDiagramLayout({
+    containerWidth: container.width,
+    containerHeight: container.height,
+    layoutTier: tier,
+    compactDiagramWidth,
+  });
 }
