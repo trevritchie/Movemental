@@ -26,4 +26,19 @@ describe('samplerInstrumentCategories', () => {
       SAMPLER_INSTRUMENT_CATEGORIES.map((category) => category.id),
     );
   });
+
+  it('places harp in Strings and xylophone in Percussion', () => {
+    const groups = groupSamplerPresetsByCategory(SAMPLER_ENGINE_PRESETS);
+    const strings = groups.find((group) => group.category.id === 'strings');
+    const percussion = groups.find(
+      (group) => group.category.id === 'percussion',
+    );
+
+    expect(strings?.category.label).toBe('Strings');
+    expect(strings?.presets.map((preset) => preset.id)).toContain('harp');
+    expect(percussion?.category.label).toBe('Percussion');
+    expect(percussion?.presets.map((preset) => preset.id)).toEqual([
+      'xylophone',
+    ]);
+  });
 });

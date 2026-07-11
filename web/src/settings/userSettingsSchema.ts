@@ -6,10 +6,11 @@ import {
   DEFAULT_TONAL_CENTER_OFFSET,
   DEFAULT_OCTAVE_RANGE,
   DEFAULT_VOICE_LEADING_MODE,
+  DEFAULT_CLOCK_LAYOUT_MODE,
   MAX_OCTAVE_RANGE,
   MIN_OCTAVE_RANGE,
 } from '../music/config';
-import type { PlayStyle, VoiceLeadingMode } from '../context/types';
+import type { ClockLayoutMode, PlayStyle, VoiceLeadingMode } from '../context/types';
 import {
   DEFAULT_OUTPUT_PROFILE_ID,
   isEqProfileId,
@@ -27,22 +28,25 @@ import {
 
 export type SettingsSectionId =
   | 'general'
+  | 'clockFace'
   | 'voiceLeading'
   | 'voiceBorrowing'
   | 'soundDesign';
 
 export const SETTINGS_SECTION_IDS: readonly SettingsSectionId[] = [
   'general',
+  'clockFace',
   'voiceLeading',
   'voiceBorrowing',
   'soundDesign',
 ] as const;
 
 export const SETTINGS_SECTION_LABELS: Record<SettingsSectionId, string> = {
-  general: 'General',
+  general: 'Playback',
+  clockFace: 'Clock Face Diagram',
   voiceLeading: 'Voice Leading',
   voiceBorrowing: 'Voice Borrowing',
-  soundDesign: 'Sound Design',
+  soundDesign: 'Sound',
 };
 
 export type BorrowingMemoryMode = 'global' | 'per-chord';
@@ -82,6 +86,10 @@ function isVoiceLeadingMode(value: unknown): value is VoiceLeadingMode {
 
 function isBorrowingMemory(value: unknown): value is BorrowingMemoryMode {
   return value === 'global' || value === 'per-chord';
+}
+
+function isClockLayoutMode(value: unknown): value is ClockLayoutMode {
+  return value === 'chromatic' || value === 'circle_of_fifths';
 }
 
 function isWet(value: unknown): value is number {
@@ -144,6 +152,10 @@ export type VoiceBorrowingSettings = {
   memory: BorrowingMemoryMode;
 };
 
+export type ClockFaceSettings = {
+  layoutMode: ClockLayoutMode;
+};
+
 export type SoundDesignSettings = {
   synthPresetId: string;
   eqProfileId: EqProfileId;
@@ -176,6 +188,12 @@ export const USER_SETTINGS_SCHEMA: Record<
     playStyle: {
       default: 'drone' as PlayStyle,
       validate: isPlayStyle,
+    },
+  },
+  clockFace: {
+    layoutMode: {
+      default: DEFAULT_CLOCK_LAYOUT_MODE,
+      validate: isClockLayoutMode,
     },
   },
   voiceLeading: {
@@ -239,6 +257,8 @@ export const USER_SETTINGS_SCHEMA: Record<
 
 type SchemaSection<S extends SettingsSectionId> = S extends 'general'
   ? GeneralSettings
+  : S extends 'clockFace'
+    ? ClockFaceSettings
   : S extends 'voiceLeading'
     ? VoiceLeadingSettings
     : S extends 'voiceBorrowing'
@@ -248,6 +268,7 @@ type SchemaSection<S extends SettingsSectionId> = S extends 'general'
 export type PersistedUserSettings = {
   version: 1;
   general: GeneralSettings;
+  clockFace: ClockFaceSettings;
   voiceLeading: VoiceLeadingSettings;
   voiceBorrowing: VoiceBorrowingSettings;
   soundDesign: SoundDesignSettings;
@@ -255,6 +276,7 @@ export type PersistedUserSettings = {
 
 export type SettingKey =
   | keyof GeneralSettings
+  | keyof ClockFaceSettings
   | keyof VoiceLeadingSettings
   | keyof VoiceBorrowingSettings
   | keyof SoundDesignSettings;
@@ -274,6 +296,7 @@ function collectSectionDefaults<S extends SettingsSectionId>(
 export const DEFAULT_USER_SETTINGS: PersistedUserSettings = {
   version: 1,
   general: collectSectionDefaults('general'),
+  clockFace: collectSectionDefaults('clockFace'),
   voiceLeading: collectSectionDefaults('voiceLeading'),
   voiceBorrowing: collectSectionDefaults('voiceBorrowing'),
   soundDesign: collectSectionDefaults('soundDesign'),
@@ -322,6 +345,7 @@ export function validateLoadedSettings(raw: unknown): PersistedUserSettings {
   return {
     version: 1,
     general: validateSection('general', source.general),
+    clockFace: validateSection('clockFace', source.clockFace),
     voiceLeading: validateSection('voiceLeading', source.voiceLeading),
     voiceBorrowing: validateSection('voiceBorrowing', source.voiceBorrowing),
     soundDesign: validateSection('soundDesign', source.soundDesign),
@@ -330,6 +354,7 @@ export function validateLoadedSettings(raw: unknown): PersistedUserSettings {
 
 export function buildSettingsSnapshot(input: {
   general: GeneralSettings;
+  clockFace: ClockFaceSettings;
   voiceLeading: VoiceLeadingSettings;
   voiceBorrowing: VoiceBorrowingSettings;
   soundDesign: SoundDesignSettings;
@@ -337,6 +362,7 @@ export function buildSettingsSnapshot(input: {
   return {
     version: 1,
     general: { ...input.general },
+    clockFace: { ...input.clockFace },
     voiceLeading: { ...input.voiceLeading },
     voiceBorrowing: { ...input.voiceBorrowing },
     soundDesign: { ...input.soundDesign },

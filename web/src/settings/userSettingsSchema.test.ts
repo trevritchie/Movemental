@@ -14,6 +14,7 @@ describe('userSettingsSchema', () => {
     expect(DEFAULT_USER_SETTINGS.general.octaveRange).toBe(2);
     expect(DEFAULT_USER_SETTINGS.general.playStyle).toBe('drone');
     expect(DEFAULT_USER_SETTINGS.voiceLeading.mode).toBe('smooth');
+    expect(DEFAULT_USER_SETTINGS.clockFace.layoutMode).toBe('chromatic');
     expect(DEFAULT_USER_SETTINGS.voiceBorrowing.memory).toBe('per-chord');
     expect(DEFAULT_USER_SETTINGS.soundDesign.synthPresetId).toBe(
       DEFAULT_SYNTH_PRESET_ID

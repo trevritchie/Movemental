@@ -26,10 +26,10 @@ const TILT_TOUR_STEPS: TourStepDef[] = [
   {
     id: 'voicing',
     targetId: 'tour-voicing',
-    title: 'Voicing (tilt roll)',
+    title: 'VOICING (tilt roll)',
     body:
       'Tilt your phone left or right (roll) to step through elevator floors, ' +
-      'from narrow Unison to wide Double Octave. Watch the Voicing readout.',
+      'from narrow Unison to wide Double Octave. Watch the VOICING readout.',
   },
   {
     id: 'bass',
@@ -88,7 +88,7 @@ const NO_TILT_TOUR_STEPS: TourStepDef[] = [
     targetId: 'tour-voicing',
     title: 'Voicing',
     body:
-      'Choose an elevator floor from the Voicing dropdown. Lock voicing per ' +
+      'Choose an elevator floor from the VOICING dropdown. Lock voicing per ' +
       'chord so your choice stays when you navigate away and back.',
   },
   {

@@ -1,5 +1,4 @@
 import React, { useMemo } from 'react';
-import { NOTE_NAMES_FLAT } from '../music/config';
 import { mobileChordDisplayName, CHORD_READOUT_MAX_CHEM_COUNT } from '../music/diagramMetadata';
 import {
   formatChordReadout,
@@ -7,6 +6,13 @@ import {
 } from '../music/formatPlayingNotes';
 import { computeElementFormula } from '../music/elementChemistry';
 import { cssColorForRelativePc } from '../music/elementTokens';
+import {
+  clockSlotToAngle,
+  clockSlotToCoordinates,
+  clockSlotToNoteName,
+  clockSlotToRelativePc,
+  relativePcToClockSlot,
+} from '../music/clockLayout';
 import { normalizePitchClass, relativePitchClass } from '../music/pitchClass';
 import { useChordContext } from '../context/ChordContext';
 
@@ -30,15 +36,9 @@ const CHORD_READOUT_WIDTH_SIZER = (
 );
 
 // Precompute static geometry for clock face background
-const CLOCK_POINTS = Array.from({ length: 12 }).map((_, i) => {
-  const angle = (i / 12) * Math.PI * 2 - Math.PI / 2;
-  return {
-    x: CLOCK_CX + CLOCK_RADIUS * Math.cos(angle),
-    y: CLOCK_CY + CLOCK_RADIUS * Math.sin(angle),
-    labelX: CLOCK_CX + (CLOCK_RADIUS + 22) * Math.cos(angle),
-    labelY: CLOCK_CY + (CLOCK_RADIUS + 22) * Math.sin(angle),
-  };
-});
+const CLOCK_POINTS = Array.from({ length: 12 }).map((_, i) =>
+  clockSlotToCoordinates(i, CLOCK_CX, CLOCK_CY, CLOCK_RADIUS)
+);
 
 const BACKGROUND_LINES = (() => {
   const lines = [];
@@ -63,7 +63,8 @@ const BACKGROUND_LINES = (() => {
 export const ClockFace: React.FC<{ isMobileOverlay?: boolean }> = ({
   isMobileOverlay,
 }) => {
-  const { tonalCenter, activePitches, selectedChord } = useChordContext();
+  const { tonalCenter, activePitches, selectedChord, clockLayoutMode } =
+    useChordContext();
 
   const elementalName = selectedChord?.name || null;
   const traditionalName = selectedChord?.traditionalName || null;
@@ -88,25 +89,30 @@ export const ClockFace: React.FC<{ isMobileOverlay?: boolean }> = ({
 
   const ticks = useMemo(() => {
     return CLOCK_POINTS.map((pt, i) => {
-      const noteIndex = (i + tonalCenter) % 12;
-      return { ...pt, noteName: NOTE_NAMES_FLAT[noteIndex] };
+      const relPc = clockSlotToRelativePc(i, clockLayoutMode);
+      return {
+        ...pt,
+        relPc,
+        noteName: clockSlotToNoteName(i, tonalCenter, clockLayoutMode),
+      };
     });
-  }, [tonalCenter]);
+  }, [tonalCenter, clockLayoutMode]);
 
   const activeNodes = useMemo(() => {
     return activePitches
       .filter((p): p is number => p !== null)
       .map(pitch => {
         const pitchClass = normalizePitchClass(pitch);
-        const adjustedPitchClass = relativePitchClass(pitchClass, tonalCenter);
-        const angle = (adjustedPitchClass / 12) * Math.PI * 2 - Math.PI / 2;
+        const relPc = relativePitchClass(pitchClass, tonalCenter);
+        const slot = relativePcToClockSlot(relPc, clockLayoutMode);
+        const angle = clockSlotToAngle(slot);
         return {
           x: CLOCK_CX + CLOCK_RADIUS * Math.cos(angle),
           y: CLOCK_CY + CLOCK_RADIUS * Math.sin(angle),
           pitch,
         };
       });
-  }, [activePitches, tonalCenter]);
+  }, [activePitches, tonalCenter, clockLayoutMode]);
 
   const connectionLines = useMemo(() => {
     const lines: { x1: number; y1: number; x2: number; y2: number }[] = [];
@@ -182,7 +188,7 @@ export const ClockFace: React.FC<{ isMobileOverlay?: boolean }> = ({
             cx={tick.x}
             cy={tick.y}
             r={4.5}
-            fill={getElementColor(i)}
+            fill={getElementColor(tick.relPc)}
           />
           <text
             x={tick.labelX}

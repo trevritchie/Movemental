@@ -20,18 +20,18 @@ export const HELP_HUB_BORROWING_BODY =
 
 export const HELP_HUB_VOICING_TILT_BODY =
   'In Tilt mode, roll (left/right tilt) steps through elevator floors from ' +
-  'narrow to wide; the Voicing readout shows your floor. Pitch (forward/back ' +
+  'narrow to wide; the VOICING readout shows your floor. Pitch (forward/back ' +
   'tilt) sets IN THE BASS. As the spread changes, the bass shifts with it ' +
   '(contrary motion). Labels update live before each tap.';
 
 export const HELP_HUB_VOICING_NO_TILT_BODY =
-  'In No Tilt mode, the Voicing dropdown picks an elevator floor. IN THE BASS ' +
+  'In No Tilt mode, the VOICING dropdown picks an elevator floor. IN THE BASS ' +
   'is separate: changing voicing alone keeps the bass fixed (oblique motion). ' +
   'Lock buttons keep your choices per chord when you leave and return.';
 
 export const HELP_HUB_THEORY_POINTER =
   'For deeper reading, open Creation Theory, Borrowing from the Neighbors, ' +
-  'or Elevator System under Harmonic theory above.';
+  'or Elevator System under Harmonic Theory above.';
 
 export const CREATION_THEORY_VIDEO_URL =
   'https://www.youtube.com/shorts/OmWSgjwroLM';
@@ -362,7 +362,7 @@ export const ELEVATOR_MOTION_TOPICS: RelativeMotionTopic[] = [
       'voicing elevator while staying on the same chord. Each roll stop is one ' +
       'floor; rolling two stops skips a floor. From Unison toward Triads (skipping ' +
       'Thirds), the outer voices move in opposite directions even though the ' +
-      'harmony stays put. That is contrary motion in thirds. Watch the Voicing ' +
+      'harmony stays put. That is contrary motion in thirds. Watch the VOICING ' +
       'readout as you roll.',
   },
   {
@@ -373,7 +373,7 @@ export const ELEVATOR_MOTION_TOPICS: RelativeMotionTopic[] = [
       'Stay on one floor (Thirds, Triads, Drop 2, and so on) and move up or ' +
       'down the scale. The spacing between voices stays locked.',
     movemental:
-      'Keep roll steady so the Voicing readout stays on the same elevator floor. ' +
+      'Keep roll steady so the VOICING readout stays on the same elevator floor. ' +
       'Tilt pitch forward or back instead. Every sounding note shifts together ' +
       'through parallel positions on the tone ladder, which is parallel motion ' +
       'through different inversions of the chord. IN THE BASS shows which chord ' +

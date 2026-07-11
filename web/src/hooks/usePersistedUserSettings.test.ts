@@ -20,6 +20,7 @@ describe('usePersistedUserSettings', () => {
   it('skips the initial save on mount', () => {
     const snapshot = {
       general: DEFAULT_USER_SETTINGS.general,
+      clockFace: DEFAULT_USER_SETTINGS.clockFace,
       voiceLeading: DEFAULT_USER_SETTINGS.voiceLeading,
       voiceBorrowing: DEFAULT_USER_SETTINGS.voiceBorrowing,
       soundDesign: getDefaultSoundDesignSettings(),
@@ -49,6 +50,7 @@ describe('usePersistedUserSettings', () => {
   it('debounces rapid changes into one write', () => {
     const snapshot = {
       general: DEFAULT_USER_SETTINGS.general,
+      clockFace: DEFAULT_USER_SETTINGS.clockFace,
       voiceLeading: DEFAULT_USER_SETTINGS.voiceLeading,
       voiceBorrowing: DEFAULT_USER_SETTINGS.voiceBorrowing,
       soundDesign: getDefaultSoundDesignSettings(),

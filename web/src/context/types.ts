@@ -7,6 +7,8 @@ export type PlayStyle = 'click_and_hold' | 'drone';
 
 export type VoiceLeadingMode = 'root_position' | 'smooth' | 'smoothest';
 
+export type ClockLayoutMode = 'chromatic' | 'circle_of_fifths';
+
 /** Device tilt controls voicing (splash choice; not changed in settings). */
 export function usesDeviceTilt(tiltModeEnabled: boolean): boolean {
   return tiltModeEnabled;

@@ -12,9 +12,9 @@ describe('SettingsSectionHeader', () => {
   it('renders section title and calls onReset with section id', () => {
     render(<SettingsSectionHeader sectionId="general" onReset={onReset} />);
 
-    expect(screen.getByRole('heading', { name: 'General' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Playback' })).toBeInTheDocument();
     fireEvent.click(
-      screen.getByRole('button', { name: 'Reset General to defaults' })
+      screen.getByRole('button', { name: 'Reset Playback to defaults' })
     );
     expect(onReset).toHaveBeenCalledWith('general');
   });

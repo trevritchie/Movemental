@@ -42,7 +42,7 @@ export const CreationTheoryHelp: React.FC<CreationTheoryHelpProps> = ({
     </section>
 
     <section className="help-page__section">
-      <h3 className="help-page__section-title">Two diminished parents</h3>
+      <h3 className="help-page__section-title">Two Diminished Parents</h3>
       <p>{CREATION_TWO_PARENTS_BODY}</p>
     </section>
 
@@ -52,7 +52,7 @@ export const CreationTheoryHelp: React.FC<CreationTheoryHelpProps> = ({
 
     <section className="help-page__section">
       <h3 className="help-page__section-title">
-        Brothers and sisters
+        Brothers and Sisters
       </h3>
       <p>{CREATION_ONE_NOTE_LOWER_BODY}</p>
       <p>{CREATION_ONE_NOTE_LOWER_SIBLINGS_BODY}</p>
@@ -60,20 +60,20 @@ export const CreationTheoryHelp: React.FC<CreationTheoryHelpProps> = ({
     </section>
 
     <section className="help-page__section">
-      <h3 className="help-page__section-title">Adjacent moves on the diagram</h3>
+      <h3 className="help-page__section-title">Adjacent Moves on the Diagram</h3>
       <p>{CREATION_ADJACENT_NAV_BODY}</p>
       <HelpCallout>{CREATION_ADJACENT_NAV_MOVEMENTAL}</HelpCallout>
     </section>
 
     <section className="help-page__section">
-      <h3 className="help-page__section-title">Scale of chords in practice</h3>
+      <h3 className="help-page__section-title">Scale of Chords in Practice</h3>
       <p>{CREATION_SCALE_PRACTICE_BODY}</p>
       <HelpCallout>{CREATION_SCALE_PRACTICE_MOVEMENTAL}</HelpCallout>
       <p>{CREATION_NEIGHBORS_LINK}</p>
     </section>
 
     <section className="help-page__section">
-      <h3 className="help-page__section-title">Lowering more notes</h3>
+      <h3 className="help-page__section-title">Lowering More Notes</h3>
       <p>{CREATION_DEEPER_LOWERING_INTRO}</p>
       <ul className="help-article__list">
         {CREATION_LOWERING_RULES.map((rule) => (
@@ -85,7 +85,7 @@ export const CreationTheoryHelp: React.FC<CreationTheoryHelpProps> = ({
     </section>
 
     <section className="help-page__section">
-      <h3 className="help-page__section-title">Beyond the diagram</h3>
+      <h3 className="help-page__section-title">Beyond the Diagram</h3>
       <p>{CREATION_BEFORE_DIAGRAM_INTRO}</p>
       <p>{CREATION_CHROMATIC_UNIVERSE_BODY}</p>
       <p>{CREATION_DIMINISHED_FROM_WHOLE_TONE_BODY}</p>

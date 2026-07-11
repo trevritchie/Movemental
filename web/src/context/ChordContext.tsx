@@ -31,9 +31,9 @@ import { usePersistedUserSettings } from '../hooks/usePersistedUserSettings';
 import { TiltReadoutProvider } from './TiltReadoutContext';
 import { useNoTiltChordLocks } from '../hooks/useNoTiltChordLocks';
 import type { ElementalPlaybackResolution } from '../music/tiltVoicingPlayback';
+import type { ClockLayoutMode, PlayStyle, VoiceLeadingMode } from './types';
 import type { EqProfileId } from '../audio/outputProfiles';
 import type { SynthPreset } from '../audio/synthPresets';
-import type { PlayStyle, VoiceLeadingMode } from './types';
 import { loadUserSettings, clearUserSettings } from '../settings/userSettingsStorage';
 import {
   getDefaultVoiceLeadingMode,
@@ -42,8 +42,12 @@ import {
   type SettingsSectionId,
   type SettingKey,
 } from '../settings/userSettingsSchema';
+import {
+  getSettingsGroupDefaults,
+  type SettingsResetGroupId,
+} from '../settings/settingsResetGroups';
 
-export type { PlayStyle, VoiceLeadingMode } from './types';
+export type { ClockLayoutMode, PlayStyle, VoiceLeadingMode } from './types';
 
 interface ChordContextType {
   tonalCenter: number;
@@ -102,6 +106,8 @@ interface ChordContextType {
   setBorrowingMemory: (mode: 'global' | 'per-chord') => void;
   voiceLeadingMode: VoiceLeadingMode;
   setVoiceLeadingMode: (mode: VoiceLeadingMode) => void;
+  clockLayoutMode: ClockLayoutMode;
+  setClockLayoutMode: (mode: ClockLayoutMode) => void;
   lastTapTilt: TiltSample;
   lastCommittedPlaybackTilt: TiltSample;
   smoothBaseParallel: number;
@@ -113,6 +119,7 @@ interface ChordContextType {
   toggleNoTiltVoicingLock: () => void;
   toggleNoTiltBassLock: () => void;
   resetSettingsSection: (sectionId: SettingsSectionId) => void;
+  resetSettingsGroup: (groupId: SettingsResetGroupId) => void;
   resetAllSettings: () => void;
 }
 
@@ -151,6 +158,9 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
   const [selectedChord, setSelectedChord] = useState<Chord | null>(null);
   const [voiceLeadingMode, setVoiceLeadingMode] = useState<VoiceLeadingMode>(
     loadedSettings.voiceLeading.mode
+  );
+  const [clockLayoutMode, setClockLayoutMode] = useState<ClockLayoutMode>(
+    loadedSettings.clockFace.layoutMode
   );
 
   const selectedChordNameRef = useRef<string | null>(null);
@@ -236,6 +246,7 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
     enterNoTiltSession: enterNoTiltPlayback,
     resetVoiceLeadingSession,
   } = playback;
+  const { synthPresetId, setSynthPresetId } = audio;
 
   const enterTiltSession = useCallback(() => {
     enterTiltPlayback();
@@ -259,6 +270,7 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
         playStyle: playback.setPlayStyle,
         mode: setVoiceLeadingMode,
         memory: borrowing.setBorrowingMemory,
+        layoutMode: setClockLayoutMode,
         synthPresetId: audio.setSynthPresetId,
         eqProfileId: audio.setEqProfileId,
         chorusWet: audio.setChorusWet,
@@ -302,6 +314,7 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
         case 'voiceBorrowing':
           clearChordBorrowingStates();
           break;
+        case 'clockFace':
         case 'soundDesign':
           break;
       }
@@ -326,6 +339,45 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
     [applySetting, runSectionSideEffects, playback.tiltModeEnabled]
   );
 
+  const resetSettingsGroup = useCallback(
+    (groupId: SettingsResetGroupId) => {
+      if (groupId === 'instrument') {
+        const { synthPresetId: defaultPresetId } = getSettingsGroupDefaults(
+          'instrument',
+          {
+            tiltModeEnabled: playback.tiltModeEnabled,
+            synthPresetId,
+          },
+        );
+        setSynthPresetId(defaultPresetId as string);
+        return;
+      }
+
+      const defaults = getSettingsGroupDefaults(groupId, {
+        tiltModeEnabled: playback.tiltModeEnabled,
+        synthPresetId,
+      });
+
+      for (const [key, value] of Object.entries(defaults)) {
+        applySetting[key as SettingKey](value as never);
+      }
+
+      if (groupId === 'voiceLeading') {
+        resetVoiceLeadingSession();
+      } else if (groupId === 'voiceBorrowing') {
+        clearChordBorrowingStates();
+      }
+    },
+    [
+      applySetting,
+      synthPresetId,
+      setSynthPresetId,
+      playback.tiltModeEnabled,
+      resetVoiceLeadingSession,
+      clearChordBorrowingStates,
+    ],
+  );
+
   const resetAllSettings = useCallback(() => {
     clearUserSettings();
     for (const sectionId of SETTINGS_SECTION_IDS) {
@@ -342,6 +394,7 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
       },
       voiceLeading: { mode: voiceLeadingMode },
       voiceBorrowing: { memory: borrowing.borrowingMemory },
+      clockFace: { layoutMode: clockLayoutMode },
       soundDesign: {
         synthPresetId: audio.synthPresetId,
         eqProfileId: audio.eqProfileId,
@@ -364,6 +417,7 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
       playback.playStyle,
       voiceLeadingMode,
       borrowing.borrowingMemory,
+      clockLayoutMode,
       audio.synthPresetId,
       audio.eqProfileId,
       audio.chorusWet,
@@ -495,6 +549,8 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
       setBorrowingMemory: borrowing.setBorrowingMemory,
       voiceLeadingMode,
       setVoiceLeadingMode,
+      clockLayoutMode,
+      setClockLayoutMode,
       lastTapTilt: playback.lastTapTilt,
       lastCommittedPlaybackTilt: playback.lastCommittedPlaybackTilt,
       smoothBaseParallel: playback.smoothBaseParallel,
@@ -506,6 +562,7 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
       toggleNoTiltVoicingLock: noTiltLocks.toggleVoicingLock,
       toggleNoTiltBassLock: noTiltLocks.toggleBassLock,
       resetSettingsSection,
+      resetSettingsGroup,
       resetAllSettings,
     }),
     [
@@ -560,6 +617,7 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
       audio.droneRelease,
       audio.setDroneRelease,
       voiceLeadingMode,
+      clockLayoutMode,
       playback.lastTapTilt,
       playback.lastCommittedPlaybackTilt,
       playback.smoothBaseParallel,
@@ -573,6 +631,7 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
       noTiltLocks.setNoTiltVoicingLevel,
       noTiltLocks.setNoTiltPositionLevel,
       resetSettingsSection,
+      resetSettingsGroup,
       resetAllSettings,
     ]
   );
