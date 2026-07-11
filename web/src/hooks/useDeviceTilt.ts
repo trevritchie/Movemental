@@ -9,6 +9,7 @@ import {
   FLAT_TILT,
   type TiltSample,
 } from '../music/TiltVoicingEngine';
+import { ORIENTATION_ANGLE_NORMALIZER } from './orbPhysics';
 
 export type TiltStatus =
   | 'unsupported'
@@ -26,7 +27,7 @@ interface PermissionedOrientationEvent {
   requestPermission?: () => Promise<'granted' | 'denied'>;
 }
 
-const PITCH_NORMALIZER = 90; // degrees: flat phone maps tilt axes to [-1, 1]
+const PITCH_NORMALIZER = ORIENTATION_ANGLE_NORMALIZER;
 const SMOOTHING_ALPHA = 0.25; // exponential moving average weight per event
 const READOUT_INTERVAL_MS = 150; // throttle for the React-visible sample
 

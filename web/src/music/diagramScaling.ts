@@ -259,6 +259,21 @@ export function layoutMeetsScalePolicy(layout: DiagramLayoutResolution): boolean
   return true;
 }
 
+/** Skip React updates when a remeasure yields identical layout values. */
+export function diagramLayoutsEqual(
+  a: DiagramLayoutResolution,
+  b: DiagramLayoutResolution,
+): boolean {
+  return (
+    a.viewBoxString === b.viewBoxString &&
+    a.aspectRatioCorrection === b.aspectRatioCorrection &&
+    a.isCompactDiagram === b.isCompactDiagram &&
+    a.nodeRadii.rMain === b.nodeRadii.rMain &&
+    a.nodeRadii.rGroup === b.nodeRadii.rGroup &&
+    a.scaleAnalysis.stretchRatio === b.scaleAnalysis.stretchRatio
+  );
+}
+
 /**
  * Single entry point for diagram SVG layout: viewBox, stretch, correction, radii.
  * Call on every container measure (ResizeObserver) with live dimensions.

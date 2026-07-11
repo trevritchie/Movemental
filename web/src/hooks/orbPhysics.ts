@@ -37,16 +37,8 @@ export const DEFAULT_ORB_PHYSICS_CONFIG: OrbPhysicsConfig = {
 /** Matches CSS `40cqmin` orb diameter in physics mode (2 × ORB_RADIUS_RATIO). */
 const ORB_RADIUS_RATIO = 0.2;
 
-/** Uses the full container rectangle; X and Y limits are independent. */
-export function computePlayfieldBounds(rect: {
-  width: number;
-  height: number;
-}): PlayfieldBounds {
-  return {
-    width: Math.max(rect.width, 0),
-    height: Math.max(rect.height, 0),
-  };
-}
+/** Device orientation angles are normalized by this span (see useDeviceTilt). */
+export const ORIENTATION_ANGLE_NORMALIZER = 90;
 
 export function computeOrbRadius(bounds: PlayfieldBounds): number {
   const minDim = Math.min(bounds.width, bounds.height);
@@ -86,13 +78,13 @@ export function stepOrbPhysics(
   gamma: number,
   beta: number,
   config: OrbPhysicsConfig = DEFAULT_ORB_PHYSICS_CONFIG,
-): void {
+): number {
   const radius = computeOrbRadius(bounds);
-  if (bounds.width <= 0 || bounds.height <= 0 || radius <= 0) return;
+  if (bounds.width <= 0 || bounds.height <= 0 || radius <= 0) return radius;
 
   // DeviceOrientation angles: gamma tilts left/right, beta tilts toward/away from user.
-  const ax = (gamma / 90) * config.gravityStrength;
-  const ay = (beta / 90) * config.gravityStrength;
+  const ax = (gamma / ORIENTATION_ANGLE_NORMALIZER) * config.gravityStrength;
+  const ay = (beta / ORIENTATION_ANGLE_NORMALIZER) * config.gravityStrength;
 
   for (const orb of orbs) {
     orb.vx = (orb.vx + ax) * config.friction;
@@ -121,4 +113,6 @@ export function stepOrbPhysics(
       orb.vy = -orb.vy * config.restitution * config.bounceDamping;
     }
   }
+
+  return radius;
 }

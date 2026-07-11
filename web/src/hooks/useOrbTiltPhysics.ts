@@ -1,8 +1,6 @@
 import { useEffect, useRef, type RefObject } from 'react';
 import type { OrientationAngles } from './useDeviceTilt';
 import {
-  computePlayfieldBounds,
-  computeOrbRadius,
   createInitialOrbStates,
   stepOrbPhysics,
   type OrbState,
@@ -31,6 +29,8 @@ export function useOrbTiltPhysics({
 }): void {
   const orbsRef = useRef<OrbState[]>([]);
   const boundsRef = useRef({ width: 0, height: 0 });
+  const elementsRef = useRef<HTMLElement[]>([]);
+  const lastTransformsRef = useRef<string[]>([]);
 
   useEffect(() => {
     if (!enabled) return;
@@ -40,21 +40,29 @@ export function useOrbTiltPhysics({
 
     let frameId = 0;
 
-    const getOrbElements = (): HTMLElement[] =>
-      Array.from(playfield.querySelectorAll<HTMLElement>(ORB_SELECTOR));
+    const refreshOrbElements = () => {
+      elementsRef.current = Array.from(
+        playfield.querySelectorAll<HTMLElement>(ORB_SELECTOR),
+      );
+    };
 
     const measureBounds = () => {
       const rect = playfield.getBoundingClientRect();
-      const bounds = computePlayfieldBounds(rect);
+      const bounds = {
+        width: Math.max(rect.width, 0),
+        height: Math.max(rect.height, 0),
+      };
       const sizeChanged =
         bounds.width !== boundsRef.current.width ||
         bounds.height !== boundsRef.current.height;
 
       boundsRef.current = bounds;
+      refreshOrbElements();
 
-      const orbCount = getOrbElements().length;
+      const orbCount = elementsRef.current.length;
       if (sizeChanged || orbsRef.current.length !== orbCount) {
         orbsRef.current = createInitialOrbStates(bounds, orbCount);
+        lastTransformsRef.current = [];
       }
     };
 
@@ -70,16 +78,17 @@ export function useOrbTiltPhysics({
       const orbs = orbsRef.current;
       const { gamma, beta } = orientationRef.current;
 
-      stepOrbPhysics(orbs, bounds, gamma, beta);
-
-      const radius = computeOrbRadius(bounds);
-      const elements = getOrbElements();
+      const radius = stepOrbPhysics(orbs, bounds, gamma, beta);
+      const elements = elementsRef.current;
       for (let i = 0; i < orbs.length; i += 1) {
         const el = elements[i];
         if (!el) continue;
         const orb = orbs[i];
-        // orb.x/y are center coords; orb divs are sized 40cqmin (see index.css).
-        el.style.transform = `translate3d(${orb.x - radius}px, ${orb.y - radius}px, 0)`;
+        const transform = `translate3d(${orb.x - radius}px, ${orb.y - radius}px, 0)`;
+        if (lastTransformsRef.current[i] !== transform) {
+          el.style.transform = transform;
+          lastTransformsRef.current[i] = transform;
+        }
       }
 
       frameId = requestAnimationFrame(tick);
@@ -90,9 +99,10 @@ export function useOrbTiltPhysics({
     return () => {
       cancelAnimationFrame(frameId);
       resizeObserver.disconnect();
-      for (const el of getOrbElements()) {
+      for (const el of elementsRef.current) {
         el.style.transform = '';
       }
+      lastTransformsRef.current = [];
     };
   }, [enabled, playfieldRef, orientationRef]);
 }

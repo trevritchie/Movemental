@@ -10,9 +10,11 @@ import {
   getDiagramViewBox,
   isCompactDiagramMode,
   layoutMeetsScalePolicy,
+  nodesRenderCircular,
   resolvePreserveAspectRatio,
 } from './diagramScaling';
 import { computeGridDiagramContainerSize } from './diagramShellLayout';
+import { stretchRatioLimitsForTier } from './diagramScalePolicy';
 
 describe('computeGridDiagramContainerSize', () => {
   it('models desktop diagram column from grid fractions', () => {
@@ -63,6 +65,7 @@ describe('desktop scaling analysis', () => {
   });
 
   it('keeps stretch ratio within reasonable bounds on desktop', () => {
+    const limits = stretchRatioLimitsForTier('desktop');
     for (const fixture of DESKTOP_VIEWPORT_FIXTURES) {
       const container = computeGridDiagramContainerSize(
         fixture.width,
@@ -72,8 +75,8 @@ describe('desktop scaling analysis', () => {
       const viewBox = getDiagramViewBox(false);
       const analysis = computeSvgScaleAnalysis(container, viewBox, stretch);
 
-      expect(analysis.stretchRatio).toBeGreaterThan(0.75);
-      expect(analysis.stretchRatio).toBeLessThan(1.35);
+      expect(analysis.stretchRatio).toBeGreaterThanOrEqual(limits.min);
+      expect(analysis.stretchRatio).toBeLessThanOrEqual(limits.max);
     }
   });
 });
@@ -129,8 +132,7 @@ describe('aspectRatioCorrection', () => {
     const analysis = computeSvgScaleAnalysis(container, viewBox, 'none');
     const correction = computeAspectRatioCorrection(container, viewBox, 'none');
 
-    const renderedRadiusYOverX = (analysis.sy * correction) / analysis.sx;
-    expect(renderedRadiusYOverX).toBeCloseTo(1, 5);
+    expect(nodesRenderCircular(analysis, correction)).toBe(true);
   });
 });
 

@@ -15,14 +15,16 @@ import {
   AXIS_PARENTS,
 } from '../music/diagramMetadata';
 import {
-  DIAGRAM_VIEW_W,
-  DIAGRAM_VIEW_H,
-} from '../music/diagramLayout';
-import {
   createInitialDiagramLayout,
+  diagramLayoutsEqual,
   resolveDiagramLayout,
   type DiagramLayoutResolution,
 } from '../music/diagramScaling';
+import {
+  getDiagramNodePositions,
+  groupEffectiveRadius,
+  primaryEffectiveRadius,
+} from '../music/diagramNodeGeometry';
 import { parentElementStyle } from '../music/elementTokens';
 import { useChordContext } from '../context/ChordContext';
 import { BREAKPOINTS } from '../layout/breakpoints';
@@ -30,7 +32,7 @@ import { useLayoutTier } from '../hooks/useLayoutTier';
 import {
   applyDiagramOverlayMetrics,
   computeDiagramOverlayMetrics,
-} from '../hooks/useDiagramOverlayMetrics';
+} from '../music/diagramOverlayMetrics';
 import { DiagramVoicingOverlay } from './DiagramVoicingOverlay';
 import { DiagramCornerActions } from './DiagramCornerActions';
 import { DiagramBackgroundOrbs } from './DiagramBackgroundOrbs';
@@ -49,14 +51,17 @@ function piePath(r: number, slice: number): string {
   return `M 0,0 L ${x1},${y1} A ${r},${r} 0 0,1 ${x2},${y2} Z`;
 }
 
+const BORROWING_LINES = [1, 2, 3, 4] as const;
+
 export const ElementalDiagram = React.memo(function ElementalDiagram({
   children,
 }: {
   children?: React.ReactNode;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [diagramLayout, setDiagramLayout] = useState<DiagramLayoutResolution | null>(
-    null,
+  const layoutTier = useLayoutTier();
+  const [diagramLayout, setDiagramLayout] = useState<DiagramLayoutResolution>(() =>
+    createInitialDiagramLayout(layoutTier, BREAKPOINTS.compactDiagramWidth),
   );
 
   const {
@@ -69,8 +74,6 @@ export const ElementalDiagram = React.memo(function ElementalDiagram({
 
   const [hoveredGroup, setHoveredGroup] = useState<string | null>(null);
   const [hoveredSliceIdx, setHoveredSliceIdx] = useState<number | null>(null);
-
-  const layoutTier = useLayoutTier();
   const [isDiagramReady, setIsDiagramReady] = useState(false);
 
   const measureContainer = useCallback(() => {
@@ -84,7 +87,9 @@ export const ElementalDiagram = React.memo(function ElementalDiagram({
         layoutTier,
         compactDiagramWidth: BREAKPOINTS.compactDiagramWidth,
       });
-      setDiagramLayout(layout);
+      setDiagramLayout((prev) =>
+        diagramLayoutsEqual(prev, layout) ? prev : layout,
+      );
       if (layoutTier === 'phone') {
         applyDiagramOverlayMetrics(
           container,
@@ -95,6 +100,12 @@ export const ElementalDiagram = React.memo(function ElementalDiagram({
   }, [layoutTier]);
 
   useSuppressNativeTouchGestures(containerRef);
+
+  useLayoutEffect(() => {
+    setDiagramLayout(
+      createInitialDiagramLayout(layoutTier, BREAKPOINTS.compactDiagramWidth),
+    );
+  }, [layoutTier]);
 
   useLayoutEffect(() => {
     let frame2 = 0;
@@ -121,59 +132,59 @@ export const ElementalDiagram = React.memo(function ElementalDiagram({
     return () => observer.disconnect();
   }, [isDiagramReady, measureContainer]);
 
-  const layout =
-    diagramLayout ??
-    createInitialDiagramLayout(layoutTier, BREAKPOINTS.compactDiagramWidth);
   const {
     isCompactDiagram,
     viewBoxString: viewBox,
     preserveAspectRatio,
     aspectRatioCorrection,
     nodeRadii: { rMain: R_MAIN, rGroup: R_GROUP },
-  } = layout;
+  } = diagramLayout;
 
   const showLabels = !isCompactDiagram;
 
-  const isBorrowingActive = selectedChord ? [1, 2, 3, 4].some(line => {
-    const pos = borrowingState.circlePositions[line as 1|2|3|4];
-    const noteState = borrowingState.noteStates[line as 1|2|3|4];
-    return pos && pos !== 'line' && noteState === 'on';
-  }) : false;
+  const isBorrowingActive = selectedChord
+    ? BORROWING_LINES.some((line) => {
+        const pos = borrowingState.circlePositions[line];
+        const noteState = borrowingState.noteStates[line];
+        return pos && pos !== 'line' && noteState === 'on';
+      })
+    : false;
 
-  const getCoords = useCallback((chord: Chord | undefined) => {
-    if (!chord) return null;
-    const coord = chordManager.getCoordinateForChord(chord.name);
-    if (!coord) return null;
-    return { x: coord.x * DIAGRAM_VIEW_W, y: coord.y * DIAGRAM_VIEW_H };
-  }, []);
+  const {
+    primaryNodes,
+    earthC,
+    windC,
+    fireC,
+    groupCenters,
+    groupChords,
+    getParentCoords,
+    getGroupParentCoords,
+  } = useMemo(() => {
+    const { primaries, groups } = getDiagramNodePositions();
+    const parentCoords = Object.fromEntries(
+      primaries.map((p) => [p.id, { x: p.x, y: p.y }]),
+    ) as Record<string, { x: number; y: number }>;
 
-  const { earth, wind, fire, earthC, windC, fireC, groupCenters, getParentCoords, getGroupParentCoords } = useMemo(() => {
-    const earth = chordManager.getChordByName('Earth');
-    const wind  = chordManager.getChordByName('Wind');
-    const fire  = chordManager.getChordByName('Fire');
-    const earthC = getCoords(earth ?? undefined);
-    const windC  = getCoords(wind  ?? undefined);
-    const fireC  = getCoords(fire  ?? undefined);
+    const primaryNodes = primaries.map((p) => ({
+      chord: chordManager.getChordByName(p.id),
+      x: p.x,
+      y: p.y,
+    }));
 
-    const getParentCoords = (name: string) => {
-      if (name === 'Earth') return earthC;
-      if (name === 'Wind')  return windC;
-      if (name === 'Fire')  return fireC;
-      return null;
-    };
+    const groupCenters = Object.fromEntries(
+      groups.map((g) => [g.id, { x: g.x, y: g.y }]),
+    ) as Record<string, { x: number; y: number }>;
 
-    const groupCenters = BASE_GROUPS.reduce((acc, baseName) => {
-      const chords = SLICE_VARIANTS.map(v =>
-        chordManager.getChordByName(v.prefix + baseName) ?? undefined
-      );
-      const coords = chords.map(c => getCoords(c));
-      if (coords.every(c => !!c)) {
-        const cx = coords.reduce((s, c) => s + c!.x, 0) / 4;
-        const cy = coords.reduce((s, c) => s + c!.y, 0) / 4;
-        acc[baseName] = { x: cx, y: cy };
-      }
-      return acc;
-    }, {} as Record<string, { x: number; y: number }>);
+    const groupChords = Object.fromEntries(
+      BASE_GROUPS.map((baseName) => [
+        baseName,
+        SLICE_VARIANTS.map(
+          (v) => chordManager.getChordByName(v.prefix + baseName) ?? undefined,
+        ),
+      ]),
+    ) as Record<string, (Chord | undefined)[]>;
+
+    const getParentCoords = (name: string) => parentCoords[name] ?? null;
 
     const getGroupParentCoords = (baseName: string) => {
       const parents = AXIS_PARENTS[baseName];
@@ -184,11 +195,16 @@ export const ElementalDiagram = React.memo(function ElementalDiagram({
       return { p1C, p2C };
     };
 
-    return { earth, wind, fire, earthC, windC, fireC, groupCenters, getParentCoords, getGroupParentCoords };
-  }, [getCoords]);
-
-  const resolveFreshChord = useCallback((chord: Chord) => {
-    return chordManager.getChordByName(chord.name) ?? chord;
+    return {
+      primaryNodes,
+      earthC: parentCoords.Earth ?? null,
+      windC: parentCoords.Wind ?? null,
+      fireC: parentCoords.Fire ?? null,
+      groupCenters,
+      groupChords,
+      getParentCoords,
+      getGroupParentCoords,
+    };
   }, []);
 
   return (
@@ -199,7 +215,6 @@ export const ElementalDiagram = React.memo(function ElementalDiagram({
       data-layout-tier={layoutTier === 'phone' ? 'phone' : undefined}
       data-tour-id="tour-diagram"
     >
-      {/* Behind SVG (z-index 0); see DiagramBackgroundOrbs */}
       <DiagramBackgroundOrbs />
       <DiagramVoicingOverlay />
       {layoutTier !== 'phone' && <DiagramCornerActions />}
@@ -295,11 +310,9 @@ export const ElementalDiagram = React.memo(function ElementalDiagram({
         })}
 
         {BASE_GROUPS.map((baseName) => {
-          const chords = SLICE_VARIANTS.map(v =>
-            chordManager.getChordByName(v.prefix + baseName) ?? undefined
-          );
+          const chords = groupChords[baseName];
           const center = groupCenters[baseName];
-          if (!center) return null;
+          if (!center || !chords) return null;
           const cx = center.x;
           const cy = center.y;
 
@@ -309,12 +322,12 @@ export const ElementalDiagram = React.memo(function ElementalDiagram({
           const glowColor   = palette.glow;
           const isThisGroup = hoveredGroup === baseName;
 
-          const selectedSlice = SLICE_VARIANTS.findIndex(v => {
-            const c = chordManager.getChordByName(v.prefix + baseName);
-            return c && selectedChord?.name === c.name;
-          });
+          const selectedSlice = chords.findIndex(
+            (c) => c && selectedChord?.name === c.name,
+          );
           const anySelected = selectedSlice >= 0;
           const baseOpacity = [0.72, 0.60, 0.55, 0.63];
+          const crosshairD = r / Math.SQRT2;
 
           return (
             <g
@@ -322,10 +335,9 @@ export const ElementalDiagram = React.memo(function ElementalDiagram({
               transform={`translate(${cx}, ${cy})`}
               onMouseLeave={() => { setHoveredGroup(null); setHoveredSliceIdx(null); }}
             >
-              {/* Correction Group: Inverse the SVG stretch to keep nodes circular */}
               <g transform={`scale(1, ${aspectRatioCorrection})`}>
                 <circle
-                  r={r * 1.25}
+                  r={groupEffectiveRadius(r)}
                   fill={glowColor}
                   filter="url(#glow)"
                   opacity={anySelected ? 0.55 : isThisGroup ? 0.25 : 0.12}
@@ -359,10 +371,8 @@ export const ElementalDiagram = React.memo(function ElementalDiagram({
                     />
                   );
                 })}
-                {(() => { const d = r / Math.SQRT2; return (<>
-                  <line x1={-d} y1={-d} x2={d} y2={d}  stroke="rgba(0,0,0,0.5)" strokeWidth="1.5" pointerEvents="none" />
-                  <line x1={d}  y1={-d} x2={-d} y2={d} stroke="rgba(0,0,0,0.5)" strokeWidth="1.5" pointerEvents="none" />
-                </>); })()}
+                <line x1={-crosshairD} y1={-crosshairD} x2={crosshairD} y2={crosshairD} stroke="rgba(0,0,0,0.5)" strokeWidth="1.5" pointerEvents="none" />
+                <line x1={crosshairD} y1={-crosshairD} x2={-crosshairD} y2={crosshairD} stroke="rgba(0,0,0,0.5)" strokeWidth="1.5" pointerEvents="none" />
                 <circle
                   r={r}
                   fill="none"
@@ -387,33 +397,31 @@ export const ElementalDiagram = React.memo(function ElementalDiagram({
           );
         })}
 
-        {([earth, wind, fire] as (Chord | undefined)[]).map((chord) => {
+        {primaryNodes.map(({ chord, x, y }) => {
           if (!chord) return null;
-          const coords = getCoords(chord);
-          if (!coords) return null;
           const isSelected = selectedChord?.name === chord.name;
           const r = R_MAIN;
+          const freshChord = chordManager.getChordByName(chord.name) ?? chord;
 
           return (
             <g
               key={chord.name}
-              transform={`translate(${coords.x}, ${coords.y})`}
+              transform={`translate(${x}, ${y})`}
               className={`chord-node ${isSelected ? 'active' : ''}`}
               onPointerDown={(e) => {
                 e.preventDefault();
                 e.currentTarget.releasePointerCapture(e.pointerId);
-                handleChordPointerDown(resolveFreshChord(chord));
+                handleChordPointerDown(freshChord);
               }}
               onPointerUp={() => handleChordPointerUp()}
               onPointerEnter={() => {
-                handleChordPointerEnter(resolveFreshChord(chord));
+                handleChordPointerEnter(freshChord);
               }}
               style={{ cursor: 'pointer' }}
             >
-              {/* Correction Group: Inverse the SVG stretch to keep nodes circular */}
               <g transform={`scale(1, ${aspectRatioCorrection})`}>
                 <circle
-                  r={r * 1.2}
+                  r={primaryEffectiveRadius(r)}
                   fill={parentElementStyle(chord.name).glow}
                   filter="url(#glow)"
                   opacity={isSelected ? 1 : 0.4}

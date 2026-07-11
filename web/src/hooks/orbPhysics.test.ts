@@ -1,29 +1,11 @@
 import { describe, it, expect } from 'vitest';
 import {
-  computePlayfieldBounds,
   computeOrbRadius,
   createInitialOrbStates,
   stepOrbPhysics,
   DEFAULT_ORB_PHYSICS_CONFIG,
   type OrbState,
 } from './orbPhysics';
-
-// Physics helpers are pure; tests cover rectangular bounds and tilt-driven motion.
-describe('computePlayfieldBounds', () => {
-  it('uses full container width and height', () => {
-    expect(computePlayfieldBounds({ width: 390, height: 620 })).toEqual({
-      width: 390,
-      height: 620,
-    });
-  });
-
-  it('clamps negative dimensions to zero', () => {
-    expect(computePlayfieldBounds({ width: -10, height: 100 })).toEqual({
-      width: 0,
-      height: 100,
-    });
-  });
-});
 
 describe('computeOrbRadius', () => {
   it('derives radius from the shorter panel dimension', () => {

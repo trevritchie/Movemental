@@ -86,3 +86,15 @@ export function computeDiagramOverlayMetrics(
     '--overlay-pill-padding-x': `${pillPadX}px`,
   };
 }
+
+/** Apply overlay CSS variables to a diagram container element. */
+export function applyDiagramOverlayMetrics(
+  element: HTMLElement,
+  metrics: DiagramOverlayCssVars,
+): void {
+  for (const [key, value] of Object.entries(metrics)) {
+    if (element.style.getPropertyValue(key) !== value) {
+      element.style.setProperty(key, value);
+    }
+  }
+}
