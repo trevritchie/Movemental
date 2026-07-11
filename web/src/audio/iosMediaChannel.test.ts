@@ -32,6 +32,42 @@ describe('iosMediaChannel', () => {
     ).toBe('playback');
   });
 
+  it('pauses and resumes the silent HTML loop around backgrounding', async () => {
+    const playSpy = vi
+      .spyOn(HTMLMediaElement.prototype, 'play')
+      .mockResolvedValue(undefined);
+    const pauseSpy = vi
+      .spyOn(HTMLMediaElement.prototype, 'pause')
+      .mockImplementation(() => undefined);
+
+    const {
+      unlockIosMediaChannel,
+      waitForIosMediaChannel,
+      pauseIosMediaChannel,
+      resumeIosMediaChannel,
+      ensurePlaybackAudioSession,
+    } = await import('./iosMediaChannel');
+
+    unlockIosMediaChannel();
+    await waitForIosMediaChannel();
+
+    pauseIosMediaChannel();
+    expect(pauseSpy).toHaveBeenCalled();
+
+    const session = (navigator as Navigator & {
+      audioSession: { type: string };
+    }).audioSession;
+    session.type = 'auto';
+
+    await resumeIosMediaChannel();
+    expect(ensurePlaybackAudioSession()).toBe(true);
+    expect(session.type).toBe('playback');
+    expect(playSpy).toHaveBeenCalled();
+
+    playSpy.mockRestore();
+    pauseSpy.mockRestore();
+  });
+
   it('marks non-iOS environments unlocked without audioSession changes', async () => {
     Object.defineProperty(navigator, 'maxTouchPoints', {
       value: 0,
