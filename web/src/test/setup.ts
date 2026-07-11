@@ -205,6 +205,7 @@ vi.mock('tone', () => {
       outputLatency: 0.01,
       destination: {},
       currentTime: 0,
+      suspend: vi.fn().mockResolvedValue(undefined),
     };
     resume = vi.fn().mockResolvedValue(undefined);
     close = vi.fn().mockResolvedValue(undefined);
@@ -247,6 +248,9 @@ vi.mock('tone', () => {
 
   const getContext = vi.fn(() => activeContext ?? new Context());
 
+  const transportMock = { cancel: vi.fn() };
+  const getTransport = vi.fn(() => transportMock);
+
   return {
     start: vi.fn().mockResolvedValue(undefined),
     now: mockNow,
@@ -271,5 +275,6 @@ vi.mock('tone', () => {
     Context,
     setContext,
     getContext,
+    getTransport,
   };
 });

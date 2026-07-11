@@ -50,6 +50,7 @@ import {
   lastPlayedVoicingReadout,
 } from '../music/voiceDegreeLabel';
 import { audioEngine } from '../audio/AudioEngine';
+import { isPageInteractiveForAudio } from '../audio/pageInteraction';
 import { unlockIosMediaChannel } from '../audio/iosMediaChannel';
 import type { PlayStyle, VoiceLeadingMode } from '../context/types';
 import { commitsSmoothestParallelBaseline, usesDeviceTilt } from '../context/types';
@@ -558,6 +559,14 @@ export function useChordPlayback({
         skipIfUnchanged = false,
         fromPointer = false,
       } = options;
+
+      if (
+        !fromPointer &&
+        (!isPageInteractiveForAudio() || audioEngine.isPageBackgrounded())
+      ) {
+        return;
+      }
+
       if (
         skipIfUnchanged &&
         !retrigger &&
@@ -823,6 +832,12 @@ export function useChordPlayback({
       window.removeEventListener('pointerup', handleGlobalPointerUp);
       window.removeEventListener('pointercancel', handleGlobalPointerUp);
     };
+  }, []);
+
+  useEffect(() => {
+    return audioEngine.registerReleaseListener(() => {
+      isPointerDownRef.current = false;
+    });
   }, []);
 
   const applyChordWithBorrowing = useCallback(

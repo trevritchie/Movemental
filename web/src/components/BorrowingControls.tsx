@@ -3,6 +3,7 @@ import type { BorrowingDirection } from '../music/BorrowingLogic';
 import { borrowingLogic, cloneBorrowingState } from '../music/BorrowingLogic';
 import { useChordContext } from '../context/ChordContext';
 import { useLayoutTier } from '../hooks/useLayoutTier';
+import { isPageInteractiveForAudio } from '../audio/pageInteraction';
 import { ELEMENTAL_RELATIONSHIPS } from '../music/config';
 import {
   cssColorForRelativePc,
@@ -35,8 +36,8 @@ interface BorrowSliderProps {
 
 const SLOTS: ('up' | 'neutral' | 'down')[] = ['up', 'neutral', 'down'];
 
-/** Throttle borrowing preview re-voice during slider drag (ms). */
-const SLIDER_PREVIEW_THROTTLE_MS = 60;
+/** Debounce borrowing preview so OS dismiss gestures can cancel before audio. */
+const SLIDER_PREVIEW_DEBOUNCE_MS = 100;
 
 const BorrowSlider = React.memo(function BorrowSlider({
   activeSlot, muted, disabled, onChange, onToggleMute, neutralColor, oppositeColor,
@@ -46,25 +47,44 @@ const BorrowSlider = React.memo(function BorrowSlider({
   const didMove = useRef(false);
   const initialSlotOnDown = useRef<'up' | 'neutral' | 'down' | null>(null);
   const clickedActiveNode = useRef(false);
-  const lastPreviewAtRef = useRef(0);
+  const previewTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingSlotRef = useRef<'up' | 'neutral' | 'down' | null>(null);
 
-  const emitChange = (slot: 'up' | 'neutral' | 'down') => {
-    const now = Date.now();
-    if (now - lastPreviewAtRef.current >= SLIDER_PREVIEW_THROTTLE_MS) {
-      lastPreviewAtRef.current = now;
-      pendingSlotRef.current = null;
-      onChange(slot);
-      return;
+  const cancelScheduledPreview = () => {
+    if (previewTimerRef.current !== null) {
+      clearTimeout(previewTimerRef.current);
+      previewTimerRef.current = null;
     }
-    pendingSlotRef.current = slot;
+    pendingSlotRef.current = null;
   };
 
-  const flushPendingChange = () => {
-    if (pendingSlotRef.current !== null) {
+  const commitPreview = (slot: 'up' | 'neutral' | 'down') => {
+    cancelScheduledPreview();
+    onChange(slot);
+  };
+
+  const schedulePreview = (slot: 'up' | 'neutral' | 'down') => {
+    pendingSlotRef.current = slot;
+    if (previewTimerRef.current !== null) {
+      clearTimeout(previewTimerRef.current);
+    }
+    previewTimerRef.current = setTimeout(() => {
+      previewTimerRef.current = null;
+      if (!isDragging.current || pendingSlotRef.current === null) {
+        return;
+      }
+      if (!isPageInteractiveForAudio()) {
+        pendingSlotRef.current = null;
+        return;
+      }
       onChange(pendingSlotRef.current);
       pendingSlotRef.current = null;
-      lastPreviewAtRef.current = Date.now();
+    }, SLIDER_PREVIEW_DEBOUNCE_MS);
+  };
+
+  const flushPendingPreview = () => {
+    if (pendingSlotRef.current !== null) {
+      commitPreview(pendingSlotRef.current);
     }
   };
 
@@ -82,6 +102,7 @@ const BorrowSlider = React.memo(function BorrowSlider({
 
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     if (disabled) return;
+    cancelScheduledPreview();
     isDragging.current = true;
     didMove.current = false;
 
@@ -89,10 +110,12 @@ const BorrowSlider = React.memo(function BorrowSlider({
     initialSlotOnDown.current = slot;
     clickedActiveNode.current = (!muted && slot === activeSlot);
 
-    e.currentTarget.setPointerCapture(e.pointerId);
-
-    if (slot !== activeSlot || muted) {
-      emitChange(slot);
+    try {
+      if (typeof e.currentTarget.setPointerCapture === 'function') {
+        e.currentTarget.setPointerCapture(e.pointerId);
+      }
+    } catch {
+      // Some test environments and browsers reject capture.
     }
   };
 
@@ -103,24 +126,51 @@ const BorrowSlider = React.memo(function BorrowSlider({
     if (slot !== initialSlotOnDown.current) {
       didMove.current = true;
     }
-    emitChange(slot);
+    if (didMove.current && (slot !== activeSlot || muted)) {
+      schedulePreview(slot);
+    }
   };
 
-  const stopDrag = (e: React.PointerEvent<HTMLDivElement>) => {
+  const abortDrag = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!isDragging.current || disabled) return;
+    cancelScheduledPreview();
+    isDragging.current = false;
+    didMove.current = false;
+    initialSlotOnDown.current = null;
+    clickedActiveNode.current = false;
+    try {
+      if (
+        typeof e.currentTarget.hasPointerCapture === 'function' &&
+        e.currentTarget.hasPointerCapture(e.pointerId)
+      ) {
+        e.currentTarget.releasePointerCapture(e.pointerId);
+      }
+    } catch {
+      // Pointer may already be released by the browser.
+    }
+  };
+
+  const handlePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
     if (!isDragging.current || disabled) return;
 
     const endSlot = getSlotFromY(e.clientY);
-    flushPendingChange();
 
-    if (
+    if (didMove.current) {
+      flushPendingPreview();
+    } else if (endSlot !== activeSlot || muted) {
+      commitPreview(endSlot);
+    } else if (
       clickedActiveNode.current &&
-      !didMove.current &&
       endSlot === initialSlotOnDown.current
     ) {
       onToggleMute();
     }
 
+    cancelScheduledPreview();
     isDragging.current = false;
+    didMove.current = false;
+    initialSlotOnDown.current = null;
+    clickedActiveNode.current = false;
   };
 
   return (
@@ -129,8 +179,8 @@ const BorrowSlider = React.memo(function BorrowSlider({
       className={`borrow-slider${muted ? ' muted' : ''}${disabled ? ' disabled' : ''}`}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
-      onPointerUp={stopDrag}
-      onPointerCancel={stopDrag}
+      onPointerUp={handlePointerUp}
+      onPointerCancel={abortDrag}
     >
       <div className="borrow-slider-track" />
 

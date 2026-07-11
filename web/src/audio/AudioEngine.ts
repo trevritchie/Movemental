@@ -10,6 +10,9 @@ import * as Tone from 'tone';
 import {
   unlockIosMediaChannel,
   waitForIosMediaChannel,
+  pauseIosMediaChannel,
+  resumeIosMediaChannel,
+  ensurePlaybackAudioSession,
 } from './iosMediaChannel';
 import { SessionRecorder } from './SessionRecorder';
 import { SessionMidiRecorder } from './SessionMidiRecorder';
@@ -129,6 +132,8 @@ export class AudioEngine {
   /** When true, sampler uses preset-native release instead of user ADSR (drone mode). */
   private samplerNaturalEnvelope = false;
   private latencyContextConfigured = false;
+  private isBackgrounded = false;
+  private releaseListeners = new Set<() => void>();
 
   constructor() {
     const tier = resolveLayoutTierSafe();
@@ -477,6 +482,65 @@ export class AudioEngine {
     }
   }
 
+  public registerReleaseListener(listener: () => void): () => void {
+    this.releaseListeners.add(listener);
+    return () => {
+      this.releaseListeners.delete(listener);
+    };
+  }
+
+  private notifyReleaseListeners(): void {
+    for (const listener of this.releaseListeners) {
+      listener();
+    }
+  }
+
+  private cancelScheduledAudio(): void {
+    const now = Tone.now();
+    Tone.getTransport().cancel(now);
+
+    if (this.masterMakeup) {
+      this.masterMakeup.gain.cancelScheduledValues(now);
+    }
+    if (this.recordTailGain) {
+      this.recordTailGain.gain.cancelScheduledValues(now);
+    }
+  }
+
+  /** True while the page is hidden and background teardown is active. */
+  public isPageBackgrounded(): boolean {
+    return this.isBackgrounded;
+  }
+
+  /**
+   * Stop live audio and release the iOS media session when the page is hidden.
+   */
+  public handlePageBackground(): void {
+    if (this.isBackgrounded) return;
+    this.isBackgrounded = true;
+
+    this.releaseActiveNotes();
+    pauseIosMediaChannel();
+  }
+
+  /**
+   * Reclaim the playback audio session and resume the Web Audio context when
+   * the page becomes visible again. Does not re-trigger sustained chords.
+   */
+  public async handlePageForeground(): Promise<void> {
+    if (!this.isBackgrounded) return;
+    this.isBackgrounded = false;
+
+    ensurePlaybackAudioSession();
+    await resumeIosMediaChannel();
+
+    try {
+      await Tone.start();
+    } catch {
+      // Some iOS builds require a fresh user gesture to resume.
+    }
+  }
+
   public async startContext() {
     unlockIosMediaChannel();
     await waitForIosMediaChannel();
@@ -668,7 +732,9 @@ export class AudioEngine {
         devWarn('[AudioEngine] ReleaseAll error:', err);
       }
       this.activeNotes = [];
+      this.cancelScheduledAudio();
     }
+    this.notifyReleaseListeners();
   }
 
   /**

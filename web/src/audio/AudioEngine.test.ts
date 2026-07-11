@@ -86,4 +86,21 @@ describe('AudioEngine session MIDI recording', () => {
 
     expect(midiRecorderMock.logAllNotesOff).toHaveBeenCalledWith(5);
   });
+
+  it('releases voices on background and resumes context on foreground', async () => {
+    engine.handlePageBackground();
+    expect(engine.isPageBackgrounded()).toBe(true);
+
+    await engine.handlePageForeground();
+    expect(engine.isPageBackgrounded()).toBe(false);
+    expect(Tone.start).toHaveBeenCalled();
+  });
+
+  it('notifies release listeners when panic runs', () => {
+    const listener = vi.fn();
+    engine.registerReleaseListener(listener);
+    engine.releaseActiveNotes();
+
+    expect(listener).toHaveBeenCalledTimes(1);
+  });
 });

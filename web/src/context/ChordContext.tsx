@@ -24,6 +24,7 @@ import {
   type TiltSample,
 } from '../music/TiltVoicingEngine';
 import { useAudioSettings } from '../hooks/useAudioSettings';
+import { useAudioLifecycle } from '../hooks/useAudioLifecycle';
 import { useBorrowingMemory } from '../hooks/useBorrowingMemory';
 import { useChordPlayback } from '../hooks/useChordPlayback';
 import { useDeviceTilt } from '../hooks/useDeviceTilt';
@@ -223,6 +224,8 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
     initialPlayStyle: loadedSettings.general.playStyle,
     hasPersistedSettings,
   });
+
+  useAudioLifecycle();
 
   useEffect(() => {
     playAndDisplayChordRef.current = playback.playAndDisplayChord;

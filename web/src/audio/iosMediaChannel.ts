@@ -44,11 +44,15 @@ function createSilentWavDataUri(sampleRate: number): string {
   );
 }
 
-function setPlaybackAudioSession(): boolean {
+export function ensurePlaybackAudioSession(): boolean {
   const nav = navigator as NavigatorWithAudioSession;
   if (!nav.audioSession) return false;
   nav.audioSession.type = 'playback';
   return true;
+}
+
+function setPlaybackAudioSession(): boolean {
+  return ensurePlaybackAudioSession();
 }
 
 /** Sample rate for the one-sample Web Audio unlock blip. */
@@ -193,4 +197,37 @@ export function waitForIosMediaChannel(): Promise<void> {
   }
 
   return unlockInFlight ?? Promise.resolve();
+}
+
+/**
+ * Pause the silent HTML keep-alive loop when the page is hidden so iOS does
+ * not route background audio through our session.
+ */
+export function pauseIosMediaChannel(): void {
+  if (!isIosDevice() || !silentAudio) return;
+  silentAudio.pause();
+}
+
+/**
+ * Resume the silent HTML keep-alive loop and reclaim the playback session when
+ * returning to the foreground (pauses other apps such as Spotify per spec).
+ */
+export async function resumeIosMediaChannel(): Promise<void> {
+  if (!isIosDevice()) return;
+
+  ensurePlaybackAudioSession();
+
+  if (!hasUnlocked) {
+    await waitForIosMediaChannel();
+    return;
+  }
+
+  const audio = silentAudio ?? ensureSilentHtmlAudio();
+  if (audio.paused) {
+    try {
+      await audio.play();
+    } catch {
+      // Foreground resume may require a fresh user gesture on some iOS builds.
+    }
+  }
 }
