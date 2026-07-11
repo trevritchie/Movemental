@@ -1,3 +1,12 @@
+/**
+ * Pure helpers for diagram background orb physics (tilt mode).
+ *
+ * Models three independent balls rolling inside the full diagram panel rectangle.
+ * Gravity comes from raw device angles (gamma = roll, beta = pitch), not from
+ * normalized TiltSample (which uses |gamma| for voicing and loses roll direction).
+ *
+ * Tuning: adjust DEFAULT_ORB_PHYSICS_CONFIG for gravity, friction, and bounce feel.
+ */
 export interface PlayfieldBounds {
   width: number;
   height: number;
@@ -17,6 +26,7 @@ export interface OrbPhysicsConfig {
   bounceDamping: number;
 }
 
+/** Tweak these constants to change maze-ball roll speed and bounce character. */
 export const DEFAULT_ORB_PHYSICS_CONFIG: OrbPhysicsConfig = {
   gravityStrength: 0.12,
   friction: 0.985,
@@ -24,8 +34,10 @@ export const DEFAULT_ORB_PHYSICS_CONFIG: OrbPhysicsConfig = {
   bounceDamping: 0.92,
 };
 
+/** Matches CSS `40cqmin` orb diameter in physics mode (2 × ORB_RADIUS_RATIO). */
 const ORB_RADIUS_RATIO = 0.2;
 
+/** Uses the full container rectangle; X and Y limits are independent. */
 export function computePlayfieldBounds(rect: {
   width: number;
   height: number;
@@ -51,6 +63,7 @@ export function createInitialOrbStates(
   const usableH = Math.max(bounds.height - inset * 2, 0);
 
   const anchors = [
+    // Spread starting positions so all three orbs are visible at session start.
     { x: 0.22, y: 0.28 },
     { x: 0.72, y: 0.32 },
     { x: 0.48, y: 0.72 },
@@ -77,6 +90,7 @@ export function stepOrbPhysics(
   const radius = computeOrbRadius(bounds);
   if (bounds.width <= 0 || bounds.height <= 0 || radius <= 0) return;
 
+  // DeviceOrientation angles: gamma tilts left/right, beta tilts toward/away from user.
   const ax = (gamma / 90) * config.gravityStrength;
   const ay = (beta / 90) * config.gravityStrength;
 

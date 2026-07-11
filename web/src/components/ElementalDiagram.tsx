@@ -194,6 +194,7 @@ export const ElementalDiagram = React.memo(function ElementalDiagram({
       data-layout-tier={layoutTier === 'phone' ? 'phone' : undefined}
       data-tour-id="tour-diagram"
     >
+      {/* Behind SVG (z-index 0); see DiagramBackgroundOrbs */}
       <DiagramBackgroundOrbs />
       <DiagramVoicingOverlay />
       {layoutTier !== 'phone' && <DiagramCornerActions />}

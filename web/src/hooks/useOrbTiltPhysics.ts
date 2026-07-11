@@ -10,6 +10,16 @@ import {
 
 const ORB_SELECTOR = '.diagram-glow-orb';
 
+/**
+ * Drives diagram orb positions in tilt mode via requestAnimationFrame.
+ *
+ * Reads smoothed gamma/beta from orientationRef each frame (no React state) and
+ * writes transforms directly to orb DOM nodes. Positions are orb-center coordinates;
+ * translate offsets by radius so the top-left of each orb div aligns correctly.
+ *
+ * Resets orb positions when the playfield resizes. Clears inline transforms on
+ * teardown so ambient CSS animations can resume when physics deactivates.
+ */
 export function useOrbTiltPhysics({
   enabled,
   playfieldRef,
@@ -68,6 +78,7 @@ export function useOrbTiltPhysics({
         const el = elements[i];
         if (!el) continue;
         const orb = orbs[i];
+        // orb.x/y are center coords; orb divs are sized 40cqmin (see index.css).
         el.style.transform = `translate3d(${orb.x - radius}px, ${orb.y - radius}px, 0)`;
       }
 

@@ -55,6 +55,8 @@ export const pitchTiltFromBeta = (beta: number): number => {
  * Two tilt refs:
  * - tiltRef / React `tilt`: smoothed, throttled to ~150 ms for UI readouts
  * - rawTiltRef: unsmoothed angles for playback sampling at tap time
+ * - orientationRef: smoothed gamma/beta for high-frequency visuals (orb physics).
+ *   Unlike tiltRef.x, orientationRef keeps roll sign so orbs can slide left/right.
  */
 export function useDeviceTilt() {
   /** Smoothed sample for diagram overlay readouts. */

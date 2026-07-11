@@ -1,6 +1,10 @@
 /* eslint-disable react-refresh/only-export-components */
 /**
  * Tilt readout context: isolates ~7 Hz tilt updates from ChordContext.
+ *
+ * `tiltSample` feeds voicing overlay labels. `orientationRef` exposes smoothed
+ * device angles for effects that need per-frame reads without re-rendering
+ * (diagram background orb physics).
  */
 import {
   createContext,
@@ -15,6 +19,7 @@ import type { OrientationAngles, TiltStatus } from '@/hooks/useDeviceTilt';
 interface TiltReadoutContextType {
   tiltStatus: TiltStatus;
   tiltSample: TiltSample;
+  /** Smoothed gamma/beta; read in rAF loops, not via React state. */
   orientationRef: MutableRefObject<OrientationAngles>;
   requestTiltPermission: () => Promise<void>;
 }

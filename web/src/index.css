@@ -1609,6 +1609,9 @@ body.scroll-locked {
 
 /* ==========================================================================
    Diagram background orbs
+   Layering: z-index 0 here, .diagram-svg at z-index 1, overlays at 2+.
+   No-tilt: ambient swirl/float. Tilt (--physics): rAF transforms, no CSS anim.
+   Opacity/blur are softer than splash so nodes stay readable.
    ========================================================================== */
 .diagram-background-orbs {
   position: absolute;
@@ -1624,7 +1627,7 @@ body.scroll-locked {
   overflow: hidden;
   filter: blur(70px);
   opacity: 0.58;
-  container-type: size;
+  container-type: size; /* enables 40cqmin orb sizing in physics mode */
 }
 
 .diagram-orb-wrapper {
@@ -1666,6 +1669,7 @@ body.scroll-locked {
 }
 
 .diagram-background-orbs--physics .diagram-orb-wrapper {
+  /* Fill playfield so physics bounds match the full panel rectangle. */
   top: 0;
   left: 0;
   width: 100%;
@@ -1674,6 +1678,7 @@ body.scroll-locked {
 }
 
 .diagram-background-orbs--physics .diagram-glow-orb {
+  /* Diameter = 40cqmin matches computeOrbRadius (20% of min dimension). */
   top: 0;
   left: 0;
   width: 40cqmin;

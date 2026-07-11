@@ -8,6 +8,7 @@ import {
   type OrbState,
 } from './orbPhysics';
 
+// Physics helpers are pure; tests cover rectangular bounds and tilt-driven motion.
 describe('computePlayfieldBounds', () => {
   it('uses full container width and height', () => {
     expect(computePlayfieldBounds({ width: 390, height: 620 })).toEqual({
