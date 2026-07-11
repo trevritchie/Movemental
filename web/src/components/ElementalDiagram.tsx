@@ -17,10 +17,16 @@ import {
 import {
   DIAGRAM_VIEW_W,
   DIAGRAM_VIEW_H,
-  DIAGRAM_COMPACT_VIEW_W,
-  DIAGRAM_COMPACT_VIEW_H,
-  DIAGRAM_COMPACT_VIEW_PAD,
 } from '../music/diagramLayout';
+import {
+  computeAspectRatioCorrection,
+  getDiagramViewBox,
+  resolvePreserveAspectRatio,
+} from '../music/diagramScaling';
+import {
+  COMPACT_NODE_RADII,
+  DESKTOP_NODE_RADII,
+} from '../music/diagramNodeGeometry';
 import { parentElementStyle } from '../music/elementTokens';
 import { useChordContext } from '../context/ChordContext';
 import { BREAKPOINTS } from '../layout/breakpoints';
@@ -76,9 +82,18 @@ export const ElementalDiagram = React.memo(function ElementalDiagram({
     const { width, height } = container.getBoundingClientRect();
     setContainerWidth(width);
     if (width > 0 && height > 0) {
-      const viewBoxAR = DIAGRAM_COMPACT_VIEW_W / DIAGRAM_COMPACT_VIEW_H;
-      const containerAR = width / height;
-      setAspectRatioCorrection(containerAR / viewBoxAR);
+      const compact =
+        layoutTier === 'phone' ||
+        layoutTier === 'tablet' ||
+        width < BREAKPOINTS.compactDiagramWidth;
+      const viewBox = getDiagramViewBox(compact);
+      setAspectRatioCorrection(
+        computeAspectRatioCorrection(
+          { width, height },
+          viewBox,
+          resolvePreserveAspectRatio(),
+        ),
+      );
       if (layoutTier === 'phone') {
         applyDiagramOverlayMetrics(
           container,
@@ -120,12 +135,13 @@ export const ElementalDiagram = React.memo(function ElementalDiagram({
     layoutTier === 'tablet' ||
     containerWidth < BREAKPOINTS.compactDiagramWidth;
 
-  const viewBox = isCompactDiagram
-    ? `-${DIAGRAM_COMPACT_VIEW_PAD} -${DIAGRAM_COMPACT_VIEW_PAD} ${DIAGRAM_COMPACT_VIEW_W} ${DIAGRAM_COMPACT_VIEW_H}`
-    : `0 0 ${DIAGRAM_VIEW_W} ${DIAGRAM_VIEW_H}`;
+  const viewBoxSpec = getDiagramViewBox(isCompactDiagram);
+  const viewBox = `${viewBoxSpec.x} ${viewBoxSpec.y} ${viewBoxSpec.width} ${viewBoxSpec.height}`;
+  const preserveAspectRatio = resolvePreserveAspectRatio();
 
-  const R_MAIN = isCompactDiagram ? 100 : 52;
-  const R_GROUP = isCompactDiagram ? 102 : 54;
+  const nodeRadii = isCompactDiagram ? COMPACT_NODE_RADII : DESKTOP_NODE_RADII;
+  const R_MAIN = nodeRadii.rMain;
+  const R_GROUP = nodeRadii.rGroup;
 
   const showLabels = !isCompactDiagram;
 
@@ -201,7 +217,7 @@ export const ElementalDiagram = React.memo(function ElementalDiagram({
       <svg
         viewBox={viewBox}
         className="diagram-svg"
-        preserveAspectRatio={isCompactDiagram ? 'none' : 'xMidYMid meet'}
+        preserveAspectRatio={preserveAspectRatio}
       >
         <defs>
           <filter id="glow" x="-50%" y="-50%" width="200%" height="200%" filterUnits="userSpaceOnUse">

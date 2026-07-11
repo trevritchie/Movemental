@@ -119,6 +119,12 @@ body.scroll-locked {
   min-height: 0;
 }
 
+.main-content > .diagram-container {
+  height: 100%;
+  align-self: stretch;
+  min-height: 0;
+}
+
 /* ==========================================================================
    Mobile phone layout (coarse pointer)
    ========================================================================== */
