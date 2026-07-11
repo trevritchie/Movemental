@@ -1,14 +1,14 @@
 import { describe, it, expect } from 'vitest';
-import { clamp } from '../utils/clamp';
-import { computeDiagramOverlayMetrics } from '../hooks/useDiagramOverlayMetrics';
+import { computeDiagramOverlayMetrics } from './diagramOverlayMetrics';
 import { PHONE_VIEWPORT_FIXTURES } from './diagramScaleFixtures';
 import {
   resolveDiagramLayoutForViewport,
   computePhoneLayoutScale,
+  computeOverlayCornerSpans,
+  layoutMeetsScalePolicy,
 } from './diagramScaling';
 import {
   DIAGRAM_SCALE_POLICY,
-  stretchRatioLimitsForTier,
 } from './diagramScalePolicy';
 import { computeDiagramContainerSizeForTier } from './diagramShellLayout';
 
@@ -30,73 +30,14 @@ describe('phone shell layout', () => {
 });
 
 describe('phone diagram scaling', () => {
-  it('fills the diagram container on all phone fixtures', () => {
+  it('meets phone scale policy on all fixtures', () => {
     for (const fixture of PHONE_VIEWPORT_FIXTURES) {
       const layout = resolveDiagramLayoutForViewport(
         fixture.width,
         fixture.height,
         'phone',
       );
-      expect(layout.scaleAnalysis.unusedWidth).toBe(0);
-      expect(layout.scaleAnalysis.unusedHeight).toBe(0);
-      expect(layout.scaleAnalysis.fillRatioX).toBe(1);
-      expect(layout.scaleAnalysis.fillRatioY).toBe(1);
-    }
-  });
-
-  it('keeps stretch ratio within phone policy bounds', () => {
-    const limits = stretchRatioLimitsForTier('phone');
-    for (const fixture of PHONE_VIEWPORT_FIXTURES) {
-      const layout = resolveDiagramLayoutForViewport(
-        fixture.width,
-        fixture.height,
-        'phone',
-      );
-      expect(layout.screenMetrics.stretchRatio).toBeGreaterThanOrEqual(
-        limits.min,
-      );
-      expect(layout.screenMetrics.stretchRatio).toBeLessThanOrEqual(limits.max);
-    }
-  });
-
-  it('restores circular nodes on all phone fixtures', () => {
-    for (const fixture of PHONE_VIEWPORT_FIXTURES) {
-      const layout = resolveDiagramLayoutForViewport(
-        fixture.width,
-        fixture.height,
-        'phone',
-      );
-      const { sx, sy } = layout.scaleAnalysis;
-      const renderedYOverX = (sy * layout.aspectRatioCorrection) / sx;
-      expect(renderedYOverX).toBeCloseTo(1, 5);
-    }
-  });
-
-  it('meets minimum primary node screen radius on all phones', () => {
-    const minRadius = DIAGRAM_SCALE_POLICY.primaryScreenRadiusPx.phone;
-    for (const fixture of PHONE_VIEWPORT_FIXTURES) {
-      const layout = resolveDiagramLayoutForViewport(
-        fixture.width,
-        fixture.height,
-        'phone',
-      );
-      expect(layout.screenMetrics.primaryNodeScreenRadius).toBeGreaterThanOrEqual(
-        minRadius,
-      );
-    }
-  });
-
-  it('meets minimum group node screen radius on all phones', () => {
-    const minRadius = DIAGRAM_SCALE_POLICY.groupScreenRadiusPx.phone;
-    for (const fixture of PHONE_VIEWPORT_FIXTURES) {
-      const layout = resolveDiagramLayoutForViewport(
-        fixture.width,
-        fixture.height,
-        'phone',
-      );
-      expect(layout.screenMetrics.groupNodeScreenRadius).toBeGreaterThanOrEqual(
-        minRadius,
-      );
+      expect(layoutMeetsScalePolicy(layout)).toBe(true);
     }
   });
 
@@ -141,15 +82,10 @@ describe('phone overlay metrics integration', () => {
       const clock = parseInt(metrics['--overlay-clock-size'], 10);
       const readoutMax = parseInt(metrics['--overlay-readout-max-w'], 10);
       const insetX = parseInt(metrics['--overlay-inset-x'], 10);
-      const centerGutter = clamp(
-        Math.round(container.width * 0.14),
-        36,
-        56,
-      );
-      const maxHalf = (container.width - centerGutter) / 2 - insetX - 4;
+      const { maxHalfSpan } = computeOverlayCornerSpans(container.width, insetX);
 
-      expect(readoutMax).toBeLessThanOrEqual(Math.ceil(maxHalf) + 1);
-      expect(clock).toBeLessThanOrEqual(Math.ceil(maxHalf) + 1);
+      expect(readoutMax).toBeLessThanOrEqual(maxHalfSpan + 1);
+      expect(clock).toBeLessThanOrEqual(maxHalfSpan + 1);
     }
   });
 

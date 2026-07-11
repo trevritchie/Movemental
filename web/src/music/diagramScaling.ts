@@ -12,62 +12,28 @@ import {
   type DiagramNodeRadii,
 } from './diagramNodeGeometry';
 import { computeDiagramContainerSizeForTier } from './diagramShellLayout';
-import { DIAGRAM_SCALE_POLICY } from './diagramScalePolicy';
+import {
+  DIAGRAM_SCALE_POLICY,
+  stretchRatioLimitsForTier,
+} from './diagramScalePolicy';
 import { clamp } from '../utils/clamp';
+import type {
+  DiagramContainerSize,
+  DiagramLayoutResolution,
+  DiagramPreserveAspectRatio,
+  DiagramScreenMetrics,
+  DiagramViewBox,
+  SvgScaleAnalysis,
+} from './diagramLayoutTypes';
 
-export type DiagramPreserveAspectRatio = 'none' | 'xMidYMid meet' | 'xMidYMid slice';
-
-export interface DiagramViewBox {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-}
-
-export interface DiagramContainerSize {
-  width: number;
-  height: number;
-}
-
-export interface SvgScaleAnalysis {
-  sx: number;
-  sy: number;
-  contentWidth: number;
-  contentHeight: number;
-  unusedWidth: number;
-  unusedHeight: number;
-  fillRatioX: number;
-  fillRatioY: number;
-  stretchRatio: number;
-}
-
-export interface DiagramScreenMetrics {
-  primaryNodeScreenRadius: number;
-  groupNodeScreenRadius: number;
-  stretchRatio: number;
-  layoutScale: number;
-}
-
-export interface DiagramLayoutResolution {
-  layoutTier: LayoutTier;
-  isCompactDiagram: boolean;
-  viewBox: DiagramViewBox;
-  viewBoxString: string;
-  preserveAspectRatio: DiagramPreserveAspectRatio;
-  aspectRatioCorrection: number;
-  nodeRadii: DiagramNodeRadii;
-  scaleAnalysis: SvgScaleAnalysis;
-  screenMetrics: DiagramScreenMetrics;
-}
-
-/** @deprecated Use computeDiagramContainerSizeForTier from diagramShellLayout. */
-export function computeDiagramContainerSize(
-  viewportWidth: number,
-  viewportHeight: number,
-  tier: LayoutTier = 'desktop',
-): DiagramContainerSize {
-  return computeDiagramContainerSizeForTier(viewportWidth, viewportHeight, tier);
-}
+export type {
+  DiagramContainerSize,
+  DiagramLayoutResolution,
+  DiagramPreserveAspectRatio,
+  DiagramScreenMetrics,
+  DiagramViewBox,
+  SvgScaleAnalysis,
+} from './diagramLayoutTypes';
 
 export function isCompactDiagramMode(
   tier: LayoutTier,
@@ -189,7 +155,7 @@ export function computeSvgScaleAnalysis(
 
 /**
  * Shared phone UI scale factor for overlay pills, clock, and readouts.
- * Keep in sync with overlay metrics and DIAGRAM_SCALE_POLICY.mobileShell.
+ * Keep in sync with DIAGRAM_SCALE_POLICY.mobileShell.
  */
 export function computePhoneLayoutScale(
   containerWidth: number,
@@ -205,6 +171,19 @@ export function computePhoneLayoutScale(
     layoutScaleMin,
     layoutScaleMax,
   );
+}
+
+/** Center gutter and max half-width for phone corner overlays (clock, readout, pills). */
+export function computeOverlayCornerSpans(
+  containerWidth: number,
+  insetX: number,
+): { centerGutter: number; maxHalfSpan: number } {
+  const centerGutter = clamp(Math.round(containerWidth * 0.14), 36, 56);
+  const maxHalfSpan = Math.max(
+    72,
+    Math.floor((containerWidth - centerGutter) / 2 - insetX - 4),
+  );
+  return { centerGutter, maxHalfSpan };
 }
 
 /** Screen-space node radius after stretch + Y correction (uniform sx). */
@@ -235,6 +214,49 @@ export function computeDiagramScreenMetrics(
       ? computePhoneLayoutScale(container.width, container.height)
       : 1,
   };
+}
+
+/** Whether circular nodes render uniformly under stretch + Y correction. */
+export function nodesRenderCircular(
+  scaleAnalysis: SvgScaleAnalysis,
+  aspectRatioCorrection: number,
+): boolean {
+  if (scaleAnalysis.sx <= 0 || scaleAnalysis.sy <= 0) return true;
+  const renderedYOverX = (scaleAnalysis.sy * aspectRatioCorrection) / scaleAnalysis.sx;
+  return Math.abs(renderedYOverX - 1) < 1e-5;
+}
+
+/** Validates a resolved layout against DIAGRAM_SCALE_POLICY bounds. */
+export function layoutMeetsScalePolicy(layout: DiagramLayoutResolution): boolean {
+  const limits = stretchRatioLimitsForTier(layout.layoutTier);
+  const policy = DIAGRAM_SCALE_POLICY;
+  const { scaleAnalysis, screenMetrics } = layout;
+
+  if (scaleAnalysis.unusedWidth !== 0 || scaleAnalysis.unusedHeight !== 0) {
+    return false;
+  }
+  if (
+    screenMetrics.stretchRatio < limits.min ||
+    screenMetrics.stretchRatio > limits.max
+  ) {
+    return false;
+  }
+  if (
+    screenMetrics.primaryNodeScreenRadius <
+    policy.primaryScreenRadiusPx[layout.layoutTier]
+  ) {
+    return false;
+  }
+  if (
+    screenMetrics.groupNodeScreenRadius <
+    policy.groupScreenRadiusPx[layout.layoutTier]
+  ) {
+    return false;
+  }
+  if (!nodesRenderCircular(scaleAnalysis, layout.aspectRatioCorrection)) {
+    return false;
+  }
+  return true;
 }
 
 /**
@@ -287,6 +309,19 @@ export function resolveDiagramLayout(input: {
     scaleAnalysis,
     screenMetrics,
   };
+}
+
+/** Pre-measure defaults derived from layout tier (before ResizeObserver fires). */
+export function createInitialDiagramLayout(
+  layoutTier: LayoutTier,
+  compactDiagramWidth = 600,
+): DiagramLayoutResolution {
+  return resolveDiagramLayout({
+    containerWidth: 0,
+    containerHeight: 0,
+    layoutTier,
+    compactDiagramWidth,
+  });
 }
 
 /** Resolve layout from viewport dimensions (for fixture analysis tests). */

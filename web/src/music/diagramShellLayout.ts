@@ -1,6 +1,6 @@
 import type { LayoutTier } from '../layout/breakpoints';
 import { DIAGRAM_SCALE_POLICY } from './diagramScalePolicy';
-import type { DiagramContainerSize } from './diagramScaling';
+import type { DiagramContainerSize } from './diagramLayoutTypes';
 
 const APP_MAX_WIDTH = 1650;
 const APP_HORIZONTAL_PADDING = 32;

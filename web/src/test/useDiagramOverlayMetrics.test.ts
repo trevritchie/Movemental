@@ -1,9 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { clamp } from '../utils/clamp';
 import {
   computeDiagramOverlayMetrics,
   DEFAULT_OVERLAY_METRICS,
-} from '../hooks/useDiagramOverlayMetrics';
+} from '../music/diagramOverlayMetrics';
+import { computeOverlayCornerSpans } from '../music/diagramScaling';
 
 describe('computeDiagramOverlayMetrics', () => {
   it('returns defaults when dimensions are zero', () => {
@@ -61,12 +61,10 @@ describe('computeDiagramOverlayMetrics', () => {
     const clock = parseInt(metrics['--overlay-clock-size'], 10);
     const readoutMax = parseInt(metrics['--overlay-readout-max-w'], 10);
     const insetX = parseInt(metrics['--overlay-inset-x'], 10);
-    const centerGutter = clamp(Math.round(320 * 0.14), 36, 56);
-    // Matches computeDiagramOverlayMetrics center gutter at width 320 (14%).
-    const maxHalf = (320 - centerGutter) / 2 - insetX - 4;
+    const { maxHalfSpan, centerGutter } = computeOverlayCornerSpans(320, insetX);
 
-    expect(readoutMax).toBeLessThanOrEqual(Math.ceil(maxHalf) + 1);
-    expect(clock).toBeLessThanOrEqual(Math.ceil(maxHalf) + 1);
+    expect(readoutMax).toBeLessThanOrEqual(maxHalfSpan + 1);
+    expect(clock).toBeLessThanOrEqual(maxHalfSpan + 1);
     expect(readoutMax + clock + centerGutter).toBeLessThanOrEqual(320 + 8);
   });
 

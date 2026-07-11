@@ -7,8 +7,13 @@ export interface ViewportFixture {
   tier: LayoutTier;
 }
 
+/** Viewports that use the desktop/tablet grid shell (not phone flex layout). */
+export interface GridViewportFixture extends Omit<ViewportFixture, 'tier'> {
+  tier: 'desktop' | 'tablet';
+}
+
 /** Common laptop viewports for diagram scaling analysis. */
-export const DESKTOP_VIEWPORT_FIXTURES: ViewportFixture[] = [
+export const DESKTOP_VIEWPORT_FIXTURES: GridViewportFixture[] = [
   { name: 'laptop-1280x800', width: 1280, height: 800, tier: 'desktop' },
   { name: 'laptop-1366x768', width: 1366, height: 768, tier: 'desktop' },
   { name: 'laptop-1440x900', width: 1440, height: 900, tier: 'desktop' },
@@ -16,7 +21,7 @@ export const DESKTOP_VIEWPORT_FIXTURES: ViewportFixture[] = [
 ];
 
 /** Common tablet viewports (coarse pointer, side-by-side grid). */
-export const TABLET_VIEWPORT_FIXTURES: ViewportFixture[] = [
+export const TABLET_VIEWPORT_FIXTURES: GridViewportFixture[] = [
   { name: 'tablet-1024x768', width: 1024, height: 768, tier: 'tablet' },
   { name: 'tablet-1180x820', width: 1180, height: 820, tier: 'tablet' },
   { name: 'tablet-1194x834', width: 1194, height: 834, tier: 'tablet' },

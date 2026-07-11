@@ -9,10 +9,10 @@ import {
   computeAspectRatioCorrection,
   getDiagramViewBox,
   isCompactDiagramMode,
+  layoutMeetsScalePolicy,
   resolvePreserveAspectRatio,
 } from './diagramScaling';
 import { computeGridDiagramContainerSize } from './diagramShellLayout';
-import { stretchRatioLimitsForTier } from './diagramScalePolicy';
 
 describe('computeGridDiagramContainerSize', () => {
   it('models desktop diagram column from grid fractions', () => {
@@ -135,17 +135,14 @@ describe('aspectRatioCorrection', () => {
 });
 
 describe('desktop layout resolution', () => {
-  it('meets desktop primary screen radius and stretch policy', () => {
-    const limits = stretchRatioLimitsForTier('desktop');
+  it('meets desktop scale policy on all fixtures', () => {
     for (const fixture of DESKTOP_VIEWPORT_FIXTURES) {
       const layout = resolveDiagramLayoutForViewport(
         fixture.width,
         fixture.height,
-        'desktop',
+        fixture.tier,
       );
-      expect(layout.screenMetrics.stretchRatio).toBeGreaterThanOrEqual(limits.min);
-      expect(layout.screenMetrics.stretchRatio).toBeLessThanOrEqual(limits.max);
-      expect(layout.screenMetrics.primaryNodeScreenRadius).toBeGreaterThanOrEqual(47);
+      expect(layoutMeetsScalePolicy(layout)).toBe(true);
     }
   });
 });

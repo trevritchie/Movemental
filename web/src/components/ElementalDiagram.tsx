@@ -19,6 +19,7 @@ import {
   DIAGRAM_VIEW_H,
 } from '../music/diagramLayout';
 import {
+  createInitialDiagramLayout,
   resolveDiagramLayout,
   type DiagramLayoutResolution,
 } from '../music/diagramScaling';
@@ -70,14 +71,12 @@ export const ElementalDiagram = React.memo(function ElementalDiagram({
   const [hoveredSliceIdx, setHoveredSliceIdx] = useState<number | null>(null);
 
   const layoutTier = useLayoutTier();
-  const [containerWidth, setContainerWidth] = useState(0);
   const [isDiagramReady, setIsDiagramReady] = useState(false);
 
   const measureContainer = useCallback(() => {
     const container = containerRef.current;
     if (!container) return;
     const { width, height } = container.getBoundingClientRect();
-    setContainerWidth(width);
     if (width > 0 && height > 0) {
       const layout = resolveDiagramLayout({
         containerWidth: width,
@@ -122,17 +121,16 @@ export const ElementalDiagram = React.memo(function ElementalDiagram({
     return () => observer.disconnect();
   }, [isDiagramReady, measureContainer]);
 
-  const layout = diagramLayout;
-  const isCompactDiagram = layout?.isCompactDiagram ?? (
-    layoutTier === 'phone' ||
-    layoutTier === 'tablet' ||
-    containerWidth < BREAKPOINTS.compactDiagramWidth
-  );
-  const viewBox = layout?.viewBoxString ?? '0 0 1160 800';
-  const preserveAspectRatio = layout?.preserveAspectRatio ?? 'none';
-  const aspectRatioCorrection = layout?.aspectRatioCorrection ?? 1;
-  const R_MAIN = layout?.nodeRadii.rMain ?? 52;
-  const R_GROUP = layout?.nodeRadii.rGroup ?? 54;
+  const layout =
+    diagramLayout ??
+    createInitialDiagramLayout(layoutTier, BREAKPOINTS.compactDiagramWidth);
+  const {
+    isCompactDiagram,
+    viewBoxString: viewBox,
+    preserveAspectRatio,
+    aspectRatioCorrection,
+    nodeRadii: { rMain: R_MAIN, rGroup: R_GROUP },
+  } = layout;
 
   const showLabels = !isCompactDiagram;
 
