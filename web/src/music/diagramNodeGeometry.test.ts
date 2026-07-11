@@ -4,7 +4,9 @@ import {
   DESKTOP_NODE_RADII,
   DEFAULT_MIN_NODE_GAP,
   computeMinNodeClearance,
+  findMaxCompactNodeRadii,
   findMaxNodeRadii,
+  fitsCompactViewBox,
   fitsViewBox,
   nodeLayoutIsValid,
   primaryEffectiveRadius,
@@ -12,7 +14,6 @@ import {
 } from './diagramNodeGeometry';
 
 const DESKTOP_BASELINE = { rMain: 52, rGroup: 54 };
-const COMPACT_BASELINE = { rMain: 100, rGroup: 102 };
 
 describe('diagram node geometry', () => {
   it('increases desktop node size from baseline without glow overlap', () => {
@@ -40,23 +41,13 @@ describe('diagram node geometry', () => {
     expect(clearance.worstPair).toBe('Trunk↔Charcoal');
   });
 
-  it('validates compact radii with core-circle clearance', () => {
-    expect(
-      nodeLayoutIsValid(
-        COMPACT_NODE_RADII,
-        DEFAULT_MIN_NODE_GAP,
-        6,
-        'core',
-        'core',
-      ),
-    ).toBe(true);
+  it('keeps compact radii large for phone tap targets', () => {
+    expect(COMPACT_NODE_RADII.rMain).toBe(102);
+    expect(COMPACT_NODE_RADII.rGroup).toBe(104);
+    // Trunk↔Charcoal cores may overlap; that tradeoff is intentional for touch.
     const clearance = computeMinNodeClearance(COMPACT_NODE_RADII, 'core');
-    expect(clearance.minClearance).toBeGreaterThanOrEqual(DEFAULT_MIN_NODE_GAP);
-  });
-
-  it('documents compact baseline core overlap', () => {
-    const baselineCore = computeMinNodeClearance(COMPACT_BASELINE, 'core');
-    expect(baselineCore.minClearance).toBeLessThan(0);
+    expect(clearance.worstPair).toBe('Trunk↔Charcoal');
+    expect(clearance.minClearance).toBeLessThan(0);
   });
 
   it('findMaxNodeRadii matches configured desktop radii (glow mode)', () => {
@@ -67,16 +58,6 @@ describe('diagram node geometry', () => {
     });
     expect(DESKTOP_NODE_RADII.rMain).toBe(maxDesktop.rMain);
     expect(DESKTOP_NODE_RADII.rGroup).toBe(maxDesktop.rGroup);
-  });
-
-  it('findMaxNodeRadii matches configured compact radii (core mode)', () => {
-    const maxCompact = findMaxNodeRadii({
-      groupRatio: COMPACT_NODE_RADII.rGroup / COMPACT_NODE_RADII.rMain,
-      clearanceMode: 'core',
-      boundsMode: 'core',
-    });
-    expect(COMPACT_NODE_RADII.rMain).toBe(maxCompact.rMain);
-    expect(COMPACT_NODE_RADII.rGroup).toBe(maxCompact.rGroup);
   });
 
   it('rejects radii that overlap glow circles on desktop', () => {
@@ -91,7 +72,13 @@ describe('diagram node geometry', () => {
 
   it('keeps node cores inside the viewBox', () => {
     expect(fitsViewBox(DESKTOP_NODE_RADII, 6, 'core')).toBe(true);
-    expect(fitsViewBox(COMPACT_NODE_RADII, 6, 'core')).toBe(true);
+    expect(fitsCompactViewBox(COMPACT_NODE_RADII, 6, 'core')).toBe(true);
+  });
+
+  it('uses maximum compact radii for phone tap targets', () => {
+    const maxCompact = findMaxCompactNodeRadii();
+    expect(COMPACT_NODE_RADII.rMain).toBe(maxCompact.rMain);
+    expect(COMPACT_NODE_RADII.rGroup).toBe(maxCompact.rGroup);
   });
 
   it('uses glow radii larger than core node radii', () => {

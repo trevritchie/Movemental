@@ -15,13 +15,13 @@ export const DIAGRAM_SCALE_POLICY = {
   primaryScreenRadiusPx: {
     desktop: 47,
     tablet: 36,
-    phone: 20,
+    phone: 26,
   },
   /** Minimum group-node screen radius (px). */
   groupScreenRadiusPx: {
     desktop: 48,
     tablet: 34,
-    phone: 18,
+    phone: 26,
   },
   mobileShell: {
     /** `.mobile-voice-sliders` min-height 132px + `.borrowing-controls--phone` padding 8px. */

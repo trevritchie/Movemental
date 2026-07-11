@@ -41,11 +41,28 @@ describe('phone diagram scaling', () => {
     }
   });
 
+  it('meets minimum phone tap target screen radius on all fixtures', () => {
+    const minRadius = DIAGRAM_SCALE_POLICY.primaryScreenRadiusPx.phone;
+    for (const fixture of PHONE_VIEWPORT_FIXTURES) {
+      const layout = resolveDiagramLayoutForViewport(
+        fixture.width,
+        fixture.height,
+        'phone',
+      );
+      expect(layout.screenMetrics.primaryNodeScreenRadius).toBeGreaterThanOrEqual(
+        minRadius,
+      );
+      expect(layout.screenMetrics.groupNodeScreenRadius).toBeGreaterThanOrEqual(
+        DIAGRAM_SCALE_POLICY.groupScreenRadiusPx.phone,
+      );
+    }
+  });
+
   it('uses compact viewBox and radii on phone', () => {
     const layout = resolveDiagramLayoutForViewport(390, 844, 'phone');
     expect(layout.isCompactDiagram).toBe(true);
     expect(layout.viewBox.width).toBe(1210);
-    expect(layout.nodeRadii.rMain).toBe(78);
+    expect(layout.nodeRadii.rMain).toBe(102);
   });
 });
 

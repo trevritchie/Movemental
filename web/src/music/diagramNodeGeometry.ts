@@ -1,6 +1,12 @@
 import { chordManager } from './ChordManager';
 import { BASE_GROUPS, SLICE_VARIANTS } from './diagramMetadata';
-import { DIAGRAM_VIEW_W, DIAGRAM_VIEW_H } from './diagramLayout';
+import {
+  DIAGRAM_VIEW_W,
+  DIAGRAM_VIEW_H,
+  DIAGRAM_COMPACT_VIEW_W,
+  DIAGRAM_COMPACT_VIEW_H,
+  DIAGRAM_COMPACT_VIEW_PAD,
+} from './diagramLayout';
 
 export interface DiagramNodeRadii {
   rMain: number;
@@ -33,12 +39,12 @@ export const DESKTOP_NODE_RADII: DiagramNodeRadii = {
 };
 
 /**
- * Compact radii: max rMain with core-circle clearance (glow halos may blend).
- * Replaces 100/102 which overlapped cores by ~38px at Trunk↔Charcoal.
+ * Compact radii prioritize phone tap targets over strict core clearance.
+ * Trunk↔Charcoal cores may overlap; glow halos intentionally blend.
  */
 export const COMPACT_NODE_RADII: DiagramNodeRadii = {
-  rMain: 78,
-  rGroup: 80,
+  rMain: 102,
+  rGroup: 104,
 };
 
 export type NodeClearanceMode = 'glow' | 'core';
@@ -149,10 +155,10 @@ export function computeMinNodeClearance(
   return { ok: true, minClearance, worstPair };
 }
 
-export function fitsViewBox(
+function nodesFitBounds(
   radii: DiagramNodeRadii,
-  margin = DEFAULT_VIEWBOX_MARGIN,
-  mode: NodeClearanceMode = 'core',
+  bounds: { minX: number; maxX: number; minY: number; maxY: number },
+  mode: NodeClearanceMode,
 ): boolean {
   const { primaries, groups } = getDiagramNodePositions();
   const nodes = [
@@ -171,10 +177,47 @@ export function fitsViewBox(
 
   return nodes.every(
     (node) =>
-      node.x - node.r >= margin &&
-      node.x + node.r <= DIAGRAM_VIEW_W - margin &&
-      node.y - node.r >= margin &&
-      node.y + node.r <= DIAGRAM_VIEW_H - margin,
+      node.x - node.r >= bounds.minX &&
+      node.x + node.r <= bounds.maxX &&
+      node.y - node.r >= bounds.minY &&
+      node.y + node.r <= bounds.maxY,
+  );
+}
+
+/** Desktop viewBox (0 0 1160 800). */
+export function fitsViewBox(
+  radii: DiagramNodeRadii,
+  margin = DEFAULT_VIEWBOX_MARGIN,
+  mode: NodeClearanceMode = 'core',
+): boolean {
+  return nodesFitBounds(
+    radii,
+    {
+      minX: margin,
+      maxX: DIAGRAM_VIEW_W - margin,
+      minY: margin,
+      maxY: DIAGRAM_VIEW_H - margin,
+    },
+    mode,
+  );
+}
+
+/** Compact phone viewBox (-25 -25 1210 860); allows larger radii than desktop bounds. */
+export function fitsCompactViewBox(
+  radii: DiagramNodeRadii,
+  margin = DEFAULT_VIEWBOX_MARGIN,
+  mode: NodeClearanceMode = 'core',
+): boolean {
+  const origin = -DIAGRAM_COMPACT_VIEW_PAD;
+  return nodesFitBounds(
+    radii,
+    {
+      minX: origin + margin,
+      maxX: origin + DIAGRAM_COMPACT_VIEW_W - margin,
+      minY: origin + margin,
+      maxY: origin + DIAGRAM_COMPACT_VIEW_H - margin,
+    },
+    mode,
   );
 }
 
@@ -184,12 +227,14 @@ export function nodeLayoutIsValid(
   margin = DEFAULT_VIEWBOX_MARGIN,
   clearanceMode: NodeClearanceMode = 'glow',
   boundsMode: NodeClearanceMode = 'core',
+  bounds: 'desktop' | 'compact' = 'desktop',
 ): boolean {
   const clearance = computeMinNodeClearance(radii, clearanceMode);
-  return (
-    clearance.minClearance >= minGap &&
-    fitsViewBox(radii, margin, boundsMode)
-  );
+  const fits =
+    bounds === 'compact'
+      ? fitsCompactViewBox(radii, margin, boundsMode)
+      : fitsViewBox(radii, margin, boundsMode);
+  return clearance.minClearance >= minGap && fits;
 }
 
 /**
@@ -203,6 +248,7 @@ export function findMaxNodeRadii(options: {
   maxRMain?: number;
   clearanceMode?: NodeClearanceMode;
   boundsMode?: NodeClearanceMode;
+  bounds?: 'desktop' | 'compact';
 }): DiagramNodeRadii {
   const minGap = options.minGap ?? DEFAULT_MIN_NODE_GAP;
   const margin = options.margin ?? DEFAULT_VIEWBOX_MARGIN;
@@ -211,6 +257,7 @@ export function findMaxNodeRadii(options: {
   const maxRMain = options.maxRMain ?? 140;
   const clearanceMode = options.clearanceMode ?? 'glow';
   const boundsMode = options.boundsMode ?? 'core';
+  const bounds = options.bounds ?? 'desktop';
 
   let lo = 0;
   let hi = maxRMain;
@@ -218,7 +265,16 @@ export function findMaxNodeRadii(options: {
   while (hi - lo > 0.25) {
     const mid = (lo + hi) / 2;
     const candidate = { rMain: mid, rGroup: mid * groupRatio };
-    if (nodeLayoutIsValid(candidate, minGap, margin, clearanceMode, boundsMode)) {
+    if (
+      nodeLayoutIsValid(
+        candidate,
+        minGap,
+        margin,
+        clearanceMode,
+        boundsMode,
+        bounds,
+      )
+    ) {
       lo = mid;
     } else {
       hi = mid;
@@ -230,4 +286,18 @@ export function findMaxNodeRadii(options: {
     rMain,
     rGroup: Math.floor(rMain * groupRatio),
   };
+}
+
+/** Max phone radii: compact viewBox fit; cores may overlap at Trunk↔Charcoal. */
+export function findMaxCompactNodeRadii(
+  minCoreGap = -40,
+): DiagramNodeRadii {
+  return findMaxNodeRadii({
+    groupRatio: COMPACT_NODE_RADII.rGroup / COMPACT_NODE_RADII.rMain,
+    clearanceMode: 'core',
+    boundsMode: 'core',
+    bounds: 'compact',
+    minGap: minCoreGap,
+    maxRMain: 130,
+  });
 }
