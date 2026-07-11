@@ -31,6 +31,7 @@ import {
 } from '../hooks/useDiagramOverlayMetrics';
 import { DiagramVoicingOverlay } from './DiagramVoicingOverlay';
 import { DiagramCornerActions } from './DiagramCornerActions';
+import { DiagramBackgroundOrbs } from './DiagramBackgroundOrbs';
 import { useSuppressNativeTouchGestures } from '../hooks/useSuppressNativeTouchGestures';
 
 function piePath(r: number, slice: number): string {
@@ -193,6 +194,7 @@ export const ElementalDiagram = React.memo(function ElementalDiagram({
       data-layout-tier={layoutTier === 'phone' ? 'phone' : undefined}
       data-tour-id="tour-diagram"
     >
+      <DiagramBackgroundOrbs />
       <DiagramVoicingOverlay />
       {layoutTier !== 'phone' && <DiagramCornerActions />}
       <svg

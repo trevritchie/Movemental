@@ -6,14 +6,16 @@ import {
   createContext,
   useContext,
   useMemo,
+  type MutableRefObject,
   type ReactNode,
 } from 'react';
 import type { TiltSample } from '@/music/TiltVoicingEngine';
-import type { TiltStatus } from '@/hooks/useDeviceTilt';
+import type { OrientationAngles, TiltStatus } from '@/hooks/useDeviceTilt';
 
 interface TiltReadoutContextType {
   tiltStatus: TiltStatus;
   tiltSample: TiltSample;
+  orientationRef: MutableRefObject<OrientationAngles>;
   requestTiltPermission: () => Promise<void>;
 }
 
@@ -22,11 +24,13 @@ const TiltReadoutContext = createContext<TiltReadoutContextType | null>(null);
 export function TiltReadoutProvider({
   status,
   tilt,
+  orientationRef,
   requestPermission,
   children,
 }: {
   status: TiltStatus;
   tilt: TiltSample;
+  orientationRef: MutableRefObject<OrientationAngles>;
   requestPermission: () => Promise<void>;
   children: ReactNode;
 }) {
@@ -34,9 +38,10 @@ export function TiltReadoutProvider({
     () => ({
       tiltStatus: status,
       tiltSample: tilt,
+      orientationRef,
       requestTiltPermission: requestPermission,
     }),
-    [status, tilt, requestPermission]
+    [status, tilt, orientationRef, requestPermission]
   );
 
   return (

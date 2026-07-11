@@ -1608,6 +1608,99 @@ body.scroll-locked {
 }
 
 /* ==========================================================================
+   Diagram background orbs
+   ========================================================================== */
+.diagram-background-orbs {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.diagram-orb-blur {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  filter: blur(70px);
+  opacity: 0.58;
+  container-type: size;
+}
+
+.diagram-orb-wrapper {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  animation: diagram-orb-swirl 24s linear infinite;
+}
+
+.diagram-glow-orb {
+  position: absolute;
+  border-radius: 50%;
+  width: min(42vmin, 42%);
+  height: min(42vmin, 42%);
+  animation: diagram-orb-float 12s infinite alternate ease-in-out;
+}
+
+.diagram-glow-orb--earth {
+  background: radial-gradient(circle, var(--color-earth) 0%, transparent 60%);
+  top: -38%;
+  left: -38%;
+  animation-delay: 0s;
+}
+
+.diagram-glow-orb--wind {
+  background: radial-gradient(circle, var(--color-wind) 0%, transparent 60%);
+  top: -34%;
+  left: -8%;
+  animation-delay: -4s;
+}
+
+.diagram-glow-orb--fire {
+  background: radial-gradient(circle, var(--color-fire) 0%, transparent 60%);
+  top: -6%;
+  left: -28%;
+  animation-delay: -8s;
+}
+
+.diagram-background-orbs--physics .diagram-orb-wrapper {
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  animation: none;
+}
+
+.diagram-background-orbs--physics .diagram-glow-orb {
+  top: 0;
+  left: 0;
+  width: 40cqmin;
+  height: 40cqmin;
+  max-width: none;
+  animation: none;
+  will-change: transform;
+}
+
+@keyframes diagram-orb-swirl {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes diagram-orb-float {
+  0% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(5%, 10%) scale(1.1); }
+  66% { transform: translate(-5%, -5%) scale(0.9); }
+  100% { transform: translate(10%, -10%) scale(1.05); }
+}
+
+.diagram-container .diagram-svg {
+  position: relative;
+  z-index: 1;
+}
+
+/* ==========================================================================
    SVG diagram and chord nodes
    ========================================================================== */
 .diagram-svg {

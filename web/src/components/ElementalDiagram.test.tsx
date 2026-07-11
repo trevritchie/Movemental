@@ -32,6 +32,7 @@ vi.mock('../context/ChordContext', () => ({
     isNoTiltBassLocked: false,
     toggleNoTiltVoicingLock: vi.fn(),
     toggleNoTiltBassLock: vi.fn(),
+    tiltModeEnabled: false,
   }),
 }));
 
@@ -47,6 +48,7 @@ vi.mock('../context/TiltReadoutContext', () => ({
   useTiltReadoutContext: () => ({
     tiltStatus: 'unsupported',
     tiltSample: { x: 0, y: 0 },
+    orientationRef: { current: { gamma: 0, beta: 0 } },
     requestTiltPermission: vi.fn(),
   }),
 }));
@@ -115,5 +117,22 @@ describe('ElementalDiagram ready gate', () => {
     expect(
       desktop.container.querySelector('.mobile-action-buttons'),
     ).toBeNull();
+  });
+
+  it('renders background orbs behind the svg without intercepting pointer events', async () => {
+    mockUseLayoutTier.mockReturnValue('phone');
+    const { container } = render(<ElementalDiagram />);
+    await flushAnimationFrames(2);
+
+    const diagram = container.querySelector('.diagram-container');
+    const orbs = container.querySelector('.diagram-background-orbs');
+    const svg = container.querySelector('.diagram-svg');
+
+    expect(diagram).not.toBeNull();
+    expect(orbs).not.toBeNull();
+    expect(svg).not.toBeNull();
+    expect(diagram!.firstElementChild).toBe(orbs);
+    expect(orbs!.compareDocumentPosition(svg!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(orbs).toHaveAttribute('aria-hidden', 'true');
   });
 });

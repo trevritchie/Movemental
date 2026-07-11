@@ -16,6 +16,11 @@ export type TiltStatus =
   | 'denied'
   | 'active';
 
+export interface OrientationAngles {
+  gamma: number;
+  beta: number;
+}
+
 // iOS exposes a static requestPermission on the event constructor.
 interface PermissionedOrientationEvent {
   requestPermission?: () => Promise<'granted' | 'denied'>;
@@ -55,6 +60,8 @@ export function useDeviceTilt() {
   /** Smoothed sample for diagram overlay readouts. */
   const tiltRef = useRef<TiltSample>({ ...FLAT_TILT });
   const smoothedRef = useRef({ gamma: 0, beta: 0 });
+  /** Smoothed device angles for high-frequency visual effects (e.g. orb physics). */
+  const orientationRef = useRef<OrientationAngles>({ gamma: 0, beta: 0 });
   const lastReadoutRef = useRef(0);
   const rawTiltRef = useRef<TiltSample>({ ...FLAT_TILT });
 
@@ -76,6 +83,7 @@ export function useDeviceTilt() {
     const smoothed = smoothedRef.current;
     smoothed.gamma += SMOOTHING_ALPHA * (gamma - smoothed.gamma);
     smoothed.beta += SMOOTHING_ALPHA * (beta - smoothed.beta);
+    orientationRef.current = { gamma: smoothed.gamma, beta: smoothed.beta };
 
     const x = -Math.min(Math.abs(smoothed.gamma) / PITCH_NORMALIZER, 1);
     const y = pitchTiltFromBeta(smoothed.beta);
@@ -117,5 +125,5 @@ export function useDeviceTilt() {
     }
   }, [status]);
 
-  return { tiltRef, rawTiltRef, tilt, status, requestPermission };
+  return { tiltRef, rawTiltRef, orientationRef, tilt, status, requestPermission };
 }
