@@ -9,6 +9,7 @@ import {
   FLAT_TILT,
   type TiltSample,
 } from '../music/TiltVoicingEngine';
+import { ORIENTATION_ANGLE_NORMALIZER, isOrientationContinuous } from './orbPhysics';
 
 export type TiltStatus =
   | 'unsupported'
@@ -16,12 +17,17 @@ export type TiltStatus =
   | 'denied'
   | 'active';
 
+export interface OrientationAngles {
+  gamma: number;
+  beta: number;
+}
+
 // iOS exposes a static requestPermission on the event constructor.
 interface PermissionedOrientationEvent {
   requestPermission?: () => Promise<'granted' | 'denied'>;
 }
 
-const PITCH_NORMALIZER = 90; // degrees: flat phone maps tilt axes to [-1, 1]
+const PITCH_NORMALIZER = ORIENTATION_ANGLE_NORMALIZER;
 const SMOOTHING_ALPHA = 0.25; // exponential moving average weight per event
 const READOUT_INTERVAL_MS = 150; // throttle for the React-visible sample
 
@@ -50,11 +56,21 @@ export const pitchTiltFromBeta = (beta: number): number => {
  * Two tilt refs:
  * - tiltRef / React `tilt`: smoothed, throttled to ~150 ms for UI readouts
  * - rawTiltRef: unsmoothed angles for playback sampling at tap time
+ * - orientationRef: smoothed gamma/beta for high-frequency visuals (bubble-level orbs).
+ *   Unlike tiltRef.x, orientationRef keeps roll sign so the orb group can slide left/right.
+ *   Visual samples are gated against Euler wraparound jumps near ±90° roll.
  */
 export function useDeviceTilt() {
   /** Smoothed sample for diagram overlay readouts. */
   const tiltRef = useRef<TiltSample>({ ...FLAT_TILT });
   const smoothedRef = useRef({ gamma: 0, beta: 0 });
+  /** Visual-only smoother; skips discontinuous Euler wrap samples. */
+  const visualSmoothedRef = useRef({ gamma: 0, beta: 0 });
+  const lastAcceptedVisualRawRef = useRef<{ gamma: number; beta: number } | null>(
+    null,
+  );
+  /** Smoothed device angles for high-frequency visual effects (e.g. orb level). */
+  const orientationRef = useRef<OrientationAngles>({ gamma: 0, beta: 0 });
   const lastReadoutRef = useRef(0);
   const rawTiltRef = useRef<TiltSample>({ ...FLAT_TILT });
 
@@ -76,6 +92,18 @@ export function useDeviceTilt() {
     const smoothed = smoothedRef.current;
     smoothed.gamma += SMOOTHING_ALPHA * (gamma - smoothed.gamma);
     smoothed.beta += SMOOTHING_ALPHA * (beta - smoothed.beta);
+
+    const lastAccepted = lastAcceptedVisualRawRef.current;
+    if (
+      lastAccepted === null ||
+      isOrientationContinuous(lastAccepted, { gamma, beta })
+    ) {
+      const visual = visualSmoothedRef.current;
+      visual.gamma += SMOOTHING_ALPHA * (gamma - visual.gamma);
+      visual.beta += SMOOTHING_ALPHA * (beta - visual.beta);
+      orientationRef.current = { gamma: visual.gamma, beta: visual.beta };
+      lastAcceptedVisualRawRef.current = { gamma, beta };
+    }
 
     const x = -Math.min(Math.abs(smoothed.gamma) / PITCH_NORMALIZER, 1);
     const y = pitchTiltFromBeta(smoothed.beta);
@@ -117,5 +145,5 @@ export function useDeviceTilt() {
     }
   }, [status]);
 
-  return { tiltRef, rawTiltRef, tilt, status, requestPermission };
+  return { tiltRef, rawTiltRef, orientationRef, tilt, status, requestPermission };
 }

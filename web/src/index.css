@@ -119,11 +119,17 @@ body.scroll-locked {
   min-height: 0;
 }
 
+.main-content > .diagram-container {
+  height: 100%;
+  align-self: stretch;
+  min-height: 0;
+}
+
 /* ==========================================================================
    Mobile phone layout (coarse pointer)
    ========================================================================== */
 @media (max-width: 767px),
-       (max-width: 950px) and (orientation: portrait) and (pointer: coarse) {
+       (orientation: portrait) and (pointer: coarse) {
   html,
   body {
     height: 100%;
@@ -360,7 +366,7 @@ body.scroll-locked {
   }
 
   .clock-container.mobile-overlay .elemental-name {
-    font-size: var(--overlay-title-size, 15px) !important;
+    font-size: var(--overlay-title-size, 18px) !important;
     font-weight: 700;
     margin-bottom: 2px;
     overflow: hidden;
@@ -438,19 +444,16 @@ body.scroll-locked {
 }
 
 /* ==========================================================================
-   Desktop and tablet: hide mobile clock overlay
+   Hide mobile clock overlay outside stacked phone layout
    ========================================================================== */
-@media (min-width: 768px) and (pointer: fine),
-       (min-width: 768px) and (max-width: 1199px) and (pointer: coarse) {
-  .clock-container.mobile-overlay {
-    display: none;
-  }
+.diagram-container:not([data-layout-tier="phone"]) .clock-container.mobile-overlay {
+  display: none;
 }
 
 /* ==========================================================================
    Tablet touch layout (side-by-side grid)
    ========================================================================== */
-@media (min-width: 768px) and (max-width: 1199px) and (pointer: coarse) {
+@media (min-width: 768px) and (max-width: 1199px) and (pointer: coarse) and (orientation: landscape) {
   .app-container {
     padding: 0 max(12px, env(safe-area-inset-right))
              max(12px, env(safe-area-inset-bottom))
@@ -1518,7 +1521,7 @@ body.scroll-locked {
    Mobile diagram container overrides
    ========================================================================== */
 @media (max-width: 767px),
-       (max-width: 950px) and (orientation: portrait) and (pointer: coarse) {
+       (orientation: portrait) and (pointer: coarse) {
   .diagram-container {
     flex: 1;
     min-height: 0;
@@ -1598,13 +1601,77 @@ body.scroll-locked {
 }
 
 @media (max-width: 767px),
-       (max-width: 950px) and (orientation: portrait) and (pointer: coarse) {
+       (orientation: portrait) and (pointer: coarse) {
   .unified-side-panel {
     height: auto;
   }
   .side-divider {
     width: 90%;
   }
+}
+
+/* ==========================================================================
+   Diagram background orbs
+   Layering: z-index 0 here, .diagram-svg at z-index 1, overlays at 2+.
+   Ambient mode reuses splash orb classes (.splash-background, .glow-orb, etc.).
+   Tilt (--level): CSS swirl/float kept; rAF spring-offsets .mouse-follower.
+   ========================================================================== */
+.diagram-background-orbs {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  contain: layout paint style;
+}
+
+.diagram-background-orbs .splash-background {
+  /* Contain splash blur layer to the diagram panel (not the full viewport). */
+  position: absolute;
+  inset: 0;
+  filter: blur(64px);
+  opacity: 0.85;
+}
+
+.diagram-background-orbs--level .splash-background {
+  filter: blur(48px);
+  opacity: 0.95;
+}
+
+/* Center the group; JS writes translate3d for bubble-level offset. */
+.diagram-background-orbs--level .mouse-follower {
+  top: 50%;
+  left: 50%;
+  transition: none;
+}
+
+.diagram-background-orbs--level-active .mouse-follower {
+  will-change: transform;
+}
+
+@media (max-width: 767px) and (orientation: portrait),
+       (orientation: portrait) and (pointer: coarse) {
+  .diagram-background-orbs--level .splash-background {
+    filter: blur(64px);
+    opacity: 0.92;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .diagram-background-orbs .orb-wrapper,
+  .diagram-background-orbs .glow-orb {
+    animation: none !important;
+  }
+}
+
+body.audio-priority-active .diagram-background-orbs .orb-wrapper,
+body.audio-priority-active .diagram-background-orbs .glow-orb {
+  animation-play-state: paused !important;
+}
+
+.diagram-container .diagram-svg {
+  position: relative;
+  z-index: 1;
 }
 
 /* ==========================================================================
@@ -1616,7 +1683,7 @@ body.scroll-locked {
 }
 
 @media (max-width: 767px) and (orientation: portrait),
-       (max-width: 950px) and (orientation: portrait) and (pointer: coarse) {
+       (orientation: portrait) and (pointer: coarse) {
   .diagram-svg {
     transform: none;
   }
@@ -1723,7 +1790,7 @@ input[type="range"] {
 }
 
 .elemental-name {
-  font-size: 1.25rem;
+  font-size: 1.5rem;
   font-weight: 700;
   margin-bottom: 2px;
 }
@@ -2107,7 +2174,7 @@ input[type="range"] {
 }
 
 @media (max-width: 767px),
-       (max-width: 950px) and (orientation: portrait) and (pointer: coarse) {
+       (orientation: portrait) and (pointer: coarse) {
   .adsr-svg {
     aspect-ratio: 4 / 1;
     max-height: 80px;

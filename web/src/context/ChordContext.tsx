@@ -643,6 +643,7 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
     <TiltReadoutProvider
       status={deviceTilt.status}
       tilt={deviceTilt.tilt}
+      orientationRef={deviceTilt.orientationRef}
       requestPermission={deviceTilt.requestPermission}
     >
       <ChordContext.Provider value={value}>{children}</ChordContext.Provider>
