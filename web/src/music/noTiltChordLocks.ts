@@ -118,17 +118,26 @@ export interface ApplyNoTiltLocksTarget {
 export function applyNoTiltLocksForChord(
   maps: NoTiltChordLockMaps,
   chordName: string,
-  target: ApplyNoTiltLocksTarget
+  target: ApplyNoTiltLocksTarget,
+  options: { deferSetState?: boolean } = {}
 ): void {
+  const schedule = (fn: () => void) => {
+    if (options.deferSetState) {
+      queueMicrotask(fn);
+    } else {
+      fn();
+    }
+  };
+
   if (isNoTiltVoicingLocked(maps, chordName)) {
     const level = getLockedNoTiltVoicing(maps, chordName)!;
     target.noTiltVoicingLevelRef.current = level;
-    target.setNoTiltVoicingLevel(level);
+    schedule(() => target.setNoTiltVoicingLevel(level));
   }
   if (isNoTiltBassLocked(maps, chordName)) {
     const level = getLockedNoTiltBass(maps, chordName)!;
     target.noTiltPositionLevelRef.current = level;
-    target.setNoTiltPositionLevel(level);
+    schedule(() => target.setNoTiltPositionLevel(level));
   }
 }
 

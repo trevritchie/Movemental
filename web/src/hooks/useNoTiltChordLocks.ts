@@ -90,13 +90,13 @@ export function useNoTiltChordLocks({
   );
 
   const applyLocksForChord = useCallback(
-    (name: string) => {
+    (name: string, deferSetState = false) => {
       applyNoTiltLocksForChord(lockMapsRef.current, name, {
         noTiltVoicingLevelRef,
         noTiltPositionLevelRef,
         setNoTiltVoicingLevel,
         setNoTiltPositionLevel,
-      });
+      }, { deferSetState });
     },
     [
       noTiltVoicingLevelRef,
