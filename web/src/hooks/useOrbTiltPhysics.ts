@@ -13,17 +13,14 @@ import {
   type Point2D,
 } from './orbPhysics';
 
-/** Group container that receives the bubble-level offset. */
-const FOLLOWER_SELECTOR = '.mouse-follower';
-const ORB_SELECTOR = '.glow-orb';
 const LEVEL_ACTIVE_CLASS = 'diagram-background-orbs--level-active';
 
 /**
  * Drives the swirling orb group in tilt mode like an inverted spirit level.
  *
  * Reads smoothed gamma/beta from orientationRef each frame (no React state) and
- * writes a centered translate3d on `.mouse-follower`. CSS swirl/float keep running
- * on child orbs; only the group offset is JS-driven.
+ * writes a centered translate3d on the follower element. CSS swirl/float keep
+ * running on child orbs; only the group offset is JS-driven.
  *
  * When idle, cancels rAF and wakes on deviceorientation, visibility, or enable.
  * Toggles `diagram-background-orbs--level-active` via classList (no React setState).
@@ -32,12 +29,18 @@ export function useOrbTiltPhysics({
   enabled,
   playfieldRef,
   containerRef,
+  followerRef: followerElementRef,
+  orbRefs,
   orientationRef,
 }: {
   enabled: boolean;
   playfieldRef: RefObject<HTMLElement | null>;
   /** Root orb wrapper that receives --level-active for will-change. */
   containerRef: RefObject<HTMLElement | null>;
+  /** Group that receives translate3d bubble-level offset. */
+  followerRef: RefObject<HTMLElement | null>;
+  /** Glow orb elements used to measure travel diameter. */
+  orbRefs: RefObject<(HTMLElement | null)[]>;
   orientationRef: RefObject<OrientationAngles>;
 }): void {
   const offsetRef = useRef<Point2D>({ x: 0, y: 0 });
@@ -69,11 +72,12 @@ export function useOrbTiltPhysics({
     };
 
     const measureOrbDiameter = () => {
-      const orbs = playfield.querySelectorAll<HTMLElement>(ORB_SELECTOR);
+      const orbs = orbRefs.current ?? [];
       let maxDiameter = 0;
-      orbs.forEach((orb) => {
+      for (const orb of orbs) {
+        if (!orb) continue;
         maxDiameter = Math.max(maxDiameter, orb.offsetWidth);
-      });
+      }
       maxOrbDiameterRef.current =
         maxDiameter > 0
           ? maxDiameter
@@ -81,7 +85,7 @@ export function useOrbTiltPhysics({
     };
 
     const refreshFollower = () => {
-      followerRef.current = playfield.querySelector<HTMLElement>(FOLLOWER_SELECTOR);
+      followerRef.current = followerElementRef.current;
     };
 
     const measureBounds = () => {
@@ -235,5 +239,12 @@ export function useOrbTiltPhysics({
       lastTransformRef.current = '';
       setLevelActive(false);
     };
-  }, [enabled, playfieldRef, containerRef, orientationRef]);
+  }, [
+    enabled,
+    playfieldRef,
+    containerRef,
+    followerElementRef,
+    orbRefs,
+    orientationRef,
+  ]);
 }

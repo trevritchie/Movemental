@@ -58,6 +58,20 @@ type InstrumentVoice = Tone.PolySynth | Tone.Sampler;
 const MIDI_NOTE_MIN = 21;
 const MIDI_NOTE_MAX = 108;
 
+/** Cached Tone note names for the piano MIDI range (hot-path attacks). */
+const MIDI_NOTE_NAME_CACHE: string[] = (() => {
+  const names: string[] = [];
+  for (let midi = MIDI_NOTE_MIN; midi <= MIDI_NOTE_MAX; midi += 1) {
+    names[midi] = Tone.Frequency(midi, 'midi').toNote() as string;
+  }
+  return names;
+})();
+
+function midiToNoteName(midi: number): string {
+  const clamped = Math.max(MIDI_NOTE_MIN, Math.min(MIDI_NOTE_MAX, midi));
+  return MIDI_NOTE_NAME_CACHE[clamped]!;
+}
+
 const SYNTH_CLASS_MAP = {
   Synth: Tone.Synth,
   FMSynth: Tone.FMSynth,
@@ -583,7 +597,7 @@ export class AudioEngine {
     );
 
     // Convert MIDI → note names (e.g. 60 → "C4")
-    const noteNames = clamped.map(n => Tone.Frequency(n, 'midi').toNote());
+    const noteNames = clamped.map(midiToNoteName);
 
     audioDebugLog('[AudioEngine] Playing notes:', noteNames, '(MIDI:', clamped, ')');
 
@@ -637,7 +651,7 @@ export class AudioEngine {
     );
     // Cast to string[] — Tone internally accepts note name strings; the strict union
     // type on toNote() is overly narrow for filter/includes operations.
-    const noteNames: string[] = clamped.map(n => Tone.Frequency(n, 'midi').toNote() as string);
+    const noteNames: string[] = clamped.map(midiToNoteName);
 
     if (retrigger) {
       // Tilt taps: full release + re-attack even when pitches are unchanged

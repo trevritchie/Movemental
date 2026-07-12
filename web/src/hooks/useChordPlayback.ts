@@ -62,6 +62,10 @@ import {
   isNoTiltVoicingLocked,
   type NoTiltChordLockMaps,
 } from '../music/noTiltChordLocks';
+import {
+  armNoTiltRevoiceSuppress,
+  type NoTiltRevoiceSuppressState,
+} from '../music/noTiltRevoiceSuppress';
 
 interface UseChordPlaybackOptions {
   getBorrowingStateForChord: (
@@ -77,10 +81,10 @@ interface UseChordPlaybackOptions {
    */
   selectedChordNameRef: RefObject<string | null>;
   /**
-   * When true, ChordContext skips the no-tilt re-voice effect once so a
-   * deferred level flush after pointer audio does not double-voice.
+   * Generation-based suppress for the ChordContext re-voice effect after
+   * pointer commits (see noTiltRevoiceSuppress.ts).
    */
-  suppressNoTiltRevoiceRef: RefObject<boolean>;
+  suppressNoTiltRevoiceRef: RefObject<NoTiltRevoiceSuppressState>;
   rawTiltRef: RefObject<TiltSample>;
   noTiltVoicingLevelRef: RefObject<number>;
   noTiltPositionLevelRef: RefObject<number>;
@@ -278,7 +282,7 @@ export function useChordPlayback({
         queueMicrotask(() => {
           // Pair suppress with the deferred setState so the re-voice effect
           // skips one redundant pass after pointer audio already voiced.
-          suppressNoTiltRevoiceRef.current = true;
+          armNoTiltRevoiceSuppress(suppressNoTiltRevoiceRef.current);
           setNoTiltPositionLevel(newLevel);
         });
       } else {
@@ -288,9 +292,6 @@ export function useChordPlayback({
     [setNoTiltPositionLevel, noTiltPositionLevelRef, suppressNoTiltRevoiceRef]
   );
 
-  /**
-   * Smoothest mode: minimum-motion parallel on chord change.
-   */
   /**
    * Smoothest re-anchor. Writes refs only; React level/baseline flush happens
    * after audio in commitPlayback. Optional syncPositionLevel defers setState
@@ -643,11 +644,7 @@ export function useChordPlayback({
 
       const applyReactSync = () => {
         setLastCommittedPlaybackTilt(lastCommittedPlaybackTiltRef.current);
-        if (usesDeviceTilt(tiltModeRef.current)) {
-          setLastTapTilt(lastTapTiltRef.current);
-        } else {
-          setLastTapTilt(lastTapTiltRef.current);
-        }
+        setLastTapTilt(lastTapTiltRef.current);
         if (commitsSmoothestParallelBaseline(voiceLeadingModeRef.current)) {
           setSmoothBaseParallel(smoothBaseParallelRef.current);
         }
@@ -691,7 +688,7 @@ export function useChordPlayback({
         // which often recreates getBorrowingStateForChord and would re-enter
         // playAndDisplayChord without this guard (including first-chord paths
         // that do not queue a deferred level setState).
-        suppressNoTiltRevoiceRef.current = true;
+        armNoTiltRevoiceSuppress(suppressNoTiltRevoiceRef.current);
       }
 
       invalidateVoicingCacheForCommit(
@@ -864,7 +861,7 @@ export function useChordPlayback({
         activePitchesRef.current = [];
         selectedChordNameRef.current = displayChord.name;
         if (fromPointer) {
-          suppressNoTiltRevoiceRef.current = true;
+          armNoTiltRevoiceSuppress(suppressNoTiltRevoiceRef.current);
         }
         invalidateVoicingCache();
         updateVoiceLeadingBaseline(playbackTilt, fromPointer);

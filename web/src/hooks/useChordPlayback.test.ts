@@ -1,7 +1,10 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { FLAT_TILT } from '../music/TiltVoicingEngine';
 import { getInitialBorrowingState } from '../music/BorrowingLogic';
+import {
+  createNoTiltRevoiceSuppressState,
+} from '../music/noTiltRevoiceSuppress';
 
 const mocks = vi.hoisted(() => {
   const triggerAttack = vi.fn();
@@ -27,6 +30,7 @@ vi.mock('../audio/pageInteraction', () => ({
   isPageInteractiveForAudio: () => true,
 }));
 
+import type { VoiceLeadingMode } from '../context/types';
 import { useChordPlayback } from './useChordPlayback';
 import { chordManager } from '../music/ChordManager';
 
@@ -39,7 +43,9 @@ describe('useChordPlayback audio-first pointer path', () => {
   const setSelectedChord = vi.fn();
   const setNoTiltPositionLevel = vi.fn();
   const selectedChordNameRef = { current: null as string | null };
-  const suppressNoTiltRevoiceRef = { current: false };
+  const suppressNoTiltRevoiceRef = {
+    current: createNoTiltRevoiceSuppressState(),
+  };
 
   const baseOptions = {
     getBorrowingStateForChord: () => borrowingState,
@@ -52,7 +58,7 @@ describe('useChordPlayback audio-first pointer path', () => {
     noTiltVoicingLevelRef: { current: 0 },
     noTiltPositionLevelRef: { current: 0 },
     tonalCenterRef: { current: 0 },
-    voiceLeadingModeRef: { current: 'smoothest' as const },
+    voiceLeadingModeRef: { current: 'smoothest' as VoiceLeadingMode },
     setNoTiltPositionLevel,
     noTiltLockMapsRef: {
       current: { voicing: {}, bass: {} },
@@ -64,14 +70,16 @@ describe('useChordPlayback audio-first pointer path', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.useFakeTimers({ shouldAdvanceTime: true });
     selectedChordNameRef.current = null;
-    suppressNoTiltRevoiceRef.current = false;
-    noTiltPositionLevelRefReset();
+    suppressNoTiltRevoiceRef.current = createNoTiltRevoiceSuppressState();
+    baseOptions.noTiltPositionLevelRef.current = 0;
+    baseOptions.voiceLeadingModeRef.current = 'smoothest';
   });
 
-  function noTiltPositionLevelRefReset() {
-    baseOptions.noTiltPositionLevelRef.current = 0;
-  }
+  afterEach(() => {
+    vi.useRealTimers();
+  });
 
   it('schedules audio before borrowing setState on diagram pointer tap', async () => {
     const callOrder: string[] = [];
@@ -123,24 +131,55 @@ describe('useChordPlayback audio-first pointer path', () => {
     }
   });
 
-  it('sets suppressNoTiltRevoiceRef on pointer commit', () => {
-    const { result } = renderHook(() => useChordPlayback(baseOptions));
-
-    act(() => {
-      result.current.enterNoTiltSession();
-      result.current.handleChordPointerDown(earth);
-      expect(suppressNoTiltRevoiceRef.current).toBe(true);
-    });
-  });
-
-  it('sets suppress before deferred level setState after audio', async () => {
+  it('does not call setNoTiltPositionLevel before audio on smooth pointer path', async () => {
+    baseOptions.voiceLeadingModeRef.current = 'smooth';
     const callOrder: string[] = [];
     mocks.triggerAttack.mockImplementation(() => {
       callOrder.push('audio');
     });
     setNoTiltPositionLevel.mockImplementation(() => {
       callOrder.push('level');
-      expect(suppressNoTiltRevoiceRef.current).toBe(true);
+    });
+
+    const { result } = renderHook(() => useChordPlayback(baseOptions));
+
+    await act(async () => {
+      result.current.enterNoTiltSession();
+      result.current.handleChordPointerDown(earth);
+      await Promise.resolve();
+    });
+
+    expect(mocks.triggerAttack).toHaveBeenCalled();
+    expect(callOrder[0]).toBe('audio');
+    const levelIdx = callOrder.indexOf('level');
+    if (levelIdx >= 0) {
+      expect(levelIdx).toBeGreaterThan(callOrder.indexOf('audio'));
+    }
+  });
+
+  it('arms re-voice suppress generation on pointer commit', () => {
+    const { result } = renderHook(() => useChordPlayback(baseOptions));
+
+    act(() => {
+      result.current.enterNoTiltSession();
+      result.current.handleChordPointerDown(earth);
+      expect(suppressNoTiltRevoiceRef.current.generation).toBeGreaterThan(0);
+      expect(
+        suppressNoTiltRevoiceRef.current.generation,
+      ).toBeGreaterThan(suppressNoTiltRevoiceRef.current.consumed);
+    });
+  });
+
+  it('arms suppress before deferred level setState after audio', async () => {
+    const callOrder: string[] = [];
+    mocks.triggerAttack.mockImplementation(() => {
+      callOrder.push('audio');
+    });
+    setNoTiltPositionLevel.mockImplementation(() => {
+      callOrder.push('level');
+      expect(
+        suppressNoTiltRevoiceRef.current.generation,
+      ).toBeGreaterThan(suppressNoTiltRevoiceRef.current.consumed);
     });
 
     const { result } = renderHook(() => useChordPlayback(baseOptions));
@@ -183,8 +222,6 @@ describe('useChordPlayback audio-first pointer path', () => {
     expect(selectedChordNameRef.current).toBe('Wind');
     expect(mocks.triggerAttack.mock.calls.length).toBeGreaterThan(earthCalls);
 
-    // Simulate the ChordContext re-voice effect after a deferred position
-    // level flush: it must re-voice Wind, not stuck Earth.
     await act(async () => {
       result.current.playAndDisplayChord(
         chordManager.getChordByName(selectedChordNameRef.current!)!,

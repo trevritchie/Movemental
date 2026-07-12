@@ -32,6 +32,10 @@ import { usePersistedUserSettings } from '../hooks/usePersistedUserSettings';
 import { TiltReadoutProvider } from './TiltReadoutContext';
 import { useNoTiltChordLocks } from '../hooks/useNoTiltChordLocks';
 import type { ElementalPlaybackResolution } from '../music/tiltVoicingPlayback';
+import {
+  consumeNoTiltRevoiceSuppress,
+  createNoTiltRevoiceSuppressState,
+} from '../music/noTiltRevoiceSuppress';
 import type { ClockLayoutMode, PlayStyle, VoiceLeadingMode } from './types';
 import type { EqProfileId } from '../audio/outputProfiles';
 import type { SynthPreset } from '../audio/synthPresets';
@@ -170,8 +174,8 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
   );
 
   const selectedChordNameRef = useRef<string | null>(null);
-  /** Set by deferred no-tilt level flushes; consumed by the re-voice effect. */
-  const suppressNoTiltRevoiceRef = useRef(false);
+  /** Armed by pointer commits / deferred level flushes; consumed by re-voice. */
+  const suppressNoTiltRevoiceRef = useRef(createNoTiltRevoiceSuppressState());
 
   const playAndDisplayChordRef = useRef<
     (chord: Chord, state: BorrowingState) => void
@@ -495,8 +499,7 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
    * Callback deps are read via refs so identity churn cannot loop this effect.
    */
   useEffect(() => {
-    if (suppressNoTiltRevoiceRef.current) {
-      suppressNoTiltRevoiceRef.current = false;
+    if (consumeNoTiltRevoiceSuppress(suppressNoTiltRevoiceRef.current)) {
       return;
     }
 

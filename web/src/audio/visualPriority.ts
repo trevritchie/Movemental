@@ -1,11 +1,12 @@
 /**
- * Coordinates when JS-driven orb physics should pause.
+ * When JS-driven orb physics should pause (tab hidden or reduced motion).
  *
- * Callers: init once at app boot; any JS visual loop must consult
- * shouldPauseOrbPhysics(). Cheap composited CSS (splash swirl) is out of
- * scope and is intentionally not gated here.
+ * This is not a general audio-priority scheduler. Chord taps do not suspend
+ * visuals here; idle rAF sleep lives in useOrbTiltPhysics. Cheap composited
+ * CSS (splash swirl) is intentionally never gated.
  *
- * Chord taps do not suspend visuals; idle rAF sleep lives in useOrbTiltPhysics.
+ * Call initVisualPriorityListeners() once at app boot. Any JS visual loop
+ * must consult shouldPauseOrbPhysics().
  */
 
 let documentHidden =

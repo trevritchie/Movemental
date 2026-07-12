@@ -4,6 +4,11 @@ import React from 'react';
 import { ChordProvider, useChordContext } from './ChordContext';
 import { chordManager } from '../music/ChordManager';
 
+const mocks = vi.hoisted(() => {
+  const triggerAttack = vi.fn();
+  return { triggerAttack };
+});
+
 vi.mock('../audio/AudioEngine', () => ({
   audioEngine: {
     setChorusWet: vi.fn(),
@@ -23,7 +28,7 @@ vi.mock('../audio/AudioEngine', () => ({
     startDrone: vi.fn(),
     stopDrone: vi.fn(),
     startContext: vi.fn(),
-    triggerAttack: vi.fn(),
+    triggerAttack: mocks.triggerAttack,
     isPageBackgrounded: () => false,
   },
 }));
@@ -57,6 +62,7 @@ function wrapper({ children }: { children: React.ReactNode }) {
 describe('ChordProvider pointer re-voice', () => {
   beforeEach(() => {
     localStorage.clear();
+    mocks.triggerAttack.mockClear();
     Object.defineProperty(window, 'matchMedia', {
       writable: true,
       value: vi.fn().mockImplementation((query: string) => ({
@@ -90,5 +96,37 @@ describe('ChordProvider pointer re-voice', () => {
     });
 
     expect(result.current.selectedChord?.name).toBe('Wind');
+  });
+
+  it('does not permanently suppress register re-voice after a pointer tap', async () => {
+    const earth = chordManager.getChordByName('Earth')!;
+    const { result } = renderHook(() => useChordContext(), { wrapper });
+
+    await act(async () => {
+      result.current.enterNoTiltSession();
+    });
+
+    await act(async () => {
+      result.current.handleChordPointerDown(earth);
+      await Promise.resolve();
+    });
+
+    expect(result.current.selectedChord?.name).toBe('Earth');
+    const afterPointer = mocks.triggerAttack.mock.calls.length;
+
+    // Allow suppress fallback timeout to clear an unused arm.
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+
+    await act(async () => {
+      result.current.setOctaveRange(
+        result.current.octaveRange === 3 ? 4 : 3,
+      );
+      await Promise.resolve();
+    });
+
+    expect(result.current.selectedChord?.name).toBe('Earth');
+    expect(mocks.triggerAttack.mock.calls.length).toBeGreaterThan(afterPointer);
   });
 });

@@ -15,6 +15,12 @@ export const DiagramBackgroundOrbs = React.memo(function DiagramBackgroundOrbs()
 
   const containerRef = useRef<HTMLDivElement>(null);
   const playfieldRef = useRef<HTMLDivElement>(null);
+  const followerRef = useRef<HTMLDivElement>(null);
+  const orb1Ref = useRef<HTMLDivElement>(null);
+  const orb2Ref = useRef<HTMLDivElement>(null);
+  const orb3Ref = useRef<HTMLDivElement>(null);
+  const orbRefs = useRef<(HTMLElement | null)[]>([]);
+  orbRefs.current = [orb1Ref.current, orb2Ref.current, orb3Ref.current];
 
   const levelActive =
     glowingOrbsEnabled && tiltModeEnabled && tiltStatus === 'active';
@@ -23,6 +29,8 @@ export const DiagramBackgroundOrbs = React.memo(function DiagramBackgroundOrbs()
     enabled: levelActive,
     playfieldRef,
     containerRef,
+    followerRef,
+    orbRefs,
     orientationRef,
   });
 
@@ -40,11 +48,11 @@ export const DiagramBackgroundOrbs = React.memo(function DiagramBackgroundOrbs()
   return (
     <div ref={containerRef} className={className} aria-hidden>
       <div ref={playfieldRef} className="splash-background">
-        <div className="mouse-follower">
+        <div ref={followerRef} className="mouse-follower">
           <div className="orb-wrapper">
-            <div className="glow-orb orb-1" />
-            <div className="glow-orb orb-2" />
-            <div className="glow-orb orb-3" />
+            <div ref={orb1Ref} className="glow-orb orb-1" />
+            <div ref={orb2Ref} className="glow-orb orb-2" />
+            <div ref={orb3Ref} className="glow-orb orb-3" />
           </div>
         </div>
       </div>

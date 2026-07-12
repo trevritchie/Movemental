@@ -16,6 +16,10 @@ import {
   updateLockedNoTiltBass,
   updateLockedNoTiltVoicing,
 } from '../music/noTiltChordLocks';
+import {
+  armNoTiltRevoiceSuppress,
+  type NoTiltRevoiceSuppressState,
+} from '../music/noTiltRevoiceSuppress';
 
 interface UseNoTiltChordLocksOptions {
   selectedChord: Chord | null;
@@ -23,8 +27,8 @@ interface UseNoTiltChordLocksOptions {
   setNoTiltPositionLevel: (level: number) => void;
   noTiltVoicingLevelRef: RefObject<number>;
   noTiltPositionLevelRef: RefObject<number>;
-  /** Optional: mark deferred lock flushes so ChordContext can skip re-voice. */
-  suppressNoTiltRevoiceRef?: RefObject<boolean>;
+  /** Optional: arm re-voice suppress around deferred lock flushes. */
+  suppressNoTiltRevoiceRef?: RefObject<NoTiltRevoiceSuppressState>;
 }
 
 export function useNoTiltChordLocks({
@@ -103,7 +107,7 @@ export function useNoTiltChordLocks({
         deferSetState,
         onBeforeDeferredSetState: suppressNoTiltRevoiceRef
           ? () => {
-              suppressNoTiltRevoiceRef.current = true;
+              armNoTiltRevoiceSuppress(suppressNoTiltRevoiceRef.current);
             }
           : undefined,
       });
