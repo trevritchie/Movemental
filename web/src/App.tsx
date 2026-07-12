@@ -11,6 +11,7 @@ import { usePhoneLandscapeBlocked } from './hooks/usePhoneLandscapeBlocked';
 import { TourProvider } from './components/tour/TourProvider';
 import { useTour } from './components/tour/tourContext';
 import { preloadSettingsModalAfterSplash } from './components/preloadSettingsModal';
+import { initVisualPriorityListeners } from './audio/visualPriority';
 
 const PRIMARY_ELEMENT_NAMES = new Set(['Earth', 'Wind', 'Fire']);
 
@@ -22,20 +23,21 @@ function AppContent() {
     ? PRIMARY_ELEMENT_NAMES.has(selectedChord.name)
     : true;
   const isPhoneLayout = layoutTier === 'phone';
+  const showClock = selectedChord != null;
 
   return (
     <div className="app-container">
       <div className="main-content">
         {isPhoneLayout ? (
           <ElementalDiagram>
-            <ClockFace isMobileOverlay />
+            {showClock ? <ClockFace isMobileOverlay /> : null}
           </ElementalDiagram>
         ) : (
           <ElementalDiagram />
         )}
 
         <div className="side-panel glass-panel unified-side-panel">
-          {!isPhoneLayout && (
+          {!isPhoneLayout && showClock && (
             <>
               <div className="side-section clock-section">
                 <ClockFace />
@@ -81,6 +83,8 @@ function AppShell() {
 }
 
 function App() {
+  useEffect(() => initVisualPriorityListeners(), []);
+
   return (
     <ErrorBoundary>
       <LayoutTierProvider>

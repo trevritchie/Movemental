@@ -53,6 +53,24 @@ function nodeCoordinatesForPitch(
   };
 }
 
+describe('ClockFace empty state', () => {
+  beforeEach(() => {
+    vi.mocked(useChordContext).mockReturnValue({
+      ...mockContext,
+      selectedChord: null,
+      activePitches: [],
+    } as never);
+  });
+
+  it('renders nothing before the first chord is selected', () => {
+    const { container: desktop } = render(<ClockFace />);
+    expect(desktop.firstChild).toBeNull();
+
+    const { container: mobile } = render(<ClockFace isMobileOverlay />);
+    expect(mobile.firstChild).toBeNull();
+  });
+});
+
 describe('ClockFace playing notes readout', () => {
   beforeEach(() => {
     mockContext.clockLayoutMode = 'chromatic';

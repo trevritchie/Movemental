@@ -18,7 +18,7 @@ export const BREAKPOINTS = {
 
 /** CSS media query for stacked phone layout (keep in sync with index.css). */
 export const PHONE_LAYOUT_MEDIA =
-  '(max-width: 767px), (max-width: 950px) and (orientation: portrait) and (pointer: coarse)';
+  '(max-width: 767px), (orientation: portrait) and (pointer: coarse)';
 
 /** Phone landscape rotate prompt (keep in sync with index.css). */
 export const PHONE_LANDSCAPE_BLOCK_MEDIA =
@@ -34,10 +34,7 @@ export function resolveLayoutTier(): LayoutTier {
   const coarse = window.matchMedia('(pointer: coarse)').matches;
   const portrait = window.matchMedia('(orientation: portrait)').matches;
 
-  if (
-    w <= BREAKPOINTS.phoneMax ||
-    (w <= BREAKPOINTS.compactMax && portrait && coarse)
-  ) {
+  if (w <= BREAKPOINTS.phoneMax || (portrait && coarse)) {
     return 'phone';
   }
   if (w <= BREAKPOINTS.tabletMax && coarse) {

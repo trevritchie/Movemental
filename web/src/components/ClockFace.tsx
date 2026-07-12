@@ -66,11 +66,12 @@ export const ClockFace: React.FC<{ isMobileOverlay?: boolean }> = ({
   const { tonalCenter, activePitches, selectedChord, clockLayoutMode } =
     useChordContext();
 
-  const elementalName = selectedChord?.name || null;
+  const elementalName = selectedChord?.name ?? null;
   const traditionalName = selectedChord?.traditionalName || null;
 
   const displayElementalName = useMemo(() => {
-    if (!elementalName || !isMobileOverlay) return elementalName;
+    if (!elementalName) return null;
+    if (!isMobileOverlay) return elementalName;
     return mobileChordDisplayName(elementalName);
   }, [elementalName, isMobileOverlay]);
 
@@ -129,11 +130,13 @@ export const ClockFace: React.FC<{ isMobileOverlay?: boolean }> = ({
     return lines;
   }, [activeNodes]);
 
+  if (!selectedChord || !displayElementalName) {
+    return null;
+  }
+
   const chordInfo = (
     <>
-      <div className="elemental-name">
-        {displayElementalName || 'Select a Chord'}
-      </div>
+      <div className="elemental-name">{displayElementalName}</div>
       {elementFormula && (
         <div
           className="chemistry-formula"
@@ -158,7 +161,7 @@ export const ClockFace: React.FC<{ isMobileOverlay?: boolean }> = ({
       )}
       <div className="traditional-name">
         {isMobileOverlay
-          ? traditionalName || '---'
+          ? traditionalName
           : formatChordReadout(traditionalName, activePitches, selectedChord)}
       </div>
       {isMobileOverlay && playingNotes && (
