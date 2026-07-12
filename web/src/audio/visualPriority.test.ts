@@ -1,48 +1,24 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, afterEach, vi } from 'vitest';
 import {
-  ORB_PHYSICS_IDLE_FRAMES,
-  ORB_PHYSICS_IDLE_SPEED,
-  suspendVisualAnimations,
-  isVisualAnimationSuspended,
   shouldPauseOrbPhysics,
   initVisualPriorityListeners,
   prefersReducedMotion,
+  isDocumentHidden,
 } from './visualPriority';
 
 describe('visualPriority', () => {
-  beforeEach(() => {
-    vi.useFakeTimers();
-    document.body.classList.remove('audio-priority-active');
-  });
-
   afterEach(() => {
     initVisualPriorityListeners()();
-    vi.useRealTimers();
   });
 
-  it('suspends orb physics for the configured window without a body CSS class', () => {
-    suspendVisualAnimations(32);
-    expect(isVisualAnimationSuspended()).toBe(true);
-    expect(shouldPauseOrbPhysics()).toBe(true);
-    expect(document.body.classList.contains('audio-priority-active')).toBe(
-      false,
-    );
-
-    vi.advanceTimersByTime(40);
-    expect(isVisualAnimationSuspended()).toBe(false);
-  });
-
-  it('extends an active suspend when tapped again before it expires', () => {
-    suspendVisualAnimations(32);
-    vi.advanceTimersByTime(20);
-    expect(isVisualAnimationSuspended()).toBe(true);
-
-    suspendVisualAnimations(32);
-    vi.advanceTimersByTime(20);
-    expect(isVisualAnimationSuspended()).toBe(true);
-
-    vi.advanceTimersByTime(20);
-    expect(isVisualAnimationSuspended()).toBe(false);
+  it('does not pause orb physics by default when document is visible', () => {
+    Object.defineProperty(document, 'hidden', {
+      configurable: true,
+      value: false,
+    });
+    initVisualPriorityListeners();
+    expect(isDocumentHidden()).toBe(false);
+    expect(shouldPauseOrbPhysics()).toBe(false);
   });
 
   it('pauses orb physics when document is hidden', () => {
@@ -75,8 +51,9 @@ describe('visualPriority', () => {
     expect(shouldPauseOrbPhysics()).toBe(true);
   });
 
-  it('exports idle physics tuning constants', () => {
-    expect(ORB_PHYSICS_IDLE_FRAMES).toBeGreaterThan(0);
-    expect(ORB_PHYSICS_IDLE_SPEED).toBeGreaterThan(0);
+  it('does not export chord-tap suspend helpers', async () => {
+    const mod = await import('./visualPriority');
+    expect('suspendVisualAnimations' in mod).toBe(false);
+    expect('VISUAL_SUSPEND_MS' in mod).toBe(false);
   });
 });

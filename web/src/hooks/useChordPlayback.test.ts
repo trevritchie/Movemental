@@ -37,7 +37,9 @@ describe('useChordPlayback audio-first pointer path', () => {
   const borrowingState = getInitialBorrowingState();
   const setBorrowingState = vi.fn();
   const setSelectedChord = vi.fn();
+  const setNoTiltPositionLevel = vi.fn();
   const selectedChordNameRef = { current: null as string | null };
+  const suppressNoTiltRevoiceRef = { current: false };
 
   const baseOptions = {
     getBorrowingStateForChord: () => borrowingState,
@@ -45,12 +47,13 @@ describe('useChordPlayback audio-first pointer path', () => {
     setBorrowingState,
     setSelectedChord,
     selectedChordNameRef,
+    suppressNoTiltRevoiceRef,
     rawTiltRef: { current: FLAT_TILT },
     noTiltVoicingLevelRef: { current: 0 },
     noTiltPositionLevelRef: { current: 0 },
     tonalCenterRef: { current: 0 },
     voiceLeadingModeRef: { current: 'smoothest' as const },
-    setNoTiltPositionLevel: vi.fn(),
+    setNoTiltPositionLevel,
     noTiltLockMapsRef: {
       current: { voicing: {}, bass: {} },
     },
@@ -62,7 +65,13 @@ describe('useChordPlayback audio-first pointer path', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     selectedChordNameRef.current = null;
+    suppressNoTiltRevoiceRef.current = false;
+    noTiltPositionLevelRefReset();
   });
+
+  function noTiltPositionLevelRefReset() {
+    baseOptions.noTiltPositionLevelRef.current = 0;
+  }
 
   it('schedules audio before borrowing setState on diagram pointer tap', async () => {
     const callOrder: string[] = [];
@@ -75,9 +84,10 @@ describe('useChordPlayback audio-first pointer path', () => {
 
     const { result } = renderHook(() => useChordPlayback(baseOptions));
 
-    act(() => {
+    await act(async () => {
       result.current.enterNoTiltSession();
       result.current.handleChordPointerDown(branch);
+      await Promise.resolve();
     });
 
     expect(mocks.triggerAttack).toHaveBeenCalled();
@@ -86,6 +96,62 @@ describe('useChordPlayback audio-first pointer path', () => {
     expect(callOrder.indexOf('borrowing')).toBeGreaterThan(
       callOrder.indexOf('audio'),
     );
+  });
+
+  it('does not call setNoTiltPositionLevel before audio on smoothest pointer path', async () => {
+    const callOrder: string[] = [];
+    mocks.triggerAttack.mockImplementation(() => {
+      callOrder.push('audio');
+    });
+    setNoTiltPositionLevel.mockImplementation(() => {
+      callOrder.push('level');
+    });
+
+    const { result } = renderHook(() => useChordPlayback(baseOptions));
+
+    await act(async () => {
+      result.current.enterNoTiltSession();
+      result.current.handleChordPointerDown(earth);
+      await Promise.resolve();
+    });
+
+    expect(mocks.triggerAttack).toHaveBeenCalled();
+    expect(callOrder[0]).toBe('audio');
+    const levelIdx = callOrder.indexOf('level');
+    if (levelIdx >= 0) {
+      expect(levelIdx).toBeGreaterThan(callOrder.indexOf('audio'));
+    }
+  });
+
+  it('sets suppressNoTiltRevoiceRef on pointer commit', () => {
+    const { result } = renderHook(() => useChordPlayback(baseOptions));
+
+    act(() => {
+      result.current.enterNoTiltSession();
+      result.current.handleChordPointerDown(earth);
+      expect(suppressNoTiltRevoiceRef.current).toBe(true);
+    });
+  });
+
+  it('sets suppress before deferred level setState after audio', async () => {
+    const callOrder: string[] = [];
+    mocks.triggerAttack.mockImplementation(() => {
+      callOrder.push('audio');
+    });
+    setNoTiltPositionLevel.mockImplementation(() => {
+      callOrder.push('level');
+      expect(suppressNoTiltRevoiceRef.current).toBe(true);
+    });
+
+    const { result } = renderHook(() => useChordPlayback(baseOptions));
+
+    await act(async () => {
+      result.current.enterNoTiltSession();
+      result.current.handleChordPointerDown(earth);
+      await Promise.resolve();
+    });
+
+    expect(callOrder[0]).toBe('audio');
   });
 
   it('updates selected chord sync so deferred level updates cannot replay the prior chord', async () => {

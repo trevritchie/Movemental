@@ -5,8 +5,11 @@ import {
   DEFAULT_BUBBLE_LEVEL_CONFIG,
   ORB_OVERSHOOT_FRACTION,
   ORB_TRAVEL_SCALE,
+  ORB_PHYSICS_IDLE_FRAMES,
   ORIENTATION_ANGLE_NORMALIZER,
   isOrientationContinuous,
+  nextOrbIdleFrames,
+  shouldSleepOrbPhysics,
 } from './orbPhysics';
 
 describe('isOrientationContinuous', () => {
@@ -62,7 +65,7 @@ describe('computeBubbleLevelTarget', () => {
     expect(target.y).toBeCloseTo(0.5 * travelY, 5);
   });
 
-  it('saturates at 80% of half panel plus three-quarters orb diameter', () => {
+  it('saturates at ORB_TRAVEL_SCALE of half panel plus overshoot orb diameter', () => {
     const target = computeBubbleLevelTarget(
       ORIENTATION_ANGLE_NORMALIZER,
       -ORIENTATION_ANGLE_NORMALIZER,
@@ -71,6 +74,7 @@ describe('computeBubbleLevelTarget', () => {
     );
     expect(target.x).toBeCloseTo(travelX, 5);
     expect(target.y).toBeCloseTo(-travelY, 5);
+    expect(ORB_TRAVEL_SCALE).toBe(0.75);
   });
 
   it('returns origin for empty bounds', () => {
@@ -102,5 +106,29 @@ describe('stepBubbleLevelOffset', () => {
     const next = stepBubbleLevelOffset(current, target);
     expect(next.x).toBeCloseTo(80 * DEFAULT_BUBBLE_LEVEL_CONFIG.spring, 5);
     expect(next.y).toBe(0);
+  });
+});
+
+describe('orb physics idle sleep helpers', () => {
+  it('increments idle frames only when flat, centered, and unchanged', () => {
+    expect(
+      nextOrbIdleFrames(5, {
+        tiltChanged: false,
+        flatDevice: true,
+        nearCenter: true,
+      }),
+    ).toBe(6);
+    expect(
+      nextOrbIdleFrames(5, {
+        tiltChanged: true,
+        flatDevice: true,
+        nearCenter: true,
+      }),
+    ).toBe(0);
+  });
+
+  it('sleeps after ORB_PHYSICS_IDLE_FRAMES idle frames', () => {
+    expect(shouldSleepOrbPhysics(ORB_PHYSICS_IDLE_FRAMES - 1)).toBe(false);
+    expect(shouldSleepOrbPhysics(ORB_PHYSICS_IDLE_FRAMES)).toBe(true);
   });
 });

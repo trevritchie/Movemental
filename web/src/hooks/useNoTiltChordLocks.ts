@@ -23,6 +23,8 @@ interface UseNoTiltChordLocksOptions {
   setNoTiltPositionLevel: (level: number) => void;
   noTiltVoicingLevelRef: RefObject<number>;
   noTiltPositionLevelRef: RefObject<number>;
+  /** Optional: mark deferred lock flushes so ChordContext can skip re-voice. */
+  suppressNoTiltRevoiceRef?: RefObject<boolean>;
 }
 
 export function useNoTiltChordLocks({
@@ -31,6 +33,7 @@ export function useNoTiltChordLocks({
   setNoTiltPositionLevel,
   noTiltVoicingLevelRef,
   noTiltPositionLevelRef,
+  suppressNoTiltRevoiceRef,
 }: UseNoTiltChordLocksOptions) {
   const [lockMaps, setLockMaps] = useState<NoTiltChordLockMaps>(
     createEmptyNoTiltChordLockMaps
@@ -96,13 +99,21 @@ export function useNoTiltChordLocks({
         noTiltPositionLevelRef,
         setNoTiltVoicingLevel,
         setNoTiltPositionLevel,
-      }, { deferSetState });
+      }, {
+        deferSetState,
+        onBeforeDeferredSetState: suppressNoTiltRevoiceRef
+          ? () => {
+              suppressNoTiltRevoiceRef.current = true;
+            }
+          : undefined,
+      });
     },
     [
       noTiltVoicingLevelRef,
       noTiltPositionLevelRef,
       setNoTiltVoicingLevel,
       setNoTiltPositionLevel,
+      suppressNoTiltRevoiceRef,
     ]
   );
 

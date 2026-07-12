@@ -5,12 +5,21 @@
  * spring-smoothed offset so the swirling orb group slides with tilt (inverted
  * vs a real spirit level: toward the lowered edge).
  *
- * Max travel = 80% of (half panel + 0.75 * largest orb diameter) so glow may
- * hang partly off-screen at extreme tilt without going fully away.
+ * Max travel = ORB_TRAVEL_SCALE of (half panel + ORB_OVERSHOOT_FRACTION *
+ * largest orb diameter) so glow may hang partly off-screen at extreme tilt
+ * without going fully away.
  *
  * Orientation uses the same ~90° normalizer as voicing/bass tilt readouts.
  */
 import { clamp } from '../utils/clamp';
+import { ORIENTATION_ANGLE_NORMALIZER } from './orientationUtils';
+
+export {
+  ORIENTATION_ANGLE_NORMALIZER,
+  ORIENTATION_JUMP_THRESHOLD_DEG,
+  isOrientationContinuous,
+  type OrientationSample,
+} from './orientationUtils';
 
 export interface PlayfieldBounds {
   width: number;
@@ -27,41 +36,27 @@ export interface BubbleLevelConfig {
   spring: number;
 }
 
-/** Device orientation angles are normalized by this span (see useDeviceTilt). */
-export const ORIENTATION_ANGLE_NORMALIZER = 90;
-
 /** Fraction of orb diameter allowed past the panel edge in the full travel budget. */
 export const ORB_OVERSHOOT_FRACTION = 0.75;
 
-/** Scale applied to max travel (1 = full budget; 0.8 = 20% less range). */
+/** Scale applied to max travel (1 = full budget; 0.75 = 25% less range). */
 export const ORB_TRAVEL_SCALE = 0.75;
+
+/** Frames with no motion before physics cancels rAF (sleeps). */
+export const ORB_PHYSICS_IDLE_FRAMES = 30;
+
+/** Speed threshold (px/frame) for treating orbs as stationary. */
+export const ORB_PHYSICS_IDLE_SPEED = 0.05;
+
+/** Orientation magnitude below which tilt is treated as flat. */
+export const ORB_PHYSICS_FLAT_TILT = 0.75;
+
+/** Angle delta (degrees) treated as no orientation change. */
+export const ORB_TILT_DELTA_EPS = 0.05;
 
 export const DEFAULT_BUBBLE_LEVEL_CONFIG: BubbleLevelConfig = {
   spring: 0.14,
 };
-
-/** Reject Euler wraparound jumps larger than this (degrees) for visual tilt. */
-export const ORIENTATION_JUMP_THRESHOLD_DEG = 100;
-
-export interface OrientationSample {
-  gamma: number;
-  beta: number;
-}
-
-/**
- * True when consecutive deviceorientation samples are continuous.
- * Large deltas mean gamma/beta wrapped at a Euler singularity (±90° roll).
- */
-export function isOrientationContinuous(
-  previous: OrientationSample,
-  next: OrientationSample,
-  threshold = ORIENTATION_JUMP_THRESHOLD_DEG,
-): boolean {
-  return (
-    Math.abs(next.gamma - previous.gamma) <= threshold &&
-    Math.abs(next.beta - previous.beta) <= threshold
-  );
-}
 
 /** Fallback when glow-orb DOM size is not yet measured. */
 export function fallbackOrbDiameter(bounds: PlayfieldBounds): number {
@@ -110,4 +105,23 @@ export function stepBubbleLevelOffset(
     x: current.x + (target.x - current.x) * spring,
     y: current.y + (target.y - current.y) * spring,
   };
+}
+
+/** Advance idle-frame counter; reset when the device is moving or not flat. */
+export function nextOrbIdleFrames(
+  idleFrames: number,
+  opts: { tiltChanged: boolean; flatDevice: boolean; nearCenter: boolean },
+): number {
+  if (!opts.tiltChanged && opts.flatDevice && opts.nearCenter) {
+    return idleFrames + 1;
+  }
+  return 0;
+}
+
+/** True when the physics loop should cancel rAF and sleep. */
+export function shouldSleepOrbPhysics(
+  idleFrames: number,
+  limit = ORB_PHYSICS_IDLE_FRAMES,
+): boolean {
+  return idleFrames >= limit;
 }

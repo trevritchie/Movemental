@@ -119,11 +119,18 @@ export function applyNoTiltLocksForChord(
   maps: NoTiltChordLockMaps,
   chordName: string,
   target: ApplyNoTiltLocksTarget,
-  options: { deferSetState?: boolean } = {}
+  options: {
+    deferSetState?: boolean;
+    /** Called inside the deferred microtask before each setState. */
+    onBeforeDeferredSetState?: () => void;
+  } = {}
 ): void {
   const schedule = (fn: () => void) => {
     if (options.deferSetState) {
-      queueMicrotask(fn);
+      queueMicrotask(() => {
+        options.onBeforeDeferredSetState?.();
+        fn();
+      });
     } else {
       fn();
     }

@@ -170,9 +170,8 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
   );
 
   const selectedChordNameRef = useRef<string | null>(null);
-  useEffect(() => {
-    selectedChordNameRef.current = selectedChord?.name ?? null;
-  }, [selectedChord]);
+  /** Set by deferred no-tilt level flushes; consumed by the re-voice effect. */
+  const suppressNoTiltRevoiceRef = useRef(false);
 
   const playAndDisplayChordRef = useRef<
     (chord: Chord, state: BorrowingState) => void
@@ -210,6 +209,7 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
     setNoTiltPositionLevel,
     noTiltVoicingLevelRef,
     noTiltPositionLevelRef,
+    suppressNoTiltRevoiceRef,
   });
 
   const playback = useChordPlayback({
@@ -218,6 +218,7 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
     setBorrowingState: borrowing.setBorrowingState,
     setSelectedChord,
     selectedChordNameRef,
+    suppressNoTiltRevoiceRef,
     rawTiltRef: deviceTilt.rawTiltRef,
     noTiltVoicingLevelRef,
     noTiltPositionLevelRef,
@@ -236,6 +237,16 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
   useEffect(() => {
     playAndDisplayChordRef.current = playback.playAndDisplayChord;
   }, [playback.playAndDisplayChord]);
+
+  const getBorrowingStateForChordRef = useRef(borrowing.getBorrowingStateForChord);
+  useEffect(() => {
+    getBorrowingStateForChordRef.current = borrowing.getBorrowingStateForChord;
+  }, [borrowing.getBorrowingStateForChord]);
+
+  const setBorrowingStateRef = useRef(borrowing.setBorrowingState);
+  useEffect(() => {
+    setBorrowingStateRef.current = borrowing.setBorrowingState;
+  }, [borrowing.setBorrowingState]);
 
   const audio = useAudioSettings(
     playback.playStyle,
@@ -477,8 +488,18 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
    * controls change. Skips redundant audio when pitches are unchanged
    * (playAndDisplayChord -> skipIfUnchanged). Does not run on every tilt
    * tick; tilt voicing is sampled at tap time only.
+   *
+   * selectedChordNameRef is written only by commitPlayback (not mirrored from
+   * selectedChord) so deferred level flushes cannot re-voice a stale name.
+   *
+   * Callback deps are read via refs so identity churn cannot loop this effect.
    */
   useEffect(() => {
+    if (suppressNoTiltRevoiceRef.current) {
+      suppressNoTiltRevoiceRef.current = false;
+      return;
+    }
+
     const name = selectedChordNameRef.current;
     if (!name) return;
 
@@ -486,22 +507,19 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
     if (!updatedChord) return;
 
     setSelectedChord(updatedChord);
-    const newState = getBorrowingStateForChord(
+    const newState = getBorrowingStateForChordRef.current(
       name,
-      borrowingStateRef.current
+      borrowing.borrowingStateRef.current
     );
-    setBorrowingState(newState);
-    playAndDisplayChord(updatedChord, newState);
+    setBorrowingStateRef.current(newState);
+    playAndDisplayChordRef.current(updatedChord, newState);
   }, [
     tonalCenter,
     octaveRange,
     noTiltVoicingLevel,
     noTiltPositionLevel,
     voiceLeadingMode,
-    getBorrowingStateForChord,
-    borrowingStateRef,
-    setBorrowingState,
-    playAndDisplayChord,
+    borrowing.borrowingStateRef,
   ]);
 
   const value: ChordContextType = useMemo(

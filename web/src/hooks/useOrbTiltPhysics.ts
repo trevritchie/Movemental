@@ -1,14 +1,14 @@
 import { useEffect, useRef, type RefObject } from 'react';
 import type { OrientationAngles } from './useDeviceTilt';
+import { shouldPauseOrbPhysics } from '../audio/visualPriority';
 import {
   ORB_PHYSICS_FLAT_TILT,
-  ORB_PHYSICS_IDLE_FRAMES,
   ORB_PHYSICS_IDLE_SPEED,
-  shouldPauseOrbPhysics,
-} from '../audio/visualPriority';
-import {
+  ORB_TILT_DELTA_EPS,
   computeBubbleLevelTarget,
   fallbackOrbDiameter,
+  nextOrbIdleFrames,
+  shouldSleepOrbPhysics,
   stepBubbleLevelOffset,
   type Point2D,
 } from './orbPhysics';
@@ -16,10 +16,7 @@ import {
 /** Group container that receives the bubble-level offset. */
 const FOLLOWER_SELECTOR = '.mouse-follower';
 const ORB_SELECTOR = '.glow-orb';
-
-export interface OrbPhysicsFrameMetrics {
-  moving: boolean;
-}
+const LEVEL_ACTIVE_CLASS = 'diagram-background-orbs--level-active';
 
 /**
  * Drives the swirling orb group in tilt mode like an inverted spirit level.
@@ -27,17 +24,21 @@ export interface OrbPhysicsFrameMetrics {
  * Reads smoothed gamma/beta from orientationRef each frame (no React state) and
  * writes a centered translate3d on `.mouse-follower`. CSS swirl/float keep running
  * on child orbs; only the group offset is JS-driven.
+ *
+ * When idle, cancels rAF and wakes on deviceorientation, visibility, or enable.
+ * Toggles `diagram-background-orbs--level-active` via classList (no React setState).
  */
 export function useOrbTiltPhysics({
   enabled,
   playfieldRef,
+  containerRef,
   orientationRef,
-  onFrameMetrics,
 }: {
   enabled: boolean;
   playfieldRef: RefObject<HTMLElement | null>;
+  /** Root orb wrapper that receives --level-active for will-change. */
+  containerRef: RefObject<HTMLElement | null>;
   orientationRef: RefObject<OrientationAngles>;
-  onFrameMetrics?: (metrics: OrbPhysicsFrameMetrics) => void;
 }): void {
   const offsetRef = useRef<Point2D>({ x: 0, y: 0 });
   const boundsRef = useRef({ width: 0, height: 0 });
@@ -47,14 +48,25 @@ export function useOrbTiltPhysics({
   const idleFramesRef = useRef(0);
   const lastGammaRef = useRef(0);
   const lastBetaRef = useRef(0);
+  const sleepingRef = useRef(false);
 
   useEffect(() => {
-    if (!enabled) return;
+    if (!enabled) {
+      containerRef.current?.classList.remove(LEVEL_ACTIVE_CLASS);
+      return;
+    }
 
     const playfield = playfieldRef.current;
     if (!playfield) return;
 
     let frameId = 0;
+    let running = false;
+
+    const setLevelActive = (moving: boolean) => {
+      const el = containerRef.current;
+      if (!el) return;
+      el.classList.toggle(LEVEL_ACTIVE_CLASS, moving);
+    };
 
     const measureOrbDiameter = () => {
       const orbs = playfield.querySelectorAll<HTMLElement>(ORB_SELECTOR);
@@ -86,26 +98,45 @@ export function useOrbTiltPhysics({
 
     const resizeObserver = new ResizeObserver(() => {
       measureBounds();
+      wake();
     });
     resizeObserver.observe(playfield);
 
+    const stopLoop = () => {
+      if (frameId) {
+        cancelAnimationFrame(frameId);
+        frameId = 0;
+      }
+      running = false;
+    };
+
+    const sleep = () => {
+      sleepingRef.current = true;
+      setLevelActive(false);
+      stopLoop();
+    };
+
     const tick = () => {
+      frameId = 0;
+
       if (!followerRef.current) {
         refreshFollower();
-        frameId = requestAnimationFrame(tick);
-        return;
+        if (!followerRef.current) {
+          frameId = requestAnimationFrame(tick);
+          return;
+        }
       }
 
       if (shouldPauseOrbPhysics()) {
-        onFrameMetrics?.({ moving: false });
-        frameId = requestAnimationFrame(tick);
+        setLevelActive(false);
+        sleep();
         return;
       }
 
       const { gamma, beta } = orientationRef.current;
       const tiltChanged =
-        Math.abs(gamma - lastGammaRef.current) > 0.05 ||
-        Math.abs(beta - lastBetaRef.current) > 0.05;
+        Math.abs(gamma - lastGammaRef.current) > ORB_TILT_DELTA_EPS ||
+        Math.abs(beta - lastBetaRef.current) > ORB_TILT_DELTA_EPS;
       lastGammaRef.current = gamma;
       lastBetaRef.current = beta;
 
@@ -116,15 +147,14 @@ export function useOrbTiltPhysics({
       const nearCenter =
         Math.hypot(current.x, current.y) < ORB_PHYSICS_IDLE_SPEED;
 
-      if (!tiltChanged && flatDevice && nearCenter) {
-        idleFramesRef.current += 1;
-      } else {
-        idleFramesRef.current = 0;
-      }
+      idleFramesRef.current = nextOrbIdleFrames(idleFramesRef.current, {
+        tiltChanged,
+        flatDevice,
+        nearCenter,
+      });
 
-      if (idleFramesRef.current >= ORB_PHYSICS_IDLE_FRAMES) {
-        onFrameMetrics?.({ moving: false });
-        frameId = requestAnimationFrame(tick);
+      if (shouldSleepOrbPhysics(idleFramesRef.current)) {
+        sleep();
         return;
       }
 
@@ -153,23 +183,57 @@ export function useOrbTiltPhysics({
         lastTransformRef.current = transform;
       }
 
-      onFrameMetrics?.({ moving });
+      setLevelActive(moving);
       frameId = requestAnimationFrame(tick);
     };
 
-    frameId = requestAnimationFrame(tick);
+    const startLoop = () => {
+      if (running) return;
+      running = true;
+      sleepingRef.current = false;
+      idleFramesRef.current = 0;
+      frameId = requestAnimationFrame(tick);
+    };
+
+    const wake = () => {
+      if (!enabled) return;
+      if (shouldPauseOrbPhysics()) return;
+      sleepingRef.current = false;
+      startLoop();
+    };
+
+    const onOrientation = () => {
+      wake();
+    };
+
+    const onVisibility = () => {
+      if (document.hidden) {
+        setLevelActive(false);
+        sleep();
+        return;
+      }
+      wake();
+    };
+
+    window.addEventListener('deviceorientation', onOrientation);
+    document.addEventListener('visibilitychange', onVisibility);
+
+    startLoop();
 
     return () => {
-      cancelAnimationFrame(frameId);
+      stopLoop();
       resizeObserver.disconnect();
+      window.removeEventListener('deviceorientation', onOrientation);
+      document.removeEventListener('visibilitychange', onVisibility);
       idleFramesRef.current = 0;
+      sleepingRef.current = false;
       offsetRef.current = { x: 0, y: 0 };
       maxOrbDiameterRef.current = 0;
       if (followerRef.current) {
         followerRef.current.style.transform = '';
       }
       lastTransformRef.current = '';
-      onFrameMetrics?.({ moving: false });
+      setLevelActive(false);
     };
-  }, [enabled, playfieldRef, orientationRef, onFrameMetrics]);
+  }, [enabled, playfieldRef, containerRef, orientationRef]);
 }

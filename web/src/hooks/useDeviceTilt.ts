@@ -9,7 +9,10 @@ import {
   FLAT_TILT,
   type TiltSample,
 } from '../music/TiltVoicingEngine';
-import { ORIENTATION_ANGLE_NORMALIZER, isOrientationContinuous } from './orbPhysics';
+import {
+  ORIENTATION_ANGLE_NORMALIZER,
+  isOrientationContinuous,
+} from './orientationUtils';
 
 export type TiltStatus =
   | 'unsupported'

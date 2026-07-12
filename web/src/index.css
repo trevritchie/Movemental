@@ -1658,10 +1658,15 @@ body.scroll-locked {
   will-change: transform;
 }
 
-@media (max-width: 767px) and (orientation: portrait),
+/* Compact / phone: lower live blur cost on weaker GPUs. */
+@media (max-width: 767px),
        (orientation: portrait) and (pointer: coarse) {
+  .diagram-background-orbs .splash-background {
+    filter: blur(28px);
+  }
+
   .diagram-background-orbs--level .splash-background {
-    filter: blur(64px);
+    filter: blur(24px);
     opacity: 0.92;
   }
 }
