@@ -23,7 +23,8 @@ export type SettingsResetGroupId =
   | 'tonalCenter'
   | 'voiceLeading'
   | 'voiceBorrowing'
-  | 'clockFace';
+  | 'clockFace'
+  | 'glowingOrbs';
 
 export const SETTINGS_RESET_GROUP_LABELS: Record<SettingsResetGroupId, string> =
   {
@@ -36,6 +37,7 @@ export const SETTINGS_RESET_GROUP_LABELS: Record<SettingsResetGroupId, string> =
     voiceLeading: 'Voice Leading',
     voiceBorrowing: 'Voice Borrowing',
     clockFace: 'Clock Face Diagram',
+    glowingOrbs: 'Glowing Orbs',
   };
 
 export function getPresetEnvelopeDefaults(synthPresetId: string): {
@@ -105,6 +107,8 @@ export function getSettingsGroupDefaults(
       return { memory: defaults.voiceBorrowing.memory };
     case 'clockFace':
       return { layoutMode: defaults.clockFace.layoutMode };
+    case 'glowingOrbs':
+      return { enabled: defaults.glowingOrbs.enabled };
     default:
       return {};
   }

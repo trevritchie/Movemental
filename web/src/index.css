@@ -201,7 +201,8 @@ body.scroll-locked {
     flex-direction: row;
     align-items: stretch;
     justify-content: center;
-    gap: 6px;
+    /* Wide enough for two adjacent fingertips at the same height. */
+    gap: 14px;
     flex: 1;
     min-width: 0;
     min-height: 132px;
@@ -214,7 +215,7 @@ body.scroll-locked {
     align-items: center;
     min-width: 0;
     min-height: 0;
-    max-width: 48px;
+    max-width: 52px;
     height: 100%;
     align-self: stretch;
   }
@@ -1633,6 +1634,14 @@ body.scroll-locked {
   opacity: 0.85;
 }
 
+/* Ambient (no-tilt): center the group; CSS swirl/float drive motion. */
+.diagram-background-orbs .mouse-follower {
+  top: 50%;
+  left: 50%;
+  transform: none;
+  transition: none;
+}
+
 .diagram-background-orbs--level .splash-background {
   filter: blur(48px);
   opacity: 0.95;
@@ -1657,17 +1666,9 @@ body.scroll-locked {
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .diagram-background-orbs .orb-wrapper,
-  .diagram-background-orbs .glow-orb {
-    animation: none !important;
-  }
-}
-
-body.audio-priority-active .diagram-background-orbs .orb-wrapper,
-body.audio-priority-active .diagram-background-orbs .glow-orb {
-  animation-play-state: paused !important;
-}
+/* Prefer-reduced-motion: keep ambient CSS swirl like the splash page
+   (decorative background). Tilt JS physics still pauses via
+   shouldPauseOrbPhysics / prefersReducedMotion. */
 
 .diagram-container .diagram-svg {
   position: relative;
@@ -1864,7 +1865,8 @@ input[type="range"] {
   flex-direction: row;
   align-items: stretch;
   justify-content: center;
-  gap: 8px;
+  /* Match phone slider separation for tablet / coarse pointers. */
+  gap: 14px;
   height: 100%;
   min-height: 0;
   overflow: hidden;
@@ -1877,7 +1879,7 @@ input[type="range"] {
   align-items: center;
   min-width: 0;
   min-height: 0;
-  max-width: 56px;
+  max-width: 60px;
 }
 
 .borrow-slider {

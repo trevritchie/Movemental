@@ -23,21 +23,20 @@ function AppContent() {
     ? PRIMARY_ELEMENT_NAMES.has(selectedChord.name)
     : true;
   const isPhoneLayout = layoutTier === 'phone';
-  const showClock = selectedChord != null;
 
   return (
     <div className="app-container">
       <div className="main-content">
         {isPhoneLayout ? (
           <ElementalDiagram>
-            {showClock ? <ClockFace isMobileOverlay /> : null}
+            <ClockFace isMobileOverlay />
           </ElementalDiagram>
         ) : (
           <ElementalDiagram />
         )}
 
         <div className="side-panel glass-panel unified-side-panel">
-          {!isPhoneLayout && showClock && (
+          {!isPhoneLayout && (
             <>
               <div className="side-section clock-section">
                 <ClockFace />

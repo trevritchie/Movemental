@@ -109,6 +109,8 @@ interface ChordContextType {
   setVoiceLeadingMode: (mode: VoiceLeadingMode) => void;
   clockLayoutMode: ClockLayoutMode;
   setClockLayoutMode: (mode: ClockLayoutMode) => void;
+  glowingOrbsEnabled: boolean;
+  setGlowingOrbsEnabled: (enabled: boolean) => void;
   lastTapTilt: TiltSample;
   lastCommittedPlaybackTilt: TiltSample;
   smoothBaseParallel: number;
@@ -163,6 +165,9 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
   const [clockLayoutMode, setClockLayoutMode] = useState<ClockLayoutMode>(
     loadedSettings.clockFace.layoutMode
   );
+  const [glowingOrbsEnabled, setGlowingOrbsEnabled] = useState(
+    loadedSettings.glowingOrbs.enabled
+  );
 
   const selectedChordNameRef = useRef<string | null>(null);
   useEffect(() => {
@@ -212,6 +217,7 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
     borrowingStateRef: borrowing.borrowingStateRef,
     setBorrowingState: borrowing.setBorrowingState,
     setSelectedChord,
+    selectedChordNameRef,
     rawTiltRef: deviceTilt.rawTiltRef,
     noTiltVoicingLevelRef,
     noTiltPositionLevelRef,
@@ -274,6 +280,7 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
         mode: setVoiceLeadingMode,
         memory: borrowing.setBorrowingMemory,
         layoutMode: setClockLayoutMode,
+        enabled: setGlowingOrbsEnabled,
         synthPresetId: audio.setSynthPresetId,
         eqProfileId: audio.setEqProfileId,
         chorusWet: audio.setChorusWet,
@@ -318,6 +325,7 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
           clearChordBorrowingStates();
           break;
         case 'clockFace':
+        case 'glowingOrbs':
         case 'soundDesign':
           break;
       }
@@ -398,6 +406,7 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
       voiceLeading: { mode: voiceLeadingMode },
       voiceBorrowing: { memory: borrowing.borrowingMemory },
       clockFace: { layoutMode: clockLayoutMode },
+      glowingOrbs: { enabled: glowingOrbsEnabled },
       soundDesign: {
         synthPresetId: audio.synthPresetId,
         eqProfileId: audio.eqProfileId,
@@ -421,6 +430,7 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
       voiceLeadingMode,
       borrowing.borrowingMemory,
       clockLayoutMode,
+      glowingOrbsEnabled,
       audio.synthPresetId,
       audio.eqProfileId,
       audio.chorusWet,
@@ -554,6 +564,8 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
       setVoiceLeadingMode,
       clockLayoutMode,
       setClockLayoutMode,
+      glowingOrbsEnabled,
+      setGlowingOrbsEnabled,
       lastTapTilt: playback.lastTapTilt,
       lastCommittedPlaybackTilt: playback.lastCommittedPlaybackTilt,
       smoothBaseParallel: playback.smoothBaseParallel,
@@ -621,6 +633,7 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
       audio.setDroneRelease,
       voiceLeadingMode,
       clockLayoutMode,
+      glowingOrbsEnabled,
       playback.lastTapTilt,
       playback.lastCommittedPlaybackTilt,
       playback.smoothBaseParallel,

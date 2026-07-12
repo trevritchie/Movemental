@@ -62,12 +62,42 @@ describe('ClockFace empty state', () => {
     } as never);
   });
 
-  it('renders nothing before the first chord is selected', () => {
+  it('shows placeholder readout and an unhighlighted clock before the first chord', () => {
     const { container: desktop } = render(<ClockFace />);
-    expect(desktop.firstChild).toBeNull();
+    const desktopInfo = desktop.querySelector('.clock-info');
+    expect(desktop.querySelector('.clock-svg')).toBeInTheDocument();
+    expect(desktopInfo?.querySelector('.elemental-name')?.textContent).toBe(
+      'Select a Chord',
+    );
+    expect(desktopInfo?.querySelector('.chemistry-formula')?.textContent).toBe(
+      '---',
+    );
+    expect(desktopInfo?.querySelector('.traditional-name')?.textContent).toBe(
+      '---',
+    );
+    expect(desktopInfo?.querySelector('.playing-notes')).toBeNull();
+    expect(desktop.querySelectorAll('.clock-svg circle[r="8"]')).toHaveLength(
+      0,
+    );
 
     const { container: mobile } = render(<ClockFace isMobileOverlay />);
-    expect(mobile.firstChild).toBeNull();
+    const mobileInfo = mobile.querySelector('.clock-info');
+    expect(mobile.querySelector('.clock-svg')).toBeInTheDocument();
+    expect(mobileInfo?.querySelector('.elemental-name')?.textContent).toBe(
+      'Select a Chord',
+    );
+    expect(mobileInfo?.querySelector('.chemistry-formula')?.textContent).toBe(
+      '---',
+    );
+    expect(mobileInfo?.querySelector('.traditional-name')?.textContent).toBe(
+      '---',
+    );
+    expect(mobileInfo?.querySelector('.playing-notes')?.textContent).toBe(
+      '---',
+    );
+    expect(mobile.querySelectorAll('.clock-svg circle[r="8"]')).toHaveLength(
+      0,
+    );
   });
 });
 

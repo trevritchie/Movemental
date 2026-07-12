@@ -10,6 +10,7 @@ describe('settingsResetGroups', () => {
     expect(SETTINGS_RESET_GROUP_LABELS.instrument).toBe('Instrument');
     expect(SETTINGS_RESET_GROUP_LABELS.tonalCenter).toBe('Tonal Center');
     expect(SETTINGS_RESET_GROUP_LABELS.clockFace).toBe('Clock Face Diagram');
+    expect(SETTINGS_RESET_GROUP_LABELS.glowingOrbs).toBe('Glowing Orbs');
   });
 
   it('returns play style defaults only for playStyle group', () => {

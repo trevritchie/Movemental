@@ -33,6 +33,7 @@ vi.mock('../context/ChordContext', () => ({
     toggleNoTiltVoicingLock: vi.fn(),
     toggleNoTiltBassLock: vi.fn(),
     tiltModeEnabled: false,
+    glowingOrbsEnabled: true,
   }),
 }));
 

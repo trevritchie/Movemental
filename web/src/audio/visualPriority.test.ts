@@ -20,12 +20,28 @@ describe('visualPriority', () => {
     vi.useRealTimers();
   });
 
-  it('suspends visual animations for the configured window', () => {
+  it('suspends orb physics for the configured window without a body CSS class', () => {
     suspendVisualAnimations(32);
     expect(isVisualAnimationSuspended()).toBe(true);
-    expect(document.body.classList.contains('audio-priority-active')).toBe(true);
+    expect(shouldPauseOrbPhysics()).toBe(true);
+    expect(document.body.classList.contains('audio-priority-active')).toBe(
+      false,
+    );
 
     vi.advanceTimersByTime(40);
+    expect(isVisualAnimationSuspended()).toBe(false);
+  });
+
+  it('extends an active suspend when tapped again before it expires', () => {
+    suspendVisualAnimations(32);
+    vi.advanceTimersByTime(20);
+    expect(isVisualAnimationSuspended()).toBe(true);
+
+    suspendVisualAnimations(32);
+    vi.advanceTimersByTime(20);
+    expect(isVisualAnimationSuspended()).toBe(true);
+
+    vi.advanceTimersByTime(20);
     expect(isVisualAnimationSuspended()).toBe(false);
   });
 

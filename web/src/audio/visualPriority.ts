@@ -31,25 +31,21 @@ function syncReducedMotion(): void {
   reducedMotion = motionMediaQuery.matches;
 }
 
-function setAudioPriorityClass(active: boolean): void {
-  if (typeof document === 'undefined') return;
-  document.body.classList.toggle('audio-priority-active', active);
-}
-
 let suspendTimer = 0;
 
-/** Pause orb/CSS work briefly while chord audio is scheduled. */
+/**
+ * Briefly pause JS orb physics while chord audio is scheduled.
+ * Does not pause ambient CSS swirl/float (those are cheap composited animations).
+ */
 export function suspendVisualAnimations(ms = VISUAL_SUSPEND_MS): void {
   if (typeof performance === 'undefined') return;
   suspendUntil = Math.max(suspendUntil, performance.now() + ms);
-  setAudioPriorityClass(true);
   if (typeof window === 'undefined') return;
   window.clearTimeout(suspendTimer);
+  const remainingMs = Math.max(0, suspendUntil - performance.now()) + 4;
   suspendTimer = window.setTimeout(() => {
-    if (!isVisualAnimationSuspended()) {
-      setAudioPriorityClass(false);
-    }
-  }, ms + 4);
+    suspendTimer = 0;
+  }, remainingMs);
 }
 
 export function isVisualAnimationSuspended(): boolean {
@@ -94,6 +90,7 @@ export function initVisualPriorityListeners(): () => void {
     document.removeEventListener('visibilitychange', onVisibility);
     motionMediaQuery?.removeEventListener('change', syncReducedMotion);
     window.clearTimeout(suspendTimer);
-    setAudioPriorityClass(false);
+    suspendTimer = 0;
+    suspendUntil = 0;
   };
 }

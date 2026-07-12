@@ -49,6 +49,7 @@ import {
   applyProductionLatencyForTier,
   readContextLatencyReport,
 } from './latencyRunner';
+import { audioDebugLog, isAudioEngineDebugEnabled } from './audioDebug';
 
 /** PolySynth or sample-based Sampler; shared note trigger API. */
 type InstrumentVoice = Tone.PolySynth | Tone.Sampler;
@@ -63,12 +64,6 @@ const SYNTH_CLASS_MAP = {
   AMSynth: Tone.AMSynth,
   MonoSynth: Tone.MonoSynth,
 } as const;
-
-const devLog = (...args: unknown[]) => {
-  if (import.meta.env.DEV) {
-    console.log(...args);
-  }
-};
 
 const devWarn = (...args: unknown[]) => {
   if (import.meta.env.DEV) {
@@ -285,7 +280,7 @@ export class AudioEngine {
   }
 
   private logPeakLevelIfDev(): void {
-    if (!import.meta.env.DEV || !this.peakMeter) {
+    if (!isAudioEngineDebugEnabled() || !this.peakMeter) {
       return;
     }
     window.setTimeout(() => {
@@ -294,14 +289,14 @@ export class AudioEngine {
         ? Math.max(...reading)
         : (reading ?? -Infinity);
       if (Number.isFinite(peakDb)) {
-        devLog('[AudioEngine] Post-makeup peak (dB):', peakDb.toFixed(1));
+        audioDebugLog('[AudioEngine] Post-makeup peak (dB):', peakDb.toFixed(1));
       }
 
       const reduction = this.limiter?.reduction ?? 0;
       if (Number.isFinite(reduction)) {
-        devLog('[AudioEngine] Limiter reduction (dB):', reduction.toFixed(1));
+        audioDebugLog('[AudioEngine] Limiter reduction (dB):', reduction.toFixed(1));
         if (reduction < LIMITER_REDUCTION_WARN_DB) {
-          devWarn(
+          console.warn(
             '[AudioEngine] Limiter working hard (',
             reduction.toFixed(1),
             'dB GR). Check gain staging.',
@@ -315,7 +310,7 @@ export class AudioEngine {
     const profile = this.activeOutputProfile;
     const envelope = getPresetClickHoldEnvelope(this.currentPreset);
 
-    if (import.meta.env.DEV) {
+    if (isAudioEngineDebugEnabled()) {
       this.peakMeter = new Tone.Meter({ smoothing: 0.3 });
     }
 
@@ -346,7 +341,7 @@ export class AudioEngine {
     this.ensureSessionRecorder();
 
     this.isReady = true;
-    devLog(
+    audioDebugLog(
       '[AudioEngine] PolySynth ready:',
       this.currentPreset.name,
       '| Output:',
@@ -373,7 +368,7 @@ export class AudioEngine {
 
     recorder.attachSource(this.recordTailGain);
     this.sessionRecorder = recorder;
-    devLog('[AudioEngine] Session recorder attached via record tail gain');
+    audioDebugLog('[AudioEngine] Session recorder attached via record tail gain');
   }
 
   public isRecordingSupported(): boolean {
@@ -394,7 +389,7 @@ export class AudioEngine {
     await this.sessionRecorder.start();
     // Align MIDI timeline with the audio session start (Tone transport clock).
     this.sessionMidiRecorder.start(Tone.now());
-    devLog('[AudioEngine] Session recording started');
+    audioDebugLog('[AudioEngine] Session recording started');
   }
 
   /**
@@ -411,7 +406,7 @@ export class AudioEngine {
       this.sessionRecorder.stop(),
       this.sessionMidiRecorder.encode(endTime),
     ]);
-    devLog('[AudioEngine] Session recording stopped');
+    audioDebugLog('[AudioEngine] Session recording stopped');
     return { audio, midi };
   }
 
@@ -549,9 +544,9 @@ export class AudioEngine {
       const tier = resolveLayoutTierSafe();
       const toneContext = applyProductionLatencyForTier(tier);
       this.latencyContextConfigured = true;
-      if (import.meta.env.DEV) {
+      if (isAudioEngineDebugEnabled()) {
         const report = readContextLatencyReport(toneContext);
-        devLog(
+        audioDebugLog(
           '[AudioEngine] Latency profile:',
           tier,
           '| lookAhead',
@@ -590,7 +585,7 @@ export class AudioEngine {
     // Convert MIDI → note names (e.g. 60 → "C4")
     const noteNames = clamped.map(n => Tone.Frequency(n, 'midi').toNote());
 
-    devLog('[AudioEngine] Playing notes:', noteNames, '(MIDI:', clamped, ')');
+    audioDebugLog('[AudioEngine] Playing notes:', noteNames, '(MIDI:', clamped, ')');
 
     // Timed preview (borrowing sliders). Track names so the next call can
     // release them even though triggerAttackRelease is not sustained.
@@ -624,7 +619,7 @@ export class AudioEngine {
         if (this.isPointerDown) {
           this.triggerAttackSync(midiNotes, retrigger);
         } else {
-          devLog('[AudioEngine] Pointer was released during async initialization. Aborting attack.');
+          audioDebugLog('[AudioEngine] Pointer was released during async initialization. Aborting attack.');
         }
       });
     }
@@ -661,7 +656,7 @@ export class AudioEngine {
         }
       }
       this.activeNotes = noteNames;
-      devLog('[AudioEngine] Retriggering:', noteNames);
+      audioDebugLog('[AudioEngine] Retriggering:', noteNames);
       const attackTime = now + ATTACK_SCHEDULE_OFFSET_SEC;
       voice.triggerAttack(noteNames, attackTime);
       this.logPeakLevelIfDev();
@@ -693,7 +688,7 @@ export class AudioEngine {
     }
 
     if (notesToAttack.length > 0) {
-      devLog('[AudioEngine] Attacking:', notesToAttack, '| Sustaining:', noteNames.filter(n => !notesToAttack.includes(n)), '| Releasing:', notesToRelease);
+      audioDebugLog('[AudioEngine] Attacking:', notesToAttack, '| Sustaining:', noteNames.filter(n => !notesToAttack.includes(n)), '| Releasing:', notesToRelease);
       // Schedule immediately at `now`. Removing the arbitrary delay prevents
       // chronological inversions from rapid subsequent clicks.
       voice.triggerAttack(notesToAttack, now);
@@ -717,7 +712,7 @@ export class AudioEngine {
     this.isPointerDown = false;
     const voice = this.getVoice();
     if (voice) {
-      devLog('[AudioEngine] Hard stop. Releasing all voices.');
+      audioDebugLog('[AudioEngine] Hard stop. Releasing all voices.');
       if (this.sessionMidiRecorder.isRecording()) {
         // Match synth panic: instant MIDI offs, not envelope release length.
         this.sessionMidiRecorder.logAllNotesOff(Tone.now());

@@ -72,6 +72,8 @@ interface UseChordPlaybackOptions {
   borrowingStateRef: RefObject<BorrowingState>;
   setBorrowingState: (state: BorrowingState) => void;
   setSelectedChord: (chord: Chord | null) => void;
+  /** Kept in sync for the re-voice effect; must update before deferred level setState. */
+  selectedChordNameRef: RefObject<string | null>;
   rawTiltRef: RefObject<TiltSample>;
   noTiltVoicingLevelRef: RefObject<number>;
   noTiltPositionLevelRef: RefObject<number>;
@@ -105,6 +107,7 @@ export function useChordPlayback({
   borrowingStateRef,
   setBorrowingState,
   setSelectedChord,
+  selectedChordNameRef,
   rawTiltRef,
   noTiltVoicingLevelRef,
   noTiltPositionLevelRef,
@@ -657,6 +660,9 @@ export function useChordPlayback({
 
       previousChordRef.current = displayChord;
       activePitchesRef.current = pitches;
+      // Sync before any deferred no-tilt level setState flushes. Otherwise the
+      // ChordContext re-voice effect can replay the previous chord.
+      selectedChordNameRef.current = displayChord.name;
       invalidateVoicingCacheForCommit(
         displayChord.name,
         state,
@@ -664,19 +670,24 @@ export function useChordPlayback({
       );
       updateVoiceLeadingBaseline(playbackTilt, options.fromPointer ?? false);
 
-      const deferUi = options.fromPointer ?? false;
-      const applyUiSync = () => {
-        setPreviousPlayedChord(displayChord);
-        setSelectedChord(displayChord);
-        if (elemental) {
-          setLastElementalPlayback(elemental);
-        } else if (!isElementalName(displayChord.name)) {
-          setLastElementalPlayback(null);
-        }
-        setActivePitches(pitches);
-        if (options.deferredBorrowingState) {
-          setBorrowingState(options.deferredBorrowingState);
-        }
+      // Chord identity and readout must stay sync after audio. Deferring them
+      // via startTransition races with normal-priority level updates and can
+      // leave the UI (and re-voice effect) stuck on the previous chord.
+      setPreviousPlayedChord(displayChord);
+      setSelectedChord(displayChord);
+      if (elemental) {
+        setLastElementalPlayback(elemental);
+      } else if (!isElementalName(displayChord.name)) {
+        setLastElementalPlayback(null);
+      }
+      setActivePitches(pitches);
+      if (options.deferredBorrowingState) {
+        borrowingStateRef.current = options.deferredBorrowingState;
+        setBorrowingState(options.deferredBorrowingState);
+      }
+
+      const deferLabels = options.fromPointer ?? false;
+      const applyTiltLabels = () => {
         if (usesDeviceTilt(tiltModeRef.current)) {
           setLastPlayedVoicingLabel(lastPlayedVoicingReadout(playbackTilt));
           setLastPlayedBassLabel(
@@ -688,14 +699,16 @@ export function useChordPlayback({
         }
       };
 
-      if (deferUi) {
-        queueMicrotask(() => startTransition(applyUiSync));
+      if (deferLabels) {
+        queueMicrotask(() => startTransition(applyTiltLabels));
       } else {
-        startTransition(applyUiSync);
+        startTransition(applyTiltLabels);
       }
     },
     [
+      borrowingStateRef,
       dispatchAudio,
+      selectedChordNameRef,
       setBorrowingState,
       setSelectedChord,
       updateVoiceLeadingBaseline,
@@ -816,21 +829,16 @@ export function useChordPlayback({
       if (pitches.length === 0) {
         previousChordRef.current = displayChord;
         activePitchesRef.current = [];
+        selectedChordNameRef.current = displayChord.name;
         invalidateVoicingCache();
         updateVoiceLeadingBaseline(playbackTilt, fromPointer);
         audioEngine.releaseActiveNotes();
-        const applyEmptyUi = () => {
-          setPreviousPlayedChord(displayChord);
-          setSelectedChord(displayChord);
-          setActivePitches([]);
-          if (options.deferredBorrowingState) {
-            setBorrowingState(options.deferredBorrowingState);
-          }
-        };
-        if (fromPointer) {
-          queueMicrotask(() => startTransition(applyEmptyUi));
-        } else {
-          startTransition(applyEmptyUi);
+        setPreviousPlayedChord(displayChord);
+        setSelectedChord(displayChord);
+        setActivePitches([]);
+        if (options.deferredBorrowingState) {
+          borrowingStateRef.current = options.deferredBorrowingState;
+          setBorrowingState(options.deferredBorrowingState);
         }
         return;
       }
@@ -851,7 +859,9 @@ export function useChordPlayback({
       computeNeutralVoicing,
       computeVoicedPitchesFromAnchor,
       commitPlayback,
+      borrowingStateRef,
       setBorrowingState,
+      selectedChordNameRef,
       setSelectedChord,
       updateVoiceLeadingBaseline,
       applyNoTiltLocksForChord,
@@ -866,7 +876,7 @@ export function useChordPlayback({
     (chord: Chord, state: BorrowingState) => {
       voiceAndPlay(chord, state, {
         retrigger: false,
-        skipIfUnchanged: false,
+        skipIfUnchanged: true,
       });
     },
     [voiceAndPlay]

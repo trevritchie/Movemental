@@ -32,15 +32,19 @@ import { chordManager } from '../music/ChordManager';
 
 describe('useChordPlayback audio-first pointer path', () => {
   const branch = chordManager.getChordByName('Branch')!;
+  const wind = chordManager.getChordByName('Wind')!;
+  const earth = chordManager.getChordByName('Earth')!;
   const borrowingState = getInitialBorrowingState();
   const setBorrowingState = vi.fn();
   const setSelectedChord = vi.fn();
+  const selectedChordNameRef = { current: null as string | null };
 
   const baseOptions = {
     getBorrowingStateForChord: () => borrowingState,
     borrowingStateRef: { current: borrowingState },
     setBorrowingState,
     setSelectedChord,
+    selectedChordNameRef,
     rawTiltRef: { current: FLAT_TILT },
     noTiltVoicingLevelRef: { current: 0 },
     noTiltPositionLevelRef: { current: 0 },
@@ -57,6 +61,7 @@ describe('useChordPlayback audio-first pointer path', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    selectedChordNameRef.current = null;
   });
 
   it('schedules audio before borrowing setState on diagram pointer tap', async () => {
@@ -77,13 +82,55 @@ describe('useChordPlayback audio-first pointer path', () => {
 
     expect(mocks.triggerAttack).toHaveBeenCalled();
     expect(callOrder[0]).toBe('audio');
-
-    await Promise.resolve();
-    await Promise.resolve();
-
     expect(setBorrowingState).toHaveBeenCalled();
     expect(callOrder.indexOf('borrowing')).toBeGreaterThan(
       callOrder.indexOf('audio'),
     );
+  });
+
+  it('updates selected chord sync so deferred level updates cannot replay the prior chord', async () => {
+    const { result } = renderHook(() => useChordPlayback(baseOptions));
+
+    await act(async () => {
+      result.current.enterNoTiltSession();
+      result.current.handleChordPointerDown(earth);
+      await Promise.resolve();
+    });
+
+    const afterEarth = setSelectedChord.mock.calls.at(-1)?.[0] as
+      | { name: string }
+      | undefined;
+    expect(afterEarth?.name).toBe('Earth');
+    expect(selectedChordNameRef.current).toBe('Earth');
+
+    const earthCalls = mocks.triggerAttack.mock.calls.length;
+
+    await act(async () => {
+      result.current.handleChordPointerDown(wind);
+      await Promise.resolve();
+    });
+
+    const afterWind = setSelectedChord.mock.calls.at(-1)?.[0] as
+      | { name: string }
+      | undefined;
+    expect(afterWind?.name).toBe('Wind');
+    expect(selectedChordNameRef.current).toBe('Wind');
+    expect(mocks.triggerAttack.mock.calls.length).toBeGreaterThan(earthCalls);
+
+    // Simulate the ChordContext re-voice effect after a deferred position
+    // level flush: it must re-voice Wind, not stuck Earth.
+    await act(async () => {
+      result.current.playAndDisplayChord(
+        chordManager.getChordByName(selectedChordNameRef.current!)!,
+        borrowingState,
+      );
+      await Promise.resolve();
+    });
+
+    const afterRevoice = setSelectedChord.mock.calls.at(-1)?.[0] as
+      | { name: string }
+      | undefined;
+    expect(afterRevoice?.name).toBe('Wind');
+    expect(selectedChordNameRef.current).toBe('Wind');
   });
 });

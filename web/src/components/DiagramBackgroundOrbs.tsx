@@ -7,15 +7,17 @@ import { useOrbTiltPhysics } from '../hooks/useOrbTiltPhysics';
  * Splash-identical Earth/Wind/Fire glow layer behind the elemental diagram SVG.
  * Ambient mode: CSS swirl + float. Tilt mode: same swirl/float, with the group
  * spring-offset like a bubble level from device orientation.
+ * Chord taps pause only the tilt rAF loop, not ambient CSS motion.
  */
 export const DiagramBackgroundOrbs = React.memo(function DiagramBackgroundOrbs() {
-  const { tiltModeEnabled } = useChordContext();
+  const { tiltModeEnabled, glowingOrbsEnabled } = useChordContext();
   const { tiltStatus, orientationRef } = useTiltReadoutContext();
 
   const playfieldRef = useRef<HTMLDivElement>(null);
   const [levelMoving, setLevelMoving] = useState(false);
 
-  const levelActive = tiltModeEnabled && tiltStatus === 'active';
+  const levelActive =
+    glowingOrbsEnabled && tiltModeEnabled && tiltStatus === 'active';
 
   const handleFrameMetrics = useCallback(
     (metrics: { moving: boolean }) => {
@@ -30,6 +32,10 @@ export const DiagramBackgroundOrbs = React.memo(function DiagramBackgroundOrbs()
     orientationRef,
     onFrameMetrics: handleFrameMetrics,
   });
+
+  if (!glowingOrbsEnabled) {
+    return null;
+  }
 
   const className = [
     'diagram-background-orbs',

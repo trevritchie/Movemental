@@ -29,6 +29,7 @@ import {
 export type SettingsSectionId =
   | 'general'
   | 'clockFace'
+  | 'glowingOrbs'
   | 'voiceLeading'
   | 'voiceBorrowing'
   | 'soundDesign';
@@ -36,6 +37,7 @@ export type SettingsSectionId =
 export const SETTINGS_SECTION_IDS: readonly SettingsSectionId[] = [
   'general',
   'clockFace',
+  'glowingOrbs',
   'voiceLeading',
   'voiceBorrowing',
   'soundDesign',
@@ -44,6 +46,7 @@ export const SETTINGS_SECTION_IDS: readonly SettingsSectionId[] = [
 export const SETTINGS_SECTION_LABELS: Record<SettingsSectionId, string> = {
   general: 'Playback',
   clockFace: 'Clock Face Diagram',
+  glowingOrbs: 'Glowing Orbs',
   voiceLeading: 'Voice Leading',
   voiceBorrowing: 'Voice Borrowing',
   soundDesign: 'Sound',
@@ -90,6 +93,10 @@ function isBorrowingMemory(value: unknown): value is BorrowingMemoryMode {
 
 function isClockLayoutMode(value: unknown): value is ClockLayoutMode {
   return value === 'chromatic' || value === 'circle_of_fifths';
+}
+
+function isBoolean(value: unknown): value is boolean {
+  return typeof value === 'boolean';
 }
 
 function isWet(value: unknown): value is number {
@@ -156,6 +163,10 @@ export type ClockFaceSettings = {
   layoutMode: ClockLayoutMode;
 };
 
+export type GlowingOrbsSettings = {
+  enabled: boolean;
+};
+
 export type SoundDesignSettings = {
   synthPresetId: string;
   eqProfileId: EqProfileId;
@@ -194,6 +205,12 @@ export const USER_SETTINGS_SCHEMA: Record<
     layoutMode: {
       default: DEFAULT_CLOCK_LAYOUT_MODE,
       validate: isClockLayoutMode,
+    },
+  },
+  glowingOrbs: {
+    enabled: {
+      default: true,
+      validate: isBoolean,
     },
   },
   voiceLeading: {
@@ -259,6 +276,8 @@ type SchemaSection<S extends SettingsSectionId> = S extends 'general'
   ? GeneralSettings
   : S extends 'clockFace'
     ? ClockFaceSettings
+    : S extends 'glowingOrbs'
+      ? GlowingOrbsSettings
   : S extends 'voiceLeading'
     ? VoiceLeadingSettings
     : S extends 'voiceBorrowing'
@@ -269,6 +288,7 @@ export type PersistedUserSettings = {
   version: 1;
   general: GeneralSettings;
   clockFace: ClockFaceSettings;
+  glowingOrbs: GlowingOrbsSettings;
   voiceLeading: VoiceLeadingSettings;
   voiceBorrowing: VoiceBorrowingSettings;
   soundDesign: SoundDesignSettings;
@@ -277,6 +297,7 @@ export type PersistedUserSettings = {
 export type SettingKey =
   | keyof GeneralSettings
   | keyof ClockFaceSettings
+  | keyof GlowingOrbsSettings
   | keyof VoiceLeadingSettings
   | keyof VoiceBorrowingSettings
   | keyof SoundDesignSettings;
@@ -297,6 +318,7 @@ export const DEFAULT_USER_SETTINGS: PersistedUserSettings = {
   version: 1,
   general: collectSectionDefaults('general'),
   clockFace: collectSectionDefaults('clockFace'),
+  glowingOrbs: collectSectionDefaults('glowingOrbs'),
   voiceLeading: collectSectionDefaults('voiceLeading'),
   voiceBorrowing: collectSectionDefaults('voiceBorrowing'),
   soundDesign: collectSectionDefaults('soundDesign'),
@@ -346,6 +368,7 @@ export function validateLoadedSettings(raw: unknown): PersistedUserSettings {
     version: 1,
     general: validateSection('general', source.general),
     clockFace: validateSection('clockFace', source.clockFace),
+    glowingOrbs: validateSection('glowingOrbs', source.glowingOrbs),
     voiceLeading: validateSection('voiceLeading', source.voiceLeading),
     voiceBorrowing: validateSection('voiceBorrowing', source.voiceBorrowing),
     soundDesign: validateSection('soundDesign', source.soundDesign),
@@ -355,6 +378,7 @@ export function validateLoadedSettings(raw: unknown): PersistedUserSettings {
 export function buildSettingsSnapshot(input: {
   general: GeneralSettings;
   clockFace: ClockFaceSettings;
+  glowingOrbs: GlowingOrbsSettings;
   voiceLeading: VoiceLeadingSettings;
   voiceBorrowing: VoiceBorrowingSettings;
   soundDesign: SoundDesignSettings;
@@ -363,6 +387,7 @@ export function buildSettingsSnapshot(input: {
     version: 1,
     general: { ...input.general },
     clockFace: { ...input.clockFace },
+    glowingOrbs: { ...input.glowingOrbs },
     voiceLeading: { ...input.voiceLeading },
     voiceBorrowing: { ...input.voiceBorrowing },
     soundDesign: { ...input.soundDesign },
