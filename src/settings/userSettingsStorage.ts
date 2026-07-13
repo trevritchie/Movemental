@@ -23,16 +23,9 @@ export function loadUserSettings(): {
       };
     }
     const parsed: unknown = JSON.parse(raw);
-    if (
-      !parsed ||
-      typeof parsed !== 'object' ||
-      (parsed as { version?: unknown }).version !== SCHEMA_VERSION
-    ) {
-      return {
-        settings: validateLoadedSettings(parsed),
-        hasPersistedSettings: false,
-      };
-    }
+    // Recover whatever fields are present regardless of version mismatch.
+    // hasPersistedSettings is true as long as any stored data exists; a version
+    // difference means the schema evolved, not that the user is new.
     return {
       settings: validateLoadedSettings(parsed),
       hasPersistedSettings: true,
