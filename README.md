@@ -399,17 +399,18 @@ npm run build
 ```
 Highly optimized, minified assets will be generated in the `dist` directory.
 
-On local machines (not CI), `postbuild` deploys `dist/` to Firebase Hosting (`movemental-dev`). CI builds skip deploy.
+`npm run build` never deploys anything on its own. To ship the build to the
+dev Firebase Hosting site, run `npm run deploy` explicitly (see below).
 
 ### Deploy (Firebase Hosting)
 
 | Environment | Project | How it deploys |
 |-------------|---------|----------------|
-| Dev | `movemental-dev` | `npm run build` locally (build + deploy; skipped when `CI=true`) |
+| Dev | `movemental-dev` | `npm run deploy` locally (explicit; builds, then deploys) |
 | Dev preview | `movemental-dev` | Open a PR (GitHub Actions deploys channel `pr-<number>`) |
 | Prod | `movemental-chords` | Push to `main` (GitHub Actions after verify) |
 
-**Local (dev):** Run `firebase login` once at the repository root, then `npm run build` deploys to dev.
+**Local (dev):** Run `firebase login` once at the repository root, then `npm run deploy` builds and deploys to dev.
 
 **PR previews:** Open a pull request. After CI verify passes, GitHub Actions deploys `dist/` to Firebase Hosting preview channel `pr-<number>` on `movemental-dev` and comments the preview URL on the PR. Requires the `FIREBASE_TOKEN` repository secret with Hosting deploy access on `movemental-dev`.
 
