@@ -12,7 +12,7 @@ import {
 } from '../music/config';
 import type { ClockLayoutMode, PlayStyle, VoiceLeadingMode } from '../context/types';
 import {
-  DEFAULT_OUTPUT_PROFILE_ID,
+  DEFAULT_EQ_PROFILE_ID,
   isEqProfileId,
   type EqProfileId,
 } from '../audio/outputProfiles';
@@ -128,7 +128,7 @@ export function getDefaultSoundDesignSettings(): SoundDesignSettings {
 
   return {
     synthPresetId: DEFAULT_SYNTH_PRESET_ID,
-    eqProfileId: DEFAULT_OUTPUT_PROFILE_ID,
+    eqProfileId: DEFAULT_EQ_PROFILE_ID,
     chorusWet: fx.chorusWet,
     delayWet: fx.delayWet,
     reverbWet: fx.reverbWet,

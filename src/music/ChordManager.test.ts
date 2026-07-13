@@ -45,34 +45,6 @@ describe('ChordManager', () => {
     expect(chord?.name).toBe('Wind');
   });
 
-  describe('applyVoicing', () => {
-    // Pitch classes for a close voicing; octave range 3 places them in MIDI 46-55.
-    const basePitches: (number | null)[] = [10, 13, 17, 19];
-
-    beforeEach(() => {
-      manager.setOctaveRange(3);
-    });
-
-    it('applies Close voicing with octave offset only', () => {
-      manager.setVoicing('Close');
-      const voiced = manager.applyVoicing(basePitches);
-      expect(voiced).toEqual([46, 49, 53, 55]);
-    });
-
-    it('drops the second voice for Drop 2', () => {
-      manager.setVoicing('Drop 2');
-      const voiced = manager.applyVoicing(basePitches);
-      expect(voiced[1]).toBe(49 + 12);
-    });
-
-    it('drops second and fourth voices for Drop 2 & 4', () => {
-      manager.setVoicing('Drop 2 & 4');
-      const voiced = manager.applyVoicing(basePitches);
-      expect(voiced[1]).toBe(49 + 12);
-      expect(voiced[3]).toBe(55 + 12);
-    });
-  });
-
   it('rebuilds chords when tonal center changes', () => {
     manager.setTonalCenterOffset(DEFAULT_TONAL_CENTER_OFFSET);
     const before = manager.getChordByName('Earth')!.pitches;

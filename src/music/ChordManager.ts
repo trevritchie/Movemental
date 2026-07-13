@@ -7,11 +7,8 @@ import {
   C4, CS4, DF4, D4, EF4, E4, F4, FS4, GF4, G4, GS4, AF4, A4, BF4, B4,
   C5, CF5, CS5, DF5, D5, DS5, EF5, E5, F5, FS5, GF5, G5, GS5, AF5, A5, BF5, B5,
   A3, B3,
-  VOICING_TO_INDICES,
-  OCTAVE,
   DEFAULT_TONAL_CENTER_OFFSET,
   DEFAULT_OCTAVE_RANGE,
-  DEFAULT_VOICING,
   MIN_OCTAVE_RANGE,
   MAX_OCTAVE_RANGE,
 } from './config';
@@ -39,7 +36,6 @@ export class ChordManager {
   private chordNameToCoordinate: Map<string, { x: number; y: number }> = new Map();
   private tonalCenterOffset: number = DEFAULT_TONAL_CENTER_OFFSET;
   private octaveRange: number = DEFAULT_OCTAVE_RANGE;
-  private voicing: string = DEFAULT_VOICING;
 
   constructor() {
     this.initializeChordDictionary();
@@ -56,10 +52,6 @@ export class ChordManager {
       Math.max(MIN_OCTAVE_RANGE, range)
     );
     this.initializeChordDictionary(); // Re-evaluate voicings
-  }
-
-  public setVoicing(voicing: string) {
-    this.voicing = voicing;
   }
 
   public getOctaveRange(): number {
@@ -255,22 +247,6 @@ export class ChordManager {
     return undefined;
   }
 
-  public applyVoicing(pitches: (number | null)[]): number[] {
-    const voicedPitches: number[] = [];
-    const octaveOffset = OCTAVE * this.octaveRange;
-    const indicesToRaise = VOICING_TO_INDICES[this.voicing] || [];
-
-    for (let i = 0; i < pitches.length; i++) {
-      if (pitches[i] === null) continue;
-
-      let adjustedPitch = pitches[i]! + octaveOffset;
-      if (indicesToRaise.includes(i)) {
-        adjustedPitch += OCTAVE;
-      }
-      voicedPitches.push(adjustedPitch);
-    }
-    return voicedPitches;
-  }
 }
 
 export const chordManager = new ChordManager();

@@ -7,9 +7,6 @@ import { clamp } from '../utils/clamp';
 
 export type EqProfileId = 'smallSpeakers' | 'largeSpeakers' | 'flat';
 
-/** @deprecated Use EqProfileId */
-export type OutputProfileId = EqProfileId;
-
 export interface OutputProfile {
   id: EqProfileId;
   label: string;
@@ -139,8 +136,8 @@ export const OUTPUT_PROFILES: Record<EqProfileId, OutputProfile> = {
   },
 };
 
-/** @deprecated Use resolveDefaultEqProfileId() for tier-aware defaults. */
-export const DEFAULT_OUTPUT_PROFILE_ID: EqProfileId = 'smallSpeakers';
+/** Fixed fallback before layout tier is known; prefer resolveDefaultEqProfileId() when a tier is available. */
+export const DEFAULT_EQ_PROFILE_ID: EqProfileId = 'smallSpeakers';
 
 const REFERENCE_SYNTH_VOLUME_DB =
   OUTPUT_PROFILES.smallSpeakers.loudness.synthVolumeDb;
@@ -166,9 +163,6 @@ export function resolveDefaultEqProfileId(tier?: LayoutTier): EqProfileId {
   void tier;
   return 'smallSpeakers';
 }
-
-/** @deprecated Use resolveDefaultEqProfileId */
-export const resolveDefaultOutputProfileId = resolveDefaultEqProfileId;
 
 export function getOutputProfile(id: EqProfileId): OutputProfile {
   return OUTPUT_PROFILES[id];

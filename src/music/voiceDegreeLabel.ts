@@ -155,15 +155,6 @@ export function getBassDegreeLabelForParallelSteps(
   return formatBassDegreeWithDirection(formatBassDegreeLabel(degree), parallelSteps);
 }
 
-/** @deprecated Use getBassDegreeLabelForParallelSteps with unsigned steps 0..3. */
-export function getBassDegreeLabelForPositionIndex(
-  positionIndex: number,
-  chord: Chord | null
-): string {
-  const clampedIndex = clamp(positionIndex, 0, 3);
-  return getBassDegreeLabelForParallelSteps(clampedIndex, chord);
-}
-
 function voiceLineFromSpelledDegrees(
   chord: Chord,
   lowestPitchClass: number
@@ -284,15 +275,6 @@ export function resolveTiltBassVoiceLine(
   const structure = borrowingPitchStructure(chord, context.borrowingState);
   const line = voiceLineForLowestPitch(voiced, structure, chord);
   return line ?? pitchOnlyVoiceLine(effectiveTilt);
-}
-
-/** @deprecated Use tiltBassDegreeLabel (roll-aware degree, pitch-only arrows). */
-export function tiltBassPositionLabel(
-  tilt: TiltSample,
-  chord: Chord | null,
-  context?: TiltBassLabelContext
-): string {
-  return tiltBassDegreeLabel(tilt, chord, context);
 }
 
 /** Voicing width committed at the last diagram tap. */

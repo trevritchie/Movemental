@@ -222,21 +222,4 @@ describe('BorrowingLogic', () => {
     });
   });
 
-  describe('generateActivePitches', () => {
-    it('changes voiced output when Trunk voice 1 is shifted up', () => {
-      const trunk = chordManager.getChordByName('Trunk');
-      expect(trunk).toBeDefined();
-
-      const baseline = logic.generateActivePitches(trunk!, getInitialBorrowingState());
-
-      const shifted = getInitialBorrowingState();
-      shifted.circlePositions[1] = 'up';
-      shifted.borrowingDirections[1] = 'up';
-
-      const borrowed = logic.generateActivePitches(trunk!, shifted);
-
-      expect(borrowed).not.toEqual(baseline);
-      expect(borrowed.filter(p => p !== null).length).toBe(4);
-    });
-  });
 });

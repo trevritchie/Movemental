@@ -830,11 +830,6 @@ export class AudioEngine {
     return this.eqProfileId;
   }
 
-  /** @deprecated Use getEqProfileId */
-  public getOutputProfileId(): EqProfileId {
-    return this.eqProfileId;
-  }
-
   public async applyPreset(preset: SynthPreset): Promise<void> {
     if (!this.voice || !this.filter) {
       this.currentPreset = preset;

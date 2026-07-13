@@ -132,10 +132,6 @@ export class BorrowingLogic {
     }
   }
 
-  public generateActivePitches(chord: Chord, state: BorrowingState): (number | null)[] {
-    return chordManager.applyVoicing(this.generatePitchStructure(chord, state));
-  }
-
   /** Pitch classes to drop from a voiced chord when voice lines are muted. */
   public getMutedPitchClasses(chord: Chord, state: BorrowingState): Set<number> {
     return this.prepareVoicingInput(chord, state).mutedPitchClasses;
