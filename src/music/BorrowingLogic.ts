@@ -1,6 +1,6 @@
 /**
  * Voice borrowing: circle positions, directions, mutes, and voicing overlays.
- * See web/README.md (Borrowing System). prepareVoicingInput builds the pitch
+ * See README.md (Borrowing System). prepareVoicingInput builds the pitch
  * structure passed to the tilt engine before borrow/mute overlays apply.
  */
 

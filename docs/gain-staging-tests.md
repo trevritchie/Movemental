@@ -93,7 +93,7 @@ ceiling. It does not fail on loudness drift between presets.
 
 ## npm scripts
 
-Run from `web/`:
+Run from the repository root:
 
 ```bash
 # Seven torture scenarios (warmPad dense voicing, samplers, flat profile)

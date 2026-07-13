@@ -1,6 +1,6 @@
 /**
  * Generate src/audio/tonejsInstruments.generated.ts from Tonejs-Instruments.js.
- * Run from web/: node scripts/generate-tonejs-instrument-maps.mjs
+ * Run from repository root: node scripts/generate-tonejs-instrument-maps.mjs
  */
 import { writeFile } from 'node:fs/promises';
 import path from 'node:path';

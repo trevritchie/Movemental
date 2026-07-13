@@ -3,17 +3,11 @@ name: Web
 on:
   push:
     branches: [main]
-    paths:
-      - 'web/**'
-      - '.github/workflows/web.yml'
+    paths-ignore:
+      - 'python-prototype/**'
   pull_request:
-    paths:
-      - 'web/**'
-      - '.github/workflows/web.yml'
-
-defaults:
-  run:
-    working-directory: web
+    paths-ignore:
+      - 'python-prototype/**'
 
 jobs:
   verify:
@@ -25,7 +19,7 @@ jobs:
         with:
           node-version: '20'
           cache: npm
-          cache-dependency-path: web/package-lock.json
+          cache-dependency-path: package-lock.json
 
       - run: npm ci
 
@@ -52,17 +46,14 @@ jobs:
         with:
           node-version: '20'
           cache: npm
-          cache-dependency-path: web/package-lock.json
+          cache-dependency-path: package-lock.json
 
       - run: npm ci
-        working-directory: web
 
       - run: npm run build
-        working-directory: web
         env:
           CI: true
 
       - run: npx firebase deploy --only hosting --project prod --non-interactive
-        working-directory: web
         env:
           FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}

@@ -7,7 +7,7 @@ defaults in `predeterminedVoiceLeading.ts` unless noted below.
 Settings: tonal center Bb, home octave 2, contrary tilt anchor.
 
 To change Smooth mode defaults, edit `CHORD_FLAT_PARALLEL` in
-`web/src/music/predeterminedVoiceLeading.ts`. Re-run the vitest
+`src/music/predeterminedVoiceLeading.ts`. Re-run the vitest
 `writes smoothest-from-branch table markdown for review` test in
 `smoothestParallelFromBranch.test.ts` to regenerate this file.
 

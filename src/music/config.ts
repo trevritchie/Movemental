@@ -1,6 +1,6 @@
 /**
  * Global defaults, note names, borrowing relationships, and MIDI reference
- * pitches. Ported from Movemental config.py; see web/README.md for how defaults
+ * pitches. Ported from Movemental config.py; see README.md for how defaults
  * surface in ChordContext and playback.
  */
 

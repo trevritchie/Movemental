@@ -1,6 +1,6 @@
 # Production bundle baseline
 
-Run an analyzed build from `web/`:
+Run an analyzed build from the repository root:
 
 ```bash
 npm run build:analyze

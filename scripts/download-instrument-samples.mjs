@@ -1,6 +1,6 @@
 /**
  * Download vendored instrument samples into public/samples/.
- * Run from web/: node scripts/download-instrument-samples.mjs
+ * Run from repository root: node scripts/download-instrument-samples.mjs
  */
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
