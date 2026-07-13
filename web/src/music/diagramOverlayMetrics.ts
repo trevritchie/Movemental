@@ -1,12 +1,9 @@
-/**
- * Compute CSS custom properties for phone diagram corner overlays from the
- * measured diagram container size.
- */
+import { clamp } from '../utils/clamp';
+import { computeOverlayCornerSpans, computePhoneLayoutScale } from './diagramScaling';
+import type { DiagramContainerSize } from './diagramLayoutTypes';
 
-export interface DiagramOverlayMetricsInput {
-  width: number;
-  height: number;
-}
+/** Chord readout title is scaled 20% above voicing overlay values. */
+const CHORD_TITLE_SIZE_SCALE = 1.2;
 
 export type DiagramOverlayCssVars = {
   '--overlay-inset': string;
@@ -23,8 +20,6 @@ export type DiagramOverlayCssVars = {
   '--overlay-pill-padding-x': string;
 };
 
-import { clamp } from '../utils/clamp';
-
 /** Default overlay metrics before the container is measured. */
 export const DEFAULT_OVERLAY_METRICS: DiagramOverlayCssVars = {
   '--overlay-inset': '4px',
@@ -32,7 +27,7 @@ export const DEFAULT_OVERLAY_METRICS: DiagramOverlayCssVars = {
   '--overlay-inset-y': '4px',
   '--overlay-value-size': '15px',
   '--overlay-label-size': '10.5px',
-  '--overlay-title-size': '15px',
+  '--overlay-title-size': '18px',
   '--overlay-subtitle-size': '12.5px',
   '--overlay-corner-max-w': '140px',
   '--overlay-clock-size': '120px',
@@ -43,12 +38,11 @@ export const DEFAULT_OVERLAY_METRICS: DiagramOverlayCssVars = {
 
 /**
  * Map diagram container dimensions to overlay sizing CSS variables.
- *
  * Bottom overlays may overlap the diagram vertically; sizing keeps each
  * corner within half the width minus a center gutter for Fire and nodes.
  */
 export function computeDiagramOverlayMetrics(
-  input: DiagramOverlayMetricsInput,
+  input: DiagramContainerSize,
 ): DiagramOverlayCssVars {
   const { width, height } = input;
   if (width <= 0 || height <= 0) {
@@ -59,32 +53,26 @@ export function computeDiagramOverlayMetrics(
   const insetX = clamp(Math.round(shortSide * 0.006), 2, 4);
   const insetY = clamp(Math.round(shortSide * 0.012), 4, 8);
 
-  const layoutScale = clamp(
-    Math.min(height / 480, width / 360),
-    0.78,
-    1,
-  );
+  const layoutScale = computePhoneLayoutScale(width, height);
 
   const valueSize = clamp(shortSide * 0.034 * layoutScale, 12, 17);
   const labelSize = clamp(valueSize * 0.72, 9, 12);
-  const titleSize = valueSize;
+  const titleSize = clamp(
+    valueSize * CHORD_TITLE_SIZE_SCALE,
+    14,
+    17 * CHORD_TITLE_SIZE_SCALE,
+  );
   const subtitleSize = clamp(valueSize * 0.82, 10.5, 14.5);
 
-  const centerGutter = clamp(Math.round(width * 0.14), 36, 56);
-  const maxCornerSpan = Math.max(
-    72,
-    Math.round((width - centerGutter) / 2 - insetX - 4),
-  );
+  const { maxHalfSpan } = computeOverlayCornerSpans(width, insetX);
 
   const clockSize = Math.round(
-    clamp(width * 0.34, 72, Math.min(132, maxCornerSpan)),
+    clamp(width * 0.34, 72, Math.min(132, maxHalfSpan)),
   );
-
-  const readoutMaxW = maxCornerSpan;
 
   const cornerMaxW = Math.max(
     72,
-    Math.round(Math.min(width * 0.44, maxCornerSpan)),
+    Math.round(Math.min(width * 0.44, maxHalfSpan)),
   );
 
   const pillPadY = clamp(Math.round(4 + layoutScale * 2), 4, 6);
@@ -100,20 +88,20 @@ export function computeDiagramOverlayMetrics(
     '--overlay-subtitle-size': `${subtitleSize.toFixed(1)}px`,
     '--overlay-corner-max-w': `${cornerMaxW}px`,
     '--overlay-clock-size': `${clockSize}px`,
-    '--overlay-readout-max-w': `${readoutMaxW}px`,
+    '--overlay-readout-max-w': `${maxHalfSpan}px`,
     '--overlay-pill-padding-y': `${pillPadY}px`,
     '--overlay-pill-padding-x': `${pillPadX}px`,
   };
 }
 
-/**
- * Apply overlay CSS variables to a diagram container element.
- */
+/** Apply overlay CSS variables to a diagram container element. */
 export function applyDiagramOverlayMetrics(
   element: HTMLElement,
   metrics: DiagramOverlayCssVars,
 ): void {
   for (const [key, value] of Object.entries(metrics)) {
-    element.style.setProperty(key, value);
+    if (element.style.getPropertyValue(key) !== value) {
+      element.style.setProperty(key, value);
+    }
   }
 }

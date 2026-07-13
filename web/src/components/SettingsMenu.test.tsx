@@ -44,6 +44,8 @@ vi.mock('../context/ChordContext', () => ({
     setPlayStyle,
     clockLayoutMode: 'chromatic',
     setClockLayoutMode,
+    glowingOrbsEnabled: true,
+    setGlowingOrbsEnabled: vi.fn(),
     tiltModeEnabled: false,
     synthPresetId: 'warmPad',
     setSynthPresetId: vi.fn(),
@@ -172,6 +174,7 @@ describe('MobileActionButtons', () => {
     const tonalCenterIndex = text.indexOf('Tonal Center');
     const voiceLeadingIndex = text.indexOf('Voice Leading');
     const clockFaceIndex = text.indexOf('Clock Face Diagram');
+    const glowingOrbsIndex = text.indexOf('Glowing Orbs');
 
     expect(instrumentIndex).toBeGreaterThan(-1);
     expect(playStyleIndex).toBeGreaterThan(-1);
@@ -179,11 +182,12 @@ describe('MobileActionButtons', () => {
     expect(tonalCenterIndex).toBeGreaterThan(playStyleIndex);
     expect(voiceLeadingIndex).toBeGreaterThan(tonalCenterIndex);
     expect(clockFaceIndex).toBeGreaterThan(voiceLeadingIndex);
+    expect(glowingOrbsIndex).toBeGreaterThan(clockFaceIndex);
     expect(screen.queryByText('Sound')).not.toBeInTheDocument();
     expect(screen.queryByText('Playback')).not.toBeInTheDocument();
     expect(
       screen.getAllByRole('button', { name: /reset .* to defaults/i }).length,
-    ).toBeGreaterThanOrEqual(7);
+    ).toBeGreaterThanOrEqual(8);
     expect(
       screen.getByRole('heading', { level: 3, name: 'Voice Leading' }),
     ).toBeInTheDocument();

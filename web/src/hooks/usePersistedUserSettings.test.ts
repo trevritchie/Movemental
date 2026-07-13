@@ -21,6 +21,7 @@ describe('usePersistedUserSettings', () => {
     const snapshot = {
       general: DEFAULT_USER_SETTINGS.general,
       clockFace: DEFAULT_USER_SETTINGS.clockFace,
+      glowingOrbs: DEFAULT_USER_SETTINGS.glowingOrbs,
       voiceLeading: DEFAULT_USER_SETTINGS.voiceLeading,
       voiceBorrowing: DEFAULT_USER_SETTINGS.voiceBorrowing,
       soundDesign: getDefaultSoundDesignSettings(),
@@ -51,6 +52,7 @@ describe('usePersistedUserSettings', () => {
     const snapshot = {
       general: DEFAULT_USER_SETTINGS.general,
       clockFace: DEFAULT_USER_SETTINGS.clockFace,
+      glowingOrbs: DEFAULT_USER_SETTINGS.glowingOrbs,
       voiceLeading: DEFAULT_USER_SETTINGS.voiceLeading,
       voiceBorrowing: DEFAULT_USER_SETTINGS.voiceBorrowing,
       soundDesign: getDefaultSoundDesignSettings(),

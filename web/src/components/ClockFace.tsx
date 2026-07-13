@@ -66,11 +66,12 @@ export const ClockFace: React.FC<{ isMobileOverlay?: boolean }> = ({
   const { tonalCenter, activePitches, selectedChord, clockLayoutMode } =
     useChordContext();
 
-  const elementalName = selectedChord?.name || null;
+  const elementalName = selectedChord?.name ?? null;
   const traditionalName = selectedChord?.traditionalName || null;
 
   const displayElementalName = useMemo(() => {
-    if (!elementalName || !isMobileOverlay) return elementalName;
+    if (!elementalName) return null;
+    if (!isMobileOverlay) return elementalName;
     return mobileChordDisplayName(elementalName);
   }, [elementalName, isMobileOverlay]);
 
@@ -129,40 +130,46 @@ export const ClockFace: React.FC<{ isMobileOverlay?: boolean }> = ({
     return lines;
   }, [activeNodes]);
 
+  const titleText = displayElementalName ?? 'Select a Chord';
+
+  const chemistryRow = elementFormula ? (
+    <div
+      className="chemistry-formula"
+      aria-label="Elemental chemistry formula"
+    >
+      {elementFormula.earth > 0 && (
+        <span className="chem-element chem-earth">
+          Earth<sub>{elementFormula.earth}</sub>
+        </span>
+      )}
+      {elementFormula.wind > 0 && (
+        <span className="chem-element chem-wind">
+          Wind<sub>{elementFormula.wind}</sub>
+        </span>
+      )}
+      {elementFormula.fire > 0 && (
+        <span className="chem-element chem-fire">
+          Fire<sub>{elementFormula.fire}</sub>
+        </span>
+      )}
+    </div>
+  ) : (
+    <div className="chemistry-formula">---</div>
+  );
+
+  const traditionalRow = isMobileOverlay
+    ? (traditionalName ?? '---')
+    : selectedChord
+      ? formatChordReadout(traditionalName, activePitches, selectedChord)
+      : '---';
+
   const chordInfo = (
     <>
-      <div className="elemental-name">
-        {displayElementalName || 'Select a Chord'}
-      </div>
-      {elementFormula && (
-        <div
-          className="chemistry-formula"
-          aria-label="Elemental chemistry formula"
-        >
-          {elementFormula.earth > 0 && (
-            <span className="chem-element chem-earth">
-              Earth<sub>{elementFormula.earth}</sub>
-            </span>
-          )}
-          {elementFormula.wind > 0 && (
-            <span className="chem-element chem-wind">
-              Wind<sub>{elementFormula.wind}</sub>
-            </span>
-          )}
-          {elementFormula.fire > 0 && (
-            <span className="chem-element chem-fire">
-              Fire<sub>{elementFormula.fire}</sub>
-            </span>
-          )}
-        </div>
-      )}
-      <div className="traditional-name">
-        {isMobileOverlay
-          ? traditionalName || '---'
-          : formatChordReadout(traditionalName, activePitches, selectedChord)}
-      </div>
-      {isMobileOverlay && playingNotes && (
-        <div className="playing-notes">{playingNotes}</div>
+      <div className="elemental-name">{titleText}</div>
+      {chemistryRow}
+      <div className="traditional-name">{traditionalRow}</div>
+      {isMobileOverlay && (
+        <div className="playing-notes">{playingNotes || '---'}</div>
       )}
     </>
   );

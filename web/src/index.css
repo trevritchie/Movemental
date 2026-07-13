@@ -119,11 +119,17 @@ body.scroll-locked {
   min-height: 0;
 }
 
+.main-content > .diagram-container {
+  height: 100%;
+  align-self: stretch;
+  min-height: 0;
+}
+
 /* ==========================================================================
    Mobile phone layout (coarse pointer)
    ========================================================================== */
 @media (max-width: 767px),
-       (max-width: 950px) and (orientation: portrait) and (pointer: coarse) {
+       (orientation: portrait) and (pointer: coarse) {
   html,
   body {
     height: 100%;
@@ -195,7 +201,8 @@ body.scroll-locked {
     flex-direction: row;
     align-items: stretch;
     justify-content: center;
-    gap: 6px;
+    /* Wide enough for two adjacent fingertips at the same height. */
+    gap: 14px;
     flex: 1;
     min-width: 0;
     min-height: 132px;
@@ -208,7 +215,7 @@ body.scroll-locked {
     align-items: center;
     min-width: 0;
     min-height: 0;
-    max-width: 48px;
+    max-width: 52px;
     height: 100%;
     align-self: stretch;
   }
@@ -360,7 +367,7 @@ body.scroll-locked {
   }
 
   .clock-container.mobile-overlay .elemental-name {
-    font-size: var(--overlay-title-size, 15px) !important;
+    font-size: var(--overlay-title-size, 18px) !important;
     font-weight: 700;
     margin-bottom: 2px;
     overflow: hidden;
@@ -438,19 +445,16 @@ body.scroll-locked {
 }
 
 /* ==========================================================================
-   Desktop and tablet: hide mobile clock overlay
+   Hide mobile clock overlay outside stacked phone layout
    ========================================================================== */
-@media (min-width: 768px) and (pointer: fine),
-       (min-width: 768px) and (max-width: 1199px) and (pointer: coarse) {
-  .clock-container.mobile-overlay {
-    display: none;
-  }
+.diagram-container:not([data-layout-tier="phone"]) .clock-container.mobile-overlay {
+  display: none;
 }
 
 /* ==========================================================================
    Tablet touch layout (side-by-side grid)
    ========================================================================== */
-@media (min-width: 768px) and (max-width: 1199px) and (pointer: coarse) {
+@media (min-width: 768px) and (max-width: 1199px) and (pointer: coarse) and (orientation: landscape) {
   .app-container {
     padding: 0 max(12px, env(safe-area-inset-right))
              max(12px, env(safe-area-inset-bottom))
@@ -1518,7 +1522,7 @@ body.scroll-locked {
    Mobile diagram container overrides
    ========================================================================== */
 @media (max-width: 767px),
-       (max-width: 950px) and (orientation: portrait) and (pointer: coarse) {
+       (orientation: portrait) and (pointer: coarse) {
   .diagram-container {
     flex: 1;
     min-height: 0;
@@ -1598,13 +1602,84 @@ body.scroll-locked {
 }
 
 @media (max-width: 767px),
-       (max-width: 950px) and (orientation: portrait) and (pointer: coarse) {
+       (orientation: portrait) and (pointer: coarse) {
   .unified-side-panel {
     height: auto;
   }
   .side-divider {
     width: 90%;
   }
+}
+
+/* ==========================================================================
+   Diagram background orbs
+   Layering: z-index 0 here, .diagram-svg at z-index 1, overlays at 2+.
+   Ambient mode reuses splash orb classes (.splash-background, .glow-orb, etc.).
+   Tilt (--level): CSS swirl/float kept; rAF spring-offsets .mouse-follower.
+   ========================================================================== */
+.diagram-background-orbs {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  contain: layout paint style;
+}
+
+.diagram-background-orbs .splash-background {
+  /* Contain splash blur layer to the diagram panel (not the full viewport). */
+  position: absolute;
+  inset: 0;
+  filter: blur(40px);
+  opacity: 0.85;
+}
+
+/* Ambient (no-tilt): center the group; CSS swirl/float drive motion. */
+.diagram-background-orbs .mouse-follower {
+  top: 50%;
+  left: 50%;
+  transform: none;
+  transition: none;
+}
+
+.diagram-background-orbs--level .splash-background {
+  filter: blur(32px);
+  opacity: 0.95;
+}
+
+/* Center the group; JS writes translate3d for bubble-level offset. */
+.diagram-background-orbs--level .mouse-follower {
+  top: 50%;
+  left: 50%;
+  transition: none;
+}
+
+.diagram-background-orbs--level-active .mouse-follower {
+  will-change: transform;
+}
+
+/* Orb diameter/position: inherit splash .orb-1/.orb-2/.orb-3 (vmin). */
+
+/* Compact / phone: lower live blur cost on weaker GPUs. */
+@media (max-width: 767px),
+       (orientation: portrait) and (pointer: coarse) {
+  .diagram-background-orbs .splash-background {
+    filter: blur(28px);
+  }
+
+  .diagram-background-orbs--level .splash-background {
+    filter: blur(24px);
+    opacity: 0.92;
+  }
+}
+
+/* Prefer-reduced-motion: keep ambient CSS swirl like the splash page
+   (decorative background). Tilt JS physics still pauses via
+   shouldPauseOrbPhysics / prefersReducedMotion. */
+
+.diagram-container .diagram-svg {
+  position: relative;
+  z-index: 1;
 }
 
 /* ==========================================================================
@@ -1616,7 +1691,7 @@ body.scroll-locked {
 }
 
 @media (max-width: 767px) and (orientation: portrait),
-       (max-width: 950px) and (orientation: portrait) and (pointer: coarse) {
+       (orientation: portrait) and (pointer: coarse) {
   .diagram-svg {
     transform: none;
   }
@@ -1641,7 +1716,7 @@ body.scroll-locked {
   transform: scale(1.15);
 }
 
-.chord-node.active circle {
+.chord-node.active .chord-node-core {
   stroke: white;
   stroke-width: 3;
 }
@@ -1723,7 +1798,7 @@ input[type="range"] {
 }
 
 .elemental-name {
-  font-size: 1.25rem;
+  font-size: 1.5rem;
   font-weight: 700;
   margin-bottom: 2px;
 }
@@ -1797,7 +1872,8 @@ input[type="range"] {
   flex-direction: row;
   align-items: stretch;
   justify-content: center;
-  gap: 8px;
+  /* Match phone slider separation for tablet / coarse pointers. */
+  gap: 14px;
   height: 100%;
   min-height: 0;
   overflow: hidden;
@@ -1810,7 +1886,7 @@ input[type="range"] {
   align-items: center;
   min-width: 0;
   min-height: 0;
-  max-width: 56px;
+  max-width: 60px;
 }
 
 .borrow-slider {
@@ -2107,7 +2183,7 @@ input[type="range"] {
 }
 
 @media (max-width: 767px),
-       (max-width: 950px) and (orientation: portrait) and (pointer: coarse) {
+       (orientation: portrait) and (pointer: coarse) {
   .adsr-svg {
     aspect-ratio: 4 / 1;
     max-height: 80px;

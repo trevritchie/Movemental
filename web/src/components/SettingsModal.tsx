@@ -10,6 +10,7 @@ import { EffectsPanelContent } from './settings/EffectsPanelContent';
 import { BorrowingMemoryToggle } from './settings/BorrowingMemoryToggle';
 import { VoiceLeadingToggle } from './settings/VoiceLeadingToggle';
 import { ClockLayoutToggle } from './settings/ClockLayoutToggle';
+import { GlowingOrbsToggle } from './settings/GlowingOrbsToggle';
 import { EqProfileToggle } from './settings/EqProfileToggle';
 import { PlayStyleToggle } from './settings/PlayStyleToggle';
 import { InstrumentPresetPicker } from './settings/InstrumentPresetPicker';
@@ -402,6 +403,20 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     Choose how note names are arranged around the diagram.
                   </p>
                   <ClockLayoutToggle />
+                  </div>
+                </div>
+
+                <div className="settings-menu-setting">
+                  <SettingsSettingHeader
+                    groupId="glowingOrbs"
+                    onReset={resetSettingsGroup}
+                  />
+                  <div className="settings-menu-section__panel">
+                  <p className="settings-menu-section__hint">
+                    Show the ambient Earth, Wind, and Fire glow behind the
+                    diagram.
+                  </p>
+                  <GlowingOrbsToggle />
                   </div>
                 </div>
 

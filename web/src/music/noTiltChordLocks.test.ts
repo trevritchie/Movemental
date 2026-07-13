@@ -63,6 +63,39 @@ describe('noTiltChordLocks', () => {
     expect(bassLevels).toEqual([6]);
   });
 
+  it('defers React setters when deferSetState is true', async () => {
+    const maps = lockNoTiltBass(
+      lockNoTiltVoicing(createEmptyNoTiltChordLockMaps(), 'Branch', 4),
+      'Branch',
+      6
+    );
+    const voicingRef = { current: 0 };
+    const bassRef = { current: 0 };
+    const voicingLevels: number[] = [];
+    const bassLevels: number[] = [];
+
+    applyNoTiltLocksForChord(
+      maps,
+      'Branch',
+      {
+        noTiltVoicingLevelRef: voicingRef,
+        noTiltPositionLevelRef: bassRef,
+        setNoTiltVoicingLevel: (level) => voicingLevels.push(level),
+        setNoTiltPositionLevel: (level) => bassLevels.push(level),
+      },
+      { deferSetState: true },
+    );
+
+    expect(voicingRef.current).toBe(4);
+    expect(bassRef.current).toBe(6);
+    expect(voicingLevels).toEqual([]);
+    expect(bassLevels).toEqual([]);
+
+    await Promise.resolve();
+    expect(voicingLevels).toEqual([4]);
+    expect(bassLevels).toEqual([6]);
+  });
+
   it('returns locked levels from effective helpers', () => {
     const maps = lockNoTiltBass(
       lockNoTiltVoicing(createEmptyNoTiltChordLockMaps(), 'Branch', 2),

@@ -301,7 +301,6 @@ export interface SmoothestReanchorCallbacks {
   preserveSameChordSmoothestTilt: (chordName: string) => TiltSample;
   getBaselineTilt: () => TiltSample;
   getCurrentControlTilt: () => TiltSample;
-  setSmoothBaseParallel: (parallel: number) => void;
 }
 
 export function resolveSmoothestReanchorTilt(
@@ -332,7 +331,7 @@ export function resolveSmoothestReanchorTilt(
   );
   const { inputSteps } = mapTiltToPositions(currentTilt);
   const tilt = tiltSampleFromLevels(inputSteps, effectiveParallel);
+  // Ref only; React flush happens after audio in commitPlayback.
   smoothBaseParallelRef.current = effectiveParallel;
-  callbacks.setSmoothBaseParallel(effectiveParallel);
   return tilt;
 }

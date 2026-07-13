@@ -30,7 +30,7 @@ describe('Responsive Layout CSS', () => {
   const breakpointsCss = fs.readFileSync(breakpointsCssPath, 'utf-8');
 
   const phoneLayoutPattern =
-    /\(max-width:\s*767px\)[\s\S]*?\(max-width:\s*950px\)\s*and\s*\(\s*orientation:\s*portrait\s*\)\s*and\s*\(\s*pointer:\s*coarse\s*\)/;
+    /\(max-width:\s*767px\)[\s\S]*?\(\s*orientation:\s*portrait\s*\)\s*and\s*\(\s*pointer:\s*coarse\s*\)/;
 
   // Slice the combined mobile media-query block for focused assertions.
   function phoneLayoutBlock(maxLength = 2500): string {
@@ -235,7 +235,7 @@ describe('Responsive Layout CSS', () => {
 
   it('should not block all coarse-pointer landscape devices globally in CSS', () => {
     expect(cssContent).not.toMatch(
-      /\(pointer:\s*coarse\)\s*and\s*\(\s*orientation:\s*landscape\s*\)\s*\{/,
+      /\(pointer:\s*coarse\)\s*and\s*\(\s*orientation:\s*landscape\s*\)\s*\{[^}]*(?:#root|visibility:\s*hidden)/,
     );
   });
 
@@ -261,9 +261,18 @@ describe('Responsive Layout CSS', () => {
     expect(PHONE_LANDSCAPE_BLOCK_MEDIA).toContain('orientation: landscape');
   });
 
-  it('should define tablet touch layout between 768px and 1199px', () => {
+  it('should define tablet touch layout for landscape between 768px and 1199px', () => {
     expect(cssContent).toMatch(
-      /@media\s*\(\s*min-width:\s*768px\s*\)\s*and\s*\(\s*max-width:\s*1199px\s*\)\s*and\s*\(\s*pointer:\s*coarse\s*\)/,
+      /@media\s*\(\s*min-width:\s*768px\s*\)\s*and\s*\(\s*max-width:\s*1199px\s*\)\s*and\s*\(\s*pointer:\s*coarse\s*\)\s*and\s*\(\s*orientation:\s*landscape\s*\)/,
+    );
+  });
+
+  it('should hide mobile clock overlay only outside phone layout tier', () => {
+    expect(cssContent).toMatch(
+      /\.diagram-container:not\(\[data-layout-tier="phone"\]\)\s*\.clock-container\.mobile-overlay[\s\S]*display:\s*none/,
+    );
+    expect(cssContent).not.toMatch(
+      /\(min-width:\s*768px\)\s*and\s*\(\s*max-width:\s*1199px\s*\)\s*and\s*\(\s*pointer:\s*coarse\s*\)\s*\{[\s\S]*?\.clock-container\.mobile-overlay/,
     );
   });
 
@@ -331,9 +340,42 @@ describe('resolveLayoutTier', () => {
       configurable: true,
       value: 1024,
     });
-    mockMatchMedia((query) => query === '(pointer: coarse)');
+    mockMatchMedia(
+      (query) =>
+        query === '(pointer: coarse)' || query === '(orientation: landscape)',
+    );
 
     expect(resolveLayoutTier()).toBe('tablet');
+  });
+
+  it('should classify touch portrait tablets as phone', async () => {
+    const { resolveLayoutTier } = await import('./layout/breakpoints');
+
+    Object.defineProperty(window, 'innerWidth', {
+      configurable: true,
+      value: 1024,
+    });
+    mockMatchMedia(
+      (query) =>
+        query === '(pointer: coarse)' || query === '(orientation: portrait)',
+    );
+
+    expect(resolveLayoutTier()).toBe('phone');
+  });
+
+  it('should classify iPad Mini portrait width as phone', async () => {
+    const { resolveLayoutTier } = await import('./layout/breakpoints');
+
+    Object.defineProperty(window, 'innerWidth', {
+      configurable: true,
+      value: 768,
+    });
+    mockMatchMedia(
+      (query) =>
+        query === '(pointer: coarse)' || query === '(orientation: portrait)',
+    );
+
+    expect(resolveLayoutTier()).toBe('phone');
   });
 });
 

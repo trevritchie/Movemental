@@ -13,7 +13,7 @@
  * - tilt play style: contrary roll (bass can shift with voicing width)
  * - drone/no-tilt controls: pivot roll (position sets the bass note)
  */
-import { useState, useEffect, useRef, useCallback, type RefObject } from 'react';
+import { useState, useEffect, useRef, useCallback, startTransition, type RefObject } from 'react';
 import { chordManager, type Chord } from '../music/ChordManager';
 import { type BorrowingState } from '../music/BorrowingLogic';
 import {
@@ -62,6 +62,10 @@ import {
   isNoTiltVoicingLocked,
   type NoTiltChordLockMaps,
 } from '../music/noTiltChordLocks';
+import {
+  armNoTiltRevoiceSuppress,
+  type NoTiltRevoiceSuppressState,
+} from '../music/noTiltRevoiceSuppress';
 
 interface UseChordPlaybackOptions {
   getBorrowingStateForChord: (
@@ -71,6 +75,16 @@ interface UseChordPlaybackOptions {
   borrowingStateRef: RefObject<BorrowingState>;
   setBorrowingState: (state: BorrowingState) => void;
   setSelectedChord: (chord: Chord | null) => void;
+  /**
+   * Sole writer is commitPlayback / empty-pitch path (not a selectedChord
+   * mirror effect). Must update before deferred level setState flushes.
+   */
+  selectedChordNameRef: RefObject<string | null>;
+  /**
+   * Generation-based suppress for the ChordContext re-voice effect after
+   * pointer commits (see noTiltRevoiceSuppress.ts).
+   */
+  suppressNoTiltRevoiceRef: RefObject<NoTiltRevoiceSuppressState>;
   rawTiltRef: RefObject<TiltSample>;
   noTiltVoicingLevelRef: RefObject<number>;
   noTiltPositionLevelRef: RefObject<number>;
@@ -78,7 +92,7 @@ interface UseChordPlaybackOptions {
   voiceLeadingModeRef: RefObject<VoiceLeadingMode>;
   setNoTiltPositionLevel: (level: number) => void;
   noTiltLockMapsRef: RefObject<NoTiltChordLockMaps>;
-  applyNoTiltLocksForChord: (chordName: string) => void;
+  applyNoTiltLocksForChord: (chordName: string, deferSetState?: boolean) => void;
   clearNoTiltChordLocks: () => void;
   initialPlayStyle?: PlayStyle;
   hasPersistedSettings?: boolean;
@@ -104,6 +118,8 @@ export function useChordPlayback({
   borrowingStateRef,
   setBorrowingState,
   setSelectedChord,
+  selectedChordNameRef,
+  suppressNoTiltRevoiceRef,
   rawTiltRef,
   noTiltVoicingLevelRef,
   noTiltPositionLevelRef,
@@ -259,21 +275,33 @@ export function useChordPlayback({
   }, [rawTiltRef, noTiltVoicingLevelRef, noTiltPositionLevelRef]);
 
   const syncNoTiltPositionLevel = useCallback(
-    (effectiveParallel: number) => {
+    (effectiveParallel: number, deferSetState = false) => {
       const newLevel = noTiltPositionLevelFromParallelSteps(effectiveParallel);
       noTiltPositionLevelRef.current = newLevel;
-      setNoTiltPositionLevel(newLevel);
+      if (deferSetState) {
+        queueMicrotask(() => {
+          // Pair suppress with the deferred setState so the re-voice effect
+          // skips one redundant pass after pointer audio already voiced.
+          armNoTiltRevoiceSuppress(suppressNoTiltRevoiceRef.current);
+          setNoTiltPositionLevel(newLevel);
+        });
+      } else {
+        setNoTiltPositionLevel(newLevel);
+      }
     },
-    [setNoTiltPositionLevel, noTiltPositionLevelRef]
+    [setNoTiltPositionLevel, noTiltPositionLevelRef, suppressNoTiltRevoiceRef]
   );
 
   /**
-   * Smoothest mode: minimum-motion parallel on chord change.
+   * Smoothest re-anchor. Writes refs only; React level/baseline flush happens
+   * after audio in commitPlayback. Optional syncPositionLevel defers setState
+   * on pointer taps (same contract as smooth mode).
    */
   const applySmoothestVoiceLeading = useCallback(
     (
       displayChord: Chord,
-      elemental?: ElementalPlaybackResolution
+      elemental?: ElementalPlaybackResolution,
+      syncPositionLevel: (effectiveParallel: number) => void = syncNoTiltPositionLevel
     ): TiltSample => {
       const lockMaps = noTiltLockMapsRef.current;
       const chordName = displayChord.name;
@@ -289,7 +317,6 @@ export function useChordPlayback({
           );
           const effectiveParallel = parallelLevelFromTilt(effectiveTilt);
           smoothBaseParallelRef.current = effectiveParallel;
-          setSmoothBaseParallel(effectiveParallel);
           return effectiveTilt;
         }
       }
@@ -353,13 +380,12 @@ export function useChordPlayback({
       );
 
       smoothBaseParallelRef.current = effectiveParallel;
-      setSmoothBaseParallel(effectiveParallel);
 
       if (
         !usesDeviceTilt(tiltModeRef.current) &&
         !isNoTiltBassLocked(lockMaps, chordName)
       ) {
-        syncNoTiltPositionLevel(effectiveParallel);
+        syncPositionLevel(effectiveParallel);
       }
 
       return effectiveTilt;
@@ -375,7 +401,10 @@ export function useChordPlayback({
   );
 
   const preserveSameChordSmoothestTilt = useCallback(
-    (chordName: string): TiltSample => {
+    (
+      chordName: string,
+      syncPositionLevel: (effectiveParallel: number) => void = syncNoTiltPositionLevel
+    ): TiltSample => {
       const currentTilt = getCurrentControlTilt();
       const parallelDelta =
         parallelLevelFromTilt(currentTilt) -
@@ -408,7 +437,7 @@ export function useChordPlayback({
         !usesDeviceTilt(tiltModeRef.current) &&
         !isNoTiltBassLocked(lockMaps, chordName)
       ) {
-        syncNoTiltPositionLevel(effectiveParallel);
+        syncPositionLevel(effectiveParallel);
       }
 
       return effectiveTilt;
@@ -595,26 +624,36 @@ export function useChordPlayback({
   );
 
   const updateVoiceLeadingBaseline = useCallback(
-    (playbackTilt: TiltSample) => {
+    (playbackTilt: TiltSample, deferSetState = false) => {
       lastCommittedPlaybackTiltRef.current = { ...playbackTilt };
-      setLastCommittedPlaybackTilt(lastCommittedPlaybackTiltRef.current);
 
       if (usesDeviceTilt(tiltModeRef.current)) {
         lastTapTiltRef.current = { ...rawTiltRef.current };
-        setLastTapTilt(lastTapTiltRef.current);
       } else {
         const { voicingLevel, positionLevel } =
           noTiltLevelsFromTilt(playbackTilt);
         lastNoTiltVoicingLevelRef.current = voicingLevel;
         lastNoTiltPositionLevelRef.current = positionLevel;
         lastTapTiltRef.current = playbackTilt;
-        setLastTapTilt(playbackTilt);
       }
 
       if (commitsSmoothestParallelBaseline(voiceLeadingModeRef.current)) {
         const committedParallel = parallelLevelFromTilt(playbackTilt);
         smoothBaseParallelRef.current = committedParallel;
-        setSmoothBaseParallel(committedParallel);
+      }
+
+      const applyReactSync = () => {
+        setLastCommittedPlaybackTilt(lastCommittedPlaybackTiltRef.current);
+        setLastTapTilt(lastTapTiltRef.current);
+        if (commitsSmoothestParallelBaseline(voiceLeadingModeRef.current)) {
+          setSmoothBaseParallel(smoothBaseParallelRef.current);
+        }
+      };
+
+      if (deferSetState) {
+        queueMicrotask(() => startTransition(applyReactSync));
+      } else {
+        startTransition(applyReactSync);
       }
     },
     [rawTiltRef, voiceLeadingModeRef]
@@ -631,11 +670,37 @@ export function useChordPlayback({
         retrigger?: boolean;
         skipIfUnchanged?: boolean;
         fromPointer?: boolean;
+        borrowingStateOverride?: BorrowingState;
       } = {}
     ) => {
       dispatchAudio(pitches, options);
 
       previousChordRef.current = displayChord;
+      activePitchesRef.current = pitches;
+      // Sole writer for selectedChordNameRef (no selectedChord mirror effect).
+      // Sync before any deferred no-tilt level setState flushes. Otherwise the
+      // ChordContext re-voice effect can replay the previous chord.
+      selectedChordNameRef.current = displayChord.name;
+
+      const fromPointer = options.fromPointer ?? false;
+      if (fromPointer) {
+        // Skip the re-voice effect once. Pointer commits change selectedChord,
+        // which often recreates getBorrowingStateForChord and would re-enter
+        // playAndDisplayChord without this guard (including first-chord paths
+        // that do not queue a deferred level setState).
+        armNoTiltRevoiceSuppress(suppressNoTiltRevoiceRef.current);
+      }
+
+      invalidateVoicingCacheForCommit(
+        displayChord.name,
+        state,
+        voiceLeadingModeRef.current
+      );
+      updateVoiceLeadingBaseline(playbackTilt, fromPointer);
+
+      // Chord identity and readout must stay sync after audio. Deferring them
+      // via startTransition races with normal-priority level updates and can
+      // leave the UI (and re-voice effect) stuck on the previous chord.
       setPreviousPlayedChord(displayChord);
       setSelectedChord(displayChord);
       if (elemental) {
@@ -643,25 +708,41 @@ export function useChordPlayback({
       } else if (!isElementalName(displayChord.name)) {
         setLastElementalPlayback(null);
       }
-      activePitchesRef.current = pitches;
       setActivePitches(pitches);
-      invalidateVoicingCacheForCommit(
-        displayChord.name,
-        state,
-        voiceLeadingModeRef.current
-      );
-      updateVoiceLeadingBaseline(playbackTilt);
-      if (usesDeviceTilt(tiltModeRef.current)) {
-        setLastPlayedVoicingLabel(lastPlayedVoicingReadout(playbackTilt));
-        setLastPlayedBassLabel(
-          lastPlayedBassReadout(playbackTilt, displayChord, {
-            voicedPitches: pitches,
-            borrowingState: state,
-          })
-        );
+      if (options.borrowingStateOverride) {
+        borrowingStateRef.current = options.borrowingStateOverride;
+        setBorrowingState(options.borrowingStateOverride);
+      }
+
+      const deferLabels = fromPointer;
+      const applyTiltLabels = () => {
+        if (usesDeviceTilt(tiltModeRef.current)) {
+          setLastPlayedVoicingLabel(lastPlayedVoicingReadout(playbackTilt));
+          setLastPlayedBassLabel(
+            lastPlayedBassReadout(playbackTilt, displayChord, {
+              voicedPitches: pitches,
+              borrowingState: state,
+            })
+          );
+        }
+      };
+
+      if (deferLabels) {
+        queueMicrotask(() => startTransition(applyTiltLabels));
+      } else {
+        startTransition(applyTiltLabels);
       }
     },
-    [dispatchAudio, setSelectedChord, updateVoiceLeadingBaseline, voiceLeadingModeRef]
+    [
+      borrowingStateRef,
+      dispatchAudio,
+      selectedChordNameRef,
+      suppressNoTiltRevoiceRef,
+      setBorrowingState,
+      setSelectedChord,
+      updateVoiceLeadingBaseline,
+      voiceLeadingModeRef,
+    ]
   );
 
   const voiceAndPlay = useCallback(
@@ -672,15 +753,20 @@ export function useChordPlayback({
         retrigger?: boolean;
         skipIfUnchanged?: boolean;
         fromPointer?: boolean;
+        borrowingStateOverride?: BorrowingState;
       } = {}
     ) => {
       const { displayChord: inputChord } = resolveForPlayback(chord);
       const fromPointer = options.fromPointer ?? false;
       const capturedPreviousBassMidi = previousBassMidi(neutralVoicingRef.current);
       const tiltMode = tiltModeRef.current;
+      const syncPositionLevel = fromPointer
+        ? (effectiveParallel: number) =>
+            syncNoTiltPositionLevel(effectiveParallel, true)
+        : syncNoTiltPositionLevel;
 
       if (!usesDeviceTilt(tiltMode)) {
-        applyNoTiltLocksForChord(inputChord.name);
+        applyNoTiltLocksForChord(inputChord.name, fromPointer);
       }
 
       let displayChord = inputChord;
@@ -719,7 +805,7 @@ export function useChordPlayback({
           lastNoTiltPositionLevel: lastNoTiltPositionLevelRef.current,
           resolveSmoothPlaybackTiltForNavigation,
           getCurrentControlTilt,
-          syncNoTiltPositionLevel,
+          syncNoTiltPositionLevel: syncPositionLevel,
         });
         if (tiltMode) {
           playbackTiltRef.current = playbackTilt;
@@ -735,11 +821,12 @@ export function useChordPlayback({
           isChordChange,
           smoothBaseParallelRef,
           {
-            applySmoothestVoiceLeading,
-            preserveSameChordSmoothestTilt,
+            applySmoothestVoiceLeading: (chord, elemental) =>
+              applySmoothestVoiceLeading(chord, elemental, syncPositionLevel),
+            preserveSameChordSmoothestTilt: (chordName) =>
+              preserveSameChordSmoothestTilt(chordName, syncPositionLevel),
             getBaselineTilt,
             getCurrentControlTilt,
-            setSmoothBaseParallel,
           }
         );
         if (tiltMode) {
@@ -771,13 +858,21 @@ export function useChordPlayback({
 
       if (pitches.length === 0) {
         previousChordRef.current = displayChord;
+        activePitchesRef.current = [];
+        selectedChordNameRef.current = displayChord.name;
+        if (fromPointer) {
+          armNoTiltRevoiceSuppress(suppressNoTiltRevoiceRef.current);
+        }
+        invalidateVoicingCache();
+        updateVoiceLeadingBaseline(playbackTilt, fromPointer);
+        audioEngine.releaseActiveNotes();
         setPreviousPlayedChord(displayChord);
         setSelectedChord(displayChord);
-        activePitchesRef.current = [];
         setActivePitches([]);
-        invalidateVoicingCache();
-        updateVoiceLeadingBaseline(playbackTilt);
-        audioEngine.releaseActiveNotes();
+        if (options.borrowingStateOverride) {
+          borrowingStateRef.current = options.borrowingStateOverride;
+          setBorrowingState(options.borrowingStateOverride);
+        }
         return;
       }
 
@@ -797,6 +892,9 @@ export function useChordPlayback({
       computeNeutralVoicing,
       computeVoicedPitchesFromAnchor,
       commitPlayback,
+      borrowingStateRef,
+      setBorrowingState,
+      selectedChordNameRef,
       setSelectedChord,
       updateVoiceLeadingBaseline,
       applyNoTiltLocksForChord,
@@ -804,6 +902,7 @@ export function useChordPlayback({
       noTiltVoicingLevelRef,
       noTiltPositionLevelRef,
       voiceLeadingModeRef,
+      suppressNoTiltRevoiceRef,
     ]
   );
 
@@ -811,7 +910,7 @@ export function useChordPlayback({
     (chord: Chord, state: BorrowingState) => {
       voiceAndPlay(chord, state, {
         retrigger: false,
-        skipIfUnchanged: false,
+        skipIfUnchanged: true,
       });
     },
     [voiceAndPlay]
@@ -846,19 +945,18 @@ export function useChordPlayback({
         chord.name,
         borrowingStateRef.current
       );
-      setBorrowingState(newState);
       voiceAndPlay(chord, newState, {
         retrigger:
           playStyleRef.current === 'drone' &&
           previousChordRef.current?.name === chord.name,
         fromPointer: true,
+        borrowingStateOverride: newState,
       });
       return newState;
     },
     [
       getBorrowingStateForChord,
       borrowingStateRef,
-      setBorrowingState,
       voiceAndPlay,
     ]
   );

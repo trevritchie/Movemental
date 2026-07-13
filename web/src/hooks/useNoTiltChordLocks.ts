@@ -16,6 +16,10 @@ import {
   updateLockedNoTiltBass,
   updateLockedNoTiltVoicing,
 } from '../music/noTiltChordLocks';
+import {
+  armNoTiltRevoiceSuppress,
+  type NoTiltRevoiceSuppressState,
+} from '../music/noTiltRevoiceSuppress';
 
 interface UseNoTiltChordLocksOptions {
   selectedChord: Chord | null;
@@ -23,6 +27,8 @@ interface UseNoTiltChordLocksOptions {
   setNoTiltPositionLevel: (level: number) => void;
   noTiltVoicingLevelRef: RefObject<number>;
   noTiltPositionLevelRef: RefObject<number>;
+  /** Optional: arm re-voice suppress around deferred lock flushes. */
+  suppressNoTiltRevoiceRef?: RefObject<NoTiltRevoiceSuppressState>;
 }
 
 export function useNoTiltChordLocks({
@@ -31,6 +37,7 @@ export function useNoTiltChordLocks({
   setNoTiltPositionLevel,
   noTiltVoicingLevelRef,
   noTiltPositionLevelRef,
+  suppressNoTiltRevoiceRef,
 }: UseNoTiltChordLocksOptions) {
   const [lockMaps, setLockMaps] = useState<NoTiltChordLockMaps>(
     createEmptyNoTiltChordLockMaps
@@ -90,12 +97,19 @@ export function useNoTiltChordLocks({
   );
 
   const applyLocksForChord = useCallback(
-    (name: string) => {
+    (name: string, deferSetState = false) => {
       applyNoTiltLocksForChord(lockMapsRef.current, name, {
         noTiltVoicingLevelRef,
         noTiltPositionLevelRef,
         setNoTiltVoicingLevel,
         setNoTiltPositionLevel,
+      }, {
+        deferSetState,
+        onBeforeDeferredSetState: suppressNoTiltRevoiceRef
+          ? () => {
+              armNoTiltRevoiceSuppress(suppressNoTiltRevoiceRef.current);
+            }
+          : undefined,
       });
     },
     [
@@ -103,6 +117,7 @@ export function useNoTiltChordLocks({
       noTiltPositionLevelRef,
       setNoTiltVoicingLevel,
       setNoTiltPositionLevel,
+      suppressNoTiltRevoiceRef,
     ]
   );
 

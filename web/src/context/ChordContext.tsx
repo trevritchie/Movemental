@@ -32,6 +32,10 @@ import { usePersistedUserSettings } from '../hooks/usePersistedUserSettings';
 import { TiltReadoutProvider } from './TiltReadoutContext';
 import { useNoTiltChordLocks } from '../hooks/useNoTiltChordLocks';
 import type { ElementalPlaybackResolution } from '../music/tiltVoicingPlayback';
+import {
+  consumeNoTiltRevoiceSuppress,
+  createNoTiltRevoiceSuppressState,
+} from '../music/noTiltRevoiceSuppress';
 import type { ClockLayoutMode, PlayStyle, VoiceLeadingMode } from './types';
 import type { EqProfileId } from '../audio/outputProfiles';
 import type { SynthPreset } from '../audio/synthPresets';
@@ -109,6 +113,8 @@ interface ChordContextType {
   setVoiceLeadingMode: (mode: VoiceLeadingMode) => void;
   clockLayoutMode: ClockLayoutMode;
   setClockLayoutMode: (mode: ClockLayoutMode) => void;
+  glowingOrbsEnabled: boolean;
+  setGlowingOrbsEnabled: (enabled: boolean) => void;
   lastTapTilt: TiltSample;
   lastCommittedPlaybackTilt: TiltSample;
   smoothBaseParallel: number;
@@ -163,11 +169,13 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
   const [clockLayoutMode, setClockLayoutMode] = useState<ClockLayoutMode>(
     loadedSettings.clockFace.layoutMode
   );
+  const [glowingOrbsEnabled, setGlowingOrbsEnabled] = useState(
+    loadedSettings.glowingOrbs.enabled
+  );
 
   const selectedChordNameRef = useRef<string | null>(null);
-  useEffect(() => {
-    selectedChordNameRef.current = selectedChord?.name ?? null;
-  }, [selectedChord]);
+  /** Armed by pointer commits / deferred level flushes; consumed by re-voice. */
+  const suppressNoTiltRevoiceRef = useRef(createNoTiltRevoiceSuppressState());
 
   const playAndDisplayChordRef = useRef<
     (chord: Chord, state: BorrowingState) => void
@@ -205,6 +213,7 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
     setNoTiltPositionLevel,
     noTiltVoicingLevelRef,
     noTiltPositionLevelRef,
+    suppressNoTiltRevoiceRef,
   });
 
   const playback = useChordPlayback({
@@ -212,6 +221,8 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
     borrowingStateRef: borrowing.borrowingStateRef,
     setBorrowingState: borrowing.setBorrowingState,
     setSelectedChord,
+    selectedChordNameRef,
+    suppressNoTiltRevoiceRef,
     rawTiltRef: deviceTilt.rawTiltRef,
     noTiltVoicingLevelRef,
     noTiltPositionLevelRef,
@@ -230,6 +241,16 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
   useEffect(() => {
     playAndDisplayChordRef.current = playback.playAndDisplayChord;
   }, [playback.playAndDisplayChord]);
+
+  const getBorrowingStateForChordRef = useRef(borrowing.getBorrowingStateForChord);
+  useEffect(() => {
+    getBorrowingStateForChordRef.current = borrowing.getBorrowingStateForChord;
+  }, [borrowing.getBorrowingStateForChord]);
+
+  const setBorrowingStateRef = useRef(borrowing.setBorrowingState);
+  useEffect(() => {
+    setBorrowingStateRef.current = borrowing.setBorrowingState;
+  }, [borrowing.setBorrowingState]);
 
   const audio = useAudioSettings(
     playback.playStyle,
@@ -274,6 +295,7 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
         mode: setVoiceLeadingMode,
         memory: borrowing.setBorrowingMemory,
         layoutMode: setClockLayoutMode,
+        enabled: setGlowingOrbsEnabled,
         synthPresetId: audio.setSynthPresetId,
         eqProfileId: audio.setEqProfileId,
         chorusWet: audio.setChorusWet,
@@ -318,6 +340,7 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
           clearChordBorrowingStates();
           break;
         case 'clockFace':
+        case 'glowingOrbs':
         case 'soundDesign':
           break;
       }
@@ -398,6 +421,7 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
       voiceLeading: { mode: voiceLeadingMode },
       voiceBorrowing: { memory: borrowing.borrowingMemory },
       clockFace: { layoutMode: clockLayoutMode },
+      glowingOrbs: { enabled: glowingOrbsEnabled },
       soundDesign: {
         synthPresetId: audio.synthPresetId,
         eqProfileId: audio.eqProfileId,
@@ -421,6 +445,7 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
       voiceLeadingMode,
       borrowing.borrowingMemory,
       clockLayoutMode,
+      glowingOrbsEnabled,
       audio.synthPresetId,
       audio.eqProfileId,
       audio.chorusWet,
@@ -467,8 +492,17 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
    * controls change. Skips redundant audio when pitches are unchanged
    * (playAndDisplayChord -> skipIfUnchanged). Does not run on every tilt
    * tick; tilt voicing is sampled at tap time only.
+   *
+   * selectedChordNameRef is written only by commitPlayback (not mirrored from
+   * selectedChord) so deferred level flushes cannot re-voice a stale name.
+   *
+   * Callback deps are read via refs so identity churn cannot loop this effect.
    */
   useEffect(() => {
+    if (consumeNoTiltRevoiceSuppress(suppressNoTiltRevoiceRef.current)) {
+      return;
+    }
+
     const name = selectedChordNameRef.current;
     if (!name) return;
 
@@ -476,22 +510,19 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
     if (!updatedChord) return;
 
     setSelectedChord(updatedChord);
-    const newState = getBorrowingStateForChord(
+    const newState = getBorrowingStateForChordRef.current(
       name,
-      borrowingStateRef.current
+      borrowing.borrowingStateRef.current
     );
-    setBorrowingState(newState);
-    playAndDisplayChord(updatedChord, newState);
+    setBorrowingStateRef.current(newState);
+    playAndDisplayChordRef.current(updatedChord, newState);
   }, [
     tonalCenter,
     octaveRange,
     noTiltVoicingLevel,
     noTiltPositionLevel,
     voiceLeadingMode,
-    getBorrowingStateForChord,
-    borrowingStateRef,
-    setBorrowingState,
-    playAndDisplayChord,
+    borrowing.borrowingStateRef,
   ]);
 
   const value: ChordContextType = useMemo(
@@ -554,6 +585,8 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
       setVoiceLeadingMode,
       clockLayoutMode,
       setClockLayoutMode,
+      glowingOrbsEnabled,
+      setGlowingOrbsEnabled,
       lastTapTilt: playback.lastTapTilt,
       lastCommittedPlaybackTilt: playback.lastCommittedPlaybackTilt,
       smoothBaseParallel: playback.smoothBaseParallel,
@@ -621,6 +654,7 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
       audio.setDroneRelease,
       voiceLeadingMode,
       clockLayoutMode,
+      glowingOrbsEnabled,
       playback.lastTapTilt,
       playback.lastCommittedPlaybackTilt,
       playback.smoothBaseParallel,
@@ -643,6 +677,7 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
     <TiltReadoutProvider
       status={deviceTilt.status}
       tilt={deviceTilt.tilt}
+      orientationRef={deviceTilt.orientationRef}
       requestPermission={deviceTilt.requestPermission}
     >
       <ChordContext.Provider value={value}>{children}</ChordContext.Provider>

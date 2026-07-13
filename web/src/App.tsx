@@ -11,6 +11,7 @@ import { usePhoneLandscapeBlocked } from './hooks/usePhoneLandscapeBlocked';
 import { TourProvider } from './components/tour/TourProvider';
 import { useTour } from './components/tour/tourContext';
 import { preloadSettingsModalAfterSplash } from './components/preloadSettingsModal';
+import { initVisualPriorityListeners } from './audio/visualPriority';
 
 const PRIMARY_ELEMENT_NAMES = new Set(['Earth', 'Wind', 'Fire']);
 
@@ -81,6 +82,8 @@ function AppShell() {
 }
 
 function App() {
+  useEffect(() => initVisualPriorityListeners(), []);
+
   return (
     <ErrorBoundary>
       <LayoutTierProvider>
