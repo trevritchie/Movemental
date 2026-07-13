@@ -67,7 +67,12 @@ jobs:
 
   preview-deploy:
     needs: verify
-    if: github.event_name == 'pull_request'
+    # GitHub withholds repository secrets from pull_request-triggered runs
+    # opened by Dependabot, so FIREBASE_TOKEN is unavailable here and this
+    # job would otherwise fail on every Dependabot PR. Skip it instead;
+    # `verify` (lint/test/build) still runs and is what actually matters for
+    # a dependency bump.
+    if: github.event_name == 'pull_request' && github.actor != 'dependabot[bot]'
     runs-on: ubuntu-latest
     permissions:
       contents: read
