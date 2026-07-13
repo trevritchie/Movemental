@@ -1,7 +1,7 @@
 // Vite dev server, production build, and Vitest configuration.
 import { defineConfig } from 'vitest/config'
 import react from '@vitejs/plugin-react'
-import path from 'path'
+import path from 'node:path'
 import { playwright } from '@vitest/browser-playwright'
 import { visualizer } from 'rollup-plugin-visualizer'
 

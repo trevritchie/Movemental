@@ -6,12 +6,14 @@ import {
   ArrowUpDown,
   BookOpen,
   Layers,
+  Music,
   PlayCircle,
 } from 'lucide-react';
 import { useChordContext } from '../../context/ChordContext';
 import type { HelpView } from './helpTypes';
 import { BorrowingNeighborsHelp } from './BorrowingNeighborsHelp';
 import { CreationTheoryHelp } from './CreationTheoryHelp';
+import { ElementalScoresHelp } from './ElementalScoresHelp';
 import { ElevatorSystemHelp } from './ElevatorSystemHelp';
 import {
   HELP_HUB_BORROWING_BODY,
@@ -40,6 +42,12 @@ export const HelpPage: React.FC<HelpPageProps> = ({
   const handleStartTour = () => {
     onStartTour({ restart: hasCompletedTour });
   };
+
+  if (helpView === 'elemental-scores') {
+    return (
+      <ElementalScoresHelp onBack={() => onHelpViewChange('hub')} />
+    );
+  }
 
   if (helpView === 'creation-theory') {
     return (
@@ -71,6 +79,20 @@ export const HelpPage: React.FC<HelpPageProps> = ({
           {hasCompletedTour ? 'Take the tour again' : 'Start interactive tour'}
         </button>
       </div>
+
+      <button
+        type="button"
+        className="help-page__theory-entry help-page__featured-entry"
+        onClick={() => onHelpViewChange('elemental-scores')}
+      >
+        <Music size={22} aria-hidden="true" />
+        <span className="help-page__theory-entry-text">
+          <span className="help-page__theory-entry-title">Elemental Scores</span>
+          <span className="help-page__theory-entry-subtitle">
+            Learn to play common tunes
+          </span>
+        </span>
+      </button>
 
       <section className="help-page__section">
         <h4 className="help-page__section-title">Harmonic Theory</h4>
