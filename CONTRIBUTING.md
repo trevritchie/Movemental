@@ -3,6 +3,14 @@
 Conventions for this app (React, TypeScript, Vite, Tone.js). See
 [`README.md`](README.md) for domain architecture and DSP details.
 
+Bug reports and feature requests use the templates under
+[Issues](https://github.com/trevritchie/Movemental/issues/new/choose). Pull
+requests are pre-filled from
+[`.github/PULL_REQUEST_TEMPLATE.md`](.github/PULL_REQUEST_TEMPLATE.md).
+Participation in this project is governed by the
+[Code of Conduct](CODE_OF_CONDUCT.md). To report a security issue, see
+[`SECURITY.md`](SECURITY.md) rather than opening a public issue.
+
 ## Module layout
 
 | Tier | Path | Role |
