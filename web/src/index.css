@@ -1762,7 +1762,7 @@ body.scroll-locked {
   transform: scale(1.15);
 }
 
-.chord-node.active circle {
+.chord-node.active .chord-node-core {
   stroke: white;
   stroke-width: 3;
 }

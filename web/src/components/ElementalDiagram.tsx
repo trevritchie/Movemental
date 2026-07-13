@@ -421,12 +421,14 @@ export const ElementalDiagram = React.memo(function ElementalDiagram({
             >
               <g transform={`scale(1, ${aspectRatioCorrection})`}>
                 <circle
+                  className="chord-node-glow"
                   r={primaryEffectiveRadius(r)}
                   fill={parentElementStyle(chord.name).glow}
                   filter="url(#glow)"
                   opacity={isSelected ? 1 : 0.4}
                 />
                 <circle
+                  className="chord-node-core"
                   r={r}
                   fill={parentElementStyle(chord.name).color}
                   stroke={isSelected ? 'white' : 'rgba(255,255,255,0.25)'}
