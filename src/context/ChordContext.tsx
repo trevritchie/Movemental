@@ -522,7 +522,6 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
     noTiltVoicingLevel,
     noTiltPositionLevel,
     voiceLeadingMode,
-    borrowing.borrowingStateRef,
   ]);
 
   const value: ChordContextType = useMemo(

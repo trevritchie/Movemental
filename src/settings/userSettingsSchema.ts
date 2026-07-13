@@ -104,7 +104,7 @@ function isWet(value: unknown): value is number {
 }
 
 function isPositiveNumber(value: unknown): value is number {
-  return typeof value === 'number' && Number.isFinite(value) && value >= 0;
+  return typeof value === 'number' && Number.isFinite(value) && value > 0;
 }
 
 function isSynthPresetId(value: unknown): value is string {

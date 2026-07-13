@@ -817,12 +817,6 @@ export class AudioEngine {
     }
   }
 
-  public setVolume(db: number) {
-    if (this.voice) {
-      this.voice.volume.value = db;
-    }
-  }
-
   public setOutputProfile(profile: OutputProfile): void {
     this.eqProfileId = profile.id;
     this.activeOutputProfile = profile;

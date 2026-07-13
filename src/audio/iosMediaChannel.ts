@@ -3,6 +3,7 @@
  * audible when the hardware mute switch is on. Call synchronously from a
  * user gesture before Tone.start().
  */
+import { audioDebugLog, isAudioEngineDebugEnabled } from './audioDebug';
 
 interface NavigatorWithAudioSession extends Navigator {
   audioSession?: { type: string };
@@ -91,7 +92,9 @@ function logUnlockOutcome(details: {
   htmlPlay: 'ok' | 'fail' | 'skipped';
   webAudioBlip: boolean;
 }): void {
-  console.info('[iosMediaChannel]', details);
+  if (isAudioEngineDebugEnabled()) {
+    audioDebugLog('[iosMediaChannel]', details);
+  }
 }
 
 function ensureSilentHtmlAudio(): HTMLAudioElement {

@@ -66,6 +66,7 @@ import {
   armNoTiltRevoiceSuppress,
   type NoTiltRevoiceSuppressState,
 } from '../music/noTiltRevoiceSuppress';
+import { clamp } from '../utils/clamp';
 
 interface UseChordPlaybackOptions {
   getBorrowingStateForChord: (
@@ -105,8 +106,6 @@ function pitchesEqual(a: number[], b: number[]): boolean {
   }
   return true;
 }
-
-import { clamp } from '../utils/clamp';
 
 interface PlaybackResolution {
   displayChord: Chord;
