@@ -452,8 +452,7 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
   );
 
   useEffect(() => {
-    chordManager.setTonalCenterOffset(tonalCenter);
-    chordManager.setOctaveRange(octaveRange);
+    chordManager.configureTonalSpace(tonalCenter, octaveRange);
   }, [tonalCenter, octaveRange]);
 
   /**

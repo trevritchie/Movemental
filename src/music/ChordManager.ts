@@ -21,6 +21,10 @@ import {
 import { formatTraditionalName } from './traditionalName';
 import { getChordQuality } from './chordQuality';
 
+function clampOctaveRange(range: number): number {
+  return Math.min(MAX_OCTAVE_RANGE, Math.max(MIN_OCTAVE_RANGE, range));
+}
+
 export interface Chord {
   name: string;
   originalPitches: number[];
@@ -47,11 +51,19 @@ export class ChordManager {
   }
 
   public setOctaveRange(range: number) {
-    this.octaveRange = Math.min(
-      MAX_OCTAVE_RANGE,
-      Math.max(MIN_OCTAVE_RANGE, range)
-    );
+    this.octaveRange = clampOctaveRange(range);
     this.initializeChordDictionary(); // Re-evaluate voicings
+  }
+
+  /**
+   * Updates tonal center and octave range together, rebuilding the chord
+   * dictionary once. Prefer this over calling setTonalCenterOffset and
+   * setOctaveRange back to back, which would rebuild the dictionary twice.
+   */
+  public configureTonalSpace(tonalCenterOffset: number, octaveRange: number) {
+    this.tonalCenterOffset = tonalCenterOffset;
+    this.octaveRange = clampOctaveRange(octaveRange);
+    this.initializeChordDictionary();
   }
 
   public getOctaveRange(): number {
