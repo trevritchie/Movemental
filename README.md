@@ -1,6 +1,16 @@
 # Movemental
 
+[![License: PolyForm Noncommercial 1.0.0](https://img.shields.io/badge/License-PolyForm%20Noncommercial%201.0.0-blue.svg)](LICENSE.md)
+
 Movemental is an interactive audio application built on React, TypeScript, and Vite.
+
+Copyright (C) 2025-2026 Trevor Ritchie. Source is available to read, and
+licensed for noncommercial use only, under the
+[PolyForm Noncommercial License 1.0.0](LICENSE.md). This is a source-available
+license, not an open-source license: personal, educational, nonprofit,
+research, and other noncommercial use is permitted, but commercial use
+requires a separate license from the copyright holder. Contact
+movemental-chords@proton.me to discuss commercial licensing.
 
 ---
 

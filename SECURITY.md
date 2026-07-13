@@ -14,7 +14,7 @@ Instead:
 
 - Preferred: open a [private security advisory](https://github.com/trevritchie/Movemental/security/advisories/new)
   on this repository.
-- Alternative: email trevritchie@gmail.com with details.
+- Alternative: email movemental-chords@proton.me with details.
 
 When reporting, please include:
 
