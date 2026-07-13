@@ -4,7 +4,7 @@
 
 Movemental is an interactive audio application built on React, TypeScript, and Vite.
 
-Copyright (C) 2025-2026 Trevor Ritchie. Source is available to read, and
+Copyright (C) 2025 Trevor Ritchie. Source is available to read, and
 licensed for noncommercial use only, under the
 [PolyForm Noncommercial License 1.0.0](LICENSE.md). This is a source-available
 license, not an open-source license: personal, educational, nonprofit,
