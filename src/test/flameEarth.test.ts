@@ -1,21 +1,21 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { ChordManager } from './ChordManager';
-import { getInitialBorrowingState } from './BorrowingLogic';
+import { ChordManager } from '../music/ChordManager';
+import { getInitialBorrowingState } from '../music/BorrowingLogic';
 import {
   previousBassMidi,
   resolveElementalForNavigation,
-} from './elementalRoot';
+} from '../music/elementalRoot';
 import {
   resolveSmoothOppositeElementTilt,
   resolveSmoothPlaybackTiltForNavigation,
-} from './playbackTiltResolution';
-import { resolveSmoothPlaybackTilt } from './predeterminedVoiceLeading';
+} from '../music/playbackTiltResolution';
+import { resolveSmoothPlaybackTilt } from '../music/predeterminedVoiceLeading';
 import {
   parallelLevelFromTilt,
   tiltSampleFromLevels,
-} from './TiltVoicingEngine';
-import { computeTiltVoicedPitches } from './tiltVoicingPlayback';
-import { bassDegreeLabelFromVoiced } from './voiceDegreeLabel';
+} from '../music/TiltVoicingEngine';
+import { computeTiltVoicedPitches } from '../music/tiltVoicingPlayback';
+import { bassDegreeLabelFromVoiced } from '../music/voiceDegreeLabel';
 
 const TONAL_CENTER = 10;
 const OCTAVE_RANGE = 2;

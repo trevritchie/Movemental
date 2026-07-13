@@ -9,7 +9,7 @@ import {
   DEFAULT_TONAL_CENTER_OFFSET,
   DEFAULT_OCTAVE_RANGE,
   MIN_OCTAVE_RANGE,
-} from '../music/config';
+} from './config';
 import {
   buildThinnedChain,
   buildToneCycle,
@@ -26,7 +26,7 @@ import {
   MAX_TILT_PITCH_STEPS,
   FLAT_TILT,
   DEFAULT_NO_TILT_VOICING_LEVEL,
-} from '../music/TiltVoicingEngine';
+} from './TiltVoicingEngine';
 
 // Branch at tonal center C: C E G A, root C, pre-voicing structure.
 const BRANCH = [0, 4, 7, 9];

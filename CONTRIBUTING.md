@@ -80,8 +80,12 @@ Do not run voicing-cache lookups on the audio dispatch path; playback calls
 ## Tests
 
 - Place unit tests beside the module: `foo.test.ts` next to `foo.ts`.
-- Component tests live next to the component or under `src/test/` for shared
-  setup utilities.
+- Component tests live next to the component.
+- `src/test/` holds shared setup utilities (`setup.ts`) and cross-module
+  scenario/integration tests that exercise several modules together and
+  don't belong to any single one (e.g. `borrowingMuteIntegration.test.ts`,
+  the elemental-chemistry playback scenarios). If a test only imports from
+  one module, colocate it with that module instead of adding it here.
 - Run `npm test -- --run` before pushing; aim to keep the full suite green.
 
 **Gain staging and preset loudness** (offline Playwright renders, per-preset
