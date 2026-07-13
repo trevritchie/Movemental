@@ -1624,8 +1624,6 @@ body.scroll-locked {
   overflow: hidden;
   pointer-events: none;
   contain: layout paint style;
-  /* Panel-relative orb sizing (cmax); fallback vmin below if unsupported. */
-  container-type: size;
 }
 
 .diagram-background-orbs .splash-background {
@@ -1660,51 +1658,7 @@ body.scroll-locked {
   will-change: transform;
 }
 
-/* Panel-relative orb sizes (splash still uses vmin for full-viewport glow).
-   Do not use % here: .orb-wrapper is 0×0 so percentages collapse to zero. */
-.diagram-background-orbs .orb-1 {
-  width: 50vmin;
-  height: 50vmin;
-  top: -38vmin;
-  left: -38vmin;
-}
-
-.diagram-background-orbs .orb-2 {
-  width: 46vmin;
-  height: 46vmin;
-  top: -35vmin;
-  left: -4vmin;
-}
-
-.diagram-background-orbs .orb-3 {
-  width: 54vmin;
-  height: 54vmin;
-  top: -4vmin;
-  left: -26vmin;
-}
-
-@supports (width: 1cmax) {
-  .diagram-background-orbs .orb-1 {
-    width: 85cmax;
-    height: 85cmax;
-    top: -55cmax;
-    left: -55cmax;
-  }
-
-  .diagram-background-orbs .orb-2 {
-    width: 78cmax;
-    height: 78cmax;
-    top: -50cmax;
-    left: -6cmax;
-  }
-
-  .diagram-background-orbs .orb-3 {
-    width: 90cmax;
-    height: 90cmax;
-    top: -6cmax;
-    left: -42cmax;
-  }
-}
+/* Orb diameter/position: inherit splash .orb-1/.orb-2/.orb-3 (vmin). */
 
 /* Compact / phone: lower live blur cost on weaker GPUs. */
 @media (max-width: 767px),

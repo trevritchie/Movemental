@@ -902,6 +902,7 @@ export function useChordPlayback({
       noTiltVoicingLevelRef,
       noTiltPositionLevelRef,
       voiceLeadingModeRef,
+      suppressNoTiltRevoiceRef,
     ]
   );
 
