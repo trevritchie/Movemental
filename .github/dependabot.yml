@@ -18,8 +18,30 @@ updates:
     groups:
       production-dependencies:
         dependency-type: "production"
+      # typescript and the eslint/typescript-eslint toolchain have tightly
+      # coupled peer dependency ranges (typescript-eslint typically lags a
+      # new TypeScript major for a while). Grouping them separately means a
+      # temporarily incompatible combination only blocks this group's PR,
+      # not the unrelated dev-dependency bumps below.
+      typescript-tooling:
+        patterns:
+          - "typescript"
+          - "typescript-eslint"
+          - "@typescript-eslint/*"
+          - "eslint"
+          - "eslint-plugin-*"
+          - "@eslint/*"
+          - "globals"
       development-dependencies:
         dependency-type: "development"
+        exclude-patterns:
+          - "typescript"
+          - "typescript-eslint"
+          - "@typescript-eslint/*"
+          - "eslint"
+          - "eslint-plugin-*"
+          - "@eslint/*"
+          - "globals"
 
   # Actions used by the CI/deploy workflows in .github/workflows/.
   - package-ecosystem: "github-actions"
