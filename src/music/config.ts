@@ -23,17 +23,9 @@ export const OCTAVE_RANGE_OPTIONS = Array.from(
   { length: MAX_OCTAVE_RANGE - MIN_OCTAVE_RANGE + 1 },
   (_, i) => MIN_OCTAVE_RANGE + i
 );
-export const DEFAULT_VOICING = "Drop 2 & 4";
 export const DEFAULT_VOICE_LEADING_MODE: VoiceLeadingMode = 'smooth';
 export const DEFAULT_CLOCK_LAYOUT_MODE: ClockLayoutMode = 'chromatic';
 export const DEFAULT_CHORD_DURATION = "2n"; // Half note in Tone.js
-
-export const VOICING_TO_INDICES: Record<string, number[]> = {
-  "Close": [],
-  "Drop 2": [1],
-  "Drop 3": [1, 2],
-  "Drop 2 & 4": [1, 3]
-};
 
 // Intervals
 export const OCTAVE = 12;

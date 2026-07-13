@@ -32,6 +32,7 @@ import {
   type SynthClassName,
   type SynthPreset,
 } from './synthPresets';
+import { clamp } from '../utils/clamp';
 
 type InstrumentVoice = Tone.PolySynth | Tone.Sampler;
 
@@ -315,9 +316,9 @@ export async function buildMasterBusGraph(
       voice.volume.value = getEffectiveSynthVolumeDb(nextPreset, nextProfile);
     },
     setFxWet(nextChorus, nextDelay, nextReverb) {
-      chorus.wet.value = Math.max(0, Math.min(1, nextChorus));
-      delay.wet.value = Math.max(0, Math.min(1, nextDelay));
-      reverb.wet.value = Math.max(0, Math.min(1, nextReverb));
+      chorus.wet.value = clamp(nextChorus, 0, 1);
+      delay.wet.value = clamp(nextDelay, 0, 1);
+      reverb.wet.value = clamp(nextReverb, 0, 1);
     },
     dispose() {
       voice.disconnect();

@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { Maximize2, Minimize2, X } from 'lucide-react';
 import { NOTE_NAMES_FLAT, OCTAVE_RANGE_OPTIONS } from '../music/config';
 import { useChordContext } from '../context/ChordContext';
+import { useSoundDesignContext } from '../context/SoundDesignContext';
 import { useBodyScrollLock } from '../hooks/useBodyScrollLock';
 import { useFullscreen } from '../hooks/useFullscreen';
 import { AdsrPanelContent } from './settings/AdsrPanelContent';
@@ -46,14 +47,17 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     setTonalCenter,
     octaveRange,
     setOctaveRange,
+    resetSettingsGroup,
+    resetAllSettings,
+  } = useChordContext();
+
+  const {
     synthPresetId,
     setSynthPresetId,
     synthPresets,
     isSamplerInstrumentActive,
     isSamplerAdsrDisabled,
-    resetSettingsGroup,
-    resetAllSettings,
-  } = useChordContext();
+  } = useSoundDesignContext();
 
   const {
     isFullscreen,

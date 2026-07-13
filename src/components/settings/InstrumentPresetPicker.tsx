@@ -1,6 +1,6 @@
 import React, { useCallback, useMemo } from 'react';
 import { Check, Loader2 } from 'lucide-react';
-import { useChordContext } from '../../context/ChordContext';
+import { useSoundDesignContext } from '../../context/SoundDesignContext';
 import { groupSamplerPresetsByCategory } from '../../audio/samplerInstrumentCategories';
 import {
   SAMPLER_ENGINE_PRESETS,
@@ -19,7 +19,7 @@ export const InstrumentPresetPicker: React.FC<InstrumentPresetPickerProps> = ({
     synthPresetId,
     setSynthPresetId,
     synthPresetLoading,
-  } = useChordContext();
+  } = useSoundDesignContext();
 
   const handleSelect = useCallback(
     (id: string) => {

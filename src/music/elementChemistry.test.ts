@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { computeElementFormula } from '../music/elementChemistry';
+import { computeElementFormula } from './elementChemistry';
 
 describe('computeElementFormula', () => {
   it('counts each pitch class once for Branch at Bb', () => {

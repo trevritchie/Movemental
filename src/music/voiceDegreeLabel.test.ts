@@ -7,7 +7,6 @@ import {
   formatBassDegreeLabel,
   formatBassDegreeWithDirection,
   getBassDegreeLabelForParallelSteps,
-  getBassDegreeLabelForPositionIndex,
   getFourthVoiceDegreeLabel,
   getVoiceDegreeLabel,
   formatLastPlayedTiltReadout,
@@ -16,7 +15,6 @@ import {
   pitchAxisArrowSteps,
   resolveTiltBassVoiceLine,
   tiltBassDegreeLabel,
-  tiltBassPositionLabel,
   type TiltBassLabelContext,
 } from './voiceDegreeLabel';
 import {
@@ -257,23 +255,6 @@ describe('tiltBassDegreeLabel smoothest', () => {
   });
 });
 
-describe('tiltBassPositionLabel', () => {
-  let manager: ChordManager;
-
-  beforeEach(() => {
-    manager = new ChordManager();
-  });
-
-  it('matches tiltBassDegreeLabel', () => {
-    const branch = manager.getChordByName('Branch')!;
-    const context = labelContext();
-    const tilt = { x: -0.25, y: 0 };
-    expect(tiltBassPositionLabel(tilt, branch, context)).toBe(
-      tiltBassDegreeLabel(tilt, branch, context)
-    );
-  });
-});
-
 describe('lastPlayed readouts', () => {
   it('formats combined last played string', () => {
     const manager = new ChordManager();
@@ -346,10 +327,6 @@ describe('getVoiceDegreeLabel', () => {
 
   it('maps parallel step +3 to ↑ 6th when no chord is selected', () => {
     expect(getBassDegreeLabelForParallelSteps(3, null)).toBe('\u2191 6th');
-  });
-
-  it('maps legacy position index 3 to ↑ 6th when no chord is selected', () => {
-    expect(getBassDegreeLabelForPositionIndex(3, null)).toBe('\u2191 6th');
   });
 });
 

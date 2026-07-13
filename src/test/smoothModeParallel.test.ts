@@ -1,13 +1,13 @@
 import { describe, it, expect } from 'vitest';
-import { ChordManager } from './ChordManager';
-import { getInitialBorrowingState } from './BorrowingLogic';
-import { resolveSmoothModeParallelSteps, resolveSmoothPlaybackTilt } from './predeterminedVoiceLeading';
+import { ChordManager } from '../music/ChordManager';
+import { getInitialBorrowingState } from '../music/BorrowingLogic';
+import { resolveSmoothModeParallelSteps, resolveSmoothPlaybackTilt } from '../music/predeterminedVoiceLeading';
 import {
   FLAT_TILT,
   parallelLevelFromTilt,
   resolvePlaybackTiltWithFlatBaseline,
-} from './TiltVoicingEngine';
-import { tiltBassDegreeLabel, type TiltBassLabelContext } from './voiceDegreeLabel';
+} from '../music/TiltVoicingEngine';
+import { tiltBassDegreeLabel, type TiltBassLabelContext } from '../music/voiceDegreeLabel';
 
 const PITCH_UP_ONE = { x: 0, y: -0.25 };
 const PITCH_DOWN_ONE = { x: 0, y: 0.25 };

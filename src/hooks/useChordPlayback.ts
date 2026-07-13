@@ -12,61 +12,45 @@
  * Anchor modes (TiltVoicingEngine):
  * - tilt play style: contrary roll (bass can shift with voicing width)
  * - drone/no-tilt controls: pivot roll (position sets the bass note)
+ *
+ * The anchor/tilt resolution math (buildAnchorKey, applySmoothestVoiceLeading,
+ * etc.) lives in useVoicingAnchorResolution; the audio-dispatch and
+ * post-audio state commit lives in usePlaybackCommit. This hook is the
+ * orchestrator that decides which resolver applies and threads the result
+ * through to a commit.
  */
-import { useState, useEffect, useRef, useCallback, startTransition, type RefObject } from 'react';
+import { useState, useEffect, useRef, useCallback, type RefObject } from 'react';
 import { chordManager, type Chord } from '../music/ChordManager';
 import { type BorrowingState } from '../music/BorrowingLogic';
 import {
   DEFAULT_NO_TILT_POSITION_LEVEL,
   DEFAULT_NO_TILT_VOICING_LEVEL,
   FLAT_TILT,
-  mapTiltToPositions,
-  MAX_TILT_PITCH_STEPS,
-  noTiltLevelsFromTilt,
-  noTiltPositionLevelFromParallelSteps,
-  parallelLevelFromTilt,
-  parallelStepsFromNoTiltPositionLevel,
-  tiltSampleFromLevels,
   type TiltSample,
 } from '../music/TiltVoicingEngine';
 import {
   applyVoicingOverlays,
-  computeNeutralTiltVoicing,
-  resolveVoicingRoot,
   type ElementalPlaybackResolution,
 } from '../music/tiltVoicingPlayback';
 import {
-  resolveSmoothParallelSteps,
-} from '../music/smoothestVoiceLeading';
-import {
-  tiltFromNoTiltLevels,
   resolveSmoothReanchorTilt,
   resolveSmoothestReanchorTilt,
-  resolveSmoothPlaybackTiltForNavigation as resolveSmoothNavTilt,
 } from '../music/playbackTiltResolution';
-import { invalidateVoicingCache, invalidateVoicingCacheForCommit } from '../music/voicingCache';
-import {
-  lastPlayedBassReadout,
-  lastPlayedVoicingReadout,
-} from '../music/voiceDegreeLabel';
+import { invalidateVoicingCache } from '../music/voicingCache';
 import { audioEngine } from '../audio/AudioEngine';
-import { isPageInteractiveForAudio } from '../audio/pageInteraction';
 import { unlockIosMediaChannel } from '../audio/iosMediaChannel';
 import type { PlayStyle, VoiceLeadingMode } from '../context/types';
-import { commitsSmoothestParallelBaseline, usesDeviceTilt } from '../context/types';
+import { usesDeviceTilt } from '../context/types';
 import { isElementalName, isOppositeElementNavigation, previousBassMidi, resolveElementalForNavigation, type ElementalName } from '../music/elementalRoot';
 import {
-  getLockedNoTiltBass,
-  getLockedNoTiltVoicing,
-  isNoTiltBassLocked,
-  isNoTiltVoicingLocked,
   type NoTiltChordLockMaps,
 } from '../music/noTiltChordLocks';
 import {
   armNoTiltRevoiceSuppress,
   type NoTiltRevoiceSuppressState,
 } from '../music/noTiltRevoiceSuppress';
-import { clamp } from '../utils/clamp';
+import { useVoicingAnchorResolution } from './useVoicingAnchorResolution';
+import { usePlaybackCommit } from './usePlaybackCommit';
 
 interface UseChordPlaybackOptions {
   getBorrowingStateForChord: (
@@ -97,14 +81,6 @@ interface UseChordPlaybackOptions {
   clearNoTiltChordLocks: () => void;
   initialPlayStyle?: PlayStyle;
   hasPersistedSettings?: boolean;
-}
-
-function pitchesEqual(a: number[], b: number[]): boolean {
-  if (a.length !== b.length) return false;
-  for (let i = 0; i < a.length; i++) {
-    if (a[i] !== b[i]) return false;
-  }
-  return true;
 }
 
 interface PlaybackResolution {
@@ -187,262 +163,62 @@ export function useChordPlayback({
     hasPersistedSettingsRef.current = hasPersistedSettings;
   }, [hasPersistedSettings]);
 
-  const buildAnchorKey = useCallback(
-    (displayChord: Chord, tilt: TiltSample): string => {
-      const tonalCenter = tonalCenterRef.current;
-      const octaveRange = chordManager.getOctaveRange();
-      if (usesDeviceTilt(tiltModeRef.current)) {
-        const { inputSteps, parallelSteps } = mapTiltToPositions(tilt);
-        return [
-          displayChord.name,
-          tonalCenter,
-          octaveRange,
-          'tilt',
-          inputSteps,
-          parallelSteps,
-        ].join('|');
-      }
-      const { voicingLevel, positionLevel } = noTiltLevelsFromTilt(tilt);
-      return [
-        displayChord.name,
-        tonalCenter,
-        octaveRange,
-        'no_tilt',
-        voicingLevel,
-        positionLevel,
-      ].join('|');
-    },
-    [tonalCenterRef]
-  );
+  const {
+    buildAnchorKey,
+    computeNeutralVoicing,
+    resolvePlaybackTilt,
+    getBaselineTilt,
+    getCurrentControlTilt,
+    syncNoTiltPositionLevel,
+    applySmoothestVoiceLeading,
+    preserveSameChordSmoothestTilt,
+    resolveSmoothPlaybackTiltForNavigation,
+  } = useVoicingAnchorResolution({
+    tiltModeRef,
+    tonalCenterRef,
+    rawTiltRef,
+    noTiltVoicingLevelRef,
+    noTiltPositionLevelRef,
+    previousChordRef,
+    playbackTiltRef,
+    neutralVoicingRef,
+    lastTapTiltRef,
+    lastCommittedPlaybackTiltRef,
+    smoothBaseParallelRef,
+    lastNoTiltVoicingLevelRef,
+    lastNoTiltPositionLevelRef,
+    noTiltLockMapsRef,
+    suppressNoTiltRevoiceRef,
+    setNoTiltPositionLevel,
+  });
 
-  const computeNeutralVoicing = useCallback(
-    (
-      displayChord: Chord,
-      tilt: TiltSample,
-      elemental?: ElementalPlaybackResolution
-    ): number[] => {
-      const anchor = usesDeviceTilt(tiltModeRef.current) ? 'contrary' : 'pivot';
-      return computeNeutralTiltVoicing(
-        displayChord,
-        tilt,
-        tonalCenterRef.current,
-        chordManager.getOctaveRange(),
-        {
-          anchor,
-          previousChord: previousChordRef.current,
-          elemental,
-        }
-      );
-    },
-    [tonalCenterRef]
-  );
-
-  const resolvePlaybackTilt = useCallback(
-    (fromPointer: boolean): TiltSample => {
-      if (!usesDeviceTilt(tiltModeRef.current)) {
-        return tiltFromNoTiltLevels(
-          noTiltVoicingLevelRef.current,
-          noTiltPositionLevelRef.current
-        );
-      }
-      if (fromPointer) {
-        playbackTiltRef.current = { ...rawTiltRef.current };
-      }
-      return playbackTiltRef.current;
-    },
-    [rawTiltRef, noTiltVoicingLevelRef, noTiltPositionLevelRef]
-  );
-
-  const getBaselineTilt = useCallback((): TiltSample => {
-    if (usesDeviceTilt(tiltModeRef.current)) {
-      return lastTapTiltRef.current;
-    }
-    return tiltFromNoTiltLevels(
-      lastNoTiltVoicingLevelRef.current,
-      lastNoTiltPositionLevelRef.current
-    );
-  }, []);
-
-  const getCurrentControlTilt = useCallback((): TiltSample => {
-    if (usesDeviceTilt(tiltModeRef.current)) {
-      return { ...rawTiltRef.current };
-    }
-    return tiltFromNoTiltLevels(
-      noTiltVoicingLevelRef.current,
-      noTiltPositionLevelRef.current
-    );
-  }, [rawTiltRef, noTiltVoicingLevelRef, noTiltPositionLevelRef]);
-
-  const syncNoTiltPositionLevel = useCallback(
-    (effectiveParallel: number, deferSetState = false) => {
-      const newLevel = noTiltPositionLevelFromParallelSteps(effectiveParallel);
-      noTiltPositionLevelRef.current = newLevel;
-      if (deferSetState) {
-        queueMicrotask(() => {
-          // Pair suppress with the deferred setState so the re-voice effect
-          // skips one redundant pass after pointer audio already voiced.
-          armNoTiltRevoiceSuppress(suppressNoTiltRevoiceRef.current);
-          setNoTiltPositionLevel(newLevel);
-        });
-      } else {
-        setNoTiltPositionLevel(newLevel);
-      }
-    },
-    [setNoTiltPositionLevel, noTiltPositionLevelRef, suppressNoTiltRevoiceRef]
-  );
-
-  /**
-   * Smoothest re-anchor. Writes refs only; React level/baseline flush happens
-   * after audio in commitPlayback. Optional syncPositionLevel defers setState
-   * on pointer taps (same contract as smooth mode).
-   */
-  const applySmoothestVoiceLeading = useCallback(
-    (
-      displayChord: Chord,
-      elemental?: ElementalPlaybackResolution,
-      syncPositionLevel: (effectiveParallel: number) => void = syncNoTiltPositionLevel
-    ): TiltSample => {
-      const lockMaps = noTiltLockMapsRef.current;
-      const chordName = displayChord.name;
-
-      if (!usesDeviceTilt(tiltModeRef.current)) {
-        const voicingLocked = isNoTiltVoicingLocked(lockMaps, chordName);
-        const bassLocked = isNoTiltBassLocked(lockMaps, chordName);
-
-        if (voicingLocked && bassLocked) {
-          const effectiveTilt = tiltFromNoTiltLevels(
-            getLockedNoTiltVoicing(lockMaps, chordName)!,
-            getLockedNoTiltBass(lockMaps, chordName)!
-          );
-          const effectiveParallel = parallelLevelFromTilt(effectiveTilt);
-          smoothBaseParallelRef.current = effectiveParallel;
-          return effectiveTilt;
-        }
-      }
-
-      const baselineTilt = getBaselineTilt();
-      const currentTilt = getCurrentControlTilt();
-      const anchor = usesDeviceTilt(tiltModeRef.current) ? 'contrary' : 'pivot';
-      const { rootPitchClass, homeMidi, pitchStructure } = resolveVoicingRoot(
-        displayChord,
-        tonalCenterRef.current,
-        chordManager.getOctaveRange(),
-        elemental
-      );
-
-      const searchBaseline =
-        !usesDeviceTilt(tiltModeRef.current) &&
-        isNoTiltVoicingLocked(lockMaps, chordName)
-          ? tiltFromNoTiltLevels(
-              getLockedNoTiltVoicing(lockMaps, chordName)!,
-              noTiltPositionLevelRef.current
-            )
-          : baselineTilt;
-
-      let effectiveParallel = resolveSmoothParallelSteps(
-        neutralVoicingRef.current,
-        pitchStructure,
-        rootPitchClass,
-        searchBaseline,
-        tonalCenterRef.current,
-        chordManager.getOctaveRange(),
-        anchor,
-        homeMidi
-      );
-      const parallelDelta =
-        parallelLevelFromTilt(currentTilt) -
-        parallelLevelFromTilt(baselineTilt);
-      effectiveParallel = clamp(
-        effectiveParallel + parallelDelta,
-        -MAX_TILT_PITCH_STEPS,
-        MAX_TILT_PITCH_STEPS
-      );
-
-      if (
-        !usesDeviceTilt(tiltModeRef.current) &&
-        isNoTiltBassLocked(lockMaps, chordName)
-      ) {
-        effectiveParallel = parallelStepsFromNoTiltPositionLevel(
-          getLockedNoTiltBass(lockMaps, chordName)!
-        );
-      }
-
-      const { inputSteps: currentWidth } = mapTiltToPositions(currentTilt);
-      const inputSteps =
-        !usesDeviceTilt(tiltModeRef.current) &&
-        isNoTiltVoicingLocked(lockMaps, chordName)
-          ? getLockedNoTiltVoicing(lockMaps, chordName)!
-          : currentWidth;
-      const effectiveTilt = tiltSampleFromLevels(
-        inputSteps,
-        effectiveParallel
-      );
-
-      smoothBaseParallelRef.current = effectiveParallel;
-
-      if (
-        !usesDeviceTilt(tiltModeRef.current) &&
-        !isNoTiltBassLocked(lockMaps, chordName)
-      ) {
-        syncPositionLevel(effectiveParallel);
-      }
-
-      return effectiveTilt;
-    },
-    [
-      getBaselineTilt,
-      getCurrentControlTilt,
-      syncNoTiltPositionLevel,
-      tonalCenterRef,
-      noTiltLockMapsRef,
-      noTiltPositionLevelRef,
-    ]
-  );
-
-  const preserveSameChordSmoothestTilt = useCallback(
-    (
-      chordName: string,
-      syncPositionLevel: (effectiveParallel: number) => void = syncNoTiltPositionLevel
-    ): TiltSample => {
-      const currentTilt = getCurrentControlTilt();
-      const parallelDelta =
-        parallelLevelFromTilt(currentTilt) -
-        parallelLevelFromTilt(lastTapTiltRef.current);
-      const lockMaps = noTiltLockMapsRef.current;
-      let effectiveParallel = clamp(
-        smoothBaseParallelRef.current + parallelDelta,
-        -MAX_TILT_PITCH_STEPS,
-        MAX_TILT_PITCH_STEPS
-      );
-
-      if (!usesDeviceTilt(tiltModeRef.current) && isNoTiltBassLocked(lockMaps, chordName)) {
-        effectiveParallel = parallelStepsFromNoTiltPositionLevel(
-          getLockedNoTiltBass(lockMaps, chordName)!
-        );
-      }
-
-      const { inputSteps } = mapTiltToPositions(currentTilt);
-      const voicingInputSteps =
-        !usesDeviceTilt(tiltModeRef.current) &&
-        isNoTiltVoicingLocked(lockMaps, chordName)
-          ? getLockedNoTiltVoicing(lockMaps, chordName)!
-          : inputSteps;
-      const effectiveTilt = tiltSampleFromLevels(
-        voicingInputSteps,
-        effectiveParallel
-      );
-
-      if (
-        !usesDeviceTilt(tiltModeRef.current) &&
-        !isNoTiltBassLocked(lockMaps, chordName)
-      ) {
-        syncPositionLevel(effectiveParallel);
-      }
-
-      return effectiveTilt;
-    },
-    [getCurrentControlTilt, syncNoTiltPositionLevel, noTiltLockMapsRef]
-  );
+  const { updateVoiceLeadingBaseline, commitPlayback } =
+    usePlaybackCommit({
+      playStyleRef,
+      tiltModeRef,
+      activePitchesRef,
+      previousChordRef,
+      selectedChordNameRef,
+      suppressNoTiltRevoiceRef,
+      rawTiltRef,
+      lastTapTiltRef,
+      lastCommittedPlaybackTiltRef,
+      smoothBaseParallelRef,
+      lastNoTiltVoicingLevelRef,
+      lastNoTiltPositionLevelRef,
+      voiceLeadingModeRef,
+      borrowingStateRef,
+      setBorrowingState,
+      setSelectedChord,
+      setPreviousPlayedChord,
+      setLastElementalPlayback,
+      setActivePitches,
+      setLastPlayedVoicingLabel,
+      setLastPlayedBassLabel,
+      setLastCommittedPlaybackTilt,
+      setLastTapTilt,
+      setSmoothBaseParallel,
+    });
 
   const resetVoiceLeadingSession = useCallback(() => {
     lastTapTiltRef.current = FLAT_TILT;
@@ -494,24 +270,6 @@ export function useChordPlayback({
     }
     resetVoiceLeadingSession();
   }, [resetVoiceLeadingSession]);
-
-  const resolveSmoothPlaybackTiltForNavigation = useCallback(
-    (
-      chord: Chord,
-      liveTilt: TiltSample,
-      isChordChange: boolean
-    ): TiltSample => {
-      return resolveSmoothNavTilt(
-        chord,
-        liveTilt,
-        isChordChange,
-        previousChordRef.current,
-        lastTapTiltRef.current,
-        lastCommittedPlaybackTiltRef.current
-      );
-    },
-    []
-  );
 
   const resolveForPlayback = useCallback(
     (chord: Chord): PlaybackResolution => {
@@ -567,181 +325,6 @@ export function useChordPlayback({
       );
     },
     []
-  );
-
-  const dispatchAudio = useCallback(
-    (
-      pitches: number[],
-      options: {
-        retrigger?: boolean;
-        skipIfUnchanged?: boolean;
-        fromPointer?: boolean;
-      } = {}
-    ) => {
-      if (pitches.length === 0) return;
-
-      const style = playStyleRef.current;
-      const tiltMode = tiltModeRef.current;
-      const {
-        retrigger = false,
-        skipIfUnchanged = false,
-        fromPointer = false,
-      } = options;
-
-      if (
-        !fromPointer &&
-        (!isPageInteractiveForAudio() || audioEngine.isPageBackgrounded())
-      ) {
-        return;
-      }
-
-      if (
-        skipIfUnchanged &&
-        !retrigger &&
-        pitchesEqual(pitches, activePitchesRef.current)
-      ) {
-        return;
-      }
-
-      if (style === 'click_and_hold') {
-        if (fromPointer) {
-          audioEngine.triggerAttack(pitches);
-        } else {
-          audioEngine.playNotes(pitches, '2n');
-        }
-        return;
-      }
-
-      if (tiltMode) {
-        audioEngine.triggerAttack(pitches, retrigger);
-        return;
-      }
-
-      audioEngine.triggerAttack(pitches, retrigger);
-    },
-    []
-  );
-
-  const updateVoiceLeadingBaseline = useCallback(
-    (playbackTilt: TiltSample, deferSetState = false) => {
-      lastCommittedPlaybackTiltRef.current = { ...playbackTilt };
-
-      if (usesDeviceTilt(tiltModeRef.current)) {
-        lastTapTiltRef.current = { ...rawTiltRef.current };
-      } else {
-        const { voicingLevel, positionLevel } =
-          noTiltLevelsFromTilt(playbackTilt);
-        lastNoTiltVoicingLevelRef.current = voicingLevel;
-        lastNoTiltPositionLevelRef.current = positionLevel;
-        lastTapTiltRef.current = playbackTilt;
-      }
-
-      if (commitsSmoothestParallelBaseline(voiceLeadingModeRef.current)) {
-        const committedParallel = parallelLevelFromTilt(playbackTilt);
-        smoothBaseParallelRef.current = committedParallel;
-      }
-
-      const applyReactSync = () => {
-        setLastCommittedPlaybackTilt(lastCommittedPlaybackTiltRef.current);
-        setLastTapTilt(lastTapTiltRef.current);
-        if (commitsSmoothestParallelBaseline(voiceLeadingModeRef.current)) {
-          setSmoothBaseParallel(smoothBaseParallelRef.current);
-        }
-      };
-
-      if (deferSetState) {
-        queueMicrotask(() => startTransition(applyReactSync));
-      } else {
-        startTransition(applyReactSync);
-      }
-    },
-    [rawTiltRef, voiceLeadingModeRef]
-  );
-
-  const commitPlayback = useCallback(
-    (
-      displayChord: Chord,
-      pitches: number[],
-      playbackTilt: TiltSample,
-      state: BorrowingState,
-      elemental: ElementalPlaybackResolution | undefined,
-      options: {
-        retrigger?: boolean;
-        skipIfUnchanged?: boolean;
-        fromPointer?: boolean;
-        borrowingStateOverride?: BorrowingState;
-      } = {}
-    ) => {
-      dispatchAudio(pitches, options);
-
-      previousChordRef.current = displayChord;
-      activePitchesRef.current = pitches;
-      // Sole writer for selectedChordNameRef (no selectedChord mirror effect).
-      // Sync before any deferred no-tilt level setState flushes. Otherwise the
-      // ChordContext re-voice effect can replay the previous chord.
-      selectedChordNameRef.current = displayChord.name;
-
-      const fromPointer = options.fromPointer ?? false;
-      if (fromPointer) {
-        // Skip the re-voice effect once. Pointer commits change selectedChord,
-        // which often recreates getBorrowingStateForChord and would re-enter
-        // playAndDisplayChord without this guard (including first-chord paths
-        // that do not queue a deferred level setState).
-        armNoTiltRevoiceSuppress(suppressNoTiltRevoiceRef.current);
-      }
-
-      invalidateVoicingCacheForCommit(
-        displayChord.name,
-        state,
-        voiceLeadingModeRef.current
-      );
-      updateVoiceLeadingBaseline(playbackTilt, fromPointer);
-
-      // Chord identity and readout must stay sync after audio. Deferring them
-      // via startTransition races with normal-priority level updates and can
-      // leave the UI (and re-voice effect) stuck on the previous chord.
-      setPreviousPlayedChord(displayChord);
-      setSelectedChord(displayChord);
-      if (elemental) {
-        setLastElementalPlayback(elemental);
-      } else if (!isElementalName(displayChord.name)) {
-        setLastElementalPlayback(null);
-      }
-      setActivePitches(pitches);
-      if (options.borrowingStateOverride) {
-        borrowingStateRef.current = options.borrowingStateOverride;
-        setBorrowingState(options.borrowingStateOverride);
-      }
-
-      const deferLabels = fromPointer;
-      const applyTiltLabels = () => {
-        if (usesDeviceTilt(tiltModeRef.current)) {
-          setLastPlayedVoicingLabel(lastPlayedVoicingReadout(playbackTilt));
-          setLastPlayedBassLabel(
-            lastPlayedBassReadout(playbackTilt, displayChord, {
-              voicedPitches: pitches,
-              borrowingState: state,
-            })
-          );
-        }
-      };
-
-      if (deferLabels) {
-        queueMicrotask(() => startTransition(applyTiltLabels));
-      } else {
-        startTransition(applyTiltLabels);
-      }
-    },
-    [
-      borrowingStateRef,
-      dispatchAudio,
-      selectedChordNameRef,
-      suppressNoTiltRevoiceRef,
-      setBorrowingState,
-      setSelectedChord,
-      updateVoiceLeadingBaseline,
-      voiceLeadingModeRef,
-    ]
   );
 
   const voiceAndPlay = useCallback(

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { pitchTiltFromBeta } from '../hooks/useDeviceTilt';
+import { pitchTiltFromBeta } from './useDeviceTilt';
 
 describe('useDeviceTilt mapping', () => {
   it('maps chest-ward pitch to negative y', () => {

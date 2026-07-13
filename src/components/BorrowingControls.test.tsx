@@ -110,3 +110,56 @@ describe('BorrowingControls slider gestures', () => {
     expect(handleBorrowingStateChange).not.toHaveBeenCalled();
   });
 });
+
+describe('BorrowingControls slider keyboard support', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('exposes each voice slider as a labeled, focusable ARIA slider', () => {
+    const { container } = render(<BorrowingControls disabled={false} />);
+    const sliders = container.querySelectorAll('.borrow-slider');
+
+    expect(sliders).toHaveLength(4);
+    sliders.forEach((slider, i) => {
+      expect(slider).toHaveAttribute('role', 'slider');
+      expect(slider).toHaveAttribute('tabindex', '0');
+      expect(slider).toHaveAttribute('aria-label', `Voice ${i + 1} borrowing`);
+      expect(slider).toHaveAttribute('aria-valuenow', '0');
+      expect(slider).toHaveAttribute('aria-valuetext', 'neutral');
+    });
+  });
+
+  it('moves the active slot with arrow keys and toggles mute with Enter', () => {
+    const { container } = render(<BorrowingControls disabled={false} />);
+    const slider = container.querySelector('.borrow-slider') as HTMLElement;
+
+    fireEvent.keyDown(slider, { key: 'ArrowUp' });
+    expect(handleBorrowingStateChange).toHaveBeenCalledTimes(1);
+    let newState = handleBorrowingStateChange.mock.calls[0][0];
+    expect(newState.borrowingDirections[1]).toBe('up');
+
+    handleBorrowingStateChange.mockClear();
+    fireEvent.keyDown(slider, { key: 'ArrowDown' });
+    expect(handleBorrowingStateChange).toHaveBeenCalledTimes(1);
+    newState = handleBorrowingStateChange.mock.calls[0][0];
+    expect(newState.borrowingDirections[1]).toBe('down');
+
+    handleBorrowingStateChange.mockClear();
+    fireEvent.keyDown(slider, { key: 'Enter' });
+    expect(handleBorrowingStateChange).toHaveBeenCalledTimes(1);
+    newState = handleBorrowingStateChange.mock.calls[0][0];
+    expect(newState.noteStates[1]).toBe('off');
+  });
+
+  it('does not respond to keyboard input when disabled', () => {
+    const { container } = render(<BorrowingControls disabled={true} />);
+    const slider = container.querySelector('.borrow-slider') as HTMLElement;
+
+    expect(slider).toHaveAttribute('tabindex', '-1');
+    expect(slider).toHaveAttribute('aria-disabled', 'true');
+
+    fireEvent.keyDown(slider, { key: 'ArrowUp' });
+    expect(handleBorrowingStateChange).not.toHaveBeenCalled();
+  });
+});

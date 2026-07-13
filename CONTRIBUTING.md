@@ -36,8 +36,16 @@ Prefer these instead of duplicating logic in components or hooks:
 
 ## React context boundaries
 
-**`ChordContext`** wires borrowing, playback state, FX settings, and diagram
-selection. It intentionally excludes high-frequency tilt samples.
+**`ChordContext`** wires borrowing, playback state, and diagram selection. It
+intentionally excludes high-frequency tilt samples and sound design settings.
+
+**`SoundDesignContext`** carries FX wet/dry mix, EQ profile, instrument
+preset, and ADSR envelope settings. It is provided by `ChordProvider`
+alongside `ChordContext` but kept separate because these values only matter
+to the Settings UI and change independently of chord/playback/borrowing
+state. Subscribe here only from sound-design settings components
+(`EffectsPanelContent`, `AdsrPanelContent`, `EqProfileToggle`,
+`InstrumentPresetPicker`); playback/diagram components should not need it.
 
 **`TiltReadoutContext`** carries `tiltStatus`, `tiltSample`, and
 `requestTiltPermission`. Subscribe here only when rendering tilt-dependent UI
@@ -72,8 +80,12 @@ Do not run voicing-cache lookups on the audio dispatch path; playback calls
 ## Tests
 
 - Place unit tests beside the module: `foo.test.ts` next to `foo.ts`.
-- Component tests live next to the component or under `src/test/` for shared
-  setup utilities.
+- Component tests live next to the component.
+- `src/test/` holds shared setup utilities (`setup.ts`) and cross-module
+  scenario/integration tests that exercise several modules together and
+  don't belong to any single one (e.g. `borrowingMuteIntegration.test.ts`,
+  the elemental-chemistry playback scenarios). If a test only imports from
+  one module, colocate it with that module instead of adding it here.
 - Run `npm test -- --run` before pushing; aim to keep the full suite green.
 
 **Gain staging and preset loudness** (offline Playwright renders, per-preset

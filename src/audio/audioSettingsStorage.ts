@@ -9,15 +9,9 @@ export function readEqProfileId(tier?: LayoutTier): EqProfileId {
   return resolveDefaultEqProfileId(tier);
 }
 
-/** @deprecated Use readEqProfileId */
-export const readOutputProfileId = readEqProfileId;
-
 export function writeEqProfileId(id: EqProfileId): void {
   void id;
 }
-
-/** @deprecated Use writeEqProfileId */
-export const writeOutputProfileId = writeEqProfileId;
 
 export function readSynthPresetId(): string {
   return DEFAULT_SYNTH_PRESET_ID;

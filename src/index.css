@@ -1721,6 +1721,12 @@ body.scroll-locked {
   stroke-width: 3;
 }
 
+.chord-node:focus-visible .chord-node-core,
+.diagram-svg path:focus-visible {
+  outline: 2px solid rgba(155, 114, 248, 0.85);
+  outline-offset: 2px;
+}
+
 /* ==========================================================================
    Form controls (select, range)
    ========================================================================== */
@@ -1904,6 +1910,12 @@ input[type="range"] {
   touch-action: none;
   user-select: none;
   -webkit-user-select: none;
+}
+
+.borrow-slider:focus-visible {
+  outline: 2px solid rgba(155, 114, 248, 0.85);
+  outline-offset: 2px;
+  border-radius: 4px;
 }
 
 .borrow-slider-track {

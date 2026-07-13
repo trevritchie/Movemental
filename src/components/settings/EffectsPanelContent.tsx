@@ -1,5 +1,5 @@
 import React from 'react';
-import { useChordContext } from '../../context/ChordContext';
+import { useSoundDesignContext } from '../../context/SoundDesignContext';
 
 interface EffectsPanelContentProps {
   idPrefix?: string;
@@ -18,7 +18,7 @@ export const EffectsPanelContent: React.FC<EffectsPanelContentProps> = ({
     reverbWet,
     setReverbWet,
     isSamplerInstrumentActive,
-  } = useChordContext();
+  } = useSoundDesignContext();
 
   const disabled = disabledProp ?? isSamplerInstrumentActive;
 

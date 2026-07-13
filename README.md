@@ -74,7 +74,7 @@ sensor update.
 
 ## Play Styles and Voicing
 
-Playback lives in [`useChordPlayback.ts`](src/hooks/useChordPlayback.ts). All styles share the same pipeline: resolve elemental roots, build a borrowed pitch structure, run the tilt voicing engine, then dispatch to `AudioEngine`.
+Playback lives in [`useChordPlayback.ts`](src/hooks/useChordPlayback.ts), which orchestrates two sub-hooks: [`useVoicingAnchorResolution.ts`](src/hooks/useVoicingAnchorResolution.ts) (anchor-key and tilt/voice-leading math shared by all three voice-leading modes) and [`usePlaybackCommit.ts`](src/hooks/usePlaybackCommit.ts) (audio dispatch and post-audio state commit). All styles share the same pipeline: resolve elemental roots, build a borrowed pitch structure, run the tilt voicing engine, then dispatch to `AudioEngine`.
 
 | Style | Trigger | Audio behavior |
 |-------|---------|----------------|
@@ -348,7 +348,7 @@ and recently touched modules.
 |------|------|------|
 | UI | `src/components/` | Diagram, clock, borrowing controls, TopBar, voicing overlay |
 | State | `src/context/ChordContext.tsx`, `TiltReadoutContext.tsx` | Provider wiring |
-| Playback | `src/hooks/useChordPlayback.ts` | Play styles, voicing dispatch, elemental chain |
+| Playback | `src/hooks/useChordPlayback.ts`, `useVoicingAnchorResolution.ts`, `usePlaybackCommit.ts` | Play styles, anchor/voice-leading resolution, audio dispatch, elemental chain |
 | Tilt sensor | `src/hooks/useDeviceTilt.ts` | Orientation to normalized tilt sample |
 | Voicing | `src/music/TiltVoicingEngine.ts`, `tiltVoicingPlayback.ts` | Ladder counterpoint |
 | Harmony | `src/music/BorrowingLogic.ts`, `ChordManager.ts`, `elementalRoot.ts` | Borrowing, dictionary, elemental roots |
@@ -399,17 +399,18 @@ npm run build
 ```
 Highly optimized, minified assets will be generated in the `dist` directory.
 
-On local machines (not CI), `postbuild` deploys `dist/` to Firebase Hosting (`movemental-dev`). CI builds skip deploy.
+`npm run build` never deploys anything on its own. To ship the build to the
+dev Firebase Hosting site, run `npm run deploy` explicitly (see below).
 
 ### Deploy (Firebase Hosting)
 
 | Environment | Project | How it deploys |
 |-------------|---------|----------------|
-| Dev | `movemental-dev` | `npm run build` locally (build + deploy; skipped when `CI=true`) |
+| Dev | `movemental-dev` | `npm run deploy` locally (explicit; builds, then deploys) |
 | Dev preview | `movemental-dev` | Open a PR (GitHub Actions deploys channel `pr-<number>`) |
 | Prod | `movemental-chords` | Push to `main` (GitHub Actions after verify) |
 
-**Local (dev):** Run `firebase login` once at the repository root, then `npm run build` deploys to dev.
+**Local (dev):** Run `firebase login` once at the repository root, then `npm run deploy` builds and deploys to dev.
 
 **PR previews:** Open a pull request. After CI verify passes, GitHub Actions deploys `dist/` to Firebase Hosting preview channel `pr-<number>` on `movemental-dev` and comments the preview URL on the PR. Requires the `FIREBASE_TOKEN` repository secret with Hosting deploy access on `movemental-dev`.
 
@@ -422,7 +423,7 @@ npm run preview
 ```
 
 ### Verification Utility Script
-The codebase includes a CLI utility `src/check.ts` that initializes the chord dictionary and prints symmetrical coordinates, vector centers, and pitch arrays to the console. You can run this directly in your terminal using a runner like `vite-node` or `ts-node` to verify mathematical alignment:
+The repo includes a CLI utility `scripts/check.ts` that initializes the chord dictionary and prints symmetrical coordinates, vector centers, and pitch arrays to the console. You can run this directly in your terminal using a runner like `vite-node` or `ts-node` to verify mathematical alignment:
 ```bash
-npx vite-node src/check.ts
+npx vite-node scripts/check.ts
 ```

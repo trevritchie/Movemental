@@ -9,6 +9,7 @@ import type { Chord } from './ChordManager';
 import { borrowingLogic, getInitialBorrowingState, type BorrowingState } from './BorrowingLogic';
 import type { VoiceLeadingMode } from '../context/types';
 import { usesDeviceTilt } from '../context/types';
+import { clamp } from '../utils/clamp';
 import { resolveEffectiveTiltForLabel } from './playbackTiltResolution';
 import {
   NO_TILT_POSITION_LEVEL_COUNT,
@@ -142,7 +143,7 @@ export function pitchAxisArrowSteps(tilt: TiltSample): number {
 
 export function voiceLineForParallelSteps(parallelSteps: number): VoiceLine {
   const idx = positionLabelIndexFromParallelSteps(parallelSteps);
-  return (Math.max(0, Math.min(3, idx)) + 1) as VoiceLine;
+  return (clamp(idx, 0, 3) + 1) as VoiceLine;
 }
 
 export function getBassDegreeLabelForParallelSteps(
@@ -152,15 +153,6 @@ export function getBassDegreeLabelForParallelSteps(
   const voiceLine = voiceLineForParallelSteps(parallelSteps);
   const degree = getVoiceDegreeLabel(voiceLine, chord);
   return formatBassDegreeWithDirection(formatBassDegreeLabel(degree), parallelSteps);
-}
-
-/** @deprecated Use getBassDegreeLabelForParallelSteps with unsigned steps 0..3. */
-export function getBassDegreeLabelForPositionIndex(
-  positionIndex: number,
-  chord: Chord | null
-): string {
-  const clampedIndex = Math.max(0, Math.min(3, positionIndex));
-  return getBassDegreeLabelForParallelSteps(clampedIndex, chord);
 }
 
 function voiceLineFromSpelledDegrees(
@@ -283,15 +275,6 @@ export function resolveTiltBassVoiceLine(
   const structure = borrowingPitchStructure(chord, context.borrowingState);
   const line = voiceLineForLowestPitch(voiced, structure, chord);
   return line ?? pitchOnlyVoiceLine(effectiveTilt);
-}
-
-/** @deprecated Use tiltBassDegreeLabel (roll-aware degree, pitch-only arrows). */
-export function tiltBassPositionLabel(
-  tilt: TiltSample,
-  chord: Chord | null,
-  context?: TiltBassLabelContext
-): string {
-  return tiltBassDegreeLabel(tilt, chord, context);
 }
 
 /** Voicing width committed at the last diagram tap. */

@@ -1,24 +1,24 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { ChordManager } from './ChordManager';
-import { OCTAVE } from './config';
+import { ChordManager } from '../music/ChordManager';
+import { OCTAVE } from '../music/config';
 import {
   getFlatParallelStepsForChord,
   resolveSmoothNoTiltPlaybackTilt,
-} from './predeterminedVoiceLeading';
-import { tiltFromNoTiltLevels } from './playbackTiltResolution';
+} from '../music/predeterminedVoiceLeading';
+import { tiltFromNoTiltLevels } from '../music/playbackTiltResolution';
 import {
   DEFAULT_NO_TILT_VOICING_LEVEL,
   noTiltPositionLevelFromParallelSteps,
   parallelLevelFromTilt,
   tiltSampleFromLevels,
-} from './TiltVoicingEngine';
-import { computeNeutralTiltVoicing } from './tiltVoicingPlayback';
+} from '../music/TiltVoicingEngine';
+import { computeNeutralTiltVoicing } from '../music/tiltVoicingPlayback';
 import {
   applyNoTiltLocksForChord,
   createEmptyNoTiltChordLockMaps,
   lockNoTiltBass,
   lockNoTiltVoicing,
-} from './noTiltChordLocks';
+} from '../music/noTiltChordLocks';
 
 const TONAL_CENTER = 10;
 // Home octave 2 at Bb; matches smooth no-tilt playback defaults.

@@ -1,5 +1,5 @@
-import { describe, it, expect, vi } from 'vitest';
-import { render, waitFor } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { render, waitFor, fireEvent } from '@testing-library/react';
 import { ElementalDiagram } from './ElementalDiagram';
 
 vi.mock('./tour/tourContext', () => ({
@@ -9,6 +9,9 @@ vi.mock('./tour/tourContext', () => ({
   }),
 }));
 
+const mockHandleChordPointerDown = vi.fn();
+const mockHandleChordPointerUp = vi.fn();
+
 // Idle diagram: no selected chord, borrowing off, tilt unsupported.
 vi.mock('../context/ChordContext', () => ({
   useChordContext: () => ({
@@ -17,8 +20,8 @@ vi.mock('../context/ChordContext', () => ({
       circlePositions: { 1: 'line', 2: 'line', 3: 'line', 4: 'line' },
       noteStates: { 1: 'off', 2: 'off', 3: 'off', 4: 'off' },
     },
-    handleChordPointerDown: vi.fn(),
-    handleChordPointerUp: vi.fn(),
+    handleChordPointerDown: mockHandleChordPointerDown,
+    handleChordPointerUp: mockHandleChordPointerUp,
     handleChordPointerEnter: vi.fn(),
     playStyle: 'drone',
     noTiltVoicingLevel: 0,
@@ -78,6 +81,11 @@ async function flushAnimationFrames(count = 2): Promise<void> {
 }
 
 describe('ElementalDiagram ready gate', () => {
+  beforeEach(() => {
+    mockHandleChordPointerDown.mockClear();
+    mockHandleChordPointerUp.mockClear();
+  });
+
   it('should hide diagram until layout settles after mount', async () => {
     mockUseLayoutTier.mockReturnValue('phone');
     const { container } = render(<ElementalDiagram />);
@@ -118,6 +126,40 @@ describe('ElementalDiagram ready gate', () => {
     expect(
       desktop.container.querySelector('.mobile-action-buttons'),
     ).toBeNull();
+  });
+
+  it('exposes chord nodes as focusable, labeled buttons operable with the keyboard', async () => {
+    mockUseLayoutTier.mockReturnValue('desktop');
+    const { container } = render(<ElementalDiagram />);
+    await flushAnimationFrames(2);
+
+    const earthNode = Array.from(
+      container.querySelectorAll('.chord-node'),
+    ).find((node) => node.getAttribute('aria-label') === 'Earth');
+    expect(earthNode).toBeDefined();
+    expect(earthNode).toHaveAttribute('role', 'button');
+    expect(earthNode).toHaveAttribute('tabindex', '0');
+    expect(earthNode).toHaveAttribute('aria-pressed', 'false');
+  });
+
+  it('selects a chord node with Enter and releases it on key up', async () => {
+    mockUseLayoutTier.mockReturnValue('desktop');
+    const { container } = render(<ElementalDiagram />);
+    await flushAnimationFrames(2);
+
+    const earthNode = Array.from(
+      container.querySelectorAll('.chord-node'),
+    ).find((node) => node.getAttribute('aria-label') === 'Earth')!;
+
+    fireEvent.keyDown(earthNode, { key: 'Enter' });
+    expect(mockHandleChordPointerDown).toHaveBeenCalledTimes(1);
+    expect(mockHandleChordPointerUp).not.toHaveBeenCalled();
+
+    fireEvent.keyUp(earthNode, { key: 'Enter' });
+    expect(mockHandleChordPointerUp).toHaveBeenCalledTimes(1);
+
+    fireEvent.keyDown(earthNode, { key: 'Enter', repeat: true });
+    expect(mockHandleChordPointerDown).toHaveBeenCalledTimes(1);
   });
 
   it('renders background orbs behind the svg without intercepting pointer events', async () => {

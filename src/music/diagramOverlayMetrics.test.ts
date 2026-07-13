@@ -2,8 +2,8 @@ import { describe, it, expect } from 'vitest';
 import {
   computeDiagramOverlayMetrics,
   DEFAULT_OVERLAY_METRICS,
-} from '../music/diagramOverlayMetrics';
-import { computeOverlayCornerSpans } from '../music/diagramScaling';
+} from './diagramOverlayMetrics';
+import { computeOverlayCornerSpans } from './diagramScaling';
 
 describe('computeDiagramOverlayMetrics', () => {
   it('returns defaults when dimensions are zero', () => {

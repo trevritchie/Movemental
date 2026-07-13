@@ -7,6 +7,7 @@
 import { chordManager, type Chord } from './ChordManager';
 import { ELEMENTAL_RELATIONSHIPS, NOTE_POSITION_MAPPING } from './config';
 import { normalizePitchClass } from './pitchClass';
+import { clamp } from '../utils/clamp';
 
 export type BorrowingDirection = 'up' | 'down' | null;
 export type NoteState = 'on' | 'off';
@@ -37,7 +38,7 @@ export function cloneBorrowingState(state: BorrowingState): BorrowingState {
   };
 }
 
-const clampMidi = (pitch: number): number => Math.max(21, Math.min(108, pitch));
+const clampMidi = (pitch: number): number => clamp(pitch, 21, 108);
 
 /** Nearest MIDI note matching targetPc to referenceMidi. */
 export function closestMidiWithPitchClass(
@@ -129,10 +130,6 @@ export class BorrowingLogic {
     } else {
       return maxPc + ((referenceOctave - 1) * 12);
     }
-  }
-
-  public generateActivePitches(chord: Chord, state: BorrowingState): (number | null)[] {
-    return chordManager.applyVoicing(this.generatePitchStructure(chord, state));
   }
 
   /** Pitch classes to drop from a voiced chord when voice lines are muted. */
