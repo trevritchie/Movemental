@@ -15,6 +15,13 @@ updates:
     commit-message:
       prefix: "chore(deps)"
       include: "scope"
+    # typescript-eslint@8.x still peers typescript <6.1.0. Ignore TypeScript
+    # majors until that peer range moves; otherwise Dependabot will keep opening
+    # install-breaking typescript-tooling PRs. Minor/patch TypeScript bumps in
+    # the 6.x line remain allowed.
+    ignore:
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
     groups:
       production-dependencies:
         dependency-type: "production"
