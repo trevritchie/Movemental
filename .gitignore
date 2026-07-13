@@ -1,3 +1,27 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+
+# Firebase deployment state (runtime, not source)
+.firebase/
+
+# Antigravity agent runtime files
+.agents/
+skills-lock.json
+
+# vite
+.vite/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
@@ -6,14 +30,10 @@ __pycache__/
 # C extensions
 *.so
 
-# vite
-.vite/
-
 # Distribution / packaging
 .Python
 build/
 develop-eggs/
-dist/
 downloads/
 eggs/
 .eggs/
@@ -59,7 +79,6 @@ cover/
 *.pot
 
 # Django stuff:
-*.log
 local_settings.py
 db.sqlite3
 db.sqlite3-journal
@@ -175,12 +194,19 @@ cython_debug/
 # Editors/AI Agents
 .idea/
 .abstra/
-.vscode/
+.vscode/*
+!.vscode/extensions.json
 .cursor/
 .cursorignore
 .kilocode/
 .claude/
 *claude*
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
 
 # Ruff stuff:
 .ruff_cache/

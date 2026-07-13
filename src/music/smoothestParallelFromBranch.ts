@@ -1,6 +1,6 @@
 /**
  * Offline generator for Smoothest flat-parallel baselines from Branch.
- * See web/docs/smoothest-flat-parallel-from-branch.md; table values land in
+ * See docs/smoothest-flat-parallel-from-branch.md; table values land in
  * predeterminedVoiceLeading.ts, not here at runtime.
  */
 

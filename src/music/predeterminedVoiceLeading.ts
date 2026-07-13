@@ -7,7 +7,7 @@
  * resting point differs.
  *
  * Smoothest mode uses the heuristic in smoothestVoiceLeading.ts instead. This
- * table seeds Smooth defaults (see web/docs/smoothest-flat-parallel-from-branch.md).
+ * table seeds Smooth defaults (see docs/smoothest-flat-parallel-from-branch.md).
  */
 import {
   parallelLevelFromTilt,

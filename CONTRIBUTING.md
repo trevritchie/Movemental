@@ -1,6 +1,6 @@
 # Contributing to Movemental Web
 
-Conventions for the `web/` app (React, TypeScript, Vite, Tone.js). See
+Conventions for this app (React, TypeScript, Vite, Tone.js). See
 [`README.md`](README.md) for domain architecture and DSP details.
 
 ## Module layout
@@ -91,7 +91,7 @@ npm run measure:latency
 
 ## Verification
 
-From the `web/` directory:
+From the repository root:
 
 ```bash
 npm run lint
