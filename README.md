@@ -74,7 +74,7 @@ sensor update.
 
 ## Play Styles and Voicing
 
-Playback lives in [`useChordPlayback.ts`](src/hooks/useChordPlayback.ts). All styles share the same pipeline: resolve elemental roots, build a borrowed pitch structure, run the tilt voicing engine, then dispatch to `AudioEngine`.
+Playback lives in [`useChordPlayback.ts`](src/hooks/useChordPlayback.ts), which orchestrates two sub-hooks: [`useVoicingAnchorResolution.ts`](src/hooks/useVoicingAnchorResolution.ts) (anchor-key and tilt/voice-leading math shared by all three voice-leading modes) and [`usePlaybackCommit.ts`](src/hooks/usePlaybackCommit.ts) (audio dispatch and post-audio state commit). All styles share the same pipeline: resolve elemental roots, build a borrowed pitch structure, run the tilt voicing engine, then dispatch to `AudioEngine`.
 
 | Style | Trigger | Audio behavior |
 |-------|---------|----------------|
@@ -348,7 +348,7 @@ and recently touched modules.
 |------|------|------|
 | UI | `src/components/` | Diagram, clock, borrowing controls, TopBar, voicing overlay |
 | State | `src/context/ChordContext.tsx`, `TiltReadoutContext.tsx` | Provider wiring |
-| Playback | `src/hooks/useChordPlayback.ts` | Play styles, voicing dispatch, elemental chain |
+| Playback | `src/hooks/useChordPlayback.ts`, `useVoicingAnchorResolution.ts`, `usePlaybackCommit.ts` | Play styles, anchor/voice-leading resolution, audio dispatch, elemental chain |
 | Tilt sensor | `src/hooks/useDeviceTilt.ts` | Orientation to normalized tilt sample |
 | Voicing | `src/music/TiltVoicingEngine.ts`, `tiltVoicingPlayback.ts` | Ladder counterpoint |
 | Harmony | `src/music/BorrowingLogic.ts`, `ChordManager.ts`, `elementalRoot.ts` | Borrowing, dictionary, elemental roots |
