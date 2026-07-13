@@ -70,6 +70,7 @@ function playWebAudioBlip(): boolean {
     source.start(0);
 
     if (ctx.state === 'running') {
+      source.onended = () => { void ctx.close(); };
       return true;
     }
 
@@ -97,7 +98,12 @@ function ensureSilentHtmlAudio(): HTMLAudioElement {
   if (silentAudio) return silentAudio;
 
   const AudioCtx = getAudioContextClass();
-  const sampleRate = AudioCtx ? new AudioCtx().sampleRate : 44100;
+  let sampleRate = 44100;
+  if (AudioCtx) {
+    const tempCtx = new AudioCtx();
+    sampleRate = tempCtx.sampleRate;
+    void tempCtx.close();
+  }
 
   silentAudio = document.createElement('audio');
   silentAudio.setAttribute('x-webkit-airplay', 'deny');
