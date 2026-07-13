@@ -406,9 +406,12 @@ On local machines (not CI), `postbuild` deploys `dist/` to Firebase Hosting (`mo
 | Environment | Project | How it deploys |
 |-------------|---------|----------------|
 | Dev | `movemental-dev` | `npm run build` locally (build + deploy; skipped when `CI=true`) |
+| Dev preview | `movemental-dev` | Open a PR (GitHub Actions deploys channel `pr-<number>`) |
 | Prod | `movemental-chords` | Push to `main` (GitHub Actions after verify) |
 
 **Local (dev):** Run `firebase login` once at the repository root, then `npm run build` deploys to dev.
+
+**PR previews:** Open a pull request. After CI verify passes, GitHub Actions deploys `dist/` to Firebase Hosting preview channel `pr-<number>` on `movemental-dev` and comments the preview URL on the PR. Requires the `FIREBASE_TOKEN` repository secret with Hosting deploy access on `movemental-dev`.
 
 **CI (prod):** Add a repository secret `FIREBASE_TOKEN` from `npx firebase login:ci` (account needs Hosting deploy access on both projects).
 

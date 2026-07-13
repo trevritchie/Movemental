@@ -35,6 +35,13 @@ jobs:
         env:
           CI: true
 
+      - uses: actions/upload-artifact@v4
+        if: github.event_name == 'pull_request'
+        with:
+          name: dist
+          path: dist
+          retention-days: 1
+
   deploy:
     needs: verify
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
@@ -57,3 +64,86 @@ jobs:
       - run: npx firebase deploy --only hosting --project prod --non-interactive
         env:
           FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+
+  preview-deploy:
+    needs: verify
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - run: npm ci
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist
+
+      - name: Deploy to Firebase preview channel
+        id: deploy
+        run: |
+          CHANNEL="pr-${{ github.event.pull_request.number }}"
+          OUTPUT=$(npx firebase hosting:channel:deploy "$CHANNEL" \
+            --project dev \
+            --non-interactive \
+            --expires 30d \
+            --json)
+          echo "$OUTPUT"
+          URL=$(echo "$OUTPUT" | jq -r '.result | to_entries[0].value.url')
+          if [ -z "$URL" ] || [ "$URL" = "null" ]; then
+            echo "Failed to parse preview URL from deploy output"
+            exit 1
+          fi
+          echo "url=$URL" >> "$GITHUB_OUTPUT"
+          echo "channel=$CHANNEL" >> "$GITHUB_OUTPUT"
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+
+      - name: Comment preview URL on PR
+        uses: actions/github-script@v7
+        env:
+          PREVIEW_URL: ${{ steps.deploy.outputs.url }}
+          PREVIEW_CHANNEL: ${{ steps.deploy.outputs.channel }}
+        with:
+          script: |
+            const marker = '<!-- firebase-preview-deploy -->';
+            const url = process.env.PREVIEW_URL;
+            const channel = process.env.PREVIEW_CHANNEL;
+            const body = `${marker}
+            ### Firebase preview
+
+            **Channel:** \`${channel}\` on \`movemental-dev\`
+            **Preview URL:** ${url}
+
+            This preview updates on each push to this branch. The channel expires after 30 days.`;
+
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            const existing = comments.find((comment) => comment.body?.includes(marker));
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body,
+              });
+            }
