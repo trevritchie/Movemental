@@ -1,0 +1,37 @@
+name: CodeQL
+
+on:
+  push:
+    branches: ["main"]
+    paths-ignore:
+      - "python-prototype/**"
+  pull_request:
+    branches: ["main"]
+    paths-ignore:
+      - "python-prototype/**"
+  schedule:
+    # Weekly scan even without new pushes, to catch newly published query rules.
+    - cron: "23 7 * * 1"
+
+jobs:
+  analyze:
+    name: Analyze (javascript-typescript)
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: javascript-typescript
+          build-mode: none
+
+      - name: Perform CodeQL analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:javascript-typescript"
