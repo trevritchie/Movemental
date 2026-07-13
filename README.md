@@ -423,7 +423,7 @@ npm run preview
 ```
 
 ### Verification Utility Script
-The codebase includes a CLI utility `src/check.ts` that initializes the chord dictionary and prints symmetrical coordinates, vector centers, and pitch arrays to the console. You can run this directly in your terminal using a runner like `vite-node` or `ts-node` to verify mathematical alignment:
+The repo includes a CLI utility `scripts/check.ts` that initializes the chord dictionary and prints symmetrical coordinates, vector centers, and pitch arrays to the console. You can run this directly in your terminal using a runner like `vite-node` or `ts-node` to verify mathematical alignment:
 ```bash
-npx vite-node src/check.ts
+npx vite-node scripts/check.ts
 ```

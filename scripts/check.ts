@@ -1,10 +1,10 @@
-import { chordManager } from './music/ChordManager';
-import { SLICE_VARIANTS } from './music/diagramMetadata';
+import { chordManager } from '../src/music/ChordManager';
+import { SLICE_VARIANTS } from '../src/music/diagramMetadata';
 import {
   DIAGRAM_VIEW_W,
   DIAGRAM_VIEW_H,
   coordToPixels,
-} from './music/diagramLayout';
+} from '../src/music/diagramLayout';
 
 console.log("Initializing chord dictionary...");
 chordManager.initializeChordDictionary();
