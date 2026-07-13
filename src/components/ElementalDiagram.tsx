@@ -222,6 +222,8 @@ export const ElementalDiagram = React.memo(function ElementalDiagram({
         viewBox={viewBox}
         className="diagram-svg"
         preserveAspectRatio={preserveAspectRatio}
+        role="group"
+        aria-label="Elemental chord diagram"
       >
         <defs>
           <filter id="glow" x="-50%" y="-50%" width="200%" height="200%" filterUnits="userSpaceOnUse">
@@ -357,6 +359,10 @@ export const ElementalDiagram = React.memo(function ElementalDiagram({
                       stroke={isSelected ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.45)'}
                       strokeWidth={isSelected ? 2.5 : 1}
                       style={{ cursor: 'pointer', transition: 'fill-opacity 0.12s ease' }}
+                      role={chord ? 'button' : undefined}
+                      tabIndex={chord ? 0 : undefined}
+                      aria-label={chord?.name}
+                      aria-pressed={chord ? isSelected : undefined}
                       onPointerEnter={() => {
                         setHoveredGroup(baseName);
                         setHoveredSliceIdx(i);
@@ -368,6 +374,22 @@ export const ElementalDiagram = React.memo(function ElementalDiagram({
                         if (chord) handleChordPointerDown(chord);
                       }}
                       onPointerUp={() => handleChordPointerUp()}
+                      onFocus={() => {
+                        setHoveredGroup(baseName);
+                        setHoveredSliceIdx(i);
+                      }}
+                      onKeyDown={(e) => {
+                        if (!chord || e.repeat) return;
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          handleChordPointerDown(chord);
+                        }
+                      }}
+                      onKeyUp={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          handleChordPointerUp();
+                        }
+                      }}
                     />
                   );
                 })}
@@ -408,6 +430,10 @@ export const ElementalDiagram = React.memo(function ElementalDiagram({
               key={chord.name}
               transform={`translate(${x}, ${y})`}
               className={`chord-node ${isSelected ? 'active' : ''}`}
+              role="button"
+              tabIndex={0}
+              aria-label={chord.name}
+              aria-pressed={isSelected}
               onPointerDown={(e) => {
                 e.preventDefault();
                 e.currentTarget.releasePointerCapture(e.pointerId);
@@ -416,6 +442,18 @@ export const ElementalDiagram = React.memo(function ElementalDiagram({
               onPointerUp={() => handleChordPointerUp()}
               onPointerEnter={() => {
                 handleChordPointerEnter(freshChord);
+              }}
+              onKeyDown={(e) => {
+                if (e.repeat) return;
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  handleChordPointerDown(freshChord);
+                }
+              }}
+              onKeyUp={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  handleChordPointerUp();
+                }
               }}
               style={{ cursor: 'pointer' }}
             >

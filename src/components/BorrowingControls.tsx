@@ -32,7 +32,16 @@ interface BorrowSliderProps {
   onToggleMute: () => void;
   neutralColor: string;
   oppositeColor: string;
+  label: string;
 }
+
+const SLOT_TO_VALUE: Record<'up' | 'neutral' | 'down', number> = {
+  up: 1,
+  neutral: 0,
+  down: -1,
+};
+
+const VALUE_TO_SLOT: ('down' | 'neutral' | 'up')[] = ['down', 'neutral', 'up'];
 
 const SLOTS: ('up' | 'neutral' | 'down')[] = ['up', 'neutral', 'down'];
 
@@ -40,7 +49,7 @@ const SLOTS: ('up' | 'neutral' | 'down')[] = ['up', 'neutral', 'down'];
 const SLIDER_PREVIEW_DEBOUNCE_MS = 100;
 
 const BorrowSlider = React.memo(function BorrowSlider({
-  activeSlot, muted, disabled, onChange, onToggleMute, neutralColor, oppositeColor,
+  activeSlot, muted, disabled, onChange, onToggleMute, neutralColor, oppositeColor, label,
 }: BorrowSliderProps) {
   const trackRef = useRef<HTMLDivElement>(null);
   const isDragging = useRef(false);
@@ -173,6 +182,24 @@ const BorrowSlider = React.memo(function BorrowSlider({
     clickedActiveNode.current = false;
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (disabled) return;
+    if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+      e.preventDefault();
+      const delta = e.key === 'ArrowUp' ? 1 : -1;
+      const nextValue = Math.max(
+        -1,
+        Math.min(1, SLOT_TO_VALUE[activeSlot] + delta),
+      );
+      onChange(VALUE_TO_SLOT[nextValue + 1]);
+    } else if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      onToggleMute();
+    }
+  };
+
+  const valueText = `${activeSlot}${muted ? ', muted' : ''}`;
+
   return (
     <div
       ref={trackRef}
@@ -181,6 +208,15 @@ const BorrowSlider = React.memo(function BorrowSlider({
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
       onPointerCancel={abortDrag}
+      onKeyDown={handleKeyDown}
+      role="slider"
+      tabIndex={disabled ? -1 : 0}
+      aria-label={label}
+      aria-valuemin={-1}
+      aria-valuemax={1}
+      aria-valuenow={SLOT_TO_VALUE[activeSlot]}
+      aria-valuetext={valueText}
+      aria-disabled={disabled}
     >
       <div className="borrow-slider-track" />
 
@@ -292,6 +328,7 @@ export const BorrowingControls: React.FC<BorrowingControlsProps> = ({
           onToggleMute={() => handleToggleMute(line)}
           neutralColor={getNeutralColor(line)}
           oppositeColor={oppositeColor}
+          label={`Voice ${line} borrowing`}
         />
       </div>
     );
@@ -302,6 +339,8 @@ export const BorrowingControls: React.FC<BorrowingControlsProps> = ({
       <div
         className="borrowing-controls borrowing-controls--phone"
         data-tour-id="tour-borrowing"
+        role="group"
+        aria-label="Voice borrowing controls"
       >
         <div className="mobile-voice-panel">
           <MobileActionButtons side="left" />
@@ -315,7 +354,12 @@ export const BorrowingControls: React.FC<BorrowingControlsProps> = ({
   }
 
   return (
-    <div className="borrowing-controls" data-tour-id="tour-borrowing">
+    <div
+      className="borrowing-controls"
+      data-tour-id="tour-borrowing"
+      role="group"
+      aria-label="Voice borrowing controls"
+    >
       {VOICE_LINES.map((line) => renderSliderColumn(line))}
     </div>
   );
