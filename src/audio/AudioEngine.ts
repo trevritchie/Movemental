@@ -143,6 +143,8 @@ export class AudioEngine {
   private latencyContextConfigured = false;
   private isBackgrounded = false;
   private releaseListeners = new Set<() => void>();
+  /** In-flight startContext promise; shared across concurrent callers to prevent double-init. */
+  private startContextPromise: Promise<void> | null = null;
 
   constructor() {
     const tier = resolveLayoutTierSafe();
@@ -550,7 +552,16 @@ export class AudioEngine {
     }
   }
 
-  public async startContext() {
+  public startContext(): Promise<void> {
+    if (!this.startContextPromise) {
+      this.startContextPromise = this.startContextImpl().finally(() => {
+        this.startContextPromise = null;
+      });
+    }
+    return this.startContextPromise;
+  }
+
+  private async startContextImpl(): Promise<void> {
     unlockIosMediaChannel();
     await waitForIosMediaChannel();
 
