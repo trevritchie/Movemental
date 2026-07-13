@@ -1,6 +1,6 @@
-# Movemental: The Elemental Tesseract Audio Engine & Interactive Interface
+# Movemental
 
-Movemental is a state-of-the-art interactive audio application built on React, TypeScript, and Vite. It implements the **Elemental Tesseract**, a mathematical and music-theoretical system that maps pitch relations to symmetrical coordinates across elemental axes, utilizing an advanced voice borrowing system, a **tilt counterpoint voicing engine** (phone play style), and an 8-stage laptop-optimized DSP signal chain powered by Tone.js.
+Movemental is an interactive audio application built on React, TypeScript, and Vite.
 
 ---
 
