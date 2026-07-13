@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import React from 'react';
 import { ChordProvider, useChordContext } from './ChordContext';
+import { useSoundDesignContext } from './SoundDesignContext';
 import { DEFAULT_USER_SETTINGS } from '../settings/userSettingsSchema';
 import { saveUserSettings, STORAGE_KEY } from '../settings/userSettingsStorage';
 
@@ -44,6 +45,11 @@ function wrapper({ children }: { children: React.ReactNode }) {
   return <ChordProvider>{children}</ChordProvider>;
 }
 
+/** Combines both context values so existing assertions can keep reading a single `result.current`. */
+function useCombinedChordContext() {
+  return { ...useChordContext(), ...useSoundDesignContext() };
+}
+
 describe('ChordProvider persistence', () => {
   beforeEach(() => {
     localStorage.clear();
@@ -74,7 +80,7 @@ describe('ChordProvider persistence', () => {
       },
     });
 
-    const { result } = renderHook(() => useChordContext(), { wrapper });
+    const { result } = renderHook(() => useCombinedChordContext(), { wrapper });
 
     expect(result.current.tonalCenter).toBe(4);
     expect(result.current.octaveRange).toBe(3);
@@ -94,7 +100,7 @@ describe('ChordProvider persistence', () => {
       },
     });
 
-    const { result } = renderHook(() => useChordContext(), { wrapper });
+    const { result } = renderHook(() => useCombinedChordContext(), { wrapper });
 
     act(() => {
       result.current.resetSettingsSection('general');
@@ -120,7 +126,7 @@ describe('ChordProvider persistence', () => {
       },
     });
 
-    const { result } = renderHook(() => useChordContext(), { wrapper });
+    const { result } = renderHook(() => useCombinedChordContext(), { wrapper });
     expect(result.current.chorusWet).toBe(0.9);
 
     act(() => {
@@ -134,7 +140,7 @@ describe('ChordProvider persistence', () => {
   });
 
   it('resetSettingsSection voiceLeading uses smoothest in no-tilt session', () => {
-    const { result } = renderHook(() => useChordContext(), { wrapper });
+    const { result } = renderHook(() => useCombinedChordContext(), { wrapper });
 
     act(() => {
       result.current.enterNoTiltSession();
@@ -149,7 +155,7 @@ describe('ChordProvider persistence', () => {
   });
 
   it('resetSettingsSection voiceLeading uses smooth in tilt session', () => {
-    const { result } = renderHook(() => useChordContext(), { wrapper });
+    const { result } = renderHook(() => useCombinedChordContext(), { wrapper });
 
     act(() => {
       result.current.enterTiltSession();
@@ -173,7 +179,7 @@ describe('ChordProvider persistence', () => {
       },
     });
 
-    const { result } = renderHook(() => useChordContext(), { wrapper });
+    const { result } = renderHook(() => useCombinedChordContext(), { wrapper });
 
     act(() => {
       result.current.resetSettingsGroup('playStyle');
@@ -196,7 +202,7 @@ describe('ChordProvider persistence', () => {
       },
     });
 
-    const { result } = renderHook(() => useChordContext(), { wrapper });
+    const { result } = renderHook(() => useCombinedChordContext(), { wrapper });
 
     act(() => {
       result.current.resetSettingsGroup('tonalCenter');
@@ -217,7 +223,7 @@ describe('ChordProvider persistence', () => {
       voiceLeading: { mode: 'root_position' },
     });
 
-    const { result } = renderHook(() => useChordContext(), { wrapper });
+    const { result } = renderHook(() => useCombinedChordContext(), { wrapper });
 
     act(() => {
       result.current.enterNoTiltSession();

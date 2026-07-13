@@ -1,5 +1,5 @@
 import React from 'react';
-import { useChordContext } from '../../context/ChordContext';
+import { useSoundDesignContext } from '../../context/SoundDesignContext';
 import { OUTPUT_PROFILES, type EqProfileId } from '../../audio/outputProfiles';
 
 const EQ_PROFILE_DESCRIPTIONS: Record<EqProfileId, string> = {
@@ -18,7 +18,7 @@ const EQ_PROFILE_ORDER: EqProfileId[] = [
 ];
 
 export const EqProfileToggle: React.FC = () => {
-  const { eqProfileId, setEqProfileId } = useChordContext();
+  const { eqProfileId, setEqProfileId } = useSoundDesignContext();
 
   return (
     <div className="eq-profile-toggle">

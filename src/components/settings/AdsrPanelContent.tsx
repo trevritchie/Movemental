@@ -1,5 +1,6 @@
 import React from 'react';
 import { useChordContext } from '../../context/ChordContext';
+import { useSoundDesignContext } from '../../context/SoundDesignContext';
 
 interface AdsrPanelContentProps {
   idPrefix?: string;
@@ -10,8 +11,8 @@ export const AdsrPanelContent: React.FC<AdsrPanelContentProps> = ({
   idPrefix = '',
   disabled: disabledProp,
 }) => {
+  const { playStyle } = useChordContext();
   const {
-    playStyle,
     isSamplerAdsrDisabled,
     envelopeAttack,
     setEnvelopeAttack,
@@ -29,7 +30,7 @@ export const AdsrPanelContent: React.FC<AdsrPanelContentProps> = ({
     setDroneSustain,
     droneRelease,
     setDroneRelease,
-  } = useChordContext();
+  } = useSoundDesignContext();
 
   const isDrone = playStyle === 'drone';
   const disabled = disabledProp ?? isSamplerAdsrDisabled;

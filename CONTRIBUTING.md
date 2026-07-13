@@ -36,8 +36,16 @@ Prefer these instead of duplicating logic in components or hooks:
 
 ## React context boundaries
 
-**`ChordContext`** wires borrowing, playback state, FX settings, and diagram
-selection. It intentionally excludes high-frequency tilt samples.
+**`ChordContext`** wires borrowing, playback state, and diagram selection. It
+intentionally excludes high-frequency tilt samples and sound design settings.
+
+**`SoundDesignContext`** carries FX wet/dry mix, EQ profile, instrument
+preset, and ADSR envelope settings. It is provided by `ChordProvider`
+alongside `ChordContext` but kept separate because these values only matter
+to the Settings UI and change independently of chord/playback/borrowing
+state. Subscribe here only from sound-design settings components
+(`EffectsPanelContent`, `AdsrPanelContent`, `EqProfileToggle`,
+`InstrumentPresetPicker`); playback/diagram components should not need it.
 
 **`TiltReadoutContext`** carries `tiltStatus`, `tiltSample`, and
 `requestTiltPermission`. Subscribe here only when rendering tilt-dependent UI

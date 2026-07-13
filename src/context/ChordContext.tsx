@@ -30,6 +30,7 @@ import { useChordPlayback } from '../hooks/useChordPlayback';
 import { useDeviceTilt } from '../hooks/useDeviceTilt';
 import { usePersistedUserSettings } from '../hooks/usePersistedUserSettings';
 import { TiltReadoutProvider } from './TiltReadoutContext';
+import { SoundDesignContext } from './SoundDesignContext';
 import { useNoTiltChordLocks } from '../hooks/useNoTiltChordLocks';
 import type { ElementalPlaybackResolution } from '../music/tiltVoicingPlayback';
 import {
@@ -37,8 +38,6 @@ import {
   createNoTiltRevoiceSuppressState,
 } from '../music/noTiltRevoiceSuppress';
 import type { ClockLayoutMode, PlayStyle, VoiceLeadingMode } from './types';
-import type { EqProfileId } from '../audio/outputProfiles';
-import type { SynthPreset } from '../audio/synthPresets';
 import { loadUserSettings, clearUserSettings } from '../settings/userSettingsStorage';
 import {
   getDefaultVoiceLeadingMode,
@@ -69,20 +68,6 @@ interface ChordContextType {
   previousPlayedChord: Chord | null;
   handleChordSelect: (chord: Chord) => void;
   handleBorrowingStateChange: (newState: BorrowingState) => void;
-  chorusWet: number;
-  setChorusWet: (val: number) => void;
-  delayWet: number;
-  setDelayWet: (val: number) => void;
-  reverbWet: number;
-  setReverbWet: (val: number) => void;
-  eqProfileId: EqProfileId;
-  setEqProfileId: (id: EqProfileId) => void;
-  synthPresetId: string;
-  setSynthPresetId: (id: string) => void;
-  synthPresetLoading: boolean;
-  isSamplerInstrumentActive: boolean;
-  isSamplerAdsrDisabled: boolean;
-  synthPresets: SynthPreset[];
   playStyle: PlayStyle;
   setPlayStyle: (mode: PlayStyle) => void;
   tiltModeEnabled: boolean;
@@ -91,22 +76,6 @@ interface ChordContextType {
   handleChordPointerDown: (chord: Chord) => void;
   handleChordPointerUp: () => void;
   handleChordPointerEnter: (chord: Chord) => void;
-  envelopeAttack: number;
-  setEnvelopeAttack: (val: number) => void;
-  envelopeDecay: number;
-  setEnvelopeDecay: (val: number) => void;
-  envelopeSustain: number;
-  setEnvelopeSustain: (val: number) => void;
-  envelopeRelease: number;
-  setEnvelopeRelease: (val: number) => void;
-  droneAttack: number;
-  setDroneAttack: (val: number) => void;
-  droneDecay: number;
-  setDroneDecay: (val: number) => void;
-  droneSustain: number;
-  setDroneSustain: (val: number) => void;
-  droneRelease: number;
-  setDroneRelease: (val: number) => void;
   borrowingMemory: 'global' | 'per-chord';
   setBorrowingMemory: (mode: 'global' | 'per-chord') => void;
   voiceLeadingMode: VoiceLeadingMode;
@@ -544,20 +513,6 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
       previousPlayedChord: playback.previousPlayedChord,
       handleChordSelect,
       handleBorrowingStateChange: borrowing.handleBorrowingStateChange,
-      chorusWet: audio.chorusWet,
-      setChorusWet: audio.setChorusWet,
-      delayWet: audio.delayWet,
-      setDelayWet: audio.setDelayWet,
-      reverbWet: audio.reverbWet,
-      setReverbWet: audio.setReverbWet,
-      eqProfileId: audio.eqProfileId,
-      setEqProfileId: audio.setEqProfileId,
-      synthPresetId: audio.synthPresetId,
-      setSynthPresetId: audio.setSynthPresetId,
-      synthPresetLoading: audio.synthPresetLoading,
-      isSamplerInstrumentActive: audio.isSamplerInstrumentActive,
-      isSamplerAdsrDisabled: audio.isSamplerAdsrDisabled,
-      synthPresets: audio.synthPresets,
       playStyle: playback.playStyle,
       setPlayStyle: playback.setPlayStyle,
       tiltModeEnabled: playback.tiltModeEnabled,
@@ -566,22 +521,6 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
       handleChordPointerDown: playback.handleChordPointerDown,
       handleChordPointerUp: playback.handleChordPointerUp,
       handleChordPointerEnter: playback.handleChordPointerEnter,
-      envelopeAttack: audio.envelopeAttack,
-      setEnvelopeAttack: audio.setEnvelopeAttack,
-      envelopeDecay: audio.envelopeDecay,
-      setEnvelopeDecay: audio.setEnvelopeDecay,
-      envelopeSustain: audio.envelopeSustain,
-      setEnvelopeSustain: audio.setEnvelopeSustain,
-      envelopeRelease: audio.envelopeRelease,
-      setEnvelopeRelease: audio.setEnvelopeRelease,
-      droneAttack: audio.droneAttack,
-      setDroneAttack: audio.setDroneAttack,
-      droneDecay: audio.droneDecay,
-      setDroneDecay: audio.setDroneDecay,
-      droneSustain: audio.droneSustain,
-      setDroneSustain: audio.setDroneSustain,
-      droneRelease: audio.droneRelease,
-      setDroneRelease: audio.setDroneRelease,
       borrowingMemory: borrowing.borrowingMemory,
       setBorrowingMemory: borrowing.setBorrowingMemory,
       voiceLeadingMode,
@@ -625,6 +564,61 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
       playback.handleChordPointerUp,
       playback.handleChordPointerEnter,
       handleChordSelect,
+      voiceLeadingMode,
+      clockLayoutMode,
+      glowingOrbsEnabled,
+      playback.lastTapTilt,
+      playback.lastCommittedPlaybackTilt,
+      playback.smoothBaseParallel,
+      playback.lastPlayedVoicingLabel,
+      playback.lastPlayedBassLabel,
+      playback.lastElementalPlayback,
+      noTiltLocks.isVoicingLocked,
+      noTiltLocks.isBassLocked,
+      noTiltLocks.toggleVoicingLock,
+      noTiltLocks.toggleBassLock,
+      noTiltLocks.setNoTiltVoicingLevel,
+      noTiltLocks.setNoTiltPositionLevel,
+      resetSettingsSection,
+      resetSettingsGroup,
+      resetAllSettings,
+    ]
+  );
+
+  const soundDesignValue = useMemo(
+    () => ({
+      chorusWet: audio.chorusWet,
+      setChorusWet: audio.setChorusWet,
+      delayWet: audio.delayWet,
+      setDelayWet: audio.setDelayWet,
+      reverbWet: audio.reverbWet,
+      setReverbWet: audio.setReverbWet,
+      eqProfileId: audio.eqProfileId,
+      setEqProfileId: audio.setEqProfileId,
+      synthPresetId: audio.synthPresetId,
+      setSynthPresetId: audio.setSynthPresetId,
+      synthPresetLoading: audio.synthPresetLoading,
+      isSamplerInstrumentActive: audio.isSamplerInstrumentActive,
+      isSamplerAdsrDisabled: audio.isSamplerAdsrDisabled,
+      synthPresets: audio.synthPresets,
+      envelopeAttack: audio.envelopeAttack,
+      setEnvelopeAttack: audio.setEnvelopeAttack,
+      envelopeDecay: audio.envelopeDecay,
+      setEnvelopeDecay: audio.setEnvelopeDecay,
+      envelopeSustain: audio.envelopeSustain,
+      setEnvelopeSustain: audio.setEnvelopeSustain,
+      envelopeRelease: audio.envelopeRelease,
+      setEnvelopeRelease: audio.setEnvelopeRelease,
+      droneAttack: audio.droneAttack,
+      setDroneAttack: audio.setDroneAttack,
+      droneDecay: audio.droneDecay,
+      setDroneDecay: audio.setDroneDecay,
+      droneSustain: audio.droneSustain,
+      setDroneSustain: audio.setDroneSustain,
+      droneRelease: audio.droneRelease,
+      setDroneRelease: audio.setDroneRelease,
+    }),
+    [
       audio.chorusWet,
       audio.setChorusWet,
       audio.delayWet,
@@ -655,25 +649,7 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
       audio.setDroneSustain,
       audio.droneRelease,
       audio.setDroneRelease,
-      voiceLeadingMode,
-      clockLayoutMode,
-      glowingOrbsEnabled,
-      playback.lastTapTilt,
-      playback.lastCommittedPlaybackTilt,
-      playback.smoothBaseParallel,
-      playback.lastPlayedVoicingLabel,
-      playback.lastPlayedBassLabel,
-      playback.lastElementalPlayback,
-      noTiltLocks.isVoicingLocked,
-      noTiltLocks.isBassLocked,
-      noTiltLocks.toggleVoicingLock,
-      noTiltLocks.toggleBassLock,
-      noTiltLocks.setNoTiltVoicingLevel,
-      noTiltLocks.setNoTiltPositionLevel,
-      resetSettingsSection,
-      resetSettingsGroup,
-      resetAllSettings,
-    ]
+    ],
   );
 
   return (
@@ -683,7 +659,11 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
       orientationRef={deviceTilt.orientationRef}
       requestPermission={deviceTilt.requestPermission}
     >
-      <ChordContext.Provider value={value}>{children}</ChordContext.Provider>
+      <ChordContext.Provider value={value}>
+        <SoundDesignContext.Provider value={soundDesignValue}>
+          {children}
+        </SoundDesignContext.Provider>
+      </ChordContext.Provider>
     </TiltReadoutProvider>
   );
 };
