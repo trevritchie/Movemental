@@ -592,8 +592,10 @@ export class AudioEngine {
   public playNotes(midiNotes: number[], duration: string = "2n") {
     const voice = this.getVoice();
     if (!voice) {
-      // startContext wasn't called yet — try to initialize
-      this.startContext().then(() => this.playNotes(midiNotes, duration));
+      this.startContext().then(
+        () => { this.playNotes(midiNotes, duration); },
+        (err: unknown) => { devWarn('[AudioEngine] playNotes: context init failed, note dropped:', err); }
+      );
       return;
     }
 
