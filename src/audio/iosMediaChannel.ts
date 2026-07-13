@@ -3,6 +3,7 @@
  * audible when the hardware mute switch is on. Call synchronously from a
  * user gesture before Tone.start().
  */
+import { audioDebugLog, isAudioEngineDebugEnabled } from './audioDebug';
 
 interface NavigatorWithAudioSession extends Navigator {
   audioSession?: { type: string };
@@ -70,6 +71,7 @@ function playWebAudioBlip(): boolean {
     source.start(0);
 
     if (ctx.state === 'running') {
+      source.onended = () => { void ctx.close(); };
       return true;
     }
 
@@ -90,14 +92,21 @@ function logUnlockOutcome(details: {
   htmlPlay: 'ok' | 'fail' | 'skipped';
   webAudioBlip: boolean;
 }): void {
-  console.info('[iosMediaChannel]', details);
+  if (isAudioEngineDebugEnabled()) {
+    audioDebugLog('[iosMediaChannel]', details);
+  }
 }
 
 function ensureSilentHtmlAudio(): HTMLAudioElement {
   if (silentAudio) return silentAudio;
 
   const AudioCtx = getAudioContextClass();
-  const sampleRate = AudioCtx ? new AudioCtx().sampleRate : 44100;
+  let sampleRate = 44100;
+  if (AudioCtx) {
+    const tempCtx = new AudioCtx();
+    sampleRate = tempCtx.sampleRate;
+    void tempCtx.close();
+  }
 
   silentAudio = document.createElement('audio');
   silentAudio.setAttribute('x-webkit-airplay', 'deny');

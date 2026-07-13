@@ -522,6 +522,9 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
     noTiltVoicingLevel,
     noTiltPositionLevel,
     voiceLeadingMode,
+    // borrowingStateRef is a stable ref object (identity never changes), so
+    // including it here does not cause this effect to re-run on borrowing
+    // changes. It is listed only to satisfy exhaustive-deps.
     borrowing.borrowingStateRef,
   ]);
 

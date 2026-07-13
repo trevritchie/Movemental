@@ -58,6 +58,13 @@ type InstrumentVoice = Tone.PolySynth | Tone.Sampler;
 const MIDI_NOTE_MIN = 21;
 const MIDI_NOTE_MAX = 108;
 
+/**
+ * Maximum number of sampler presets kept decoded in memory simultaneously.
+ * Each sampler holds all sample PCM buffers for one instrument pack.
+ * Exceeding this limit evicts the least-recently-loaded entry.
+ */
+const MAX_SAMPLER_CACHE_SIZE = 4;
+
 /** Cached Tone note names for the piano MIDI range (hot-path attacks). */
 const MIDI_NOTE_NAME_CACHE: string[] = (() => {
   const names: string[] = [];
@@ -96,7 +103,11 @@ export class AudioEngine {
   private voice: InstrumentVoice | null = null;
   private voiceEngine: InstrumentEngine = 'synth';
   private currentSynthClass: SynthClassName = 'Synth';
-  /** Loaded sampler instances keyed by preset id (samples stay decoded in memory). */
+  /**
+   * Loaded sampler instances keyed by preset id. Insertion order tracks
+   * recency (Map preserves insertion order). Capped at MAX_SAMPLER_CACHE_SIZE
+   * entries to bound decoded-PCM memory; the oldest entry is disposed on eviction.
+   */
   private samplerCache = new Map<string, Tone.Sampler>();
   private presetLoadPromise: Promise<void> | null = null;
   private presetLoadGeneration = 0;
@@ -143,6 +154,8 @@ export class AudioEngine {
   private latencyContextConfigured = false;
   private isBackgrounded = false;
   private releaseListeners = new Set<() => void>();
+  /** In-flight startContext promise; shared across concurrent callers to prevent double-init. */
+  private startContextPromise: Promise<void> | null = null;
 
   constructor() {
     const tier = resolveLayoutTierSafe();
@@ -226,6 +239,9 @@ export class AudioEngine {
         this.activeOutputProfile,
       );
       cached.set(this.getSamplerEnvelopePayload());
+      // Refresh insertion order so this entry is least-likely to be evicted.
+      this.samplerCache.delete(preset.id);
+      this.samplerCache.set(preset.id, cached);
       return Promise.resolve(cached);
     }
 
@@ -246,6 +262,7 @@ export class AudioEngine {
         volume: getEffectiveSynthVolumeDb(preset, this.activeOutputProfile),
         onload: () => {
           this.samplerCache.set(preset.id, sampler);
+          this.pruneSamplerCache(preset.id);
           resolve(sampler);
         },
         onerror: (error) => {
@@ -262,6 +279,27 @@ export class AudioEngine {
     }
     if (engine === 'synth') {
       (voice as Tone.PolySynth).dispose();
+    }
+  }
+
+  /**
+   * Evict the oldest sampler cache entry (by insertion order) when the cache
+   * exceeds MAX_SAMPLER_CACHE_SIZE. The active preset is never evicted.
+   */
+  private pruneSamplerCache(activePresetId: string): void {
+    if (this.samplerCache.size <= MAX_SAMPLER_CACHE_SIZE) {
+      return;
+    }
+    for (const [id, sampler] of this.samplerCache) {
+      if (id !== activePresetId) {
+        sampler.disconnect();
+        sampler.dispose();
+        this.samplerCache.delete(id);
+        audioDebugLog('[AudioEngine] Sampler cache evicted:', id);
+        if (this.samplerCache.size <= MAX_SAMPLER_CACHE_SIZE) {
+          break;
+        }
+      }
     }
   }
 
@@ -550,7 +588,16 @@ export class AudioEngine {
     }
   }
 
-  public async startContext() {
+  public startContext(): Promise<void> {
+    if (!this.startContextPromise) {
+      this.startContextPromise = this.startContextImpl().finally(() => {
+        this.startContextPromise = null;
+      });
+    }
+    return this.startContextPromise;
+  }
+
+  private async startContextImpl(): Promise<void> {
     unlockIosMediaChannel();
     await waitForIosMediaChannel();
 
@@ -581,8 +628,10 @@ export class AudioEngine {
   public playNotes(midiNotes: number[], duration: string = "2n") {
     const voice = this.getVoice();
     if (!voice) {
-      // startContext wasn't called yet — try to initialize
-      this.startContext().then(() => this.playNotes(midiNotes, duration));
+      this.startContext().then(
+        () => { this.playNotes(midiNotes, duration); },
+        (err: unknown) => { devWarn('[AudioEngine] playNotes: context init failed, note dropped:', err); }
+      );
       return;
     }
 
@@ -765,12 +814,6 @@ export class AudioEngine {
         devWarn('[AudioEngine] Preview release error:', err);
       }
       this.activeNotes = [];
-    }
-  }
-
-  public setVolume(db: number) {
-    if (this.voice) {
-      this.voice.volume.value = db;
     }
   }
 

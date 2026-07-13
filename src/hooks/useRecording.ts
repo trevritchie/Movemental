@@ -258,8 +258,13 @@ export function useRecording(): UseRecordingResult {
     return () => {
       clearTimers();
       revokeObjectUrl(objectUrlRef.current);
+      // Finalize any in-progress recording so the MediaRecorder and MIDI
+      // session are not left running after the component unmounts.
+      if (statusRef.current === 'recording') {
+        void stop();
+      }
     };
-  }, [clearTimers]);
+  }, [clearTimers, stop]);
 
   return {
     status,

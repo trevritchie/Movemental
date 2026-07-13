@@ -41,13 +41,18 @@ describe('userSettingsStorage', () => {
     expect(settings).toEqual(DEFAULT_USER_SETTINGS);
   });
 
-  it('rejects unknown schema version', () => {
+  it('recovers known fields from an unknown schema version', () => {
+    // A stored blob with a future/mismatched version still counts as persisted
+    // data. validateLoadedSettings recovers whatever fields it recognises and
+    // falls back to defaults for unknown ones. hasPersistedSettings stays true
+    // so the app does not reset the user's voice-leading mode preference.
     localStorage.setItem(
       STORAGE_KEY,
       JSON.stringify({ version: 99, general: { tonalCenter: 1 } })
     );
-    const { hasPersistedSettings } = loadUserSettings();
-    expect(hasPersistedSettings).toBe(false);
+    const { settings, hasPersistedSettings } = loadUserSettings();
+    expect(hasPersistedSettings).toBe(true);
+    expect(settings.general.tonalCenter).toBe(1);
   });
 
   it('clearUserSettings removes the key', () => {
