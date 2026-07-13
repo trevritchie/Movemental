@@ -285,85 +285,53 @@ export function useAudioSettings(
     })();
   };
 
-  const setChorusWet = (val: number) => {
+  // FX wet setters share a "no-op while a sampler instrument is active" guard
+  // and a re-sync of all three wet values to the engine (scaled per profile).
+  const guardedFxSetter = (
+    setState: (val: number) => void,
+    nextFxValues: (val: number) => [chorus: number, delay: number, reverb: number],
+  ) => (val: number) => {
     if (isSamplerInstrumentActive) {
       return;
     }
-    setChorusWetState(val);
-    syncScaledFxToEngine(eqProfileId, layoutTier, val, delayWet, reverbWet);
+    setState(val);
+    syncScaledFxToEngine(eqProfileId, layoutTier, ...nextFxValues(val));
   };
 
-  const setDelayWet = (val: number) => {
-    if (isSamplerInstrumentActive) {
-      return;
-    }
-    setDelayWetState(val);
-    syncScaledFxToEngine(eqProfileId, layoutTier, chorusWet, val, reverbWet);
-  };
+  const setChorusWet = guardedFxSetter(setChorusWetState, (val) => [
+    val,
+    delayWet,
+    reverbWet,
+  ]);
+  const setDelayWet = guardedFxSetter(setDelayWetState, (val) => [
+    chorusWet,
+    val,
+    reverbWet,
+  ]);
+  const setReverbWet = guardedFxSetter(setReverbWetState, (val) => [
+    chorusWet,
+    delayWet,
+    val,
+  ]);
 
-  const setReverbWet = (val: number) => {
-    if (isSamplerInstrumentActive) {
-      return;
-    }
-    setReverbWetState(val);
-    syncScaledFxToEngine(eqProfileId, layoutTier, chorusWet, delayWet, val);
-  };
+  // ADSR setters share a single guard: envelope edits are no-ops while the
+  // active sampler preset uses its natural (disabled-ADSR) release.
+  const guardedAdsrSetter =
+    (setState: (val: number) => void) => (val: number) => {
+      if (isSamplerAdsrDisabled) {
+        return;
+      }
+      setState(val);
+    };
 
-  const setEnvelopeAttack = (val: number) => {
-    if (isSamplerAdsrDisabled) {
-      return;
-    }
-    setEnvelopeAttackState(val);
-  };
-
-  const setEnvelopeDecay = (val: number) => {
-    if (isSamplerAdsrDisabled) {
-      return;
-    }
-    setEnvelopeDecayState(val);
-  };
-
-  const setEnvelopeSustain = (val: number) => {
-    if (isSamplerAdsrDisabled) {
-      return;
-    }
-    setEnvelopeSustainState(val);
-  };
-
-  const setEnvelopeRelease = (val: number) => {
-    if (isSamplerAdsrDisabled) {
-      return;
-    }
-    setEnvelopeReleaseState(val);
-  };
-
-  const setDroneAttack = (val: number) => {
-    if (isSamplerAdsrDisabled) {
-      return;
-    }
-    setDroneAttackState(val);
-  };
-
-  const setDroneDecay = (val: number) => {
-    if (isSamplerAdsrDisabled) {
-      return;
-    }
-    setDroneDecayState(val);
-  };
-
-  const setDroneSustain = (val: number) => {
-    if (isSamplerAdsrDisabled) {
-      return;
-    }
-    setDroneSustainState(val);
-  };
-
-  const setDroneRelease = (val: number) => {
-    if (isSamplerAdsrDisabled) {
-      return;
-    }
-    setDroneReleaseState(val);
-  };
+  const setEnvelopeAttack = guardedAdsrSetter(setEnvelopeAttackState);
+  const setEnvelopeDecay = guardedAdsrSetter(setEnvelopeDecayState);
+  const setEnvelopeSustain = guardedAdsrSetter(setEnvelopeSustainState);
+  const setEnvelopeRelease = guardedAdsrSetter(setEnvelopeReleaseState);
+  const setDroneAttack = guardedAdsrSetter(setDroneAttackState);
+  const setDroneDecay = guardedAdsrSetter(setDroneDecayState);
+  const setDroneSustain = guardedAdsrSetter(setDroneSustainState);
+  const setDroneRelease = guardedAdsrSetter(setDroneReleaseState);
 
   return {
     eqProfileId,
