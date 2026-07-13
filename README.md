@@ -427,3 +427,10 @@ The repo includes a CLI utility `scripts/check.ts` that initializes the chord di
 ```bash
 npx vite-node scripts/check.ts
 ```
+
+## Contributing
+
+See [`CONTRIBUTING.md`](CONTRIBUTING.md) for conventions and module layout.
+This project follows a [Code of Conduct](CODE_OF_CONDUCT.md). To report a
+security vulnerability, see [`SECURITY.md`](SECURITY.md) instead of opening a
+public issue.
