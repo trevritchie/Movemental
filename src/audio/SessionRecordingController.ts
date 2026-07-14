@@ -31,6 +31,8 @@ export class SessionRecordingController {
   /** Recorder-only tap; faded before stop so live speakers are unaffected. */
   private recordTailGain: Tone.Gain | null = null;
   private recordingFadeTimer: ReturnType<typeof setTimeout> | null = null;
+  /** Resolves the in-flight fadeOutTap Promise; cleared with the timer. */
+  private fadeResolve: (() => void) | null = null;
   private sessionRecorder: SessionRecorder | null = null;
   private sessionMidiRecorder = new SessionMidiRecorder();
 
@@ -142,6 +144,11 @@ export class SessionRecordingController {
       clearTimeout(this.recordingFadeTimer);
       this.recordingFadeTimer = null;
     }
+    // Resolve any awaiting fadeOutTap so resetTailGain / overlapping fades
+    // cannot leave stop() hung on an orphaned Promise.
+    const resolve = this.fadeResolve;
+    this.fadeResolve = null;
+    resolve?.();
   }
 
   logNoteOns(
@@ -176,6 +183,7 @@ export class SessionRecordingController {
   ): Promise<void> {
     return new Promise((resolve) => {
       this.clearFadeTimer();
+      this.fadeResolve = resolve;
 
       const durationSec = durationMs / 1000;
       const now = Tone.now();
@@ -187,6 +195,7 @@ export class SessionRecordingController {
 
       this.recordingFadeTimer = setTimeout(() => {
         this.recordingFadeTimer = null;
+        this.fadeResolve = null;
         resolve();
       }, durationMs + RECORDING_FADE_SAFETY_MS);
     });
