@@ -247,7 +247,10 @@ graph LR
 | **Small Speakers** | All platforms | -6 dB low @ 180 Hz, +3 dB mid, -2.5 dB high | ON: HPF 180 Hz → light distortion, 20% wet | Platform-adapted (see below) | Phones, laptops, built-in speakers |
 | **Flat** | (opt-in) | 0/0/0 dB reference | OFF | Synth -9 dB, makeup +2 dB, limiter -1 dBTP | Exports, calibration, A/B reference |
 
-**Platform defaults:** first visit opens in **Small Speakers** on all platforms. EQ and instrument preset choices are session-only (not persisted to localStorage).
+**Platform defaults:** first visit opens in **Small Speakers** on all platforms.
+EQ profile, instrument preset, FX wet levels, and envelopes persist in
+localStorage under the `soundDesign` section of user settings (see
+[`userSettingsSchema.ts`](src/settings/userSettingsSchema.ts)).
 
 **Small Speakers platform adaptation:** the stored mode stays `smallSpeakers`, but effective DSP values differ by layout tier:
 
