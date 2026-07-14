@@ -15,11 +15,13 @@ Participation in this project is governed by the
 
 | Tier | Path | Role |
 |------|------|------|
-| Domain | `src/music/` | Chords, borrowing, voicing, labels, shared pitch/layout tokens |
+| Domain | `src/music/` | Chords, borrowing, voicing, labels, shared pitch tokens |
+| Diagram | `src/diagram/` | SVG geometry, scaling, shell/overlay layout math |
 | Audio | `src/audio/` | Tone.js engine and FX chain |
 | State | `src/context/` | React providers (`ChordContext`, `TiltReadoutContext`) |
 | Hooks | `src/hooks/` | Playback, tilt sensor, layout tier, borrowing memory |
 | UI | `src/components/` | SVG diagram, controls, overlays |
+| Styles | `src/styles/` | Global CSS ownership surfaces (imported from `index.css`) |
 | Utils | `src/utils/` | Small cross-cutting helpers (`clamp`) |
 | Tests | Colocated `*.test.ts(x)` next to the module under test |
 
@@ -34,8 +36,10 @@ Prefer these instead of duplicating logic in components or hooks:
 |--------|---------|
 | `music/pitchClass.ts` | Pitch-class normalization, tonal-center relatives, chord root PC |
 | `music/elementTokens.ts` | Parent-element CSS colors and mod-3 bucket styling |
-| `music/diagramLayout.ts` | SVG viewBox dimensions and coordinate-to-pixel helpers |
+| `music/diagramMetadata.ts` | Chord groups, slice variants, group palettes |
+| `diagram/diagramLayout.ts` | SVG viewBox dimensions and coordinate-to-pixel helpers |
 | `music/playbackTiltResolution.ts` | Smooth/smoothest tilt rules shared by playback and labels |
+| `music/voiceLeadingPolicy.ts` | Playback re-anchor dispatcher for voice-leading modes |
 | `music/voicingCache.ts` | Single-entry memo for tilt label readouts (~7 Hz) |
 | `utils/clamp.ts` | Numeric clamp helper |
 
