@@ -1,5 +1,5 @@
-import { chordManager } from './ChordManager';
-import { BASE_GROUPS, SLICE_VARIANTS } from './diagramMetadata';
+import { chordManager } from '../music/ChordManager';
+import { BASE_GROUPS, SLICE_VARIANTS } from '../music/diagramMetadata';
 import {
   DIAGRAM_VIEW_W,
   DIAGRAM_VIEW_H,

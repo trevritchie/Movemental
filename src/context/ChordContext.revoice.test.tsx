@@ -4,6 +4,15 @@ import React from 'react';
 import { ChordProvider, useChordContext } from './ChordContext';
 import { chordManager } from '../music/ChordManager';
 
+/**
+ * ChordProvider orchestration matrix for the no-tilt re-voice suppress pipeline.
+ *
+ * Contract (see noTiltRevoiceSuppress.ts + docs/movements-not-chords-tilt.md):
+ * - Pointer commits arm suppress so the ChordContext re-voice effect skips once
+ * - Legitimate control changes (register, voicing, bass, VL mode) must still re-voice
+ * - Only commitPlayback may arm suppress on the pointer path
+ */
+
 const mocks = vi.hoisted(() => {
   const triggerAttack = vi.fn();
   return { triggerAttack };
@@ -59,6 +68,20 @@ function wrapper({ children }: { children: React.ReactNode }) {
   return <ChordProvider>{children}</ChordProvider>;
 }
 
+async function enterNoTiltAndTapEarth(
+  result: { current: ReturnType<typeof useChordContext> },
+) {
+  const earth = chordManager.getChordByName('Earth')!;
+  await act(async () => {
+    result.current.enterNoTiltSession();
+  });
+  await act(async () => {
+    result.current.handleChordPointerDown(earth);
+    await Promise.resolve();
+  });
+  return earth;
+}
+
 describe('ChordProvider pointer re-voice', () => {
   beforeEach(() => {
     localStorage.clear();
@@ -99,22 +122,12 @@ describe('ChordProvider pointer re-voice', () => {
   });
 
   it('does not permanently suppress register re-voice after a pointer tap', async () => {
-    const earth = chordManager.getChordByName('Earth')!;
     const { result } = renderHook(() => useChordContext(), { wrapper });
-
-    await act(async () => {
-      result.current.enterNoTiltSession();
-    });
-
-    await act(async () => {
-      result.current.handleChordPointerDown(earth);
-      await Promise.resolve();
-    });
+    await enterNoTiltAndTapEarth(result);
 
     expect(result.current.selectedChord?.name).toBe('Earth');
     const afterPointer = mocks.triggerAttack.mock.calls.length;
 
-    // Allow suppress fallback timeout to clear an unused arm.
     await act(async () => {
       await new Promise((resolve) => setTimeout(resolve, 0));
     });
@@ -128,5 +141,106 @@ describe('ChordProvider pointer re-voice', () => {
 
     expect(result.current.selectedChord?.name).toBe('Earth');
     expect(mocks.triggerAttack.mock.calls.length).toBeGreaterThan(afterPointer);
+  });
+
+  it('re-voices after voice-leading mode change following a pointer tap', async () => {
+    const { result } = renderHook(() => useChordContext(), { wrapper });
+    await enterNoTiltAndTapEarth(result);
+
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+
+    const nextMode =
+      result.current.voiceLeadingMode === 'smoothest'
+        ? 'smooth'
+        : 'smoothest';
+
+    await act(async () => {
+      result.current.setVoiceLeadingMode(nextMode);
+      await Promise.resolve();
+    });
+
+    expect(result.current.voiceLeadingMode).toBe(nextMode);
+    expect(result.current.selectedChord?.name).toBe('Earth');
+
+    // Mode change may skip audio when pitches are unchanged; a later register
+    // change must still re-voice (suppress must not stick).
+    const afterMode = mocks.triggerAttack.mock.calls.length;
+    await act(async () => {
+      result.current.setOctaveRange(
+        result.current.octaveRange === 3 ? 4 : 3,
+      );
+      await Promise.resolve();
+    });
+    expect(mocks.triggerAttack.mock.calls.length).toBeGreaterThan(afterMode);
+  });
+
+  it('re-voices after no-tilt voicing level change following a pointer tap', async () => {
+    const { result } = renderHook(() => useChordContext(), { wrapper });
+    await enterNoTiltAndTapEarth(result);
+    const afterPointer = mocks.triggerAttack.mock.calls.length;
+
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+
+    await act(async () => {
+      result.current.setNoTiltVoicingLevel(
+        result.current.noTiltVoicingLevel === 8 ? 4 : 8,
+      );
+      await Promise.resolve();
+    });
+
+    expect(result.current.selectedChord?.name).toBe('Earth');
+    expect(mocks.triggerAttack.mock.calls.length).toBeGreaterThan(afterPointer);
+  });
+
+  it('re-voices after bass position change when bass is unlocked', async () => {
+    const { result } = renderHook(() => useChordContext(), { wrapper });
+    await enterNoTiltAndTapEarth(result);
+    const afterPointer = mocks.triggerAttack.mock.calls.length;
+
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+
+    expect(result.current.isNoTiltBassLocked).toBe(false);
+
+    await act(async () => {
+      result.current.setNoTiltPositionLevel(
+        result.current.noTiltPositionLevel === 4 ? 2 : 4,
+      );
+      await Promise.resolve();
+    });
+
+    expect(result.current.selectedChord?.name).toBe('Earth');
+    expect(mocks.triggerAttack.mock.calls.length).toBeGreaterThan(afterPointer);
+  });
+
+  it('keeps chord selection through voicing lock toggle without dropping suppress forever', async () => {
+    const { result } = renderHook(() => useChordContext(), { wrapper });
+    await enterNoTiltAndTapEarth(result);
+
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+
+    await act(async () => {
+      result.current.toggleNoTiltVoicingLock();
+    });
+    expect(result.current.isNoTiltVoicingLocked).toBe(true);
+
+    const afterLock = mocks.triggerAttack.mock.calls.length;
+
+    await act(async () => {
+      result.current.setOctaveRange(
+        result.current.octaveRange === 3 ? 4 : 3,
+      );
+      await Promise.resolve();
+    });
+
+    expect(result.current.selectedChord?.name).toBe('Earth');
+    expect(mocks.triggerAttack.mock.calls.length).toBeGreaterThan(afterLock);
   });
 });

@@ -1,16 +1,19 @@
 /**
  * Bass degree labels for the IN THE BASS readout.
  *
- * Tilt mode: derive the label from the lowest *sounded* pitch (contrary anchor,
- * both roll and pitch axes). No-tilt mode: position dropdown uses signed parallel
- * steps via getBassDegreeLabelForParallelSteps.
+ * Two paths (do not mix):
+ * - Live tilt preview: omit `activePitches` so the label tracks orientation via
+ *   `resolveEffectiveTiltForLabel` (committed tilt + delta), then voicing cache.
+ * - Sounded / last-played: pass `activePitches` (or use
+ *   `bassDegreeLabelFromVoiced` / `lastPlayedBassReadout`). Never re-derive a
+ *   second voicing when sounded pitches are already available.
  */
 import type { Chord } from './ChordManager';
 import { borrowingLogic, getInitialBorrowingState, type BorrowingState } from './BorrowingLogic';
-import type { VoiceLeadingMode } from '../context/types';
-import { usesDeviceTilt } from '../context/types';
+import type { VoiceLeadingMode } from './sessionModes';
+import { usesDeviceTilt } from './sessionModes';
 import { clamp } from '../utils/clamp';
-import { resolveEffectiveTiltForLabel } from './playbackTiltResolution';
+import { resolveLabelPlaybackTilt } from './voiceLeadingPolicy';
 import {
   NO_TILT_POSITION_LEVEL_COUNT,
   parallelLevelFromTilt,
@@ -59,7 +62,7 @@ function resolveEffectiveTilt(
   context?: TiltBassLabelContext,
   chord?: Chord | null
 ): TiltSample {
-  return resolveEffectiveTiltForLabel(tilt, chord ?? null, context);
+  return resolveLabelPlaybackTilt(tilt, chord ?? null, context);
 }
 
 function voicingAnchorForContext(context?: TiltBassLabelContext): TiltVoicingAnchor {
@@ -244,6 +247,9 @@ export function resolveTiltBassVoiceLine(
     if (line !== null) {
       return line;
     }
+    // Sounded pitches were provided but could not map to a voice line.
+    // Prefer parallel-from-effective-tilt over a second full voicing pass.
+    return pitchOnlyVoiceLine(resolveEffectiveTilt(tilt, context, chord));
   }
 
   const effectiveTilt = resolveEffectiveTilt(tilt, context, chord);
@@ -311,11 +317,16 @@ export function lastPlayedBassReadout(
 /** Committed voicing at last tap, e.g. "Drop 2 / 3rd". */
 export function formatLastPlayedTiltReadout(
   playbackTilt: TiltSample,
-  chord: Chord | null
+  chord: Chord | null,
+  options: {
+    voicedPitches?: number[];
+    borrowingState?: BorrowingState;
+  } = {}
 ): string {
   return `${lastPlayedVoicingReadout(playbackTilt)} / ${lastPlayedBassReadout(
     playbackTilt,
-    chord
+    chord,
+    options
   )}`;
 }
 

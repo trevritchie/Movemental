@@ -30,7 +30,7 @@ vi.mock('../audio/pageInteraction', () => ({
   isPageInteractiveForAudio: () => true,
 }));
 
-import type { VoiceLeadingMode } from '../context/types';
+import type { VoiceLeadingMode } from '../music/sessionModes';
 import { useChordPlayback } from './useChordPlayback';
 import { chordManager } from '../music/ChordManager';
 
@@ -235,5 +235,47 @@ describe('useChordPlayback audio-first pointer path', () => {
       | undefined;
     expect(afterRevoice?.name).toBe('Wind');
     expect(selectedChordNameRef.current).toBe('Wind');
+  });
+
+  it('mutes all voices via release + empty commitPlayback without rewriting labels', async () => {
+    const allOff = getInitialBorrowingState();
+    allOff.noteStates = { 1: 'off', 2: 'off', 3: 'off', 4: 'off' };
+
+    const { result } = renderHook(() => useChordPlayback(baseOptions));
+
+    await act(async () => {
+      result.current.enterTiltSession();
+      result.current.playAndDisplayChord(wind, borrowingState);
+      await Promise.resolve();
+    });
+
+    expect(mocks.triggerAttack).toHaveBeenCalled();
+    expect(result.current.activePitches.length).toBeGreaterThan(0);
+    const bassBeforeMute = result.current.lastPlayedBassLabel;
+    const voicingBeforeMute = result.current.lastPlayedVoicingLabel;
+    expect(bassBeforeMute).not.toBeNull();
+    const attacksAfterSound = mocks.triggerAttack.mock.calls.length;
+
+    await act(async () => {
+      result.current.playAndDisplayChord(wind, allOff);
+      await Promise.resolve();
+    });
+
+    expect(mocks.releaseActiveNotes).toHaveBeenCalled();
+    expect(mocks.triggerAttack.mock.calls.length).toBe(attacksAfterSound);
+    expect(result.current.activePitches).toEqual([]);
+    expect(selectedChordNameRef.current).toBe('Wind');
+    expect(result.current.lastPlayedBassLabel).toBe(bassBeforeMute);
+    expect(result.current.lastPlayedVoicingLabel).toBe(voicingBeforeMute);
+
+    await act(async () => {
+      result.current.playAndDisplayChord(wind, borrowingState);
+      await Promise.resolve();
+    });
+
+    expect(mocks.triggerAttack.mock.calls.length).toBeGreaterThan(
+      attacksAfterSound,
+    );
+    expect(result.current.activePitches.length).toBeGreaterThan(0);
   });
 });

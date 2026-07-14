@@ -3,9 +3,9 @@
  */
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { audioEngine } from '../audio/AudioEngine';
-import { readEqProfileId } from '../audio/audioSettingsStorage';
 import {
   getAdaptedOutputProfile,
+  resolveDefaultEqProfileId,
   scaleFxWet,
   type EqProfileId,
 } from '../audio/outputProfiles';
@@ -21,7 +21,7 @@ import {
 } from '../audio/synthPresets';
 import { resolveLayoutTier } from '../layout/breakpoints';
 import { useLayoutTier } from './useLayoutTier';
-import type { PlayStyle } from '../context/types';
+import type { PlayStyle } from '../music/sessionModes';
 import {
   getDefaultSoundDesignSettings,
   type SoundDesignSettings,
@@ -70,7 +70,7 @@ function resolveInitialSoundDesign(
   if (!hasPersistedSettings) {
     return {
       ...fallback,
-      eqProfileId: readEqProfileId(resolveLayoutTier()),
+      eqProfileId: resolveDefaultEqProfileId(resolveLayoutTier()),
     };
   }
   return { ...fallback, ...initial };

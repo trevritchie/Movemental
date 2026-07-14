@@ -284,6 +284,33 @@ describe('resolveTiltBassVoiceLine', () => {
       )
     ).toBe(2);
   });
+
+  it('does not re-voice when sounded pitches are present', () => {
+    const manager = new ChordManager();
+    manager.setTonalCenterOffset(10);
+    manager.setOctaveRange(2);
+    const wind = manager.getChordByName('Wind')!;
+    // MIDI pitches that map to Wind's 5th in bass for Bb center.
+    const sounded = [51, 55, 58, 61];
+    const frozen = resolveTiltBassVoiceLine(
+      { x: 0, y: 0 },
+      wind,
+      {
+        ...labelContext(),
+        activePitches: sounded,
+      }
+    );
+    const sameWhenTilted = resolveTiltBassVoiceLine(
+      { x: -1, y: -1 },
+      wind,
+      {
+        ...labelContext(),
+        activePitches: sounded,
+      }
+    );
+    expect(frozen).toBe(sameWhenTilted);
+    expect(frozen).not.toBeNull();
+  });
 });
 
 describe('bassDegreeLabelsForSelect', () => {

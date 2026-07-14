@@ -1,0 +1,81 @@
+/* ==========================================================================
+   Imports
+   ========================================================================== */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import '../layout/breakpoints.css';
+
+/* ==========================================================================
+   Design tokens (:root)
+   ========================================================================== */
+:root {
+  --bg-dark: #09090b;
+  --panel-bg: rgba(24, 24, 27, 0.6);
+  --panel-border: rgba(255, 255, 255, 0.08);
+  --text-primary: #f8fafc;
+  --text-secondary: #94a3b8;
+
+  --color-earth: hsl(28, 55%, 40%);   /* amber-brown */
+  --color-wind:  hsl(197, 66%, 55%);  /* sky blue */
+  --color-fire:  hsl(5, 80%, 52%);    /* vivid red */
+  --color-mixed: hsl(270, 20%, 55%);  /* neutral purple-grey */
+
+  --glow-earth: hsla(28, 55%, 40%, 0.55);
+  --glow-wind:  hsla(197, 66%, 55%, 0.55);
+  --glow-fire:  hsla(5, 80%, 52%, 0.55);
+
+  --gemini-purple: #9B72F8;
+  --gemini-blue: #4285F4;
+  --gemini-pink: #E266F3;
+  --gemini-sky: #74C7F7;
+  --gradient-elemental-accent: linear-gradient(
+    135deg,
+    var(--color-earth) 0%,
+    var(--color-wind) 50%,
+    var(--color-fire) 100%
+  );
+  --gradient-elemental-heading: linear-gradient(
+    to right,
+    var(--color-earth) 0%,
+    var(--color-wind) 50%,
+    var(--color-fire) 100%
+  );
+  --overlay-pill-bg: rgba(24, 24, 27, 0.55);
+  --overlay-pill-border: rgba(255, 255, 255, 0.08);
+}
+
+/* ==========================================================================
+   Reset and document base
+   ========================================================================== */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  background-color: var(--bg-dark);
+  color: var(--text-primary);
+  overflow: hidden;
+  height: 100%;
+  width: 100%;
+  background-image: radial-gradient(circle at 50% 0%, rgba(255,255,255,0.03) 0%, transparent 70%);
+}
+
+html {
+  overflow: hidden;
+  height: 100%;
+}
+
+html.scroll-locked,
+body.scroll-locked {
+  overflow: hidden !important;
+  overscroll-behavior: none;
+  touch-action: none;
+}
+
+.settings-modal,
+.settings-modal * {
+  touch-action: auto;
+}
+

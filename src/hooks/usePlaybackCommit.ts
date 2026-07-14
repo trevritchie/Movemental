@@ -22,8 +22,11 @@ import {
 } from '../music/voiceDegreeLabel';
 import { audioEngine } from '../audio/AudioEngine';
 import { isPageInteractiveForAudio } from '../audio/pageInteraction';
-import type { PlayStyle, VoiceLeadingMode } from '../context/types';
-import { commitsSmoothestParallelBaseline, usesDeviceTilt } from '../context/types';
+import type { PlayStyle, VoiceLeadingMode } from '../music/sessionModes';
+import {
+  commitsSmoothestParallelBaseline,
+  usesDeviceTilt,
+} from '../music/sessionModes';
 import { isElementalName } from '../music/elementalRoot';
 import {
   armNoTiltRevoiceSuppress,
@@ -112,7 +115,6 @@ export function usePlaybackCommit({
       if (pitches.length === 0) return;
 
       const style = playStyleRef.current;
-      const tiltMode = tiltModeRef.current;
       const {
         retrigger = false,
         skipIfUnchanged = false,
@@ -143,14 +145,9 @@ export function usePlaybackCommit({
         return;
       }
 
-      if (tiltMode) {
-        audioEngine.triggerAttack(pitches, retrigger);
-        return;
-      }
-
       audioEngine.triggerAttack(pitches, retrigger);
     },
-    [playStyleRef, tiltModeRef, activePitchesRef]
+    [playStyleRef, activePitchesRef]
   );
 
   const updateVoiceLeadingBaseline = useCallback(
@@ -249,6 +246,12 @@ export function usePlaybackCommit({
       if (options.borrowingStateOverride) {
         borrowingStateRef.current = options.borrowingStateOverride;
         setBorrowingState(options.borrowingStateOverride);
+      }
+
+      // Empty mute shares selection/suppress/cache commit but must not rewrite
+      // last-played tilt labels from parallel-from-tilt (no new sounded pitches).
+      if (pitches.length === 0) {
+        return;
       }
 
       const deferLabels = fromPointer;

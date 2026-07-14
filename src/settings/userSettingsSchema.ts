@@ -10,7 +10,11 @@ import {
   MAX_OCTAVE_RANGE,
   MIN_OCTAVE_RANGE,
 } from '../music/config';
-import type { ClockLayoutMode, PlayStyle, VoiceLeadingMode } from '../context/types';
+import type {
+  ClockLayoutMode,
+  PlayStyle,
+  VoiceLeadingMode,
+} from '../music/sessionModes';
 import {
   DEFAULT_EQ_PROFILE_ID,
   isEqProfileId,

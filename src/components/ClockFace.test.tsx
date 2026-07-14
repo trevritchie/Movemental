@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { ClockFace } from './ClockFace';
-import type { ClockLayoutMode } from '../context/types';
+import type { ClockLayoutMode } from '../music/sessionModes';
 import {
   clockSlotToAngle,
   relativePcToClockSlot,

@@ -4,7 +4,7 @@
  * surface in ChordContext and playback.
  */
 
-import type { ClockLayoutMode, VoiceLeadingMode } from '../context/types';
+import type { ClockLayoutMode, VoiceLeadingMode } from './sessionModes';
 
 export const NOTE_NAMES_FLAT = [
   "C", "Db", "D", "Eb", "E", "F", "Gb", "G", "Ab", "A", "Bb", "B"

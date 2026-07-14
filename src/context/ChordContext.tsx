@@ -1,10 +1,12 @@
 /* eslint-disable react-refresh/only-export-components */
 /**
- * Application-wide chord, playback, borrowing, audio FX, and tilt state.
+ * Application-wide chord, playback, borrowing, and session wiring.
  *
- * Wires useBorrowingMemory, useDeviceTilt, useChordPlayback, and
- * useAudioSettings into one provider. playAndDisplayChordRef breaks a hook
- * ordering cycle between borrowing memory and playback.
+ * Wires useBorrowingMemory, useDeviceTilt, useChordPlayback,
+ * useSettingsReset, and useAudioSettings into one provider. Sound design
+ * and live tilt readout live in their dedicated hooks; this provider
+ * composes them. playAndDisplayChordRef breaks a hook ordering cycle
+ * between borrowing memory and playback.
  */
 import React, {
   createContext,
@@ -29,6 +31,7 @@ import { useBorrowingMemory } from '../hooks/useBorrowingMemory';
 import { useChordPlayback } from '../hooks/useChordPlayback';
 import { useDeviceTilt } from '../hooks/useDeviceTilt';
 import { usePersistedUserSettings } from '../hooks/usePersistedUserSettings';
+import { useSettingsReset } from '../hooks/useSettingsReset';
 import { TiltReadoutProvider } from './TiltReadoutContext';
 import { SoundDesignContext } from './SoundDesignContext';
 import { useNoTiltChordLocks } from '../hooks/useNoTiltChordLocks';
@@ -37,21 +40,20 @@ import {
   consumeNoTiltRevoiceSuppress,
   createNoTiltRevoiceSuppressState,
 } from '../music/noTiltRevoiceSuppress';
-import type { ClockLayoutMode, PlayStyle, VoiceLeadingMode } from './types';
-import { loadUserSettings, clearUserSettings } from '../settings/userSettingsStorage';
-import {
-  getDefaultVoiceLeadingMode,
-  getSectionDefaults,
-  SETTINGS_SECTION_IDS,
-  type SettingsSectionId,
-  type SettingKey,
-} from '../settings/userSettingsSchema';
-import {
-  getSettingsGroupDefaults,
-  type SettingsResetGroupId,
-} from '../settings/settingsResetGroups';
+import type {
+  ClockLayoutMode,
+  PlayStyle,
+  VoiceLeadingMode,
+} from '../music/sessionModes';
+import { loadUserSettings } from '../settings/userSettingsStorage';
+import type { SettingsSectionId } from '../settings/userSettingsSchema';
+import type { SettingsResetGroupId } from '../settings/settingsResetGroups';
 
-export type { ClockLayoutMode, PlayStyle, VoiceLeadingMode } from './types';
+export type {
+  ClockLayoutMode,
+  PlayStyle,
+  VoiceLeadingMode,
+} from '../music/sessionModes';
 
 interface ChordContextType {
   tonalCenter: number;
@@ -255,130 +257,36 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
     }
   }, [enterNoTiltPlayback, hasPersistedSettings]);
 
-  const applySetting = useMemo(
-    () =>
-      ({
-        tonalCenter: setTonalCenter,
-        octaveRange: setOctaveRange,
-        playStyle: playback.setPlayStyle,
-        mode: setVoiceLeadingMode,
-        memory: borrowing.setBorrowingMemory,
-        layoutMode: setClockLayoutMode,
-        enabled: setGlowingOrbsEnabled,
-        synthPresetId: audio.setSynthPresetId,
-        eqProfileId: audio.setEqProfileId,
-        chorusWet: audio.setChorusWet,
-        delayWet: audio.setDelayWet,
-        reverbWet: audio.setReverbWet,
-        envelopeAttack: audio.setEnvelopeAttack,
-        envelopeDecay: audio.setEnvelopeDecay,
-        envelopeSustain: audio.setEnvelopeSustain,
-        envelopeRelease: audio.setEnvelopeRelease,
-        droneAttack: audio.setDroneAttack,
-        droneDecay: audio.setDroneDecay,
-        droneSustain: audio.setDroneSustain,
-        droneRelease: audio.setDroneRelease,
-      }) satisfies Record<SettingKey, (val: never) => void>,
-    [
-      playback.setPlayStyle,
-      borrowing.setBorrowingMemory,
-      audio.setSynthPresetId,
-      audio.setEqProfileId,
-      audio.setChorusWet,
-      audio.setDelayWet,
-      audio.setReverbWet,
-      audio.setEnvelopeAttack,
-      audio.setEnvelopeDecay,
-      audio.setEnvelopeSustain,
-      audio.setEnvelopeRelease,
-      audio.setDroneAttack,
-      audio.setDroneDecay,
-      audio.setDroneSustain,
-      audio.setDroneRelease,
-    ]
-  );
-
-  const runSectionSideEffects = useCallback(
-    (sectionId: SettingsSectionId) => {
-      switch (sectionId) {
-        case 'general':
-        case 'voiceLeading':
-          resetVoiceLeadingSession();
-          break;
-        case 'voiceBorrowing':
-          clearChordBorrowingStates();
-          break;
-        case 'clockFace':
-        case 'glowingOrbs':
-        case 'soundDesign':
-          break;
-      }
-    },
-    [resetVoiceLeadingSession, clearChordBorrowingStates]
-  );
-
-  const resetSettingsSection = useCallback(
-    (sectionId: SettingsSectionId) => {
-      const defaults =
-        sectionId === 'voiceLeading'
-          ? {
-              ...getSectionDefaults('voiceLeading'),
-              mode: getDefaultVoiceLeadingMode(playback.tiltModeEnabled),
-            }
-          : getSectionDefaults(sectionId);
-      for (const [key, value] of Object.entries(defaults)) {
-        applySetting[key as SettingKey](value as never);
-      }
-      runSectionSideEffects(sectionId);
-    },
-    [applySetting, runSectionSideEffects, playback.tiltModeEnabled]
-  );
-
-  const resetSettingsGroup = useCallback(
-    (groupId: SettingsResetGroupId) => {
-      if (groupId === 'instrument') {
-        const { synthPresetId: defaultPresetId } = getSettingsGroupDefaults(
-          'instrument',
-          {
-            tiltModeEnabled: playback.tiltModeEnabled,
-            synthPresetId,
-          },
-        );
-        setSynthPresetId(defaultPresetId as string);
-        return;
-      }
-
-      const defaults = getSettingsGroupDefaults(groupId, {
-        tiltModeEnabled: playback.tiltModeEnabled,
-        synthPresetId,
-      });
-
-      for (const [key, value] of Object.entries(defaults)) {
-        applySetting[key as SettingKey](value as never);
-      }
-
-      if (groupId === 'voiceLeading') {
-        resetVoiceLeadingSession();
-      } else if (groupId === 'voiceBorrowing') {
-        clearChordBorrowingStates();
-      }
-    },
-    [
-      applySetting,
-      synthPresetId,
-      setSynthPresetId,
-      playback.tiltModeEnabled,
-      resetVoiceLeadingSession,
-      clearChordBorrowingStates,
-    ],
-  );
-
-  const resetAllSettings = useCallback(() => {
-    clearUserSettings();
-    for (const sectionId of SETTINGS_SECTION_IDS) {
-      resetSettingsSection(sectionId);
-    }
-  }, [resetSettingsSection]);
+  const {
+    resetSettingsSection,
+    resetSettingsGroup,
+    resetAllSettings,
+  } = useSettingsReset({
+    tiltModeEnabled: playback.tiltModeEnabled,
+    synthPresetId,
+    setTonalCenter,
+    setOctaveRange,
+    setPlayStyle: playback.setPlayStyle,
+    setVoiceLeadingMode,
+    setBorrowingMemory: borrowing.setBorrowingMemory,
+    setClockLayoutMode,
+    setGlowingOrbsEnabled,
+    setSynthPresetId,
+    setEqProfileId: audio.setEqProfileId,
+    setChorusWet: audio.setChorusWet,
+    setDelayWet: audio.setDelayWet,
+    setReverbWet: audio.setReverbWet,
+    setEnvelopeAttack: audio.setEnvelopeAttack,
+    setEnvelopeDecay: audio.setEnvelopeDecay,
+    setEnvelopeSustain: audio.setEnvelopeSustain,
+    setEnvelopeRelease: audio.setEnvelopeRelease,
+    setDroneAttack: audio.setDroneAttack,
+    setDroneDecay: audio.setDroneDecay,
+    setDroneSustain: audio.setDroneSustain,
+    setDroneRelease: audio.setDroneRelease,
+    resetVoiceLeadingSession,
+    clearChordBorrowingStates,
+  });
 
   const settingsSnapshot = useMemo(
     () => ({

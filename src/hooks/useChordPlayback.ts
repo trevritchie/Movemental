@@ -1,23 +1,22 @@
 /**
  * Chord playback orchestration.
  *
- * Pipeline: resolve chord (elemental contrary root) -> computeTiltVoicedPitches
- * -> AudioEngine. Voicing is sampled at tap/settings time, not continuously
- * while the phone moves (see docs/movements-not-chords-tilt.md).
+ * Pipeline: re-anchor tilt (voiceLeadingPolicy) -> elemental resolution ->
+ * neutral voicing + borrow/mute overlays -> AudioEngine via commitPlayback.
+ * Voicing is sampled at tap/settings time, not continuously while the phone
+ * moves (see docs/movements-not-chords-tilt.md).
  *
  * Entry points:
  * - Pointer (diagram): applyChordWithBorrowing -> voiceAndPlay(fromPointer)
  * - Settings/borrowing: playAndDisplayChord -> voiceAndPlay
  *
  * Anchor modes (TiltVoicingEngine):
- * - tilt play style: contrary roll (bass can shift with voicing width)
- * - drone/no-tilt controls: pivot roll (position sets the bass note)
+ * - tiltModeEnabled: contrary roll (bass can shift with voicing width)
+ * - no-tilt controls: pivot roll (position sets the bass note)
  *
- * The anchor/tilt resolution math (buildAnchorKey, applySmoothestVoiceLeading,
- * etc.) lives in useVoicingAnchorResolution; the audio-dispatch and
- * post-audio state commit lives in usePlaybackCommit. This hook is the
- * orchestrator that decides which resolver applies and threads the result
- * through to a commit.
+ * useVoicingAnchorResolution supplies shared tilt/anchor helpers.
+ * voiceLeadingPolicy picks smooth / smoothest / root_position re-anchor.
+ * usePlaybackCommit owns audio dispatch and post-audio React commit.
  */
 import { useState, useEffect, useRef, useCallback, type RefObject } from 'react';
 import { chordManager, type Chord } from '../music/ChordManager';
@@ -33,20 +32,18 @@ import {
   type ElementalPlaybackResolution,
 } from '../music/tiltVoicingPlayback';
 import {
-  resolveSmoothReanchorTilt,
-  resolveSmoothestReanchorTilt,
-} from '../music/playbackTiltResolution';
+  resolveReanchorPlaybackTilt,
+} from '../music/voiceLeadingPolicy';
 import { invalidateVoicingCache } from '../music/voicingCache';
 import { audioEngine } from '../audio/AudioEngine';
 import { unlockIosMediaChannel } from '../audio/iosMediaChannel';
-import type { PlayStyle, VoiceLeadingMode } from '../context/types';
-import { usesDeviceTilt } from '../context/types';
+import type { PlayStyle, VoiceLeadingMode } from '../music/sessionModes';
+import { usesDeviceTilt } from '../music/sessionModes';
 import { isElementalName, isOppositeElementNavigation, previousBassMidi, resolveElementalForNavigation, type ElementalName } from '../music/elementalRoot';
 import {
   type NoTiltChordLockMaps,
 } from '../music/noTiltChordLocks';
 import {
-  armNoTiltRevoiceSuppress,
   type NoTiltRevoiceSuppressState,
 } from '../music/noTiltRevoiceSuppress';
 import { useVoicingAnchorResolution } from './useVoicingAnchorResolution';
@@ -61,8 +58,8 @@ interface UseChordPlaybackOptions {
   setBorrowingState: (state: BorrowingState) => void;
   setSelectedChord: (chord: Chord | null) => void;
   /**
-   * Sole writer is commitPlayback / empty-pitch path (not a selectedChord
-   * mirror effect). Must update before deferred level setState flushes.
+   * Sole writer is commitPlayback (not a selectedChord mirror effect).
+   * Must update before deferred level setState flushes.
    */
   selectedChordNameRef: RefObject<string | null>;
   /**
@@ -192,7 +189,7 @@ export function useChordPlayback({
     setNoTiltPositionLevel,
   });
 
-  const { updateVoiceLeadingBaseline, commitPlayback } =
+  const { commitPlayback } =
     usePlaybackCommit({
       playStyleRef,
       tiltModeRef,
@@ -271,13 +268,6 @@ export function useChordPlayback({
     resetVoiceLeadingSession();
   }, [resetVoiceLeadingSession]);
 
-  const resolveForPlayback = useCallback(
-    (chord: Chord): PlaybackResolution => {
-      return { displayChord: chord };
-    },
-    []
-  );
-
   const resolveElementalAfterTilt = useCallback(
     (
       chord: Chord,
@@ -338,7 +328,7 @@ export function useChordPlayback({
         borrowingStateOverride?: BorrowingState;
       } = {}
     ) => {
-      const { displayChord: inputChord } = resolveForPlayback(chord);
+      const inputChord = chord;
       const fromPointer = options.fromPointer ?? false;
       const capturedPreviousBassMidi = previousBassMidi(neutralVoicingRef.current);
       const tiltMode = tiltModeRef.current;
@@ -373,50 +363,68 @@ export function useChordPlayback({
 
       // Voice leading parallel adjustment (re-anchor only):
       // - root_position: baseline 0 at flat pitch (implicit in resolvePlaybackTilt)
-      // - smooth: per-chord CHORD_FLAT_PARALLEL lookup + live tilt offset
-      // - smoothest: live minimum-motion search vs previous voicing (+ session state)
-      if (needsReanchor && voiceLeadingModeRef.current === 'smooth') {
-        playbackTilt = resolveSmoothReanchorTilt(displayChord, tiltMode, {
-          isChordChange,
-          isFirstChord,
-          isOppositeElement,
-          previousChord: previousChordRef.current,
-          lockMaps: noTiltLockMapsRef.current,
-          noTiltVoicingLevel: noTiltVoicingLevelRef.current,
-          noTiltPositionLevel: noTiltPositionLevelRef.current,
-          lastNoTiltPositionLevel: lastNoTiltPositionLevelRef.current,
-          resolveSmoothPlaybackTiltForNavigation,
-          getCurrentControlTilt,
-          syncNoTiltPositionLevel: syncPositionLevel,
-        });
-        if (tiltMode) {
-          playbackTiltRef.current = playbackTilt;
-        }
-      } else if (
-        needsReanchor &&
-        voiceLeadingModeRef.current === 'smoothest'
-      ) {
-        playbackTilt = resolveSmoothestReanchorTilt(
-          displayChord,
-          playbackTilt,
-          neutralVoicingRef.current.length,
-          isChordChange,
-          smoothBaseParallelRef,
-          {
-            applySmoothestVoiceLeading: (chord, elemental) =>
-              applySmoothestVoiceLeading(chord, elemental, syncPositionLevel),
-            preserveSameChordSmoothestTilt: (chordName) =>
-              preserveSameChordSmoothestTilt(chordName, syncPositionLevel),
-            getBaselineTilt,
-            getCurrentControlTilt,
-          }
-        );
-        if (tiltMode) {
-          playbackTiltRef.current = playbackTilt;
-        }
-      }
-
+      // - smooth / smoothest: see voiceLeadingPolicy.resolveReanchorPlaybackTilt
       if (needsReanchor) {
+        const mode = voiceLeadingModeRef.current;
+        if (mode === 'smooth') {
+          playbackTilt = resolveReanchorPlaybackTilt({
+            mode: 'smooth',
+            displayChord,
+            tiltMode,
+            playbackTilt,
+            smooth: {
+              isChordChange,
+              isFirstChord,
+              isOppositeElement,
+              previousChord: previousChordRef.current,
+              lockMaps: noTiltLockMapsRef.current,
+              noTiltVoicingLevel: noTiltVoicingLevelRef.current,
+              noTiltPositionLevel: noTiltPositionLevelRef.current,
+              lastNoTiltPositionLevel: lastNoTiltPositionLevelRef.current,
+              resolveSmoothPlaybackTiltForNavigation,
+              getCurrentControlTilt,
+              syncNoTiltPositionLevel: syncPositionLevel,
+            },
+          });
+        } else if (mode === 'smoothest') {
+          playbackTilt = resolveReanchorPlaybackTilt({
+            mode: 'smoothest',
+            displayChord,
+            tiltMode,
+            playbackTilt,
+            smoothest: {
+              neutralVoicingLength: neutralVoicingRef.current.length,
+              isChordChange,
+              smoothBaseParallelRef,
+              callbacks: {
+                applySmoothestVoiceLeading: (chord, elemental) =>
+                  applySmoothestVoiceLeading(
+                    chord,
+                    elemental,
+                    syncPositionLevel
+                  ),
+                preserveSameChordSmoothestTilt: (chordName) =>
+                  preserveSameChordSmoothestTilt(
+                    chordName,
+                    syncPositionLevel
+                  ),
+                getBaselineTilt,
+                getCurrentControlTilt,
+              },
+            },
+          });
+        } else {
+          playbackTilt = resolveReanchorPlaybackTilt({
+            mode: 'root_position',
+            displayChord,
+            tiltMode,
+            playbackTilt,
+          });
+        }
+        if (tiltMode) {
+          playbackTiltRef.current = playbackTilt;
+        }
+
         const elementalResolution = resolveElementalAfterTilt(
           inputChord,
           playbackTilt,
@@ -439,29 +447,24 @@ export function useChordPlayback({
       const pitches = computeVoicedPitchesFromAnchor(displayChord, state);
 
       if (pitches.length === 0) {
-        previousChordRef.current = displayChord;
-        activePitchesRef.current = [];
-        selectedChordNameRef.current = displayChord.name;
-        if (fromPointer) {
-          armNoTiltRevoiceSuppress(suppressNoTiltRevoiceRef.current);
-        }
-        invalidateVoicingCache();
-        updateVoiceLeadingBaseline(playbackTilt, fromPointer);
+        // Mute / all voices off: release ringing notes first (audio-first),
+        // then share the normal React commit path (dispatchAudio no-ops on
+        // empty; last-played tilt labels stay from the prior sounded chord).
         audioEngine.releaseActiveNotes();
-        setPreviousPlayedChord(displayChord);
-        setSelectedChord(displayChord);
-        setActivePitches([]);
-        if (options.borrowingStateOverride) {
-          borrowingStateRef.current = options.borrowingStateOverride;
-          setBorrowingState(options.borrowingStateOverride);
-        }
+        commitPlayback(
+          displayChord,
+          [],
+          playbackTilt,
+          state,
+          elemental,
+          options
+        );
         return;
       }
 
       commitPlayback(displayChord, pitches, playbackTilt, state, elemental, options);
     },
     [
-      resolveForPlayback,
       resolveElementalAfterTilt,
       resolveSmoothPlaybackTiltForNavigation,
       resolvePlaybackTilt,
@@ -474,17 +477,11 @@ export function useChordPlayback({
       computeNeutralVoicing,
       computeVoicedPitchesFromAnchor,
       commitPlayback,
-      borrowingStateRef,
-      setBorrowingState,
-      selectedChordNameRef,
-      setSelectedChord,
-      updateVoiceLeadingBaseline,
       applyNoTiltLocksForChord,
       noTiltLockMapsRef,
       noTiltVoicingLevelRef,
       noTiltPositionLevelRef,
       voiceLeadingModeRef,
-      suppressNoTiltRevoiceRef,
     ]
   );
 

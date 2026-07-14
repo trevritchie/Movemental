@@ -5,7 +5,7 @@
  * within the same voicing level hits the cache. Commit invalidation is
  * selective: only when chord, borrowing, or voice-leading mode changes.
  */
-import type { VoiceLeadingMode } from '@/context/types';
+import type { VoiceLeadingMode } from '@/music/sessionModes';
 import { isElementalName } from './elementalRoot';
 import type { BorrowingState } from './BorrowingLogic';
 import type { Chord } from './ChordManager';
@@ -77,7 +77,8 @@ let lastCommitInvalidationKey = '';
 
 /**
  * Memoize voiced pitches for UI readouts (tilt label updates ~7 Hz).
- * Playback always calls computeTiltVoicedPitches directly.
+ * Playback uses computeNeutralTiltVoicing + applyVoicingOverlays (same math
+ * as computeTiltVoicedPitches); do not look up this cache on the audio path.
  */
 export function getCachedTiltVoicedPitches(
   chord: Chord,

@@ -77,24 +77,36 @@ sensor update.
 *   `circlePositions` (`line`, `up`, `down`), `borrowingDirections` (`up`, `down`, `null`), and `noteStates` (`on`, `off`) for four voices
 *   **Memory modes**: `global` (one borrowing state across chords) or `per-chord` (saved per chord name)
 
-**Play styles** (see next section)
-*   `click_and_hold`, `drone`, and `tilt` (phone)
+**Session tilt vs audio play style** (see next section)
+*   **`tiltModeEnabled`**: set once at splash (Tilt vs No Tilt / desktop Start)
+*   **`playStyle`**: audio-only (`drone` or `click_and_hold`); works with or without device tilt
 
 ---
 
 ## Play Styles and Voicing
 
-Playback lives in [`useChordPlayback.ts`](src/hooks/useChordPlayback.ts), which orchestrates two sub-hooks: [`useVoicingAnchorResolution.ts`](src/hooks/useVoicingAnchorResolution.ts) (anchor-key and tilt/voice-leading math shared by all three voice-leading modes) and [`usePlaybackCommit.ts`](src/hooks/usePlaybackCommit.ts) (audio dispatch and post-audio state commit). All styles share the same pipeline: resolve elemental roots, build a borrowed pitch structure, run the tilt voicing engine, then dispatch to `AudioEngine`.
+Playback lives in [`useChordPlayback.ts`](src/hooks/useChordPlayback.ts), which
+orchestrates two sub-hooks:
+[`useVoicingAnchorResolution.ts`](src/hooks/useVoicingAnchorResolution.ts)
+(anchor-key and tilt/voice-leading math shared by all three voice-leading
+modes) and [`usePlaybackCommit.ts`](src/hooks/usePlaybackCommit.ts) (audio
+dispatch and post-audio state commit). All paths share the same pipeline:
+resolve elemental roots, build a borrowed pitch structure, run the tilt
+voicing engine, then dispatch to `AudioEngine`.
 
-| Style | Trigger | Audio behavior |
-|-------|---------|----------------|
+| Audio play style | Trigger | Behavior |
+|------------------|---------|----------|
 | `click_and_hold` | Diagram pointer down/up | Pointer: sustained notes until release. Borrowing sliders: timed half-note preview via `playNotes`. |
 | `drone` | Diagram tap or glissando | Legato diff: common tones sustain, others crossfade (`triggerAttack`). |
-| `tilt` | Diagram tap (phone) | Samples **raw** device tilt at tap time, re-attacks full voicing. Voicing does not update continuously while holding (tap-time sampling only). |
+
+| Session tilt | Trigger | Behavior |
+|--------------|---------|----------|
+| Device tilt on (`tiltModeEnabled`) | Diagram tap (phone) | Samples **raw** device orientation at tap time for voicing. Voicing does not track continuously while holding. Independent of `playStyle` (Click and Hold works in tilt). See [`docs/movements-not-chords-tilt.md`](docs/movements-not-chords-tilt.md). |
+| Device tilt off | Diagram / desktop | Pivot-anchor no-tilt controls set register and bass. |
 
 **Static vs tilt voicing anchors** ([`TiltVoicingEngine.ts`](src/music/TiltVoicingEngine.ts))
-*   **Tilt mode (`contrary`)**: Roll narrows the voicing symmetrically around the parallel pivot. Bass can shift as width changes (e.g. flat + Drop 3 may put the 3rd in the bass).
-*   **Static controls (`pivot`)**: Position sets the bottom note; voicing width only adds tones above. Changing voicing does not move the bass.
+*   **Tilt session (`contrary`)**: Roll narrows the voicing symmetrically around the parallel pivot. Bass can shift as width changes (e.g. flat + Drop 3 may put the 3rd in the bass).
+*   **No-tilt controls (`pivot`)**: Position sets the bottom note; voicing width only adds tones above. Changing voicing does not move the bass.
 
 **IN THE BASS readout** ([`voiceDegreeLabel.ts`](src/music/voiceDegreeLabel.ts)): In tilt mode, the label reflects the **lowest sounded pitch**, using the same voicing path as playback. Static position dropdowns still name the parallel pivot (Root, 3rd, 5th, 6th/7th).
 
@@ -102,7 +114,11 @@ Playback lives in [`useChordPlayback.ts`](src/hooks/useChordPlayback.ts), which 
 
 ## Tilt Voicing Engine
 
-Port of the "Movements, Not Chords" counterpoint mechanic. The engine voices each chord on a **tone cycle**: post-borrowing pitch classes as semitone offsets from the root. One ladder step equals one chord tone.
+Port of the "Movements, Not Chords" counterpoint mechanic. Coordinate mapping,
+tap-time sampling, and session vs play-style rules are documented in
+[`docs/movements-not-chords-tilt.md`](docs/movements-not-chords-tilt.md). The
+engine voices each chord on a **tone cycle**: post-borrowing pitch classes as
+semitone offsets from the root. One ladder step equals one chord tone.
 
 **Roll (phone flat to vertical)**: Nine levels, reversed from the Python prototype. Flat = widest (Double Octave, thinned to five voices). Vertical = unison on the pivot.
 
@@ -223,7 +239,7 @@ $$\text{Earth}_x \text{Wind}_y \text{Fire}_z \quad (\text{e.g., } \mathbf{Earth_
 
 ## Tone.js Audio Engine & DSP Signal Chain
 
-The application's synthesizer features an optimized DSP signal chain with selectable **playback EQ** (Small Speakers / Large Speakers / Flat) and **instrument presets** (Warm Pad, Super Saw, Electric Cello).
+The application's synthesizer features an optimized DSP signal chain with selectable **playback EQ** (Small Speakers / Large Speakers / Flat) and **instrument presets** (default **Trumpet** sampler, plus Warm Piano and synths such as Warm Pad, Super Saw, and Electric Cello).
 
 ```mermaid
 graph LR
@@ -247,7 +263,10 @@ graph LR
 | **Small Speakers** | All platforms | -6 dB low @ 180 Hz, +3 dB mid, -2.5 dB high | ON: HPF 180 Hz → light distortion, 20% wet | Platform-adapted (see below) | Phones, laptops, built-in speakers |
 | **Flat** | (opt-in) | 0/0/0 dB reference | OFF | Synth -9 dB, makeup +2 dB, limiter -1 dBTP | Exports, calibration, A/B reference |
 
-**Platform defaults:** first visit opens in **Small Speakers** on all platforms. EQ and instrument preset choices are session-only (not persisted to localStorage).
+**Platform defaults:** first visit opens in **Small Speakers** on all platforms.
+EQ profile, instrument preset, FX wet levels, and envelopes persist in
+localStorage under the `soundDesign` section of user settings (see
+[`userSettingsSchema.ts`](src/settings/userSettingsSchema.ts)).
 
 **Small Speakers platform adaptation:** the stored mode stays `smallSpeakers`, but effective DSP values differ by layout tier:
 
@@ -280,19 +299,22 @@ Offline gain-staging and preset loudness tests: [`docs/gain-staging-tests.md`](d
 
 ### Instrument Presets
 
-Presets are defined in [`src/audio/synthPresets.ts`](src/audio/synthPresets.ts). Community JSON starting points are vendored from [Tonejs/Presets](https://github.com/Tonejs/Presets) (see [`PRESET_ATTRIBUTION.md`](src/audio/PRESET_ATTRIBUTION.md)). Vendored presets use their JSON voice parameters (oscillator, FM/AM settings, modulation envelopes) with app-tuned ADSR for chord playback. On preset switch, **Warm Pad** keeps default chorus/reverb; other presets start with bus FX dry.
+Presets are defined in [`src/audio/synthPresets.ts`](src/audio/synthPresets.ts). Community JSON starting points are vendored from [Tonejs/Presets](https://github.com/Tonejs/Presets) (see [`PRESET_ATTRIBUTION.md`](src/audio/PRESET_ATTRIBUTION.md)). Vendored presets use their JSON voice parameters (oscillator, FM/AM settings, modulation envelopes) with app-tuned ADSR for chord playback. The product default instrument is **Trumpet** (`DEFAULT_SYNTH_PRESET_ID`). On preset switch, **Warm Pad** keeps default chorus/reverb; other presets start with bus FX dry.
 
 | Preset | Synth class | Character |
 |--------|-------------|-----------|
-| Warm Pad | `Synth` | Default fatsawtooth ambient pad |
+| Trumpet | Sampler | Default product instrument |
+| Warm Piano | Sampler | Soft piano samples |
+| Warm Pad | `Synth` | fatsawtooth ambient pad |
 | Super Saw | `Synth` | Brighter detuned saw |
 | Electric Cello | `FMSynth` | Warm FM pad |
 
 FM presets use max polyphony of 8; `Synth` presets use 12.
 
 ### 1. Synthesizer Core (`PolySynth`)
-*   **Architecture**: PolySynth wrapping `Tone.Synth`, `FMSynth`, `AMSynth`, or `MonoSynth` depending on the selected preset.
-*   **Default (Warm Pad)**: `fatsawtooth` with `3` detuned oscillators per voice, 15 cent spread.
+*   **Architecture**: PolySynth wrapping `Tone.Synth`, `FMSynth`, `AMSynth`, or `MonoSynth` depending on the selected preset. Sampler presets use Tone `Sampler` instead of PolySynth.
+*   **Default (Trumpet)**: Tone.js instrument samples (`DEFAULT_SYNTH_PRESET_ID = 'trumpet'`).
+*   **Warm Pad (synth example)**: `fatsawtooth` with `3` detuned oscillators per voice, 15 cent spread.
 *   **Polyphony**: 12 voices for `Synth`, 8 for heavier synth classes.
 
 ### 2. Master Lowpass Filter
@@ -341,7 +363,7 @@ Cross-file utilities introduced in the second-pass refactor. See
 |--------|---------|
 | [`pitchClass.ts`](src/music/pitchClass.ts) | Pitch-class math (`normalizePitchClass`, tonal-center relatives, chord root) |
 | [`elementTokens.ts`](src/music/elementTokens.ts) | Parent-element CSS colors and mod-3 styling helpers |
-| [`diagramLayout.ts`](src/music/diagramLayout.ts) | SVG viewBox constants and `coordToPixels` |
+| [`diagramLayout.ts`](src/diagram/diagramLayout.ts) | SVG viewBox constants and `coordToPixels` |
 | [`playbackTiltResolution.ts`](src/music/playbackTiltResolution.ts) | Smooth/smoothest tilt rules shared by playback and bass labels |
 | [`utils/clamp.ts`](src/utils/clamp.ts) | Numeric clamp |
 | [`TiltReadoutContext.tsx`](src/context/TiltReadoutContext.tsx) | Isolates ~7 Hz tilt updates from `ChordContext` |

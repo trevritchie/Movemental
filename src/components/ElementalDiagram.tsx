@@ -19,12 +19,12 @@ import {
   diagramLayoutsEqual,
   resolveDiagramLayout,
   type DiagramLayoutResolution,
-} from '../music/diagramScaling';
+} from '../diagram/diagramScaling';
 import {
   getDiagramNodePositions,
   groupEffectiveRadius,
   primaryEffectiveRadius,
-} from '../music/diagramNodeGeometry';
+} from '../diagram/diagramNodeGeometry';
 import { parentElementStyle } from '../music/elementTokens';
 import { useChordContext } from '../context/ChordContext';
 import { BREAKPOINTS } from '../layout/breakpoints';
@@ -32,7 +32,7 @@ import { useLayoutTier } from '../hooks/useLayoutTier';
 import {
   applyDiagramOverlayMetrics,
   computeDiagramOverlayMetrics,
-} from '../music/diagramOverlayMetrics';
+} from '../diagram/diagramOverlayMetrics';
 import { DiagramVoicingOverlay } from './DiagramVoicingOverlay';
 import { DiagramCornerActions } from './DiagramCornerActions';
 import { DiagramBackgroundOrbs } from './DiagramBackgroundOrbs';
