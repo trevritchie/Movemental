@@ -18,8 +18,6 @@ import {
   RECORDING_STOP_FADE_MS,
   SessionRecordingController,
 } from './SessionRecordingController';
-
-export { RECORDING_STOP_FADE_MS };
 import { resolveLayoutTierSafe } from '../layout/breakpoints';
 import {
   getAdaptedOutputProfile,
@@ -56,6 +54,7 @@ import {
 import { audioDebugLog, isAudioEngineDebugEnabled } from './audioDebug';
 import { clamp } from '../utils/clamp';
 
+export { RECORDING_STOP_FADE_MS };
 /** PolySynth or sample-based Sampler; shared note trigger API. */
 type InstrumentVoice = Tone.PolySynth | Tone.Sampler;
 
