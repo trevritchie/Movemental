@@ -6,7 +6,6 @@
  * instead of branching on VoiceLeadingMode beside those helpers.
  */
 import type { Chord } from './ChordManager';
-import type { VoiceLeadingMode } from './sessionModes';
 import type { TiltSample } from './TiltVoicingEngine';
 import {
   resolveEffectiveTiltForLabel,
@@ -18,21 +17,37 @@ import {
 
 export type { SmoothReanchorTiltOptions, SmoothestReanchorCallbacks };
 
-/** Inputs for choosing a new playback tilt when the anchor key changes. */
-export interface ReanchorPlaybackTiltRequest {
-  mode: VoiceLeadingMode;
+/** Shared fields for every re-anchor mode. */
+interface ReanchorPlaybackTiltBase {
   displayChord: Chord;
   tiltMode: boolean;
   /** Control / baseline tilt before mode-specific adjustment. */
   playbackTilt: TiltSample;
-  smooth: SmoothReanchorTiltOptions;
-  smoothest: {
-    neutralVoicingLength: number;
-    isChordChange: boolean;
-    smoothBaseParallelRef: { current: number };
-    callbacks: SmoothestReanchorCallbacks;
-  };
 }
+
+export type SmoothestReanchorTiltOptions = {
+  neutralVoicingLength: number;
+  isChordChange: boolean;
+  smoothBaseParallelRef: { current: number };
+  callbacks: SmoothestReanchorCallbacks;
+};
+
+/**
+ * Mode-discriminated re-anchor request. Callers supply only the bag required
+ * for the active VoiceLeadingMode.
+ */
+export type ReanchorPlaybackTiltRequest =
+  | (ReanchorPlaybackTiltBase & {
+      mode: 'root_position';
+    })
+  | (ReanchorPlaybackTiltBase & {
+      mode: 'smooth';
+      smooth: SmoothReanchorTiltOptions;
+    })
+  | (ReanchorPlaybackTiltBase & {
+      mode: 'smoothest';
+      smoothest: SmoothestReanchorTiltOptions;
+    });
 
 /**
  * Resolve playback tilt for the active voice-leading mode on re-anchor.
@@ -43,30 +58,32 @@ export interface ReanchorPlaybackTiltRequest {
 export function resolveReanchorPlaybackTilt(
   request: ReanchorPlaybackTiltRequest,
 ): TiltSample {
-  const { mode, displayChord, tiltMode, playbackTilt } = request;
-
-  if (mode === 'smooth') {
-    return resolveSmoothReanchorTilt(displayChord, tiltMode, request.smooth);
+  switch (request.mode) {
+    case 'smooth':
+      return resolveSmoothReanchorTilt(
+        request.displayChord,
+        request.tiltMode,
+        request.smooth,
+      );
+    case 'smoothest': {
+      const {
+        neutralVoicingLength,
+        isChordChange,
+        smoothBaseParallelRef,
+        callbacks,
+      } = request.smoothest;
+      return resolveSmoothestReanchorTilt(
+        request.displayChord,
+        request.playbackTilt,
+        neutralVoicingLength,
+        isChordChange,
+        smoothBaseParallelRef,
+        callbacks,
+      );
+    }
+    case 'root_position':
+      return request.playbackTilt;
   }
-
-  if (mode === 'smoothest') {
-    const {
-      neutralVoicingLength,
-      isChordChange,
-      smoothBaseParallelRef,
-      callbacks,
-    } = request.smoothest;
-    return resolveSmoothestReanchorTilt(
-      displayChord,
-      playbackTilt,
-      neutralVoicingLength,
-      isChordChange,
-      smoothBaseParallelRef,
-      callbacks,
-    );
-  }
-
-  return playbackTilt;
 }
 
 /** Bass-label effective tilt (same rules as playback navigation). */

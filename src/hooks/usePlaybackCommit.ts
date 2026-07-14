@@ -248,6 +248,12 @@ export function usePlaybackCommit({
         setBorrowingState(options.borrowingStateOverride);
       }
 
+      // Empty mute shares selection/suppress/cache commit but must not rewrite
+      // last-played tilt labels from parallel-from-tilt (no new sounded pitches).
+      if (pitches.length === 0) {
+        return;
+      }
+
       const deferLabels = fromPointer;
       const applyTiltLabels = () => {
         if (usesDeviceTilt(tiltModeRef.current)) {

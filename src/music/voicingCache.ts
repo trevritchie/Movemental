@@ -77,7 +77,8 @@ let lastCommitInvalidationKey = '';
 
 /**
  * Memoize voiced pitches for UI readouts (tilt label updates ~7 Hz).
- * Playback always calls computeTiltVoicedPitches directly.
+ * Playback uses computeNeutralTiltVoicing + applyVoicingOverlays (same math
+ * as computeTiltVoicedPitches); do not look up this cache on the audio path.
  */
 export function getCachedTiltVoicedPitches(
   chord: Chord,

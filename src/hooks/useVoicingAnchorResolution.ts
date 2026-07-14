@@ -1,12 +1,10 @@
 /**
- * Voice-leading anchor resolution for chord playback.
+ * Voice-leading anchor resolution helpers for chord playback.
  *
- * Extracted from useChordPlayback.ts: this sub-hook owns the pure(ish)
- * anchor-key/tilt math shared by all three voice-leading modes
- * (root_position, smooth, smoothest) - deciding what tilt sample and
- * neutral voicing a chord should resolve against, without touching audio
- * dispatch or React state that isn't part of that math. It is composed
- * into useChordPlayback rather than used standalone.
+ * Owns shared tilt/anchor/neutral-voicing math used by all voice-leading
+ * modes. Mode-specific re-anchor dispatch lives in voiceLeadingPolicy;
+ * this hook provides the helpers that policy and useChordPlayback consume,
+ * without owning audio dispatch.
  */
 import { useCallback, type RefObject } from 'react';
 import { chordManager, type Chord } from '../music/ChordManager';
