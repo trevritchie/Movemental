@@ -1,6 +1,6 @@
 import React from 'react';
 import { useChordContext } from '../../context/ChordContext';
-import type { VoiceLeadingMode } from '../../context/types';
+import type { VoiceLeadingMode } from '../../music/sessionModes';
 
 const VOICE_LEADING_MODE_DESCRIPTIONS: Record<VoiceLeadingMode, string> = {
   root_position:

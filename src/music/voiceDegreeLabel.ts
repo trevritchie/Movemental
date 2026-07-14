@@ -7,8 +7,8 @@
  */
 import type { Chord } from './ChordManager';
 import { borrowingLogic, getInitialBorrowingState, type BorrowingState } from './BorrowingLogic';
-import type { VoiceLeadingMode } from '../context/types';
-import { usesDeviceTilt } from '../context/types';
+import type { VoiceLeadingMode } from './sessionModes';
+import { usesDeviceTilt } from './sessionModes';
 import { clamp } from '../utils/clamp';
 import { resolveEffectiveTiltForLabel } from './playbackTiltResolution';
 import {

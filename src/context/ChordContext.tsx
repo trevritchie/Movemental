@@ -37,7 +37,11 @@ import {
   consumeNoTiltRevoiceSuppress,
   createNoTiltRevoiceSuppressState,
 } from '../music/noTiltRevoiceSuppress';
-import type { ClockLayoutMode, PlayStyle, VoiceLeadingMode } from './types';
+import type {
+  ClockLayoutMode,
+  PlayStyle,
+  VoiceLeadingMode,
+} from '../music/sessionModes';
 import { loadUserSettings, clearUserSettings } from '../settings/userSettingsStorage';
 import {
   getDefaultVoiceLeadingMode,
@@ -51,7 +55,11 @@ import {
   type SettingsResetGroupId,
 } from '../settings/settingsResetGroups';
 
-export type { ClockLayoutMode, PlayStyle, VoiceLeadingMode } from './types';
+export type {
+  ClockLayoutMode,
+  PlayStyle,
+  VoiceLeadingMode,
+} from '../music/sessionModes';
 
 interface ChordContextType {
   tonalCenter: number;

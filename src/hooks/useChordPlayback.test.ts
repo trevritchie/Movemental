@@ -30,7 +30,7 @@ vi.mock('../audio/pageInteraction', () => ({
   isPageInteractiveForAudio: () => true,
 }));
 
-import type { VoiceLeadingMode } from '../context/types';
+import type { VoiceLeadingMode } from '../music/sessionModes';
 import { useChordPlayback } from './useChordPlayback';
 import { chordManager } from '../music/ChordManager';
 

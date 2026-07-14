@@ -2,7 +2,7 @@
  * Clockface slot geometry and pitch-class-to-slot mapping for chromatic and
  * circle-of-fifths layouts.
  */
-import type { ClockLayoutMode } from '../context/types';
+import type { ClockLayoutMode } from './sessionModes';
 import { NOTE_NAMES_FLAT } from './config';
 
 /** Relative pitch classes in clockwise fifths order from tonal center. */
