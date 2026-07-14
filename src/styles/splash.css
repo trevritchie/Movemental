@@ -1,0 +1,274 @@
+/* ==========================================================================
+   Splash screen
+   ========================================================================== */
+.splash-container {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--bg-dark);
+  z-index: 9999;
+  transition: opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.8s;
+  overflow: hidden;
+  --mouse-x: 50vw;
+  --mouse-y: 50vh;
+}
+
+.splash-container.fade-out {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.splash-background {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  filter: blur(80px);
+  z-index: 0;
+  opacity: 0.85;
+}
+
+.mouse-follower {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  transform: translate(calc(var(--mouse-x, 50vw) - 50vw), calc(var(--mouse-y, 50vh) - 50vh));
+  transition: transform 6s cubic-bezier(0.05, 0.7, 0.1, 1);
+}
+
+.orb-wrapper {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 0;
+  height: 0;
+  animation: swirl 24s linear infinite;
+}
+
+@keyframes swirl {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.glow-orb {
+  position: absolute;
+  border-radius: 50%;
+  animation: orb-float 12s infinite alternate ease-in-out;
+}
+
+.orb-1 {
+  width: 70vmin;
+  height: 70vmin;
+  background: radial-gradient(circle, var(--color-earth) 0%, transparent 60%);
+  top: -55vmin;
+  left: -55vmin;
+  animation-delay: 0s;
+}
+
+.orb-2 {
+  width: 65vmin;
+  height: 65vmin;
+  background: radial-gradient(circle, var(--color-wind) 0%, transparent 60%);
+  top: -50vmin;
+  left: -5vmin;
+  animation-delay: -4s;
+}
+
+.orb-3 {
+  width: 75vmin;
+  height: 75vmin;
+  background: radial-gradient(circle, var(--color-fire) 0%, transparent 60%);
+  top: -5vmin;
+  left: -35vmin;
+  animation-delay: -8s;
+}
+
+.orb-mouse {
+  width: 40vmin;
+  height: 40vmin;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.15) 0%, transparent 60%);
+  top: 0;
+  left: 0;
+  transform: translate(calc(var(--mouse-x) - 20vmin), calc(var(--mouse-y) - 20vmin));
+  animation: none;
+  mix-blend-mode: overlay;
+  pointer-events: none;
+  transition: opacity 0.3s;
+}
+
+@keyframes orb-float {
+  0% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(5vmin, 10vmin) scale(1.1); }
+  66% { transform: translate(-5vmin, -5vmin) scale(0.9); }
+  100% { transform: translate(10vmin, -10vmin) scale(1.05); }
+}
+
+.splash-content {
+  position: relative;
+  z-index: 1;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2rem;
+}
+
+.splash-title {
+  font-size: clamp(4rem, 8vw, 8rem);
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  color: transparent;
+  background: var(--gradient-elemental-accent);
+  -webkit-background-clip: text;
+  background-clip: text;
+  margin: 0;
+  filter: drop-shadow(0 0 32px rgba(255,255,255,0.1));
+}
+
+.splash-subtitle {
+  font-size: clamp(1.2rem, 2vw, 1.5rem);
+  color: var(--text-secondary);
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  margin: 0;
+}
+
+.splash-button {
+  margin-top: 2rem;
+  padding: 1rem 3rem;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #fff;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 9999px;
+  cursor: pointer;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.splash-button::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+  transform: translateX(-100%);
+  transition: transform 0.5s ease;
+}
+
+.splash-button:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 30px -10px rgba(0,0,0,0.5), 0 0 20px rgba(155, 114, 248, 0.3);
+}
+
+.splash-button:hover::before {
+  transform: translateX(100%);
+}
+
+.splash-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.splash-mode-row {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 2rem;
+}
+
+.splash-mode-row .splash-button {
+  min-width: 8.5rem;
+  margin-top: 0;
+}
+
+.splash-elements {
+  display: flex;
+  gap: 2.5rem;
+  margin-bottom: -1rem;
+}
+
+.splash-icon {
+  width: 48px;
+  height: 48px;
+  opacity: 0.9;
+  filter: drop-shadow(0 0 16px currentColor);
+  animation: float-icon 4s infinite alternate ease-in-out;
+}
+
+.splash-icon.earth { color: var(--color-earth); animation-delay: 0s; }
+.splash-icon.wind { color: var(--color-wind); animation-delay: -1.3s; }
+.splash-icon.fire { color: var(--color-fire); animation-delay: -2.6s; }
+
+@keyframes float-icon {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(-8px); }
+}
+
+/* ==========================================================================
+   Orientation blocker
+   ========================================================================== */
+.orientation-blocker {
+  display: flex;
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  background-color: var(--bg-dark);
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 2rem;
+}
+
+.orientation-blocker h1 {
+  font-size: 1.5rem;
+  margin: 1rem 0;
+  background: linear-gradient(135deg, var(--color-earth) 0%, var(--color-wind) 50%, var(--color-fire) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.orientation-blocker p {
+  color: var(--text-secondary);
+  max-width: 300px;
+  line-height: 1.5;
+}
+
+.rotate-icon {
+  color: var(--color-wind);
+  animation: rotate-phone 2s infinite ease-in-out;
+}
+
+@keyframes rotate-phone {
+  0% { transform: rotate(90deg); }
+  50% { transform: rotate(0deg); }
+  100% { transform: rotate(90deg); }
+}
+
+/* ==========================================================================
+   Foldable dual-screen gutter padding
+   ========================================================================== */
+@media (horizontal-viewport-segments: 2) {
+  .app-container {
+    padding-left: max(16px, env(safe-area-inset-left));
+    padding-right: max(16px, env(safe-area-inset-right));
+  }
+
+  .unified-side-panel {
+    padding-right: env(safe-area-inset-right);
+  }
+}
+

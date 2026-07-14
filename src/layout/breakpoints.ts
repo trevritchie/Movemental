@@ -1,7 +1,7 @@
 /**
  * Layout tier resolution and media-query strings for responsive UI.
  * BREAKPOINTS and PHONE_*_MEDIA must stay in sync with layout/breakpoints.css
- * and matching rules in index.css.
+ * and matching rules in `src/styles/`.
  */
 
 export type LayoutTier = 'phone' | 'tablet' | 'desktop';
@@ -16,11 +16,11 @@ export const BREAKPOINTS = {
   compactDiagramWidth: 600,
 } as const;
 
-/** CSS media query for stacked phone layout (keep in sync with index.css). */
+/** CSS media query for stacked phone layout (keep in sync with src/styles/). */
 export const PHONE_LAYOUT_MEDIA =
   '(max-width: 767px), (orientation: portrait) and (pointer: coarse)';
 
-/** Phone landscape rotate prompt (keep in sync with index.css). */
+/** Phone landscape rotate prompt (keep in sync with src/styles/). */
 export const PHONE_LANDSCAPE_BLOCK_MEDIA =
   '(max-height: 500px) and (orientation: landscape) and (pointer: coarse), ' +
   '(max-width: 767px) and (orientation: landscape) and (pointer: coarse)';

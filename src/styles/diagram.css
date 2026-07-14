@@ -1,0 +1,968 @@
+/* ==========================================================================
+   Diagram container
+   ========================================================================== */
+.diagram-container {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--panel-bg);
+  backdrop-filter: blur(16px);
+  border: 1px solid var(--panel-border);
+  border-radius: 16px;
+  padding: 0px;
+  min-height: 450px;
+  touch-action: none;
+  --overlay-inset-x: 12px;
+  --overlay-inset-y: 12px;
+}
+
+.diagram-container,
+.diagram-container .diagram-svg,
+.diagram-overlay-pill,
+.diagram-overlay-pill *,
+.diagram-chord-readout,
+.diagram-chord-readout * {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.diagram-container .diagram-svg text {
+  pointer-events: none;
+}
+
+.diagram-container button,
+.diagram-container select {
+  -webkit-touch-callout: default;
+  touch-action: manipulation;
+}
+
+/* ==========================================================================
+   Diagram corner overlay pills
+   ========================================================================== */
+.diagram-overlay-pill {
+  pointer-events: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  max-width: var(--overlay-corner-max-w, 140px);
+  padding: var(--overlay-pill-padding-y, 6px)
+           var(--overlay-pill-padding-x, 10px);
+  border-radius: 12px;
+  background: var(--overlay-pill-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--overlay-pill-border);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+  text-align: center;
+}
+
+.diagram-overlay-pill__label {
+  display: block;
+  width: 100%;
+  font-size: var(--overlay-label-size, 10.5px);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  line-height: 1.2;
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+.diagram-overlay-pill__value {
+  position: relative;
+  display: grid;
+  align-items: center;
+  width: 100%;
+  min-width: 0;
+  font-size: var(--overlay-value-size, 15px);
+  font-weight: 600;
+  line-height: 1.25;
+  color: var(--text-primary);
+}
+
+.diagram-overlay-pill__value > * {
+  grid-area: 1 / 1;
+  min-width: 0;
+}
+
+.diagram-overlay-pill__sizer {
+  visibility: hidden;
+  white-space: nowrap;
+  font-size: inherit;
+  font-weight: inherit;
+  line-height: inherit;
+}
+
+.diagram-overlay-pill__sizer--block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  white-space: nowrap;
+}
+
+.diagram-overlay-pill__sizer--block .elemental-name {
+  font-size: var(--overlay-title-size, 15px);
+  font-weight: 700;
+}
+
+.diagram-overlay-pill__sizer--block .chemistry-formula {
+  display: flex;
+  justify-content: center;
+  gap: 3px;
+  flex-wrap: nowrap;
+}
+
+.diagram-overlay-pill__sizer--block .chem-element {
+  font-size: var(--overlay-subtitle-size, 12.5px);
+  padding: 1px 4px 2px;
+}
+
+.diagram-overlay-pill--top-left,
+.diagram-overlay-pill--top-right,
+.diagram-overlay-pill--bottom-left,
+.diagram-overlay-pill--bottom-right {
+  max-width: none;
+  width: max-content;
+}
+
+.diagram-overlay-pill--top-left,
+.diagram-overlay-pill--top-right {
+  padding: 8px 12px;
+  gap: 3px;
+}
+
+.diagram-overlay-pill--bottom-left,
+.diagram-overlay-pill--bottom-right {
+  padding: 8px 10px;
+  gap: 3px;
+}
+
+.diagram-overlay-pill--bottom-left .diagram-overlay-pill__value {
+  font-size: var(--overlay-title-size, 15px);
+  line-height: 1.25;
+}
+
+.diagram-overlay-pill--top-left .diagram-overlay-pill__label,
+.diagram-overlay-pill--top-right .diagram-overlay-pill__label {
+  font-size: var(--overlay-label-size, 10.5px);
+}
+
+.diagram-overlay-pill--top-left .diagram-overlay-pill__value,
+.diagram-overlay-pill--top-right .diagram-overlay-pill__value {
+  font-size: var(--overlay-value-size, 15px);
+  line-height: 1.3;
+}
+
+.diagram-overlay-pill--top-left .diagram-overlay-pill__value,
+.diagram-overlay-pill--top-right .diagram-overlay-pill__value,
+.diagram-overlay-pill--bottom-left .diagram-overlay-pill__value {
+  width: 100%;
+}
+
+.diagram-overlay-pill--top-left {
+  position: absolute;
+  top: max(var(--overlay-inset-y, 4px), env(safe-area-inset-top, 0px));
+  left: max(var(--overlay-inset-x, 2px), env(safe-area-inset-left, 0px));
+  z-index: 2;
+}
+
+.diagram-overlay-pill--top-right {
+  position: absolute;
+  top: max(var(--overlay-inset-y, 4px), env(safe-area-inset-top, 0px));
+  right: max(var(--overlay-inset-x, 2px), env(safe-area-inset-right, 0px));
+  z-index: 2;
+}
+
+.diagram-overlay-pill--bottom-left {
+  position: absolute;
+  bottom: max(var(--overlay-inset-y, 4px), env(safe-area-inset-bottom, 0px));
+  left: max(var(--overlay-inset-x, 2px), env(safe-area-inset-left, 0px));
+  z-index: 2;
+}
+
+.diagram-overlay-pill--bottom-right {
+  position: absolute;
+  bottom: max(var(--overlay-inset-y, 4px), env(safe-area-inset-bottom, 0px));
+  right: max(var(--overlay-inset-x, 2px), env(safe-area-inset-right, 0px));
+  z-index: 2;
+}
+
+.diagram-overlay-pill:focus-within {
+  border-color: rgba(155, 114, 248, 0.35);
+  box-shadow:
+    0 0 0 1px rgba(155, 114, 248, 0.2),
+    0 4px 16px rgba(0, 0, 0, 0.25);
+}
+
+.diagram-overlay-select {
+  appearance: none;
+  -webkit-appearance: none;
+  flex: 1 1 auto;
+  min-width: 0;
+  background: transparent;
+  border: none;
+  color: inherit;
+  font-family: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+  line-height: inherit;
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+  text-align: center;
+  text-align-last: center;
+}
+
+.diagram-overlay-control {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+}
+
+.diagram-overlay-lock {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.45);
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.diagram-overlay-lock:hover:not(:disabled) {
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.diagram-overlay-lock:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.diagram-overlay-lock--active {
+  background: rgba(155, 114, 248, 0.12);
+  border-color: rgba(155, 114, 248, 0.45);
+  color: #c084fc;
+}
+
+.diagram-overlay-pill--locked {
+  border-color: rgba(155, 114, 248, 0.35);
+  box-shadow:
+    0 0 0 1px rgba(155, 114, 248, 0.15),
+    0 4px 16px rgba(0, 0, 0, 0.25);
+}
+
+.diagram-overlay-btn {
+  appearance: none;
+  width: 100%;
+  background: rgba(155, 114, 248, 0.12);
+  border: 1px solid rgba(155, 114, 248, 0.35);
+  border-radius: 8px;
+  color: #c084fc;
+  font-family: inherit;
+  font-size: inherit;
+  font-weight: 600;
+  line-height: 1.2;
+  padding: 4px 6px;
+  cursor: pointer;
+  white-space: nowrap;
+  text-align: center;
+}
+
+.diagram-overlay-readout {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: center;
+}
+
+.diagram-overlay-pill__sizer--block .playing-notes {
+  font-size: var(--overlay-subtitle-size, 12.5px);
+}
+
+.diagram-voicing-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.diagram-overlay-readout-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  min-width: 0;
+}
+
+.diagram-overlay-sounding {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  padding-top: 2px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  font-size: var(--overlay-label-size, 10.5px);
+  font-weight: 500;
+  line-height: 1.25;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.diagram-overlay-pill--top-left .diagram-overlay-pill__value,
+.diagram-overlay-pill--top-right .diagram-overlay-pill__value {
+  height: auto;
+}
+
+/* ==========================================================================
+   Diagram corner toolbar and actions
+   ========================================================================== */
+.diagram-corner-actions {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 3;
+}
+
+.diagram-corner-actions--bottom-left,
+.diagram-corner-actions--bottom-right {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: auto;
+}
+
+.diagram-corner-actions--bottom-left {
+  bottom: max(var(--overlay-inset-y, 12px), env(safe-area-inset-bottom, 0px));
+  left: max(var(--overlay-inset-x, 12px), env(safe-area-inset-left, 0px));
+}
+
+.diagram-corner-actions--bottom-right {
+  bottom: max(var(--overlay-inset-y, 12px), env(safe-area-inset-bottom, 0px));
+  right: max(var(--overlay-inset-x, 12px), env(safe-area-inset-right, 0px));
+}
+
+.diagram-toolbar-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 48px;
+  min-height: 48px;
+  width: 48px;
+  height: 48px;
+  padding: 8px;
+  border-radius: 12px;
+  border: 1px solid rgba(155, 114, 248, 0.35);
+  background: rgba(155, 114, 248, 0.1);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  color: var(--text-primary);
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  flex-shrink: 0;
+}
+
+.diagram-toolbar-btn:hover,
+.diagram-toolbar-btn:focus-visible {
+  background: rgba(155, 114, 248, 0.18);
+  border-color: rgba(155, 114, 248, 0.5);
+  color: #c084fc;
+}
+
+/* ==========================================================================
+   iOS install hint
+   ========================================================================== */
+.diagram-ios-hint-anchor {
+  position: absolute;
+  bottom: calc(max(var(--overlay-inset-y, 12px), env(safe-area-inset-bottom, 0px)) + 96px);
+  right: max(var(--overlay-inset-x, 12px), env(safe-area-inset-right, 0px));
+  width: min(280px, 40vw);
+  z-index: 4;
+  pointer-events: auto;
+}
+
+.diagram-ios-hint-anchor .ios-install-hint {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+.ios-install-hint {
+  padding: 16px;
+  border-radius: 12px;
+  background: rgba(155, 114, 248, 0.08);
+  border: 1px solid rgba(155, 114, 248, 0.25);
+}
+
+.ios-install-hint__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.ios-install-hint__title {
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.ios-install-hint__close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 36px;
+  min-height: 36px;
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  border-radius: 6px;
+}
+
+.ios-install-hint__body {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin-bottom: 10px;
+}
+
+.ios-install-hint__steps {
+  font-size: 0.85rem;
+  color: var(--text-primary);
+  padding-left: 20px;
+  line-height: 1.6;
+  margin-bottom: 12px;
+}
+
+.ios-install-hint__inline-icon {
+  display: inline;
+  vertical-align: middle;
+}
+
+.ios-install-hint__dismiss-btn {
+  width: 100%;
+  min-height: 44px;
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(155, 114, 248, 0.35);
+  background: rgba(155, 114, 248, 0.12);
+  color: #c084fc;
+  font-family: inherit;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.ios-hint-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 9050;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.ios-hint-backdrop .ios-install-hint {
+  width: min(100%, 360px);
+  max-height: min(85dvh, 520px);
+  overflow-y: auto;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
+}
+
+/* ==========================================================================
+   Mobile diagram container overrides
+   ========================================================================== */
+@media (max-width: 767px),
+       (orientation: portrait) and (pointer: coarse) {
+  .diagram-container {
+    flex: 1;
+    min-height: 0;
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+    border-bottom: none;
+    padding: 0;
+    background: transparent;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    align-items: flex-start;
+    touch-action: none;
+    container-type: inline-size;
+    --overlay-inset-x: 2px;
+    --overlay-inset-y: 4px;
+  }
+}
+
+/* ==========================================================================
+   Unified side panel
+   ========================================================================== */
+.unified-side-panel {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 100%;
+  padding: 0;
+  overflow: hidden;
+}
+
+.unified-side-panel::-webkit-scrollbar {
+  width: 4px;
+}
+.unified-side-panel::-webkit-scrollbar-track {
+  background: transparent;
+}
+.unified-side-panel::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+}
+.unified-side-panel::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.side-section {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-height: 0;
+}
+
+.clock-section {
+  flex: 2.5;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 12px 2px 12px;
+  min-height: 0;
+}
+
+.side-divider {
+  height: 1px;
+  width: 85%;
+  margin: 4px auto;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.08), transparent);
+}
+
+.controls-section {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: stretch;
+  min-height: 0;
+  overflow: hidden;
+}
+
+@media (max-width: 767px),
+       (orientation: portrait) and (pointer: coarse) {
+  .unified-side-panel {
+    height: auto;
+  }
+  .side-divider {
+    width: 90%;
+  }
+}
+
+/* ==========================================================================
+   Diagram background orbs
+   Layering: z-index 0 here, .diagram-svg at z-index 1, overlays at 2+.
+   Ambient mode reuses splash orb classes (.splash-background, .glow-orb, etc.).
+   Tilt (--level): CSS swirl/float kept; rAF spring-offsets .mouse-follower.
+   ========================================================================== */
+.diagram-background-orbs {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  contain: layout paint style;
+}
+
+.diagram-background-orbs .splash-background {
+  /* Contain splash blur layer to the diagram panel (not the full viewport). */
+  position: absolute;
+  inset: 0;
+  filter: blur(40px);
+  opacity: 0.85;
+}
+
+/* Ambient (no-tilt): center the group; CSS swirl/float drive motion. */
+.diagram-background-orbs .mouse-follower {
+  top: 50%;
+  left: 50%;
+  transform: none;
+  transition: none;
+}
+
+.diagram-background-orbs--level .splash-background {
+  filter: blur(32px);
+  opacity: 0.95;
+}
+
+/* Center the group; JS writes translate3d for bubble-level offset. */
+.diagram-background-orbs--level .mouse-follower {
+  top: 50%;
+  left: 50%;
+  transition: none;
+}
+
+.diagram-background-orbs--level-active .mouse-follower {
+  will-change: transform;
+}
+
+/* Orb diameter/position: inherit splash .orb-1/.orb-2/.orb-3 (vmin). */
+
+/* Compact / phone: lower live blur cost on weaker GPUs. */
+@media (max-width: 767px),
+       (orientation: portrait) and (pointer: coarse) {
+  .diagram-background-orbs .splash-background {
+    filter: blur(28px);
+  }
+
+  .diagram-background-orbs--level .splash-background {
+    filter: blur(24px);
+    opacity: 0.92;
+  }
+}
+
+/* Prefer-reduced-motion: keep ambient CSS swirl like the splash page
+   (decorative background). Tilt JS physics still pauses via
+   shouldPauseOrbPhysics / prefersReducedMotion. */
+
+.diagram-container .diagram-svg {
+  position: relative;
+  z-index: 1;
+}
+
+/* ==========================================================================
+   SVG diagram and chord nodes
+   ========================================================================== */
+.diagram-svg {
+  width: 100%;
+  height: 100%;
+}
+
+@media (max-width: 767px) and (orientation: portrait),
+       (orientation: portrait) and (pointer: coarse) {
+  .diagram-svg {
+    transform: none;
+  }
+}
+
+.chord-node {
+  cursor: pointer;
+  transition: filter 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.chord-node circle {
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.chord-node:hover {
+  filter: brightness(1.2);
+}
+
+.chord-node:hover circle {
+  transform: scale(1.15);
+}
+
+.chord-node.active .chord-node-core {
+  stroke: white;
+  stroke-width: 3;
+}
+
+.chord-node:focus-visible .chord-node-core,
+.diagram-svg path:focus-visible {
+  outline: 2px solid rgba(155, 114, 248, 0.85);
+  outline-offset: 2px;
+}
+
+/* ==========================================================================
+   Form controls (select, range)
+   ========================================================================== */
+select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background: rgba(20, 20, 22, 0.7);
+  border: 1px solid var(--panel-border);
+  color: white;
+  padding: 8px 32px 8px 14px;
+  border-radius: 10px;
+  font-family: inherit;
+  font-size: 0.88rem;
+  font-weight: 500;
+  outline: none;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='rgba(255,255,255,0.6)' stroke-width='2.5'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M19.5 8.25l-7.5 7.5-7.5-7.5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 13px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+select:hover {
+  border-color: rgba(255, 255, 255, 0.18);
+  background-color: rgba(30, 30, 34, 0.8);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+select:focus {
+  border-color: rgba(255, 255, 255, 0.35);
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.05);
+}
+
+input[type="range"] {
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--panel-border);
+  color: white;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 0.9rem;
+  outline: none;
+}
+
+/* ==========================================================================
+   Clock face and chemistry readout
+   ========================================================================== */
+.clock-container {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+  flex: 1;
+}
+
+.clock-info {
+  text-align: center;
+  margin-bottom: 2px;
+  flex-shrink: 0;
+}
+
+.clock-svg {
+  width: 100%;
+  height: 100%;
+  max-height: calc(100% - 72px); /* account for info text */
+  min-height: 0;
+  margin: 0 auto;
+  display: block;
+}
+
+.elemental-name {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 2px;
+}
+
+.traditional-name {
+  color: var(--text-secondary);
+  font-size: 0.88rem;
+  word-break: break-word;
+}
+
+.playing-notes {
+  color: var(--text-secondary);
+  font-size: 0.88rem;
+}
+
+.chemistry-formula {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 2px;
+  margin: 3px 0 2px;
+  line-height: 1;
+}
+
+.chem-element {
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  padding: 1px 5px 2px;
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  transition: all 0.3s ease;
+}
+
+.chem-element sub {
+  font-size: 0.68em;
+  vertical-align: sub;
+  font-weight: 600;
+  opacity: 0.9;
+  line-height: 0;
+}
+
+.chem-earth {
+  color: var(--color-earth);
+  border-color: hsla(28, 55%, 40%, 0.3);
+  background: hsla(28, 55%, 40%, 0.1);
+  text-shadow: 0 0 8px var(--glow-earth);
+}
+
+.chem-wind {
+  color: var(--color-wind);
+  border-color: hsla(197, 66%, 55%, 0.3);
+  background: hsla(197, 66%, 55%, 0.1);
+  text-shadow: 0 0 8px var(--glow-wind);
+}
+
+.chem-fire {
+  color: var(--color-fire);
+  border-color: hsla(5, 80%, 52%, 0.3);
+  background: hsla(5, 80%, 52%, 0.1);
+  text-shadow: 0 0 8px var(--glow-fire);
+}
+
+/* ==========================================================================
+   Voice borrowing controls
+   ========================================================================== */
+.borrowing-controls {
+  padding: 0 12px 4px 12px;
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  justify-content: center;
+  /* Match phone slider separation for tablet / coarse pointers. */
+  gap: 14px;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.borrowing-slider-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 0;
+  min-height: 0;
+  max-width: 60px;
+}
+
+.borrow-slider {
+  position: relative;
+  display: grid;
+  grid-template-rows: repeat(3, 1fr);
+  grid-template-columns: 1fr;
+  justify-items: center;
+  align-items: center;
+  width: 100%;
+  height: 100%;
+  min-height: 20px;
+  padding: 0;
+  cursor: pointer;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.borrow-slider:focus-visible {
+  outline: 2px solid rgba(155, 114, 248, 0.85);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.borrow-slider-track {
+  position: absolute;
+  top: calc(100% / 6);
+  bottom: calc(100% / 6);
+  left: 50%;
+  transform: translateX(-50%);
+  width: 1.5px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 1px;
+  pointer-events: none;
+}
+
+.borrow-node {
+  position: relative;
+  z-index: 1;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 1.5px solid var(--node-color, rgba(255, 255, 255, 0.3));
+  background: rgba(10, 10, 12, 0.9);
+  flex-shrink: 0;
+  pointer-events: none;
+  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.borrow-node.active {
+  width: 13px;
+  height: 13px;
+  background: var(--node-color, rgba(255, 255, 255, 0.8));
+  border-color: var(--node-color, rgba(255, 255, 255, 0.8));
+  box-shadow:
+    0 0 6px var(--node-color),
+    0 0 14px var(--node-color);
+}
+
+.borrow-slider.muted {
+  opacity: 0.28;
+  cursor: default;
+}
+
+.borrow-slider.disabled {
+  cursor: default;
+  pointer-events: none;
+}
+
+.memory-toggle {
+  display: flex;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  padding: 2px;
+}
+
+.memory-btn {
+  background: transparent;
+  border: 1px solid transparent;
+  color: rgba(255, 255, 255, 0.4);
+  padding: 2px 7px;
+  border-radius: 5px;
+  font-size: 0.65rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.memory-btn:hover {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.memory-btn.active {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: white;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
