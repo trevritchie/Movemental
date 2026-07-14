@@ -21,8 +21,13 @@ const mockMatchMedia = (matchesFor: (query: string) => boolean) => {
 };
 
 describe('Responsive Layout CSS', () => {
-  const cssPath = path.resolve(process.cwd(), 'src/index.css');
-  const cssContent = fs.readFileSync(cssPath, 'utf-8');
+  const stylesDir = path.resolve(process.cwd(), 'src/styles');
+  const cssContent = fs
+    .readdirSync(stylesDir)
+    .filter((name) => name.endsWith('.css'))
+    .sort()
+    .map((name) => fs.readFileSync(path.join(stylesDir, name), 'utf-8'))
+    .join('\n');
   const breakpointsCssPath = path.resolve(
     process.cwd(),
     'src/layout/breakpoints.css',

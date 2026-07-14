@@ -11,7 +11,7 @@ const DIAGRAM_GRID_FRACTION = 2.5 / 3.5;
 
 /**
  * Models phone portrait shell: diagram flexes (flex:1), voice panel is auto height.
- * Keep in sync with `.mobile-voice-sliders` min-height and phone panel padding in index.css.
+ * Keep in sync with `.mobile-voice-sliders` min-height and phone panel padding in src/styles/.
  */
 export function computePhoneDiagramContainerSize(
   viewportWidth: number,
