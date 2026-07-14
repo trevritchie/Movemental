@@ -2,6 +2,8 @@
 
 Conventions for this app (React, TypeScript, Vite, Tone.js). See
 [`README.md`](README.md) for domain architecture and DSP details.
+Architecture Decision Records live under
+[`docs/decisions/`](docs/decisions/README.md).
 
 Bug reports and feature requests use the templates under
 [Issues](https://github.com/trevritchie/Movemental/issues/new/choose). Pull
