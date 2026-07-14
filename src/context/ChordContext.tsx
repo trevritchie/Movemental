@@ -1,10 +1,12 @@
 /* eslint-disable react-refresh/only-export-components */
 /**
- * Application-wide chord, playback, borrowing, audio FX, and tilt state.
+ * Application-wide chord, playback, borrowing, and session wiring.
  *
- * Wires useBorrowingMemory, useDeviceTilt, useChordPlayback, and
- * useAudioSettings into one provider. playAndDisplayChordRef breaks a hook
- * ordering cycle between borrowing memory and playback.
+ * Wires useBorrowingMemory, useDeviceTilt, useChordPlayback,
+ * useSettingsReset, and useAudioSettings into one provider. Sound design
+ * and live tilt readout live in their dedicated hooks; this provider
+ * composes them. playAndDisplayChordRef breaks a hook ordering cycle
+ * between borrowing memory and playback.
  */
 import React, {
   createContext,

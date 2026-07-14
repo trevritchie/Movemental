@@ -90,8 +90,9 @@ Chord-tap latency matters. In `useChordPlayback.ts`:
 4. Use `invalidateVoicingCacheForCommit` on commit (chord, borrowing, mode
    key) instead of clearing the voicing cache on every label update.
 
-Do not run voicing-cache lookups on the audio dispatch path; playback calls
-`computeTiltVoicedPitches` directly.
+Do not run voicing-cache lookups on the audio dispatch path. Playback builds
+pitches via `computeNeutralTiltVoicing` + `applyVoicingOverlays` (the same
+math as the `computeTiltVoicedPitches` label/cache wrapper).
 
 **No-tilt re-voice suppress:** pointer commits call
 `armNoTiltRevoiceSuppress` inside `commitPlayback` so the ChordContext

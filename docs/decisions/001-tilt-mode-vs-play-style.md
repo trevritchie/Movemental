@@ -15,8 +15,8 @@ voicing, and how notes are sustained. Early docs and comments treated
 `"tilt"` as a third `playStyle`, which conflicted with Click and Hold on
 tilt sessions and with splash/session defaults for voice leading.
 
-See also [`docs/movements-not-chords-tilt.md`](../movements-not-chords-tilt.md)
-and [ADR-001](001-tilt-mode-vs-play-style.md).
+See also
+[`docs/movements-not-chords-tilt.md`](../movements-not-chords-tilt.md).
 
 ## Options Considered
 
@@ -26,7 +26,7 @@ and [ADR-001](001-tilt-mode-vs-play-style.md).
   anchors to sustain behavior; hard defaults for smooth vs smoothest
 
 ### Option B: Separate `tiltModeEnabled` and audio `playStyle`
-- Pros: Orthogonal concerns; Click and Hold works in tilt mode; VO
+- Pros: Orthogonal concerns; Click and Hold works in tilt mode; VL
   defaults can follow session (tilt → smooth, no-tilt → smoothest)
 - Cons: Two booleans/enums for contributors to learn; splash must set
   both intentionally
