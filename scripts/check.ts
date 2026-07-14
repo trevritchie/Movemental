@@ -4,7 +4,7 @@ import {
   DIAGRAM_VIEW_W,
   DIAGRAM_VIEW_H,
   coordToPixels,
-} from '../src/music/diagramLayout';
+} from '../src/diagram/diagramLayout';
 
 console.log("Initializing chord dictionary...");
 chordManager.initializeChordDictionary();

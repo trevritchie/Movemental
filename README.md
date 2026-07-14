@@ -341,7 +341,7 @@ Cross-file utilities introduced in the second-pass refactor. See
 |--------|---------|
 | [`pitchClass.ts`](src/music/pitchClass.ts) | Pitch-class math (`normalizePitchClass`, tonal-center relatives, chord root) |
 | [`elementTokens.ts`](src/music/elementTokens.ts) | Parent-element CSS colors and mod-3 styling helpers |
-| [`diagramLayout.ts`](src/music/diagramLayout.ts) | SVG viewBox constants and `coordToPixels` |
+| [`diagramLayout.ts`](src/diagram/diagramLayout.ts) | SVG viewBox constants and `coordToPixels` |
 | [`playbackTiltResolution.ts`](src/music/playbackTiltResolution.ts) | Smooth/smoothest tilt rules shared by playback and bass labels |
 | [`utils/clamp.ts`](src/utils/clamp.ts) | Numeric clamp |
 | [`TiltReadoutContext.tsx`](src/context/TiltReadoutContext.tsx) | Isolates ~7 Hz tilt updates from `ChordContext` |
