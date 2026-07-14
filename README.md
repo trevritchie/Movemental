@@ -77,24 +77,32 @@ sensor update.
 *   `circlePositions` (`line`, `up`, `down`), `borrowingDirections` (`up`, `down`, `null`), and `noteStates` (`on`, `off`) for four voices
 *   **Memory modes**: `global` (one borrowing state across chords) or `per-chord` (saved per chord name)
 
-**Play styles** (see next section)
-*   `click_and_hold`, `drone`, and `tilt` (phone)
+**Session tilt vs audio play style** (see next section)
+*   **`tiltModeEnabled`**: set once at splash (Tilt vs No Tilt / desktop Start)
+*   **`playStyle`**: audio-only (`drone` or `click_and_hold`); works with or without device tilt
 
 ---
 
 ## Play Styles and Voicing
 
-Playback lives in [`useChordPlayback.ts`](src/hooks/useChordPlayback.ts), which orchestrates two sub-hooks: [`useVoicingAnchorResolution.ts`](src/hooks/useVoicingAnchorResolution.ts) (anchor-key and tilt/voice-leading math shared by all three voice-leading modes) and [`usePlaybackCommit.ts`](src/hooks/usePlaybackCommit.ts) (audio dispatch and post-audio state commit). All styles share the same pipeline: resolve elemental roots, build a borrowed pitch structure, run the tilt voicing engine, then dispatch to `AudioEngine`.
+Playback lives in [`useChordPlayback.ts`](src/hooks/useChordPlayback.ts), which
+orchestrates two sub-hooks:
+[`useVoicingAnchorResolution.ts`](src/hooks/useVoicingAnchorResolution.ts)
+(anchor-key and tilt/voice-leading math shared by all three voice-leading
+modes) and [`usePlaybackCommit.ts`](src/hooks/usePlaybackCommit.ts) (audio
+dispatch and post-audio state commit). All paths share the same pipeline:
+resolve elemental roots, build a borrowed pitch structure, run the tilt
+voicing engine, then dispatch to `AudioEngine`.
 
-| Style | Trigger | Audio behavior |
-|-------|---------|----------------|
+| Mode | Trigger | Behavior |
+|------|---------|----------|
 | `click_and_hold` | Diagram pointer down/up | Pointer: sustained notes until release. Borrowing sliders: timed half-note preview via `playNotes`. |
 | `drone` | Diagram tap or glissando | Legato diff: common tones sustain, others crossfade (`triggerAttack`). |
-| `tilt` | Diagram tap (phone) | Samples **raw** device tilt at tap time, re-attacks full voicing. Voicing does not update continuously while holding (tap-time sampling only). |
+| Device tilt (`tiltModeEnabled`) | Diagram tap (phone) | Samples **raw** device orientation at tap time for voicing. Voicing does not track continuously while holding. See [`docs/movements-not-chords-tilt.md`](docs/movements-not-chords-tilt.md). |
 
 **Static vs tilt voicing anchors** ([`TiltVoicingEngine.ts`](src/music/TiltVoicingEngine.ts))
-*   **Tilt mode (`contrary`)**: Roll narrows the voicing symmetrically around the parallel pivot. Bass can shift as width changes (e.g. flat + Drop 3 may put the 3rd in the bass).
-*   **Static controls (`pivot`)**: Position sets the bottom note; voicing width only adds tones above. Changing voicing does not move the bass.
+*   **Tilt session (`contrary`)**: Roll narrows the voicing symmetrically around the parallel pivot. Bass can shift as width changes (e.g. flat + Drop 3 may put the 3rd in the bass).
+*   **No-tilt controls (`pivot`)**: Position sets the bottom note; voicing width only adds tones above. Changing voicing does not move the bass.
 
 **IN THE BASS readout** ([`voiceDegreeLabel.ts`](src/music/voiceDegreeLabel.ts)): In tilt mode, the label reflects the **lowest sounded pitch**, using the same voicing path as playback. Static position dropdowns still name the parallel pivot (Root, 3rd, 5th, 6th/7th).
 
@@ -102,7 +110,11 @@ Playback lives in [`useChordPlayback.ts`](src/hooks/useChordPlayback.ts), which 
 
 ## Tilt Voicing Engine
 
-Port of the "Movements, Not Chords" counterpoint mechanic. The engine voices each chord on a **tone cycle**: post-borrowing pitch classes as semitone offsets from the root. One ladder step equals one chord tone.
+Port of the "Movements, Not Chords" counterpoint mechanic. Coordinate mapping,
+tap-time sampling, and session vs play-style rules are documented in
+[`docs/movements-not-chords-tilt.md`](docs/movements-not-chords-tilt.md). The
+engine voices each chord on a **tone cycle**: post-borrowing pitch classes as
+semitone offsets from the root. One ladder step equals one chord tone.
 
 **Roll (phone flat to vertical)**: Nine levels, reversed from the Python prototype. Flat = widest (Double Octave, thinned to five voices). Vertical = unison on the pivot.
 

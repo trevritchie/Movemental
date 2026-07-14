@@ -10,8 +10,8 @@
  * - Settings/borrowing: playAndDisplayChord -> voiceAndPlay
  *
  * Anchor modes (TiltVoicingEngine):
- * - tilt play style: contrary roll (bass can shift with voicing width)
- * - drone/no-tilt controls: pivot roll (position sets the bass note)
+ * - tiltModeEnabled: contrary roll (bass can shift with voicing width)
+ * - no-tilt controls: pivot roll (position sets the bass note)
  *
  * The anchor/tilt resolution math (buildAnchorKey, applySmoothestVoiceLeading,
  * etc.) lives in useVoicingAnchorResolution; the audio-dispatch and
