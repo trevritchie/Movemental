@@ -4,7 +4,7 @@
  * Signal chain (synth to speakers):
  * PolySynth -> Filter -> BusHeadroom -> [dry + harmonic enhance] -> FxSend ->
  * Chorus -> Delay -> Reverb -> EQ3 -> Compressor -> MasterMakeup -> Limiter ->
- * Destination. SessionRecorder taps Limiter -> recordTailGain.
+ * Destination. SessionRecordingController taps Limiter -> recordTailGain.
  */
 import * as Tone from 'tone';
 import {
@@ -14,8 +14,12 @@ import {
   resumeIosMediaChannel,
   ensurePlaybackAudioSession,
 } from './iosMediaChannel';
-import { SessionRecorder } from './SessionRecorder';
-import { SessionMidiRecorder } from './SessionMidiRecorder';
+import {
+  RECORDING_STOP_FADE_MS,
+  SessionRecordingController,
+} from './SessionRecordingController';
+
+export { RECORDING_STOP_FADE_MS };
 import { resolveLayoutTierSafe } from '../layout/breakpoints';
 import {
   getAdaptedOutputProfile,
@@ -93,13 +97,6 @@ const devWarn = (...args: unknown[]) => {
   }
 };
 
-export const RECORDING_STOP_FADE_MS = 300;
-
-/** Extra wait after the scheduled ramp so stop() never clips the fade tail. */
-const RECORDING_FADE_SAFETY_MS = 50;
-/** Near-silence target for the recorder-only tap during stop fade. */
-const RECORDING_TAP_MIN_GAIN = 0.001;
-
 export class AudioEngine {
   private voice: InstrumentVoice | null = null;
   private voiceEngine: InstrumentEngine = 'synth';
@@ -120,12 +117,7 @@ export class AudioEngine {
   private masterMakeup: Tone.Gain | null = null;
   private peakMeter: Tone.Meter | null = null;
   private limiter: Tone.Limiter | null = null;
-  /** Recorder-only tap; faded before stop so live speakers are unaffected. */
-  private recordTailGain: Tone.Gain | null = null;
-  private recordingFadeTimer: ReturnType<typeof setTimeout> | null = null;
-  private sessionRecorder: SessionRecorder | null = null;
-  /** Parallel note log; no Web Audio nodes, negligible runtime cost. */
-  private sessionMidiRecorder = new SessionMidiRecorder();
+  private recording = new SessionRecordingController();
   private isReady: boolean = false;
   private activeNotes: string[] = [];
   private isPointerDown: boolean = false;
@@ -391,7 +383,7 @@ export class AudioEngine {
       this.masterMakeup.connect(this.peakMeter);
     }
 
-    this.ensureSessionRecorder();
+    this.recording.ensureAttached(this.limiter);
 
     this.isReady = true;
     audioDebugLog(
@@ -402,47 +394,17 @@ export class AudioEngine {
     );
   }
 
-  private ensureSessionRecorder(): void {
-    if (!this.limiter || this.sessionRecorder) {
-      return;
-    }
-
-    const recorder = SessionRecorder.create();
-    if (!recorder) {
-      devWarn('[AudioEngine] Session recording is not supported in this browser');
-      return;
-    }
-
-    if (!this.recordTailGain) {
-      // Branch off the limiter so fade/stop only affects the recorder tap.
-      this.recordTailGain = new Tone.Gain(1);
-      this.limiter.connect(this.recordTailGain);
-    }
-
-    recorder.attachSource(this.recordTailGain);
-    this.sessionRecorder = recorder;
-    audioDebugLog('[AudioEngine] Session recorder attached via record tail gain');
-  }
-
   public isRecordingSupported(): boolean {
-    return SessionRecorder.isSupported();
+    return this.recording.isSupported();
   }
 
   public async startRecording(): Promise<void> {
-    if (!this.isReady || !this.limiter) {
-      await this.startContext();
-    }
-
-    this.ensureSessionRecorder();
-
-    if (!this.sessionRecorder) {
-      throw new Error('Session recording is not supported in this browser');
-    }
-
-    await this.sessionRecorder.start();
-    // Align MIDI timeline with the audio session start (Tone transport clock).
-    this.sessionMidiRecorder.start(Tone.now());
-    audioDebugLog('[AudioEngine] Session recording started');
+    await this.recording.start(async () => {
+      if (!this.isReady || !this.limiter) {
+        await this.startContext();
+      }
+      this.recording.ensureAttached(this.limiter);
+    });
   }
 
   /**
@@ -450,17 +412,7 @@ export class AudioEngine {
    * at endTime (instant panic, not synth ADSR length).
    */
   public async stopRecording(): Promise<{ audio: Blob; midi: Blob }> {
-    if (!this.sessionRecorder) {
-      throw new Error('Session recorder is not initialized');
-    }
-
-    const endTime = Tone.now();
-    const [audio, midi] = await Promise.all([
-      this.sessionRecorder.stop(),
-      this.sessionMidiRecorder.encode(endTime),
-    ]);
-    audioDebugLog('[AudioEngine] Session recording stopped');
-    return { audio, midi };
+    return this.recording.stop();
   }
 
   private noteNamesToMidi(noteNames: string[]): number[] {
@@ -473,61 +425,17 @@ export class AudioEngine {
   public async fadeOutRecordingTap(
     durationMs: number = RECORDING_STOP_FADE_MS,
   ): Promise<void> {
-    if (!this.isReady || !this.limiter) {
-      await this.startContext();
-    }
-
-    this.ensureSessionRecorder();
-
-    if (!this.recordTailGain) {
-      return;
-    }
-
-    await this.scheduleRecordingTapFade(1, RECORDING_TAP_MIN_GAIN, durationMs);
-  }
-
-  private scheduleRecordingTapFade(
-    fromGain: number,
-    toGain: number,
-    durationMs: number,
-  ): Promise<void> {
-    return new Promise((resolve) => {
-      this.clearRecordingFadeTimer();
-
-      const durationSec = durationMs / 1000;
-      const now = Tone.now();
-      const gainParam = this.recordTailGain!.gain;
-
-      gainParam.cancelScheduledValues(now);
-      gainParam.setValueAtTime(fromGain, now);
-      gainParam.exponentialRampToValueAtTime(toGain, now + durationSec);
-
-      this.recordingFadeTimer = setTimeout(() => {
-        this.recordingFadeTimer = null;
-        resolve();
-      }, durationMs + RECORDING_FADE_SAFETY_MS);
-    });
+    await this.recording.fadeOutTap(async () => {
+      if (!this.isReady || !this.limiter) {
+        await this.startContext();
+      }
+      this.recording.ensureAttached(this.limiter);
+    }, durationMs);
   }
 
   /** Restore recorder tap gain after a stop fade. */
   public resetRecordingTailGain(): void {
-    this.clearRecordingFadeTimer();
-
-    if (!this.recordTailGain) {
-      return;
-    }
-
-    const now = Tone.now();
-    const gainParam = this.recordTailGain.gain;
-    gainParam.cancelScheduledValues(now);
-    gainParam.setValueAtTime(1, now);
-  }
-
-  private clearRecordingFadeTimer(): void {
-    if (this.recordingFadeTimer !== null) {
-      clearTimeout(this.recordingFadeTimer);
-      this.recordingFadeTimer = null;
-    }
+    this.recording.resetTailGain();
   }
 
   public registerReleaseListener(listener: () => void): () => void {
@@ -550,9 +458,7 @@ export class AudioEngine {
     if (this.masterMakeup) {
       this.masterMakeup.gain.cancelScheduledValues(now);
     }
-    if (this.recordTailGain) {
-      this.recordTailGain.gain.cancelScheduledValues(now);
-    }
+    this.recording.cancelScheduledTapGain(now);
   }
 
   /** True while the page is hidden and background teardown is active. */
@@ -660,15 +566,10 @@ export class AudioEngine {
     voice.triggerAttackRelease(noteNames, duration, attackTime);
     this.logPeakLevelIfDev();
 
-    if (this.sessionMidiRecorder.isRecording()) {
-      const durationSec = Tone.Time(duration).toSeconds();
-      // Mirror triggerAttackRelease timing for DAW-importable note spans.
-      this.sessionMidiRecorder.logNoteOns(clamped, undefined, attackTime);
-      this.sessionMidiRecorder.logNoteOffs(
-        clamped,
-        attackTime + durationSec,
-      );
-    }
+    const durationSec = Tone.Time(duration).toSeconds();
+    // Mirror triggerAttackRelease timing for DAW-importable note spans.
+    this.recording.logNoteOns(clamped, undefined, attackTime);
+    this.recording.logNoteOffs(clamped, attackTime + durationSec);
   }
 
   public triggerAttack(midiNotes: number[], retrigger: boolean = false) {
@@ -712,21 +613,17 @@ export class AudioEngine {
         } catch (err) {
           devWarn('[AudioEngine] Retrigger release error:', err);
         }
-        if (this.sessionMidiRecorder.isRecording()) {
-          this.sessionMidiRecorder.logNoteOffs(
-            this.noteNamesToMidi(this.activeNotes),
-            now,
-          );
-        }
+        this.recording.logNoteOffs(
+          this.noteNamesToMidi(this.activeNotes),
+          now,
+        );
       }
       this.activeNotes = noteNames;
       audioDebugLog('[AudioEngine] Retriggering:', noteNames);
       const attackTime = now + ATTACK_SCHEDULE_OFFSET_SEC;
       voice.triggerAttack(noteNames, attackTime);
       this.logPeakLevelIfDev();
-      if (this.sessionMidiRecorder.isRecording()) {
-        this.sessionMidiRecorder.logNoteOns(clamped, undefined, attackTime);
-      }
+      this.recording.logNoteOns(clamped, undefined, attackTime);
       return;
     }
 
@@ -743,12 +640,10 @@ export class AudioEngine {
       } catch (err) {
         devWarn('[AudioEngine] Transition release error:', err);
       }
-      if (this.sessionMidiRecorder.isRecording()) {
-        this.sessionMidiRecorder.logNoteOffs(
-          this.noteNamesToMidi(notesToRelease),
-          now,
-        );
-      }
+      this.recording.logNoteOffs(
+        this.noteNamesToMidi(notesToRelease),
+        now,
+      );
     }
 
     if (notesToAttack.length > 0) {
@@ -757,13 +652,11 @@ export class AudioEngine {
       // chronological inversions from rapid subsequent clicks.
       voice.triggerAttack(notesToAttack, now);
       this.logPeakLevelIfDev();
-      if (this.sessionMidiRecorder.isRecording()) {
-        this.sessionMidiRecorder.logNoteOns(
-          this.noteNamesToMidi(notesToAttack),
-          undefined,
-          now,
-        );
-      }
+      this.recording.logNoteOns(
+        this.noteNamesToMidi(notesToAttack),
+        undefined,
+        now,
+      );
     }
   }
 
@@ -777,10 +670,8 @@ export class AudioEngine {
     const voice = this.getVoice();
     if (voice) {
       audioDebugLog('[AudioEngine] Hard stop. Releasing all voices.');
-      if (this.sessionMidiRecorder.isRecording()) {
-        // Match synth panic: instant MIDI offs, not envelope release length.
-        this.sessionMidiRecorder.logAllNotesOff(Tone.now());
-      }
+      // Match synth panic: instant MIDI offs, not envelope release length.
+      this.recording.logAllNotesOff(Tone.now());
       try {
         // Redundancy: release specific tracked notes, then trigger releaseAll
         if (this.activeNotes.length > 0) {
@@ -803,12 +694,10 @@ export class AudioEngine {
   private releasePreviousNotes(time: number) {
     const voice = this.getVoice();
     if (voice && this.activeNotes.length > 0) {
-      if (this.sessionMidiRecorder.isRecording()) {
-        this.sessionMidiRecorder.logNoteOffs(
-          this.noteNamesToMidi(this.activeNotes),
-          time,
-        );
-      }
+      this.recording.logNoteOffs(
+        this.noteNamesToMidi(this.activeNotes),
+        time,
+      );
       try {
         voice.triggerRelease(this.activeNotes, time);
       } catch (err) {
