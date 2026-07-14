@@ -85,6 +85,13 @@ Chord-tap latency matters. In `useChordPlayback.ts`:
 Do not run voicing-cache lookups on the audio dispatch path; playback calls
 `computeTiltVoicedPitches` directly.
 
+**No-tilt re-voice suppress:** pointer commits call
+`armNoTiltRevoiceSuppress` inside `commitPlayback` so the ChordContext
+register/voicing effect skips once and does not replay the previous chord.
+Only that commit path should arm. Control changes (octave, tonal center,
+no-tilt voicing/bass levels, voice-leading mode) must still re-voice; see
+`ChordContext.revoice.test.tsx` for the orchestration matrix.
+
 ## Tests
 
 - Place unit tests beside the module: `foo.test.ts` next to `foo.ts`.
