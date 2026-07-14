@@ -33,9 +33,9 @@ import {
   type ElementalPlaybackResolution,
 } from '../music/tiltVoicingPlayback';
 import {
-  resolveSmoothReanchorTilt,
-  resolveSmoothestReanchorTilt,
-} from '../music/playbackTiltResolution';
+  resolveReanchorPlaybackTilt,
+} from '../music/voiceLeadingPolicy';
+import { invalidateVoicingCache } from '../music/voicingCache';
 import { audioEngine } from '../audio/AudioEngine';
 import { unlockIosMediaChannel } from '../audio/iosMediaChannel';
 import type { PlayStyle, VoiceLeadingMode } from '../music/sessionModes';
@@ -364,50 +364,44 @@ export function useChordPlayback({
 
       // Voice leading parallel adjustment (re-anchor only):
       // - root_position: baseline 0 at flat pitch (implicit in resolvePlaybackTilt)
-      // - smooth: per-chord CHORD_FLAT_PARALLEL lookup + live tilt offset
-      // - smoothest: live minimum-motion search vs previous voicing (+ session state)
-      if (needsReanchor && voiceLeadingModeRef.current === 'smooth') {
-        playbackTilt = resolveSmoothReanchorTilt(displayChord, tiltMode, {
-          isChordChange,
-          isFirstChord,
-          isOppositeElement,
-          previousChord: previousChordRef.current,
-          lockMaps: noTiltLockMapsRef.current,
-          noTiltVoicingLevel: noTiltVoicingLevelRef.current,
-          noTiltPositionLevel: noTiltPositionLevelRef.current,
-          lastNoTiltPositionLevel: lastNoTiltPositionLevelRef.current,
-          resolveSmoothPlaybackTiltForNavigation,
-          getCurrentControlTilt,
-          syncNoTiltPositionLevel: syncPositionLevel,
+      // - smooth / smoothest: see voiceLeadingPolicy.resolveReanchorPlaybackTilt
+      if (needsReanchor) {
+        playbackTilt = resolveReanchorPlaybackTilt({
+          mode: voiceLeadingModeRef.current,
+          displayChord,
+          tiltMode,
+          playbackTilt,
+          smooth: {
+            isChordChange,
+            isFirstChord,
+            isOppositeElement,
+            previousChord: previousChordRef.current,
+            lockMaps: noTiltLockMapsRef.current,
+            noTiltVoicingLevel: noTiltVoicingLevelRef.current,
+            noTiltPositionLevel: noTiltPositionLevelRef.current,
+            lastNoTiltPositionLevel: lastNoTiltPositionLevelRef.current,
+            resolveSmoothPlaybackTiltForNavigation,
+            getCurrentControlTilt,
+            syncNoTiltPositionLevel: syncPositionLevel,
+          },
+          smoothest: {
+            neutralVoicingLength: neutralVoicingRef.current.length,
+            isChordChange,
+            smoothBaseParallelRef,
+            callbacks: {
+              applySmoothestVoiceLeading: (chord, elemental) =>
+                applySmoothestVoiceLeading(chord, elemental, syncPositionLevel),
+              preserveSameChordSmoothestTilt: (chordName) =>
+                preserveSameChordSmoothestTilt(chordName, syncPositionLevel),
+              getBaselineTilt,
+              getCurrentControlTilt,
+            },
+          },
         });
         if (tiltMode) {
           playbackTiltRef.current = playbackTilt;
         }
-      } else if (
-        needsReanchor &&
-        voiceLeadingModeRef.current === 'smoothest'
-      ) {
-        playbackTilt = resolveSmoothestReanchorTilt(
-          displayChord,
-          playbackTilt,
-          neutralVoicingRef.current.length,
-          isChordChange,
-          smoothBaseParallelRef,
-          {
-            applySmoothestVoiceLeading: (chord, elemental) =>
-              applySmoothestVoiceLeading(chord, elemental, syncPositionLevel),
-            preserveSameChordSmoothestTilt: (chordName) =>
-              preserveSameChordSmoothestTilt(chordName, syncPositionLevel),
-            getBaselineTilt,
-            getCurrentControlTilt,
-          }
-        );
-        if (tiltMode) {
-          playbackTiltRef.current = playbackTilt;
-        }
-      }
 
-      if (needsReanchor) {
         const elementalResolution = resolveElementalAfterTilt(
           inputChord,
           playbackTilt,

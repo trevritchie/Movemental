@@ -13,7 +13,7 @@ import { borrowingLogic, getInitialBorrowingState, type BorrowingState } from '.
 import type { VoiceLeadingMode } from './sessionModes';
 import { usesDeviceTilt } from './sessionModes';
 import { clamp } from '../utils/clamp';
-import { resolveEffectiveTiltForLabel } from './playbackTiltResolution';
+import { resolveLabelPlaybackTilt } from './voiceLeadingPolicy';
 import {
   NO_TILT_POSITION_LEVEL_COUNT,
   parallelLevelFromTilt,
@@ -62,7 +62,7 @@ function resolveEffectiveTilt(
   context?: TiltBassLabelContext,
   chord?: Chord | null
 ): TiltSample {
-  return resolveEffectiveTiltForLabel(tilt, chord ?? null, context);
+  return resolveLabelPlaybackTilt(tilt, chord ?? null, context);
 }
 
 function voicingAnchorForContext(context?: TiltBassLabelContext): TiltVoicingAnchor {

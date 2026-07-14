@@ -1,6 +1,9 @@
 /**
- * Shared tilt resolution for playback and bass-degree labels.
- * Keeps smooth/smoothest and opposite-element rules in one place.
+ * Shared tilt resolution helpers for smooth/smoothest and opposite-element rules.
+ *
+ * Playback re-anchor entry point for hooks:
+ * [`voiceLeadingPolicy.resolveReanchorPlaybackTilt`](./voiceLeadingPolicy.ts).
+ * Bass labels use `resolveLabelPlaybackTilt` from the same module.
  */
 import type { VoiceLeadingMode } from '@/music/sessionModes';
 import type { Chord } from './ChordManager';
