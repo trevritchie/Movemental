@@ -115,7 +115,6 @@ export function usePlaybackCommit({
       if (pitches.length === 0) return;
 
       const style = playStyleRef.current;
-      const tiltMode = tiltModeRef.current;
       const {
         retrigger = false,
         skipIfUnchanged = false,
@@ -146,14 +145,9 @@ export function usePlaybackCommit({
         return;
       }
 
-      if (tiltMode) {
-        audioEngine.triggerAttack(pitches, retrigger);
-        return;
-      }
-
       audioEngine.triggerAttack(pitches, retrigger);
     },
-    [playStyleRef, tiltModeRef, activePitchesRef]
+    [playStyleRef, activePitchesRef]
   );
 
   const updateVoiceLeadingBaseline = useCallback(
