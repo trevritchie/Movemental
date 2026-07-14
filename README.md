@@ -94,11 +94,15 @@ dispatch and post-audio state commit). All paths share the same pipeline:
 resolve elemental roots, build a borrowed pitch structure, run the tilt
 voicing engine, then dispatch to `AudioEngine`.
 
-| Mode | Trigger | Behavior |
-|------|---------|----------|
+| Audio play style | Trigger | Behavior |
+|------------------|---------|----------|
 | `click_and_hold` | Diagram pointer down/up | Pointer: sustained notes until release. Borrowing sliders: timed half-note preview via `playNotes`. |
 | `drone` | Diagram tap or glissando | Legato diff: common tones sustain, others crossfade (`triggerAttack`). |
-| Device tilt (`tiltModeEnabled`) | Diagram tap (phone) | Samples **raw** device orientation at tap time for voicing. Voicing does not track continuously while holding. See [`docs/movements-not-chords-tilt.md`](docs/movements-not-chords-tilt.md). |
+
+| Session tilt | Trigger | Behavior |
+|--------------|---------|----------|
+| Device tilt on (`tiltModeEnabled`) | Diagram tap (phone) | Samples **raw** device orientation at tap time for voicing. Voicing does not track continuously while holding. Independent of `playStyle` (Click and Hold works in tilt). See [`docs/movements-not-chords-tilt.md`](docs/movements-not-chords-tilt.md). |
+| Device tilt off | Diagram / desktop | Pivot-anchor no-tilt controls set register and bass. |
 
 **Static vs tilt voicing anchors** ([`TiltVoicingEngine.ts`](src/music/TiltVoicingEngine.ts))
 *   **Tilt session (`contrary`)**: Roll narrows the voicing symmetrically around the parallel pivot. Bass can shift as width changes (e.g. flat + Drop 3 may put the 3rd in the bass).
@@ -235,7 +239,7 @@ $$\text{Earth}_x \text{Wind}_y \text{Fire}_z \quad (\text{e.g., } \mathbf{Earth_
 
 ## Tone.js Audio Engine & DSP Signal Chain
 
-The application's synthesizer features an optimized DSP signal chain with selectable **playback EQ** (Small Speakers / Large Speakers / Flat) and **instrument presets** (Warm Pad, Super Saw, Electric Cello).
+The application's synthesizer features an optimized DSP signal chain with selectable **playback EQ** (Small Speakers / Large Speakers / Flat) and **instrument presets** (default **Trumpet** sampler, plus Warm Piano and synths such as Warm Pad, Super Saw, and Electric Cello).
 
 ```mermaid
 graph LR
@@ -295,19 +299,22 @@ Offline gain-staging and preset loudness tests: [`docs/gain-staging-tests.md`](d
 
 ### Instrument Presets
 
-Presets are defined in [`src/audio/synthPresets.ts`](src/audio/synthPresets.ts). Community JSON starting points are vendored from [Tonejs/Presets](https://github.com/Tonejs/Presets) (see [`PRESET_ATTRIBUTION.md`](src/audio/PRESET_ATTRIBUTION.md)). Vendored presets use their JSON voice parameters (oscillator, FM/AM settings, modulation envelopes) with app-tuned ADSR for chord playback. On preset switch, **Warm Pad** keeps default chorus/reverb; other presets start with bus FX dry.
+Presets are defined in [`src/audio/synthPresets.ts`](src/audio/synthPresets.ts). Community JSON starting points are vendored from [Tonejs/Presets](https://github.com/Tonejs/Presets) (see [`PRESET_ATTRIBUTION.md`](src/audio/PRESET_ATTRIBUTION.md)). Vendored presets use their JSON voice parameters (oscillator, FM/AM settings, modulation envelopes) with app-tuned ADSR for chord playback. The product default instrument is **Trumpet** (`DEFAULT_SYNTH_PRESET_ID`). On preset switch, **Warm Pad** keeps default chorus/reverb; other presets start with bus FX dry.
 
 | Preset | Synth class | Character |
 |--------|-------------|-----------|
-| Warm Pad | `Synth` | Default fatsawtooth ambient pad |
+| Trumpet | Sampler | Default product instrument |
+| Warm Piano | Sampler | Soft piano samples |
+| Warm Pad | `Synth` | fatsawtooth ambient pad |
 | Super Saw | `Synth` | Brighter detuned saw |
 | Electric Cello | `FMSynth` | Warm FM pad |
 
 FM presets use max polyphony of 8; `Synth` presets use 12.
 
 ### 1. Synthesizer Core (`PolySynth`)
-*   **Architecture**: PolySynth wrapping `Tone.Synth`, `FMSynth`, `AMSynth`, or `MonoSynth` depending on the selected preset.
-*   **Default (Warm Pad)**: `fatsawtooth` with `3` detuned oscillators per voice, 15 cent spread.
+*   **Architecture**: PolySynth wrapping `Tone.Synth`, `FMSynth`, `AMSynth`, or `MonoSynth` depending on the selected preset. Sampler presets use Tone `Sampler` instead of PolySynth.
+*   **Default (Trumpet)**: Tone.js instrument samples (`DEFAULT_SYNTH_PRESET_ID = 'trumpet'`).
+*   **Warm Pad (synth example)**: `fatsawtooth` with `3` detuned oscillators per voice, 15 cent spread.
 *   **Polyphony**: 12 voices for `Synth`, 8 for heavier synth classes.
 
 ### 2. Master Lowpass Filter
