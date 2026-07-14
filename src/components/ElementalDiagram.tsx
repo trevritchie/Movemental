@@ -70,6 +70,8 @@ export const ElementalDiagram = React.memo(function ElementalDiagram({
     handleChordPointerDown,
     handleChordPointerUp,
     handleChordPointerEnter,
+    tonalCenter,
+    octaveRange,
   } = useChordContext();
 
   const [hoveredGroup, setHoveredGroup] = useState<string | null>(null);
@@ -205,7 +207,9 @@ export const ElementalDiagram = React.memo(function ElementalDiagram({
       getParentCoords,
       getGroupParentCoords,
     };
-  }, []);
+    // chordManager rebuilds when tonal center or octave range changes;
+    // refresh cached Chord objects so slice taps use the new spellings.
+  }, [tonalCenter, octaveRange]);
 
   return (
     <div
@@ -345,10 +349,17 @@ export const ElementalDiagram = React.memo(function ElementalDiagram({
                   opacity={anySelected ? 0.55 : isThisGroup ? 0.25 : 0.12}
                 />
                 {SLICE_VARIANTS.map((v, i) => {
-                  const chord      = chords[i];
+                  const chord = chords[i];
+                  if (!chord) return null;
+                  const freshChord =
+                    chordManager.getChordByName(chord.name) ?? chord;
                   const isSelected = selectedSlice === i;
-                  const isHov      = isThisGroup && hoveredSliceIdx === i;
-                  const opacity    = isSelected ? 1.0 : isHov ? 0.88 : baseOpacity[i];
+                  const isHov = isThisGroup && hoveredSliceIdx === i;
+                  const opacity = isSelected
+                    ? 1.0
+                    : isHov
+                      ? 0.88
+                      : baseOpacity[i];
 
                   return (
                     <path
@@ -359,19 +370,19 @@ export const ElementalDiagram = React.memo(function ElementalDiagram({
                       stroke={isSelected ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.45)'}
                       strokeWidth={isSelected ? 2.5 : 1}
                       style={{ cursor: 'pointer', transition: 'fill-opacity 0.12s ease' }}
-                      role={chord ? 'button' : undefined}
-                      tabIndex={chord ? 0 : undefined}
-                      aria-label={chord?.name}
-                      aria-pressed={chord ? isSelected : undefined}
+                      role="button"
+                      tabIndex={0}
+                      aria-label={freshChord.name}
+                      aria-pressed={isSelected}
                       onPointerEnter={() => {
                         setHoveredGroup(baseName);
                         setHoveredSliceIdx(i);
-                        if (chord) handleChordPointerEnter(chord);
+                        handleChordPointerEnter(freshChord);
                       }}
                       onPointerDown={(e) => {
                         e.preventDefault();
                         e.currentTarget.releasePointerCapture(e.pointerId);
-                        if (chord) handleChordPointerDown(chord);
+                        handleChordPointerDown(freshChord);
                       }}
                       onPointerUp={() => handleChordPointerUp()}
                       onFocus={() => {
@@ -379,10 +390,10 @@ export const ElementalDiagram = React.memo(function ElementalDiagram({
                         setHoveredSliceIdx(i);
                       }}
                       onKeyDown={(e) => {
-                        if (!chord || e.repeat) return;
+                        if (e.repeat) return;
                         if (e.key === 'Enter' || e.key === ' ') {
                           e.preventDefault();
-                          handleChordPointerDown(chord);
+                          handleChordPointerDown(freshChord);
                         }
                       }}
                       onKeyUp={(e) => {

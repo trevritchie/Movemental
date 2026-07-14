@@ -1,8 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, waitFor, fireEvent } from '@testing-library/react';
 import { ElementalDiagram } from './ElementalDiagram';
+import { chordManager } from '../music/ChordManager';
+import { DEFAULT_OCTAVE_RANGE } from '../music/config';
 
-vi.mock('./tour/tourContext', () => ({
+vi.mock('./tour/TourContext', () => ({
   useTour: () => ({
     startTour: vi.fn(),
     hasCompletedTour: false,
@@ -12,32 +14,34 @@ vi.mock('./tour/tourContext', () => ({
 const mockHandleChordPointerDown = vi.fn();
 const mockHandleChordPointerUp = vi.fn();
 
+const mockChordContext = {
+  selectedChord: null as null,
+  borrowingState: {
+    circlePositions: { 1: 'line', 2: 'line', 3: 'line', 4: 'line' },
+    noteStates: { 1: 'off', 2: 'off', 3: 'off', 4: 'off' },
+  },
+  handleChordPointerDown: mockHandleChordPointerDown,
+  handleChordPointerUp: mockHandleChordPointerUp,
+  handleChordPointerEnter: vi.fn(),
+  playStyle: 'drone',
+  noTiltVoicingLevel: 0,
+  setNoTiltVoicingLevel: vi.fn(),
+  noTiltPositionLevel: 4,
+  setNoTiltPositionLevel: vi.fn(),
+  tonalCenter: 10,
+  octaveRange: DEFAULT_OCTAVE_RANGE,
+  previousPlayedChord: null,
+  isNoTiltVoicingLocked: false,
+  isNoTiltBassLocked: false,
+  toggleNoTiltVoicingLock: vi.fn(),
+  toggleNoTiltBassLock: vi.fn(),
+  tiltModeEnabled: false,
+  glowingOrbsEnabled: true,
+};
+
 // Idle diagram: no selected chord, borrowing off, tilt unsupported.
 vi.mock('../context/ChordContext', () => ({
-  useChordContext: () => ({
-    selectedChord: null,
-    borrowingState: {
-      circlePositions: { 1: 'line', 2: 'line', 3: 'line', 4: 'line' },
-      noteStates: { 1: 'off', 2: 'off', 3: 'off', 4: 'off' },
-    },
-    handleChordPointerDown: mockHandleChordPointerDown,
-    handleChordPointerUp: mockHandleChordPointerUp,
-    handleChordPointerEnter: vi.fn(),
-    playStyle: 'drone',
-    noTiltVoicingLevel: 0,
-    setNoTiltVoicingLevel: vi.fn(),
-    noTiltPositionLevel: 4,
-    setNoTiltPositionLevel: vi.fn(),
-    tonalCenter: 0,
-    octaveRange: 3,
-    previousPlayedChord: null,
-    isNoTiltVoicingLocked: false,
-    isNoTiltBassLocked: false,
-    toggleNoTiltVoicingLock: vi.fn(),
-    toggleNoTiltBassLock: vi.fn(),
-    tiltModeEnabled: false,
-    glowingOrbsEnabled: true,
-  }),
+  useChordContext: () => mockChordContext,
 }));
 
 import type { LayoutTier } from '../layout/breakpoints';
@@ -54,6 +58,7 @@ vi.mock('../context/TiltReadoutContext', () => ({
     tiltSample: { x: 0, y: 0 },
     orientationRef: { current: { gamma: 0, beta: 0 } },
     requestTiltPermission: vi.fn(),
+    requestPermission: vi.fn(),
   }),
 }));
 
@@ -84,6 +89,9 @@ describe('ElementalDiagram ready gate', () => {
   beforeEach(() => {
     mockHandleChordPointerDown.mockClear();
     mockHandleChordPointerUp.mockClear();
+    mockChordContext.tonalCenter = 10;
+    mockChordContext.octaveRange = DEFAULT_OCTAVE_RANGE;
+    chordManager.configureTonalSpace(10, DEFAULT_OCTAVE_RANGE);
   });
 
   it('should hide diagram until layout settles after mount', async () => {
@@ -175,7 +183,58 @@ describe('ElementalDiagram ready gate', () => {
     expect(orbs).not.toBeNull();
     expect(svg).not.toBeNull();
     expect(diagram!.firstElementChild).toBe(orbs);
-    expect(orbs!.compareDocumentPosition(svg!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(
+      orbs!.compareDocumentPosition(svg!) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
     expect(orbs).toHaveAttribute('aria-hidden', 'true');
+  });
+
+  it('passes group-slice chords in the current tonal center after it changes', async () => {
+    mockUseLayoutTier.mockReturnValue('desktop');
+    chordManager.configureTonalSpace(10, DEFAULT_OCTAVE_RANGE);
+    mockChordContext.tonalCenter = 10;
+
+    // Changing children busts React.memo so the diagram re-reads context
+    // without remounting (which would hide empty-deps useMemo stale caches).
+    const { container, rerender } = render(
+      <ElementalDiagram>
+        <span data-testid="tonal-marker">10</span>
+      </ElementalDiagram>,
+    );
+    await flushAnimationFrames(2);
+
+    const branchAtBb = chordManager.getChordByName('Branch')!;
+    const branchSlice = container.querySelector('[aria-label="Branch"]');
+    expect(branchSlice).not.toBeNull();
+
+    fireEvent.keyDown(branchSlice!, { key: 'Enter' });
+    expect(mockHandleChordPointerDown).toHaveBeenCalledTimes(1);
+    expect(mockHandleChordPointerDown.mock.calls[0][0].pitches).toEqual(
+      branchAtBb.pitches,
+    );
+
+    chordManager.configureTonalSpace(0, DEFAULT_OCTAVE_RANGE);
+    mockChordContext.tonalCenter = 0;
+    rerender(
+      <ElementalDiagram>
+        <span data-testid="tonal-marker">0</span>
+      </ElementalDiagram>,
+    );
+    await flushAnimationFrames(1);
+
+    const branchAtC = chordManager.getChordByName('Branch')!;
+    expect(branchAtC.pitches).not.toEqual(branchAtBb.pitches);
+
+    mockHandleChordPointerDown.mockClear();
+    const branchSliceAfter = container.querySelector('[aria-label="Branch"]');
+    fireEvent.keyDown(branchSliceAfter!, { key: 'Enter' });
+
+    expect(mockHandleChordPointerDown).toHaveBeenCalledTimes(1);
+    expect(mockHandleChordPointerDown.mock.calls[0][0].pitches).toEqual(
+      branchAtC.pitches,
+    );
+    expect(mockHandleChordPointerDown.mock.calls[0][0].traditionalName).toBe(
+      branchAtC.traditionalName,
+    );
   });
 });

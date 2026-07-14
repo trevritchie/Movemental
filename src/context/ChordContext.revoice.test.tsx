@@ -243,4 +243,46 @@ describe('ChordProvider pointer re-voice', () => {
     expect(result.current.selectedChord?.name).toBe('Earth');
     expect(mocks.triggerAttack.mock.calls.length).toBeGreaterThan(afterLock);
   });
+
+  it('re-voices selected chord and keeps later taps in the new tonal center', async () => {
+    const { result } = renderHook(() => useChordContext(), { wrapper });
+    const branch = chordManager.getChordByName('Branch')!;
+
+    await act(async () => {
+      result.current.enterNoTiltSession();
+    });
+    await act(async () => {
+      result.current.handleChordPointerDown(branch);
+      await Promise.resolve();
+    });
+
+    const pitchesAtBb = result.current.selectedChord?.pitches.slice() ?? [];
+    expect(pitchesAtBb.length).toBeGreaterThan(0);
+
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+
+    await act(async () => {
+      result.current.setTonalCenter(0);
+      await Promise.resolve();
+    });
+
+    const pitchesAtC = result.current.selectedChord?.pitches.slice() ?? [];
+    expect(pitchesAtC).not.toEqual(pitchesAtBb);
+    expect(result.current.tonalCenter).toBe(0);
+
+    const freshBranch = chordManager.getChordByName('Branch')!;
+    expect(freshBranch.pitches).toEqual(pitchesAtC);
+
+    await act(async () => {
+      result.current.handleChordPointerDown(freshBranch);
+      await Promise.resolve();
+    });
+
+    expect(result.current.selectedChord?.pitches).toEqual(freshBranch.pitches);
+    expect(result.current.selectedChord?.traditionalName).toBe(
+      freshBranch.traditionalName,
+    );
+  });
 });
