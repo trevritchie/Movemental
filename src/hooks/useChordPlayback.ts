@@ -36,7 +36,6 @@ import {
   resolveSmoothReanchorTilt,
   resolveSmoothestReanchorTilt,
 } from '../music/playbackTiltResolution';
-import { invalidateVoicingCache } from '../music/voicingCache';
 import { audioEngine } from '../audio/AudioEngine';
 import { unlockIosMediaChannel } from '../audio/iosMediaChannel';
 import type { PlayStyle, VoiceLeadingMode } from '../music/sessionModes';
@@ -46,7 +45,6 @@ import {
   type NoTiltChordLockMaps,
 } from '../music/noTiltChordLocks';
 import {
-  armNoTiltRevoiceSuppress,
   type NoTiltRevoiceSuppressState,
 } from '../music/noTiltRevoiceSuppress';
 import { useVoicingAnchorResolution } from './useVoicingAnchorResolution';
@@ -61,8 +59,8 @@ interface UseChordPlaybackOptions {
   setBorrowingState: (state: BorrowingState) => void;
   setSelectedChord: (chord: Chord | null) => void;
   /**
-   * Sole writer is commitPlayback / empty-pitch path (not a selectedChord
-   * mirror effect). Must update before deferred level setState flushes.
+   * Sole writer is commitPlayback (not a selectedChord mirror effect).
+   * Must update before deferred level setState flushes.
    */
   selectedChordNameRef: RefObject<string | null>;
   /**
@@ -192,7 +190,7 @@ export function useChordPlayback({
     setNoTiltPositionLevel,
   });
 
-  const { updateVoiceLeadingBaseline, commitPlayback } =
+  const { commitPlayback } =
     usePlaybackCommit({
       playStyleRef,
       tiltModeRef,
@@ -271,13 +269,6 @@ export function useChordPlayback({
     resetVoiceLeadingSession();
   }, [resetVoiceLeadingSession]);
 
-  const resolveForPlayback = useCallback(
-    (chord: Chord): PlaybackResolution => {
-      return { displayChord: chord };
-    },
-    []
-  );
-
   const resolveElementalAfterTilt = useCallback(
     (
       chord: Chord,
@@ -338,7 +329,7 @@ export function useChordPlayback({
         borrowingStateOverride?: BorrowingState;
       } = {}
     ) => {
-      const { displayChord: inputChord } = resolveForPlayback(chord);
+      const inputChord = chord;
       const fromPointer = options.fromPointer ?? false;
       const capturedPreviousBassMidi = previousBassMidi(neutralVoicingRef.current);
       const tiltMode = tiltModeRef.current;
@@ -439,29 +430,23 @@ export function useChordPlayback({
       const pitches = computeVoicedPitchesFromAnchor(displayChord, state);
 
       if (pitches.length === 0) {
-        previousChordRef.current = displayChord;
-        activePitchesRef.current = [];
-        selectedChordNameRef.current = displayChord.name;
-        if (fromPointer) {
-          armNoTiltRevoiceSuppress(suppressNoTiltRevoiceRef.current);
-        }
-        invalidateVoicingCache();
-        updateVoiceLeadingBaseline(playbackTilt, fromPointer);
+        // Mute / all voices off: same React commit as sounding playback, then
+        // release any ringing notes (dispatchAudio no-ops on empty pitches).
         audioEngine.releaseActiveNotes();
-        setPreviousPlayedChord(displayChord);
-        setSelectedChord(displayChord);
-        setActivePitches([]);
-        if (options.borrowingStateOverride) {
-          borrowingStateRef.current = options.borrowingStateOverride;
-          setBorrowingState(options.borrowingStateOverride);
-        }
+        commitPlayback(
+          displayChord,
+          [],
+          playbackTilt,
+          state,
+          elemental,
+          options
+        );
         return;
       }
 
       commitPlayback(displayChord, pitches, playbackTilt, state, elemental, options);
     },
     [
-      resolveForPlayback,
       resolveElementalAfterTilt,
       resolveSmoothPlaybackTiltForNavigation,
       resolvePlaybackTilt,
@@ -474,17 +459,11 @@ export function useChordPlayback({
       computeNeutralVoicing,
       computeVoicedPitchesFromAnchor,
       commitPlayback,
-      borrowingStateRef,
-      setBorrowingState,
-      selectedChordNameRef,
-      setSelectedChord,
-      updateVoiceLeadingBaseline,
       applyNoTiltLocksForChord,
       noTiltLockMapsRef,
       noTiltVoicingLevelRef,
       noTiltPositionLevelRef,
       voiceLeadingModeRef,
-      suppressNoTiltRevoiceRef,
     ]
   );
 
