@@ -39,8 +39,8 @@ import {
 import { invalidateVoicingCache } from '../music/voicingCache';
 import { audioEngine } from '../audio/AudioEngine';
 import { unlockIosMediaChannel } from '../audio/iosMediaChannel';
-import type { PlayStyle, VoiceLeadingMode } from '../context/types';
-import { usesDeviceTilt } from '../context/types';
+import type { PlayStyle, VoiceLeadingMode } from '../music/sessionModes';
+import { usesDeviceTilt } from '../music/sessionModes';
 import { isElementalName, isOppositeElementNavigation, previousBassMidi, resolveElementalForNavigation, type ElementalName } from '../music/elementalRoot';
 import {
   type NoTiltChordLockMaps,

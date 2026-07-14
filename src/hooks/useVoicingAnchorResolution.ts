@@ -30,7 +30,7 @@ import {
   tiltFromNoTiltLevels,
   resolveSmoothPlaybackTiltForNavigation as resolveSmoothNavTilt,
 } from '../music/playbackTiltResolution';
-import { usesDeviceTilt } from '../context/types';
+import { usesDeviceTilt } from '../music/sessionModes';
 import {
   getLockedNoTiltBass,
   getLockedNoTiltVoicing,

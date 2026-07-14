@@ -22,8 +22,11 @@ import {
 } from '../music/voiceDegreeLabel';
 import { audioEngine } from '../audio/AudioEngine';
 import { isPageInteractiveForAudio } from '../audio/pageInteraction';
-import type { PlayStyle, VoiceLeadingMode } from '../context/types';
-import { commitsSmoothestParallelBaseline, usesDeviceTilt } from '../context/types';
+import type { PlayStyle, VoiceLeadingMode } from '../music/sessionModes';
+import {
+  commitsSmoothestParallelBaseline,
+  usesDeviceTilt,
+} from '../music/sessionModes';
 import { isElementalName } from '../music/elementalRoot';
 import {
   armNoTiltRevoiceSuppress,

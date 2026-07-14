@@ -21,7 +21,7 @@ import {
 } from '../audio/synthPresets';
 import { resolveLayoutTier } from '../layout/breakpoints';
 import { useLayoutTier } from './useLayoutTier';
-import type { PlayStyle } from '../context/types';
+import type { PlayStyle } from '../music/sessionModes';
 import {
   getDefaultSoundDesignSettings,
   type SoundDesignSettings,
