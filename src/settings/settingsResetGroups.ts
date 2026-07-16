@@ -2,8 +2,8 @@
  * Per-setting reset groups for the flattened settings menu UI.
  */
 import {
-  getPresetClickHoldEnvelope,
-  getPresetDroneEnvelope,
+  getPresetTapAndHoldEnvelope,
+  getPresetTapEnvelope,
   getPresetFxDefaults,
   getSynthPreset,
   isSamplerPreset,
@@ -20,6 +20,7 @@ export type SettingsResetGroupId =
   | 'synthEffects'
   | 'eq'
   | 'playStyle'
+  | 'retriggerSoundingNotes'
   | 'tonalCenter'
   | 'voiceLeading'
   | 'voiceBorrowing'
@@ -32,7 +33,8 @@ export const SETTINGS_RESET_GROUP_LABELS: Record<SettingsResetGroupId, string> =
     envelopeAdsr: 'Envelope (ADSR)',
     synthEffects: 'Synth Effects',
     eq: 'EQ',
-    playStyle: 'Play Style',
+    playStyle: 'Sustain Mode',
+    retriggerSoundingNotes: 'Retrigger Sounding Notes',
     tonalCenter: 'Tonal Center',
     voiceLeading: 'Voice Leading',
     voiceBorrowing: 'Voice Borrowing',
@@ -45,23 +47,23 @@ export function getPresetEnvelopeDefaults(synthPresetId: string): {
   envelopeDecay: number;
   envelopeSustain: number;
   envelopeRelease: number;
-  droneAttack: number;
-  droneDecay: number;
-  droneSustain: number;
-  droneRelease: number;
+  tapAttack: number;
+  tapDecay: number;
+  tapSustain: number;
+  tapRelease: number;
 } {
   const preset = getSynthPreset(synthPresetId);
-  const clickHold = getPresetClickHoldEnvelope(preset);
-  const drone = getPresetDroneEnvelope(preset);
+  const tapAndHold = getPresetTapAndHoldEnvelope(preset);
+  const tap = getPresetTapEnvelope(preset);
   return {
-    envelopeAttack: clickHold.attack,
-    envelopeDecay: clickHold.decay,
-    envelopeSustain: clickHold.sustain,
-    envelopeRelease: clickHold.release,
-    droneAttack: drone.attack,
-    droneDecay: drone.decay,
-    droneSustain: drone.sustain,
-    droneRelease: drone.release,
+    envelopeAttack: tapAndHold.attack,
+    envelopeDecay: tapAndHold.decay,
+    envelopeSustain: tapAndHold.sustain,
+    envelopeRelease: tapAndHold.release,
+    tapAttack: tap.attack,
+    tapDecay: tap.decay,
+    tapSustain: tap.sustain,
+    tapRelease: tap.release,
   };
 }
 
@@ -86,6 +88,10 @@ export function getSettingsGroupDefaults(
   switch (groupId) {
     case 'playStyle':
       return { playStyle: defaults.general.playStyle };
+    case 'retriggerSoundingNotes':
+      return {
+        retriggerSoundingNotes: defaults.general.retriggerSoundingNotes,
+      };
     case 'tonalCenter':
       return {
         tonalCenter: defaults.general.tonalCenter,

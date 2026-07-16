@@ -4,7 +4,7 @@
  * Lives in the domain tier so music modules do not depend on React context.
  */
 
-export type PlayStyle = 'click_and_hold' | 'drone';
+export type PlayStyle = 'tap_and_hold' | 'tap';
 
 export type VoiceLeadingMode = 'root_position' | 'smooth' | 'smoothest';
 

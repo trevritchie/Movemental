@@ -22,34 +22,34 @@ export const AdsrPanelContent: React.FC<AdsrPanelContentProps> = ({
     setEnvelopeSustain,
     envelopeRelease,
     setEnvelopeRelease,
-    droneAttack,
-    setDroneAttack,
-    droneDecay,
-    setDroneDecay,
-    droneSustain,
-    setDroneSustain,
-    droneRelease,
-    setDroneRelease,
+    tapAttack,
+    setTapAttack,
+    tapDecay,
+    setTapDecay,
+    tapSustain,
+    setTapSustain,
+    tapRelease,
+    setTapRelease,
   } = useSoundDesignContext();
 
-  const isDrone = playStyle === 'drone';
+  const isTapMode = playStyle === 'tap';
   const disabled = disabledProp ?? isSamplerAdsrDisabled;
 
-  const currentA = isDrone ? droneAttack : envelopeAttack;
-  const currentD = isDrone ? droneDecay : envelopeDecay;
-  const currentS = isDrone ? droneSustain : envelopeSustain;
-  const currentR = isDrone ? droneRelease : envelopeRelease;
+  const currentA = isTapMode ? tapAttack : envelopeAttack;
+  const currentD = isTapMode ? tapDecay : envelopeDecay;
+  const currentS = isTapMode ? tapSustain : envelopeSustain;
+  const currentR = isTapMode ? tapRelease : envelopeRelease;
 
   const x0 = 15;
   const y0 = 85;
 
-  const maxA = isDrone ? 12.0 : 4.0;
-  const maxD = isDrone ? 10.0 : 5.0;
-  const maxR = isDrone ? 5.0 : 6.0;
+  const maxA = isTapMode ? 12.0 : 4.0;
+  const maxD = isTapMode ? 10.0 : 5.0;
+  const maxR = isTapMode ? 5.0 : 6.0;
 
   const wA = 20 + (currentA / maxA) * 80;
   const wD = 20 + (currentD / maxD) * 80;
-  const wS = isDrone ? 100 : 50;
+  const wS = isTapMode ? 100 : 50;
   const wR = 20 + (currentR / maxR) * 80;
 
   const x1 = x0 + wA;
@@ -91,8 +91,8 @@ export const AdsrPanelContent: React.FC<AdsrPanelContentProps> = ({
     <div className={`adsr-panel-content${disabled ? ' adsr-panel-content--disabled' : ''}`}>
       {disabled && (
         <p className="settings-menu-section__hint">
-          Envelope is disabled for sampled instruments in Drone mode. Switch to
-          Click and Hold to shape attack and release on timed previews.
+          Envelope is disabled for sampled instruments in Tap mode. Switch to
+          Tap & Hold to shape attack and release on timed previews.
         </p>
       )}
       <div className="adsr-visualizer">
@@ -175,14 +175,14 @@ export const AdsrPanelContent: React.FC<AdsrPanelContentProps> = ({
               <input
                 id={attackId}
                 type="range"
-                min={isDrone ? 0.1 : 0.01}
-                max={isDrone ? 12.0 : 4.0}
-                step={isDrone ? 0.1 : 0.01}
+                min={isTapMode ? 0.1 : 0.01}
+                max={isTapMode ? 12.0 : 4.0}
+                step={isTapMode ? 0.1 : 0.01}
                 value={currentA}
                 disabled={disabled}
                 onChange={(e) =>
-                  isDrone
-                    ? setDroneAttack(Number(e.target.value))
+                  isTapMode
+                    ? setTapAttack(Number(e.target.value))
                     : setEnvelopeAttack(Number(e.target.value))
                 }
               />
@@ -196,14 +196,14 @@ export const AdsrPanelContent: React.FC<AdsrPanelContentProps> = ({
               <input
                 id={decayId}
                 type="range"
-                min={isDrone ? 0.1 : 0.01}
-                max={isDrone ? 10.0 : 5.0}
-                step={isDrone ? 0.1 : 0.01}
+                min={isTapMode ? 0.1 : 0.01}
+                max={isTapMode ? 10.0 : 5.0}
+                step={isTapMode ? 0.1 : 0.01}
                 value={currentD}
                 disabled={disabled}
                 onChange={(e) =>
-                  isDrone
-                    ? setDroneDecay(Number(e.target.value))
+                  isTapMode
+                    ? setTapDecay(Number(e.target.value))
                     : setEnvelopeDecay(Number(e.target.value))
                 }
               />
@@ -223,8 +223,8 @@ export const AdsrPanelContent: React.FC<AdsrPanelContentProps> = ({
                 value={currentS}
                 disabled={disabled}
                 onChange={(e) =>
-                  isDrone
-                    ? setDroneSustain(Number(e.target.value))
+                  isTapMode
+                    ? setTapSustain(Number(e.target.value))
                     : setEnvelopeSustain(Number(e.target.value))
                 }
               />
@@ -238,14 +238,14 @@ export const AdsrPanelContent: React.FC<AdsrPanelContentProps> = ({
               <input
                 id={releaseId}
                 type="range"
-                min={isDrone ? 0.1 : 0.01}
-                max={isDrone ? 5.0 : 6.0}
-                step={isDrone ? 0.1 : 0.01}
+                min={isTapMode ? 0.1 : 0.01}
+                max={isTapMode ? 5.0 : 6.0}
+                step={isTapMode ? 0.1 : 0.01}
                 value={currentR}
                 disabled={disabled}
                 onChange={(e) =>
-                  isDrone
-                    ? setDroneRelease(Number(e.target.value))
+                  isTapMode
+                    ? setTapRelease(Number(e.target.value))
                     : setEnvelopeRelease(Number(e.target.value))
                 }
               />

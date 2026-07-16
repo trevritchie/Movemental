@@ -13,10 +13,10 @@ describe('SettingsSettingHeader', () => {
     render(<SettingsSettingHeader groupId="playStyle" onReset={onReset} />);
 
     expect(
-      screen.getByRole('heading', { name: 'Play Style' }),
+      screen.getByRole('heading', { name: 'Sustain Mode' }),
     ).toBeInTheDocument();
     fireEvent.click(
-      screen.getByRole('button', { name: 'Reset Play Style to defaults' }),
+      screen.getByRole('button', { name: 'Reset Sustain Mode to defaults' }),
     );
     expect(onReset).toHaveBeenCalledWith('playStyle');
   });

@@ -1,26 +1,31 @@
 import React from 'react';
 import { useChordContext } from '../../context/ChordContext';
+import { useLayoutTier } from '../../hooks/useLayoutTier';
 
 export const PlayStyleToggle: React.FC = () => {
   const { playStyle, setPlayStyle } = useChordContext();
+  const layoutTier = useLayoutTier();
+  const isDesktop = layoutTier === 'desktop';
+  const tapLabel = isDesktop ? 'Click' : 'Tap';
+  const holdLabel = isDesktop ? 'Click & Hold' : 'Tap & Hold';
 
   return (
     <div className="memory-toggle">
       <button
         type="button"
-        className={`memory-btn ${playStyle === 'drone' ? 'active' : ''}`}
-        onClick={() => setPlayStyle('drone')}
-        aria-pressed={playStyle === 'drone'}
+        className={`memory-btn ${playStyle === 'tap' ? 'active' : ''}`}
+        onClick={() => setPlayStyle('tap')}
+        aria-pressed={playStyle === 'tap'}
       >
-        Drone
+        {tapLabel}
       </button>
       <button
         type="button"
-        className={`memory-btn ${playStyle === 'click_and_hold' ? 'active' : ''}`}
-        onClick={() => setPlayStyle('click_and_hold')}
-        aria-pressed={playStyle === 'click_and_hold'}
+        className={`memory-btn ${playStyle === 'tap_and_hold' ? 'active' : ''}`}
+        onClick={() => setPlayStyle('tap_and_hold')}
+        aria-pressed={playStyle === 'tap_and_hold'}
       >
-        Click & Hold
+        {holdLabel}
       </button>
     </div>
   );

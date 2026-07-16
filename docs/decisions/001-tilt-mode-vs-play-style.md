@@ -39,7 +39,7 @@ See also
 ## Decision
 
 We choose **Option B**. Session tilt is `tiltModeEnabled` (splash or
-desktop Start). Audio style is `playStyle`: `drone` | `click_and_hold`.
+desktop Start). Audio style is `playStyle`: `tap` | `tap_and_hold`.
 Product code uses `usesDeviceTilt(tiltModeEnabled)` instead of comparing
 `playStyle` to a legacy `"tilt"` value.
 

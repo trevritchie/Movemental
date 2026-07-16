@@ -25,13 +25,13 @@ export interface BuiltSamplerPreset {
     reverbWet: number;
   };
   envelopeDefaults: {
-    clickHold: {
+    tapAndHold: {
       attack: number;
       decay: number;
       sustain: number;
       release: number;
     };
-    drone: {
+    tap: {
       attack: number;
       decay: number;
       sustain: number;
@@ -55,8 +55,8 @@ interface SamplerProfile {
   filterCutoffHz: number;
   release: number;
   reverbWet: number;
-  clickHold: BuiltSamplerPreset['envelopeDefaults']['clickHold'];
-  drone: BuiltSamplerPreset['envelopeDefaults']['drone'];
+  tapAndHold: BuiltSamplerPreset['envelopeDefaults']['tapAndHold'];
+  tap: BuiltSamplerPreset['envelopeDefaults']['tap'];
 }
 
 const PROFILE_BY_KIND: Record<SamplerProfileKind, SamplerProfile> = {
@@ -66,13 +66,13 @@ const PROFILE_BY_KIND: Record<SamplerProfileKind, SamplerProfile> = {
     filterCutoffHz: 12000,
     release: 1.0,
     reverbWet: 0.12,
-    clickHold: {
+    tapAndHold: {
       attack: 0.001,
       decay: 0.3,
       sustain: 0.85,
       release: 1.0,
     },
-    drone: {
+    tap: {
       attack: 0.05,
       decay: 0.5,
       sustain: 0.6,
@@ -85,13 +85,13 @@ const PROFILE_BY_KIND: Record<SamplerProfileKind, SamplerProfile> = {
     filterCutoffHz: 10000,
     release: 0.9,
     reverbWet: 0.18,
-    clickHold: {
+    tapAndHold: {
       attack: 0.08,
       decay: 0.4,
       sustain: 0.75,
       release: 0.9,
     },
-    drone: {
+    tap: {
       attack: 0.2,
       decay: 0.6,
       sustain: 0.55,
@@ -104,13 +104,13 @@ const PROFILE_BY_KIND: Record<SamplerProfileKind, SamplerProfile> = {
     filterCutoffHz: 9000,
     release: 0.55,
     reverbWet: 0.1,
-    clickHold: {
+    tapAndHold: {
       attack: 0.002,
       decay: 0.25,
       sustain: 0.35,
       release: 0.55,
     },
-    drone: {
+    tap: {
       attack: 0.04,
       decay: 0.35,
       sustain: 0.25,
@@ -123,13 +123,13 @@ const PROFILE_BY_KIND: Record<SamplerProfileKind, SamplerProfile> = {
     filterCutoffHz: 11000,
     release: 0.75,
     reverbWet: 0.14,
-    clickHold: {
+    tapAndHold: {
       attack: 0.04,
       decay: 0.35,
       sustain: 0.7,
       release: 0.75,
     },
-    drone: {
+    tap: {
       attack: 0.12,
       decay: 0.5,
       sustain: 0.5,
@@ -142,13 +142,13 @@ const PROFILE_BY_KIND: Record<SamplerProfileKind, SamplerProfile> = {
     filterCutoffHz: 10000,
     release: 0.8,
     reverbWet: 0.16,
-    clickHold: {
+    tapAndHold: {
       attack: 0.03,
       decay: 0.35,
       sustain: 0.72,
       release: 0.8,
     },
-    drone: {
+    tap: {
       attack: 0.1,
       decay: 0.55,
       sustain: 0.52,
@@ -161,13 +161,13 @@ const PROFILE_BY_KIND: Record<SamplerProfileKind, SamplerProfile> = {
     filterCutoffHz: 12000,
     release: 0.45,
     reverbWet: 0.08,
-    clickHold: {
+    tapAndHold: {
       attack: 0.001,
       decay: 0.2,
       sustain: 0.2,
       release: 0.45,
     },
-    drone: {
+    tap: {
       attack: 0.01,
       decay: 0.25,
       sustain: 0.15,
@@ -180,13 +180,13 @@ const PROFILE_BY_KIND: Record<SamplerProfileKind, SamplerProfile> = {
     filterCutoffHz: 7000,
     release: 0.7,
     reverbWet: 0.08,
-    clickHold: {
+    tapAndHold: {
       attack: 0.005,
       decay: 0.35,
       sustain: 0.65,
       release: 0.7,
     },
-    drone: {
+    tap: {
       attack: 0.06,
       decay: 0.45,
       sustain: 0.45,
@@ -267,8 +267,8 @@ function buildTonejsSamplerPreset(
       reverbWet: profile.reverbWet,
     },
     envelopeDefaults: {
-      clickHold: profile.clickHold,
-      drone: profile.drone,
+      tapAndHold: profile.tapAndHold,
+      tap: profile.tap,
     },
   };
 }

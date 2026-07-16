@@ -34,6 +34,7 @@ export interface UseSettingsResetOptions {
   setBorrowingMemory: (mode: 'global' | 'per-chord') => void;
   setClockLayoutMode: (mode: ClockLayoutMode) => void;
   setGlowingOrbsEnabled: (enabled: boolean) => void;
+  setRetriggerSoundingNotes: (enabled: boolean) => void;
   setSynthPresetId: (id: string) => void;
   setEqProfileId: (id: EqProfileId) => void;
   setChorusWet: (val: number) => void;
@@ -43,10 +44,10 @@ export interface UseSettingsResetOptions {
   setEnvelopeDecay: (val: number) => void;
   setEnvelopeSustain: (val: number) => void;
   setEnvelopeRelease: (val: number) => void;
-  setDroneAttack: (val: number) => void;
-  setDroneDecay: (val: number) => void;
-  setDroneSustain: (val: number) => void;
-  setDroneRelease: (val: number) => void;
+  setTapAttack: (val: number) => void;
+  setTapDecay: (val: number) => void;
+  setTapSustain: (val: number) => void;
+  setTapRelease: (val: number) => void;
   resetVoiceLeadingSession: () => void;
   clearChordBorrowingStates: () => void;
 }
@@ -61,6 +62,7 @@ export function useSettingsReset({
   setBorrowingMemory,
   setClockLayoutMode,
   setGlowingOrbsEnabled,
+  setRetriggerSoundingNotes,
   setSynthPresetId,
   setEqProfileId,
   setChorusWet,
@@ -70,10 +72,10 @@ export function useSettingsReset({
   setEnvelopeDecay,
   setEnvelopeSustain,
   setEnvelopeRelease,
-  setDroneAttack,
-  setDroneDecay,
-  setDroneSustain,
-  setDroneRelease,
+  setTapAttack,
+  setTapDecay,
+  setTapSustain,
+  setTapRelease,
   resetVoiceLeadingSession,
   clearChordBorrowingStates,
 }: UseSettingsResetOptions) {
@@ -83,6 +85,7 @@ export function useSettingsReset({
         tonalCenter: setTonalCenter,
         octaveRange: setOctaveRange,
         playStyle: setPlayStyle,
+        retriggerSoundingNotes: setRetriggerSoundingNotes,
         mode: setVoiceLeadingMode,
         memory: setBorrowingMemory,
         layoutMode: setClockLayoutMode,
@@ -96,10 +99,10 @@ export function useSettingsReset({
         envelopeDecay: setEnvelopeDecay,
         envelopeSustain: setEnvelopeSustain,
         envelopeRelease: setEnvelopeRelease,
-        droneAttack: setDroneAttack,
-        droneDecay: setDroneDecay,
-        droneSustain: setDroneSustain,
-        droneRelease: setDroneRelease,
+        tapAttack: setTapAttack,
+        tapDecay: setTapDecay,
+        tapSustain: setTapSustain,
+        tapRelease: setTapRelease,
       }) satisfies Record<SettingKey, (val: never) => void>,
     [
       setTonalCenter,
@@ -109,6 +112,7 @@ export function useSettingsReset({
       setBorrowingMemory,
       setClockLayoutMode,
       setGlowingOrbsEnabled,
+      setRetriggerSoundingNotes,
       setSynthPresetId,
       setEqProfileId,
       setChorusWet,
@@ -118,10 +122,10 @@ export function useSettingsReset({
       setEnvelopeDecay,
       setEnvelopeSustain,
       setEnvelopeRelease,
-      setDroneAttack,
-      setDroneDecay,
-      setDroneSustain,
-      setDroneRelease,
+      setTapAttack,
+      setTapDecay,
+      setTapSustain,
+      setTapRelease,
     ],
   );
 

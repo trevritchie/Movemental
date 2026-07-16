@@ -43,7 +43,7 @@ vi.mock('../context/ChordContext', () => ({
     setOctaveRange: vi.fn(),
     borrowingMemory: 'per-chord',
     setBorrowingMemory: vi.fn(),
-    playStyle: 'drone',
+    playStyle: 'tap',
     setPlayStyle,
   }),
 }));
@@ -72,14 +72,14 @@ vi.mock('../context/SoundDesignContext', () => ({
     setEnvelopeSustain: vi.fn(),
     envelopeRelease: 2.5,
     setEnvelopeRelease: vi.fn(),
-    droneAttack: 0.15,
-    setDroneAttack: vi.fn(),
-    droneDecay: 2.0,
-    setDroneDecay: vi.fn(),
-    droneSustain: 0.5,
-    setDroneSustain: vi.fn(),
-    droneRelease: 2.5,
-    setDroneRelease: vi.fn(),
+    tapAttack: 0.15,
+    setTapAttack: vi.fn(),
+    tapDecay: 2.0,
+    setTapDecay: vi.fn(),
+    tapSustain: 0.5,
+    setTapSustain: vi.fn(),
+    tapRelease: 2.5,
+    setTapRelease: vi.fn(),
   }),
 }));
 
@@ -192,16 +192,22 @@ describe('DiagramCornerActions', () => {
     expect(screen.getByText(/How Movemental works/i)).toBeInTheDocument();
   });
 
-  it('shows only drone and click-and-hold play styles on tablet', async () => {
+  it('shows tap and tap-and-hold play styles on tablet', async () => {
     vi.mocked(useLayoutTier).mockReturnValue('tablet');
 
     render(<DiagramCornerActions />);
     await openSettingsFromToolbar();
 
-    expect(screen.getByRole('button', { name: 'Drone' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Tap' })).toBeInTheDocument();
     expect(
-      screen.getByRole('button', { name: /click & hold/i }),
+      screen.getByRole('button', { name: /tap & hold/i }),
     ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /^click$/i }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /click & hold/i }),
+    ).not.toBeInTheDocument();
   });
 
   it('calls panic stop without opening the menu', () => {

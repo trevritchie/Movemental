@@ -86,6 +86,8 @@ interface ChordContextType {
   setClockLayoutMode: (mode: ClockLayoutMode) => void;
   glowingOrbsEnabled: boolean;
   setGlowingOrbsEnabled: (enabled: boolean) => void;
+  retriggerSoundingNotes: boolean;
+  setRetriggerSoundingNotes: (enabled: boolean) => void;
   lastTapTilt: TiltSample;
   lastCommittedPlaybackTilt: TiltSample;
   smoothBaseParallel: number;
@@ -143,6 +145,13 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
   const [glowingOrbsEnabled, setGlowingOrbsEnabled] = useState(
     loadedSettings.glowingOrbs.enabled
   );
+  const [retriggerSoundingNotes, setRetriggerSoundingNotes] = useState(
+    loadedSettings.general.retriggerSoundingNotes
+  );
+  const retriggerSoundingNotesRef = useRef(retriggerSoundingNotes);
+  useEffect(() => {
+    retriggerSoundingNotesRef.current = retriggerSoundingNotes;
+  }, [retriggerSoundingNotes]);
 
   const selectedChordNameRef = useRef<string | null>(null);
   /** Armed by pointer commits / deferred level flushes; consumed by re-voice. */
@@ -205,6 +214,7 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
     clearNoTiltChordLocks: noTiltLocks.clearAllLocks,
     initialPlayStyle: loadedSettings.general.playStyle,
     hasPersistedSettings,
+    retriggerSoundingNotesRef,
   });
 
   useAudioLifecycle();
@@ -271,6 +281,7 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
     setBorrowingMemory: borrowing.setBorrowingMemory,
     setClockLayoutMode,
     setGlowingOrbsEnabled,
+    setRetriggerSoundingNotes,
     setSynthPresetId,
     setEqProfileId: audio.setEqProfileId,
     setChorusWet: audio.setChorusWet,
@@ -280,10 +291,10 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
     setEnvelopeDecay: audio.setEnvelopeDecay,
     setEnvelopeSustain: audio.setEnvelopeSustain,
     setEnvelopeRelease: audio.setEnvelopeRelease,
-    setDroneAttack: audio.setDroneAttack,
-    setDroneDecay: audio.setDroneDecay,
-    setDroneSustain: audio.setDroneSustain,
-    setDroneRelease: audio.setDroneRelease,
+    setTapAttack: audio.setTapAttack,
+    setTapDecay: audio.setTapDecay,
+    setTapSustain: audio.setTapSustain,
+    setTapRelease: audio.setTapRelease,
     resetVoiceLeadingSession,
     clearChordBorrowingStates,
   });
@@ -294,6 +305,7 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
         tonalCenter,
         octaveRange,
         playStyle: playback.playStyle,
+        retriggerSoundingNotes,
       },
       voiceLeading: { mode: voiceLeadingMode },
       voiceBorrowing: { memory: borrowing.borrowingMemory },
@@ -309,16 +321,17 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
         envelopeDecay: audio.envelopeDecay,
         envelopeSustain: audio.envelopeSustain,
         envelopeRelease: audio.envelopeRelease,
-        droneAttack: audio.droneAttack,
-        droneDecay: audio.droneDecay,
-        droneSustain: audio.droneSustain,
-        droneRelease: audio.droneRelease,
+        tapAttack: audio.tapAttack,
+        tapDecay: audio.tapDecay,
+        tapSustain: audio.tapSustain,
+        tapRelease: audio.tapRelease,
       },
     }),
     [
       tonalCenter,
       octaveRange,
       playback.playStyle,
+      retriggerSoundingNotes,
       voiceLeadingMode,
       borrowing.borrowingMemory,
       clockLayoutMode,
@@ -332,10 +345,10 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
       audio.envelopeDecay,
       audio.envelopeSustain,
       audio.envelopeRelease,
-      audio.droneAttack,
-      audio.droneDecay,
-      audio.droneSustain,
-      audio.droneRelease,
+      audio.tapAttack,
+      audio.tapDecay,
+      audio.tapSustain,
+      audio.tapRelease,
     ]
   );
 
@@ -436,6 +449,8 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
       setClockLayoutMode,
       glowingOrbsEnabled,
       setGlowingOrbsEnabled,
+      retriggerSoundingNotes,
+      setRetriggerSoundingNotes,
       lastTapTilt: playback.lastTapTilt,
       lastCommittedPlaybackTilt: playback.lastCommittedPlaybackTilt,
       smoothBaseParallel: playback.smoothBaseParallel,
@@ -474,6 +489,7 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
       voiceLeadingMode,
       clockLayoutMode,
       glowingOrbsEnabled,
+      retriggerSoundingNotes,
       playback.lastTapTilt,
       playback.lastCommittedPlaybackTilt,
       playback.smoothBaseParallel,
@@ -516,14 +532,14 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
       setEnvelopeSustain: audio.setEnvelopeSustain,
       envelopeRelease: audio.envelopeRelease,
       setEnvelopeRelease: audio.setEnvelopeRelease,
-      droneAttack: audio.droneAttack,
-      setDroneAttack: audio.setDroneAttack,
-      droneDecay: audio.droneDecay,
-      setDroneDecay: audio.setDroneDecay,
-      droneSustain: audio.droneSustain,
-      setDroneSustain: audio.setDroneSustain,
-      droneRelease: audio.droneRelease,
-      setDroneRelease: audio.setDroneRelease,
+      tapAttack: audio.tapAttack,
+      setTapAttack: audio.setTapAttack,
+      tapDecay: audio.tapDecay,
+      setTapDecay: audio.setTapDecay,
+      tapSustain: audio.tapSustain,
+      setTapSustain: audio.setTapSustain,
+      tapRelease: audio.tapRelease,
+      setTapRelease: audio.setTapRelease,
     }),
     [
       audio.chorusWet,
@@ -548,14 +564,14 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
       audio.setEnvelopeSustain,
       audio.envelopeRelease,
       audio.setEnvelopeRelease,
-      audio.droneAttack,
-      audio.setDroneAttack,
-      audio.droneDecay,
-      audio.setDroneDecay,
-      audio.droneSustain,
-      audio.setDroneSustain,
-      audio.droneRelease,
-      audio.setDroneRelease,
+      audio.tapAttack,
+      audio.setTapAttack,
+      audio.tapDecay,
+      audio.setTapDecay,
+      audio.tapSustain,
+      audio.setTapSustain,
+      audio.tapRelease,
+      audio.setTapRelease,
     ],
   );
 

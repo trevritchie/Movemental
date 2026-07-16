@@ -100,6 +100,34 @@
   gap: 6px;
 }
 
+.settings-menu-group {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.settings-menu-group + .settings-menu-group {
+  margin-top: 4px;
+  padding-top: 18px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.settings-menu-group__title {
+  margin: 0;
+  padding: 0 2px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.settings-menu-group__body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
 .elemental-heading,
 .settings-menu-section__title,
 .help-page__section-title {
@@ -116,8 +144,8 @@
 }
 
 .settings-menu-section__title {
-  font-size: 1.25rem;
-  margin-bottom: 0;
+  font-size: 1.05rem;
+  margin: 0;
 }
 
 .settings-menu-section__panel {

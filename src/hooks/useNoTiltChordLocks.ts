@@ -1,5 +1,5 @@
 /**
- * Per-chord voicing and bass lock state for drone / click-and-hold play styles.
+ * Per-chord voicing and bass lock state for tap / tap-and-hold play styles.
  */
 import { useCallback, useEffect, useRef, useState, type RefObject } from 'react';
 import type { Chord } from '../music/ChordManager';

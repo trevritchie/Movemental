@@ -22,8 +22,8 @@ import {
 } from '../audio/outputProfiles';
 import {
   DEFAULT_SYNTH_PRESET_ID,
-  getPresetClickHoldEnvelope,
-  getPresetDroneEnvelope,
+  getPresetTapAndHoldEnvelope,
+  getPresetTapEnvelope,
   getPresetFxDefaults,
   getSynthPreset,
   isSamplerPreset,
@@ -82,7 +82,45 @@ function isOctaveRange(value: unknown): value is number {
 }
 
 function isPlayStyle(value: unknown): value is PlayStyle {
-  return value === 'click_and_hold' || value === 'drone';
+  return value === 'tap_and_hold' || value === 'tap';
+}
+
+/** Map legacy persisted play-style / envelope keys onto current names. */
+function migrateLegacySettingsPayload(
+  raw: Record<string, unknown>,
+): Record<string, unknown> {
+  const source = { ...raw };
+
+  if (source.general && typeof source.general === 'object') {
+    const general = { ...(source.general as Record<string, unknown>) };
+    if (general.playStyle === 'drone') {
+      general.playStyle = 'tap';
+    } else if (general.playStyle === 'click_and_hold') {
+      general.playStyle = 'tap_and_hold';
+    }
+    source.general = general;
+  }
+
+  if (source.soundDesign && typeof source.soundDesign === 'object') {
+    const soundDesign = {
+      ...(source.soundDesign as Record<string, unknown>),
+    };
+    const legacyPairs: Array<[string, string]> = [
+      ['droneAttack', 'tapAttack'],
+      ['droneDecay', 'tapDecay'],
+      ['droneSustain', 'tapSustain'],
+      ['droneRelease', 'tapRelease'],
+    ];
+    for (const [legacyKey, nextKey] of legacyPairs) {
+      if (soundDesign[nextKey] === undefined && soundDesign[legacyKey] !== undefined) {
+        soundDesign[nextKey] = soundDesign[legacyKey];
+      }
+      delete soundDesign[legacyKey];
+    }
+    source.soundDesign = soundDesign;
+  }
+
+  return source;
 }
 
 function isVoiceLeadingMode(value: unknown): value is VoiceLeadingMode {
@@ -127,8 +165,8 @@ export function getDefaultSoundDesignSettings(): SoundDesignSettings {
   const fx = isSamplerPreset(preset)
     ? { chorusWet: 0, delayWet: 0, reverbWet: 0 }
     : getPresetFxDefaults(preset);
-  const clickHold = getPresetClickHoldEnvelope(preset);
-  const drone = getPresetDroneEnvelope(preset);
+  const tapAndHold = getPresetTapAndHoldEnvelope(preset);
+  const tap = getPresetTapEnvelope(preset);
 
   return {
     synthPresetId: DEFAULT_SYNTH_PRESET_ID,
@@ -136,14 +174,14 @@ export function getDefaultSoundDesignSettings(): SoundDesignSettings {
     chorusWet: fx.chorusWet,
     delayWet: fx.delayWet,
     reverbWet: fx.reverbWet,
-    envelopeAttack: clickHold.attack,
-    envelopeDecay: clickHold.decay,
-    envelopeSustain: clickHold.sustain,
-    envelopeRelease: clickHold.release,
-    droneAttack: drone.attack,
-    droneDecay: drone.decay,
-    droneSustain: drone.sustain,
-    droneRelease: drone.release,
+    envelopeAttack: tapAndHold.attack,
+    envelopeDecay: tapAndHold.decay,
+    envelopeSustain: tapAndHold.sustain,
+    envelopeRelease: tapAndHold.release,
+    tapAttack: tap.attack,
+    tapDecay: tap.decay,
+    tapSustain: tap.sustain,
+    tapRelease: tap.release,
   };
 }
 
@@ -153,6 +191,12 @@ export type GeneralSettings = {
   tonalCenter: number;
   octaveRange: number;
   playStyle: PlayStyle;
+  /**
+   * When true (tap sustain only), true chord-name changes fully retrigger
+   * still-sounding notes. Sibling variants count as name changes; same-button
+   * re-taps always retrigger. Dead sampler notes always re-attack.
+   */
+  retriggerSoundingNotes: boolean;
 };
 
 export type VoiceLeadingSettings = {
@@ -181,10 +225,10 @@ export type SoundDesignSettings = {
   envelopeDecay: number;
   envelopeSustain: number;
   envelopeRelease: number;
-  droneAttack: number;
-  droneDecay: number;
-  droneSustain: number;
-  droneRelease: number;
+  tapAttack: number;
+  tapDecay: number;
+  tapSustain: number;
+  tapRelease: number;
 };
 
 export const USER_SETTINGS_SCHEMA: Record<
@@ -201,8 +245,12 @@ export const USER_SETTINGS_SCHEMA: Record<
       validate: isOctaveRange,
     },
     playStyle: {
-      default: 'drone' as PlayStyle,
+      default: 'tap' as PlayStyle,
       validate: isPlayStyle,
+    },
+    retriggerSoundingNotes: {
+      default: false,
+      validate: isBoolean,
     },
   },
   clockFace: {
@@ -257,20 +305,20 @@ export const USER_SETTINGS_SCHEMA: Record<
       default: DEFAULT_SOUND_DESIGN.envelopeRelease,
       validate: isPositiveNumber,
     },
-    droneAttack: {
-      default: DEFAULT_SOUND_DESIGN.droneAttack,
+    tapAttack: {
+      default: DEFAULT_SOUND_DESIGN.tapAttack,
       validate: isPositiveNumber,
     },
-    droneDecay: {
-      default: DEFAULT_SOUND_DESIGN.droneDecay,
+    tapDecay: {
+      default: DEFAULT_SOUND_DESIGN.tapDecay,
       validate: isPositiveNumber,
     },
-    droneSustain: {
-      default: DEFAULT_SOUND_DESIGN.droneSustain,
+    tapSustain: {
+      default: DEFAULT_SOUND_DESIGN.tapSustain,
       validate: isWet,
     },
-    droneRelease: {
-      default: DEFAULT_SOUND_DESIGN.droneRelease,
+    tapRelease: {
+      default: DEFAULT_SOUND_DESIGN.tapRelease,
       validate: isPositiveNumber,
     },
   },
@@ -365,7 +413,7 @@ function validateSection<S extends SettingsSectionId>(
 export function validateLoadedSettings(raw: unknown): PersistedUserSettings {
   const source =
     raw && typeof raw === 'object'
-      ? (raw as Record<string, unknown>)
+      ? migrateLegacySettingsPayload(raw as Record<string, unknown>)
       : {};
 
   return {

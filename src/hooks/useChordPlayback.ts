@@ -78,6 +78,12 @@ interface UseChordPlaybackOptions {
   clearNoTiltChordLocks: () => void;
   initialPlayStyle?: PlayStyle;
   hasPersistedSettings?: boolean;
+  /**
+   * Tap sustain: on true chord-name changes (any different button, including
+   * Branch to Sister/Twin/Brother Branch), fully retrigger still-sounding
+   * notes. Same-button re-taps always retrigger regardless of this flag.
+   */
+  retriggerSoundingNotesRef: RefObject<boolean>;
 }
 
 interface PlaybackResolution {
@@ -101,8 +107,9 @@ export function useChordPlayback({
   noTiltLockMapsRef,
   applyNoTiltLocksForChord,
   clearNoTiltChordLocks,
-  initialPlayStyle = 'drone',
+  initialPlayStyle = 'tap',
   hasPersistedSettings = false,
+  retriggerSoundingNotesRef,
 }: UseChordPlaybackOptions) {
   const [playStyle, setPlayStyle] = useState<PlayStyle>(initialPlayStyle);
   const [tiltModeEnabled, setTiltModeEnabled] = useState(false);
@@ -251,8 +258,8 @@ export function useChordPlayback({
     tiltModeRef.current = true;
     setTiltModeEnabled(true);
     if (!hasPersistedSettingsRef.current) {
-      playStyleRef.current = 'drone';
-      setPlayStyle('drone');
+      playStyleRef.current = 'tap';
+      setPlayStyle('tap');
     }
     clearNoTiltChordLocks();
     resetVoiceLeadingSession();
@@ -262,8 +269,8 @@ export function useChordPlayback({
     tiltModeRef.current = false;
     setTiltModeEnabled(false);
     if (!hasPersistedSettingsRef.current) {
-      playStyleRef.current = 'drone';
-      setPlayStyle('drone');
+      playStyleRef.current = 'tap';
+      setPlayStyle('tap');
     }
     resetVoiceLeadingSession();
   }, [resetVoiceLeadingSession]);
@@ -499,7 +506,7 @@ export function useChordPlayback({
     const handleGlobalPointerUp = () => {
       if (isPointerDownRef.current) {
         isPointerDownRef.current = false;
-        if (playStyleRef.current === 'click_and_hold') {
+        if (playStyleRef.current === 'tap_and_hold') {
           audioEngine.releaseActiveNotes();
         }
       }
@@ -524,10 +531,17 @@ export function useChordPlayback({
         chord.name,
         borrowingStateRef.current
       );
+      const previousName = previousChordRef.current?.name;
+      const isSameButtonRetap = previousName === chord.name;
+      const isChordNameChange =
+        previousName != null && previousName !== chord.name;
       voiceAndPlay(chord, newState, {
+        // Same-button re-tap always retriggers. With the setting on, any
+        // different chord name (including sibling variants) also retriggers.
         retrigger:
-          playStyleRef.current === 'drone' &&
-          previousChordRef.current?.name === chord.name,
+          playStyleRef.current === 'tap' &&
+          (isSameButtonRetap ||
+            (retriggerSoundingNotesRef.current === true && isChordNameChange)),
         fromPointer: true,
         borrowingStateOverride: newState,
       });
@@ -537,6 +551,7 @@ export function useChordPlayback({
       getBorrowingStateForChord,
       borrowingStateRef,
       voiceAndPlay,
+      retriggerSoundingNotesRef,
     ]
   );
 
@@ -548,7 +563,7 @@ export function useChordPlayback({
 
   const handleChordPointerUp = useCallback(() => {
     isPointerDownRef.current = false;
-    if (playStyleRef.current === 'click_and_hold') {
+    if (playStyleRef.current === 'tap_and_hold') {
       audioEngine.releaseActiveNotes();
     }
   }, []);

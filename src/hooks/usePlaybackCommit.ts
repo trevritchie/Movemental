@@ -136,7 +136,7 @@ export function usePlaybackCommit({
         return;
       }
 
-      if (style === 'click_and_hold') {
+      if (style === 'tap_and_hold') {
         if (fromPointer) {
           audioEngine.triggerAttack(pitches);
         } else {
@@ -145,6 +145,9 @@ export function usePlaybackCommit({
         return;
       }
 
+      // Callers set `retrigger` for same-button re-taps and for true chord-name
+      // changes when Retrigger Sounding Notes is on. Same-chord revoices leave
+      // it false so still-sounding notes can sustain.
       audioEngine.triggerAttack(pitches, retrigger);
     },
     [playStyleRef, activePitchesRef]

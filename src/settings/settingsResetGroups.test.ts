@@ -9,8 +9,12 @@ describe('settingsResetGroups', () => {
   it('defines labels for every reset group', () => {
     expect(SETTINGS_RESET_GROUP_LABELS.instrument).toBe('Instrument');
     expect(SETTINGS_RESET_GROUP_LABELS.tonalCenter).toBe('Tonal Center');
+    expect(SETTINGS_RESET_GROUP_LABELS.playStyle).toBe('Sustain Mode');
     expect(SETTINGS_RESET_GROUP_LABELS.clockFace).toBe('Clock Face Diagram');
     expect(SETTINGS_RESET_GROUP_LABELS.glowingOrbs).toBe('Glowing Orbs');
+    expect(SETTINGS_RESET_GROUP_LABELS.retriggerSoundingNotes).toBe(
+      'Retrigger Sounding Notes',
+    );
   });
 
   it('returns play style defaults only for playStyle group', () => {
@@ -21,6 +25,18 @@ describe('settingsResetGroups', () => {
 
     expect(defaults).toEqual({
       playStyle: DEFAULT_USER_SETTINGS.general.playStyle,
+    });
+  });
+
+  it('returns retrigger sounding notes default for its group', () => {
+    const defaults = getSettingsGroupDefaults('retriggerSoundingNotes', {
+      tiltModeEnabled: false,
+      synthPresetId: 'warmPad',
+    });
+
+    expect(defaults).toEqual({
+      retriggerSoundingNotes:
+        DEFAULT_USER_SETTINGS.general.retriggerSoundingNotes,
     });
   });
 

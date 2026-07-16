@@ -186,10 +186,11 @@ export const HelpPage: React.FC<HelpPageProps> = ({
       <section className="help-page__section">
         <h4 className="help-page__section-title">Play Style and Voice Leading</h4>
         <p>
-          Drone holds notes until you tap again or hit panic. Click &amp; Hold
-          releases when you let go. Voice leading modes (Root Position, Smooth,
-          Smoothest) control how parallel position moves between chords. Home
-          Octave sets register; Tonal Center rotates the clock and pitch labels.
+          Tap (Click on desktop) holds notes until you tap again or hit panic.
+          Tap &amp; Hold releases when you let go. Voice leading modes (Root
+          Position, Smooth, Smoothest) control how parallel position moves
+          between chords. Home Octave sets register; Tonal Center rotates the
+          clock and pitch labels.
         </p>
       </section>
 

@@ -17,7 +17,7 @@ export const SettingsSettingHeader: React.FC<SettingsSettingHeaderProps> = ({
 
   return (
     <div className="settings-menu-section__header">
-      <h3 className="settings-menu-section__title">{title}</h3>
+      <h4 className="settings-menu-section__title">{title}</h4>
       <button
         type="button"
         className="settings-menu-section__reset"

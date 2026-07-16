@@ -4,18 +4,24 @@ import type { VoiceLeadingMode } from '../../music/sessionModes';
 
 const VOICE_LEADING_MODE_DESCRIPTIONS: Record<VoiceLeadingMode, string> = {
   root_position:
-    'Phone flat: double-octave voicing with the root in the bass on every chord. Pitch and roll still move the voicing from that starting point.',
+    'The starting inversion always has the chord\'s root note in the bass.',
   smooth:
-    'Each chord has a fixed bass degree when the phone is flat. Tilting shifts from that resting point the same way every time, no matter which chords you played before.',
+    'Each chord has its own starting inversion. This provides smoother voice leading while remaining predictable.',
   smoothest:
-    'On each chord change, picks the inversion that moves voices the fewest semitones from the chord you just played. The result depends on your path through the diagram.',
+    'The starting inversion is set dynamically so that notes move the least distance possible from the previous chord. Different paths around the diagram yield different results.',
 };
 
 export const VoiceLeadingToggle: React.FC = () => {
-  const { voiceLeadingMode, setVoiceLeadingMode } = useChordContext();
+  const { voiceLeadingMode, setVoiceLeadingMode, tiltModeEnabled } =
+    useChordContext();
+
+  const startingInversionHint = tiltModeEnabled
+    ? 'When switching chords, choose how the "starting inversion" is set: the IN THE BASS value that plays when your phone is flat, like on a table.'
+    : 'When switching chords, choose how the "starting inversion" is set: the IN THE BASS value that plays if you haven\'t applied the lock on the dropdown.';
 
   return (
     <div className="voice-leading-toggle">
+      <p className="settings-menu-section__hint">{startingInversionHint}</p>
       <div className="memory-toggle">
         <button
           type="button"
