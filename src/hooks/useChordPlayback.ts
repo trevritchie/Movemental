@@ -78,6 +78,8 @@ interface UseChordPlaybackOptions {
   clearNoTiltChordLocks: () => void;
   initialPlayStyle?: PlayStyle;
   hasPersistedSettings?: boolean;
+  /** Drone: force full retrigger of still-sounding notes on chord changes. */
+  retriggerSoundingNotesRef: RefObject<boolean>;
 }
 
 interface PlaybackResolution {
@@ -103,6 +105,7 @@ export function useChordPlayback({
   clearNoTiltChordLocks,
   initialPlayStyle = 'drone',
   hasPersistedSettings = false,
+  retriggerSoundingNotesRef,
 }: UseChordPlaybackOptions) {
   const [playStyle, setPlayStyle] = useState<PlayStyle>(initialPlayStyle);
   const [tiltModeEnabled, setTiltModeEnabled] = useState(false);
@@ -192,6 +195,7 @@ export function useChordPlayback({
   const { commitPlayback } =
     usePlaybackCommit({
       playStyleRef,
+      retriggerSoundingNotesRef,
       tiltModeRef,
       activePitchesRef,
       previousChordRef,

@@ -34,6 +34,7 @@ export interface UseSettingsResetOptions {
   setBorrowingMemory: (mode: 'global' | 'per-chord') => void;
   setClockLayoutMode: (mode: ClockLayoutMode) => void;
   setGlowingOrbsEnabled: (enabled: boolean) => void;
+  setRetriggerSoundingNotes: (enabled: boolean) => void;
   setSynthPresetId: (id: string) => void;
   setEqProfileId: (id: EqProfileId) => void;
   setChorusWet: (val: number) => void;
@@ -61,6 +62,7 @@ export function useSettingsReset({
   setBorrowingMemory,
   setClockLayoutMode,
   setGlowingOrbsEnabled,
+  setRetriggerSoundingNotes,
   setSynthPresetId,
   setEqProfileId,
   setChorusWet,
@@ -83,6 +85,7 @@ export function useSettingsReset({
         tonalCenter: setTonalCenter,
         octaveRange: setOctaveRange,
         playStyle: setPlayStyle,
+        retriggerSoundingNotes: setRetriggerSoundingNotes,
         mode: setVoiceLeadingMode,
         memory: setBorrowingMemory,
         layoutMode: setClockLayoutMode,
@@ -109,6 +112,7 @@ export function useSettingsReset({
       setBorrowingMemory,
       setClockLayoutMode,
       setGlowingOrbsEnabled,
+      setRetriggerSoundingNotes,
       setSynthPresetId,
       setEqProfileId,
       setChorusWet,

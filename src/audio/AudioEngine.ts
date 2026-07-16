@@ -119,6 +119,12 @@ export class AudioEngine {
   private recording = new SessionRecordingController();
   private isReady: boolean = false;
   private activeNotes: string[] = [];
+  /**
+   * Sampler one-shot end times (Tone timeline seconds) keyed by note name.
+   * Synths omit entries (treated as still sounding until released).
+   * Updated only on attack/release paths; read only on chord-change legato.
+   */
+  private noteEndTimes = new Map<string, number>();
   private isPointerDown: boolean = false;
 
   private eqProfileId: EqProfileId;
@@ -419,6 +425,116 @@ export class AudioEngine {
   }
 
   /**
+   * Tone.Sampler buffer store (private). Used only to read decoded durations
+   * with the same nearest-sample formula Sampler uses internally.
+   */
+  private getSamplerBuffers(): {
+    has: (midi: number) => boolean;
+    get: (midi: number) => { duration: number; loaded: boolean };
+  } | null {
+    if (this.voiceEngine !== 'sampler' || !this.voice) {
+      return null;
+    }
+    const buffers = (
+      this.voice as unknown as {
+        _buffers?: {
+          has: (midi: number) => boolean;
+          get: (midi: number) => { duration: number; loaded: boolean };
+        };
+      }
+    )._buffers;
+    return buffers ?? null;
+  }
+
+  /**
+   * Interval distance to the nearest loaded sample MIDI (Tone.Sampler._findClosest).
+   * Positive means the sample is below the requested pitch.
+   */
+  private findClosestSampleInterval(
+    buffers: { has: (midi: number) => boolean },
+    midi: number,
+  ): number | null {
+    const maxInterval = 96;
+    for (let interval = 0; interval < maxInterval; interval += 1) {
+      if (buffers.has(midi + interval)) {
+        return -interval;
+      }
+      if (buffers.has(midi - interval)) {
+        return interval;
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Effective one-shot length for a sampler note, matching Tone's
+   * `buffer.duration / playbackRate` calculation. Null for synths or
+   * when buffers are unavailable.
+   */
+  private getSamplerNoteDurationSec(noteName: string): number | null {
+    const buffers = this.getSamplerBuffers();
+    if (!buffers) {
+      return null;
+    }
+
+    const midiFloat = Tone.Frequency(noteName).toMidi();
+    const midi = Math.round(midiFloat);
+    const remainder = midiFloat - midi;
+    const difference = this.findClosestSampleInterval(buffers, midi);
+    if (difference === null) {
+      return null;
+    }
+
+    const closestNote = midi - difference;
+    const buffer = buffers.get(closestNote);
+    if (!buffer?.loaded || !(buffer.duration > 0)) {
+      return null;
+    }
+
+    const playbackRate = Math.pow(2, (difference + remainder) / 12);
+    if (!(playbackRate > 0)) {
+      return null;
+    }
+
+    return buffer.duration / playbackRate;
+  }
+
+  private isNoteStillSounding(noteName: string, now: number): boolean {
+    if (this.voiceEngine !== 'sampler') {
+      return true;
+    }
+    const endsAt = this.noteEndTimes.get(noteName);
+    if (endsAt === undefined) {
+      return true;
+    }
+    return now < endsAt;
+  }
+
+  private recordNoteEndTimes(noteNames: string[], attackTime: number): void {
+    if (this.voiceEngine !== 'sampler') {
+      return;
+    }
+    for (const noteName of noteNames) {
+      const durationSec = this.getSamplerNoteDurationSec(noteName);
+      if (durationSec === null) {
+        this.noteEndTimes.delete(noteName);
+        continue;
+      }
+      this.noteEndTimes.set(noteName, attackTime + durationSec);
+    }
+  }
+
+  private clearNoteEndTimes(noteNames?: string[]): void {
+    if (!noteNames) {
+      this.noteEndTimes.clear();
+      return;
+    }
+    for (const noteName of noteNames) {
+      this.noteEndTimes.delete(noteName);
+    }
+  }
+
+  /**
    * Ramp the recorder-only tap to silence before stop() to avoid end-of-file clicks.
    */
   public async fadeOutRecordingTap(
@@ -617,28 +733,46 @@ export class AudioEngine {
           now,
         );
       }
+      this.clearNoteEndTimes();
       this.activeNotes = noteNames;
       audioDebugLog('[AudioEngine] Retriggering:', noteNames);
       const attackTime = now + ATTACK_SCHEDULE_OFFSET_SEC;
       voice.triggerAttack(noteNames, attackTime);
+      this.recordNoteEndTimes(noteNames, attackTime);
       this.logPeakLevelIfDev();
       this.recording.logNoteOns(clamped, undefined, attackTime);
       return;
     }
 
-    // Synchronous legato diffing: sustain overlaps, release only dropped pitches.
-    const notesToRelease = this.activeNotes.filter(n => !noteNames.includes(n));
-    const notesToAttack  = noteNames.filter(n => !this.activeNotes.includes(n));
+    // Legato diff: sustain still-sounding overlaps; re-attack new pitches and
+    // sampler notes whose one-shot buffer has already ended.
+    const soundingNotes = this.activeNotes.filter((n) =>
+      this.isNoteStillSounding(n, now),
+    );
+    const notesToRelease = this.activeNotes.filter(
+      (n) => !noteNames.includes(n),
+    );
+    const liveNotesToRelease = notesToRelease.filter((n) =>
+      soundingNotes.includes(n),
+    );
+    const notesToAttack = noteNames.filter((n) => !soundingNotes.includes(n));
 
     // Update state synchronously before any audio scheduling
     this.activeNotes = noteNames;
+    this.clearNoteEndTimes(notesToRelease);
 
-    if (notesToRelease.length > 0) {
+    if (liveNotesToRelease.length > 0) {
       try {
-        voice.triggerRelease(notesToRelease, now);
+        voice.triggerRelease(liveNotesToRelease, now);
       } catch (err) {
         devWarn('[AudioEngine] Transition release error:', err);
       }
+      this.recording.logNoteOffs(
+        this.noteNamesToMidi(liveNotesToRelease),
+        now,
+      );
+    } else if (notesToRelease.length > 0) {
+      // Dropped pitches already finished sounding; keep MIDI bookkeeping.
       this.recording.logNoteOffs(
         this.noteNamesToMidi(notesToRelease),
         now,
@@ -646,10 +780,18 @@ export class AudioEngine {
     }
 
     if (notesToAttack.length > 0) {
-      audioDebugLog('[AudioEngine] Attacking:', notesToAttack, '| Sustaining:', noteNames.filter(n => !notesToAttack.includes(n)), '| Releasing:', notesToRelease);
+      audioDebugLog(
+        '[AudioEngine] Attacking:',
+        notesToAttack,
+        '| Sustaining:',
+        noteNames.filter((n) => !notesToAttack.includes(n)),
+        '| Releasing:',
+        liveNotesToRelease,
+      );
       // Schedule immediately at `now`. Removing the arbitrary delay prevents
       // chronological inversions from rapid subsequent clicks.
       voice.triggerAttack(notesToAttack, now);
+      this.recordNoteEndTimes(notesToAttack, now);
       this.logPeakLevelIfDev();
       this.recording.logNoteOns(
         this.noteNamesToMidi(notesToAttack),
@@ -681,6 +823,7 @@ export class AudioEngine {
         devWarn('[AudioEngine] ReleaseAll error:', err);
       }
       this.activeNotes = [];
+      this.clearNoteEndTimes();
       this.cancelScheduledAudio();
     }
     this.notifyReleaseListeners();
@@ -703,6 +846,7 @@ export class AudioEngine {
         devWarn('[AudioEngine] Preview release error:', err);
       }
       this.activeNotes = [];
+      this.clearNoteEndTimes();
     }
   }
 

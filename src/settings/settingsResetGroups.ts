@@ -20,6 +20,7 @@ export type SettingsResetGroupId =
   | 'synthEffects'
   | 'eq'
   | 'playStyle'
+  | 'retriggerSoundingNotes'
   | 'tonalCenter'
   | 'voiceLeading'
   | 'voiceBorrowing'
@@ -33,6 +34,7 @@ export const SETTINGS_RESET_GROUP_LABELS: Record<SettingsResetGroupId, string> =
     synthEffects: 'Synth Effects',
     eq: 'EQ',
     playStyle: 'Play Style',
+    retriggerSoundingNotes: 'Retrigger Sounding Notes',
     tonalCenter: 'Tonal Center',
     voiceLeading: 'Voice Leading',
     voiceBorrowing: 'Voice Borrowing',
@@ -86,6 +88,10 @@ export function getSettingsGroupDefaults(
   switch (groupId) {
     case 'playStyle':
       return { playStyle: defaults.general.playStyle };
+    case 'retriggerSoundingNotes':
+      return {
+        retriggerSoundingNotes: defaults.general.retriggerSoundingNotes,
+      };
     case 'tonalCenter':
       return {
         tonalCenter: defaults.general.tonalCenter,

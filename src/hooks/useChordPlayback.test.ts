@@ -66,6 +66,7 @@ describe('useChordPlayback audio-first pointer path', () => {
     applyNoTiltLocksForChord: vi.fn(),
     clearNoTiltChordLocks: vi.fn(),
     hasPersistedSettings: false,
+    retriggerSoundingNotesRef: { current: false },
   };
 
   beforeEach(() => {
@@ -75,6 +76,7 @@ describe('useChordPlayback audio-first pointer path', () => {
     suppressNoTiltRevoiceRef.current = createNoTiltRevoiceSuppressState();
     baseOptions.noTiltPositionLevelRef.current = 0;
     baseOptions.voiceLeadingModeRef.current = 'smoothest';
+    baseOptions.retriggerSoundingNotesRef.current = false;
   });
 
   afterEach(() => {
@@ -235,6 +237,28 @@ describe('useChordPlayback audio-first pointer path', () => {
       | undefined;
     expect(afterRevoice?.name).toBe('Wind');
     expect(selectedChordNameRef.current).toBe('Wind');
+  });
+
+  it('retriggers all notes on chord change when retriggerSoundingNotes is on', async () => {
+    baseOptions.retriggerSoundingNotesRef.current = true;
+
+    const { result } = renderHook(() => useChordPlayback(baseOptions));
+
+    await act(async () => {
+      result.current.enterNoTiltSession();
+      result.current.handleChordPointerDown(branch);
+      await Promise.resolve();
+    });
+
+    mocks.triggerAttack.mockClear();
+
+    await act(async () => {
+      result.current.handleChordPointerDown(earth);
+      await Promise.resolve();
+    });
+
+    expect(mocks.triggerAttack).toHaveBeenCalled();
+    expect(mocks.triggerAttack.mock.calls.at(-1)?.[1]).toBe(true);
   });
 
   it('mutes all voices via release + empty commitPlayback without rewriting labels', async () => {

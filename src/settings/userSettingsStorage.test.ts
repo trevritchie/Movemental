@@ -25,6 +25,7 @@ describe('userSettingsStorage', () => {
         tonalCenter: 3,
         octaveRange: 3,
         playStyle: 'click_and_hold' as const,
+        retriggerSoundingNotes: true,
       },
     };
     saveUserSettings(custom);

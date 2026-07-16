@@ -46,6 +46,8 @@ vi.mock('../context/ChordContext', () => ({
     setClockLayoutMode,
     glowingOrbsEnabled: true,
     setGlowingOrbsEnabled: vi.fn(),
+    retriggerSoundingNotes: false,
+    setRetriggerSoundingNotes: vi.fn(),
     tiltModeEnabled: false,
     resetSettingsGroup: vi.fn(),
     resetAllSettings: vi.fn(),

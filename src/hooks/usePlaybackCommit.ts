@@ -53,6 +53,8 @@ export interface CommitPlaybackOptions extends DispatchAudioOptions {
 
 interface UsePlaybackCommitOptions {
   playStyleRef: RefObject<PlayStyle>;
+  /** When true, drone chord changes fully retrigger still-sounding notes. */
+  retriggerSoundingNotesRef: RefObject<boolean>;
   tiltModeRef: RefObject<boolean>;
   activePitchesRef: RefObject<number[]>;
   previousChordRef: RefObject<Chord | null>;
@@ -86,6 +88,7 @@ interface UsePlaybackCommitOptions {
  */
 export function usePlaybackCommit({
   playStyleRef,
+  retriggerSoundingNotesRef,
   tiltModeRef,
   activePitchesRef,
   previousChordRef,
@@ -145,9 +148,11 @@ export function usePlaybackCommit({
         return;
       }
 
-      audioEngine.triggerAttack(pitches, retrigger);
+      const forceRetrigger =
+        retrigger || retriggerSoundingNotesRef.current === true;
+      audioEngine.triggerAttack(pitches, forceRetrigger);
     },
-    [playStyleRef, activePitchesRef]
+    [playStyleRef, retriggerSoundingNotesRef, activePitchesRef]
   );
 
   const updateVoiceLeadingBaseline = useCallback(

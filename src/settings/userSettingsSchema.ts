@@ -153,6 +153,11 @@ export type GeneralSettings = {
   tonalCenter: number;
   octaveRange: number;
   playStyle: PlayStyle;
+  /**
+   * When true (drone only), chord changes fully retrigger still-sounding notes.
+   * Dead sampler notes always re-attack regardless of this flag.
+   */
+  retriggerSoundingNotes: boolean;
 };
 
 export type VoiceLeadingSettings = {
@@ -203,6 +208,10 @@ export const USER_SETTINGS_SCHEMA: Record<
     playStyle: {
       default: 'drone' as PlayStyle,
       validate: isPlayStyle,
+    },
+    retriggerSoundingNotes: {
+      default: false,
+      validate: isBoolean,
     },
   },
   clockFace: {

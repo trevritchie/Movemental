@@ -71,6 +71,7 @@ describe('ChordProvider persistence', () => {
         tonalCenter: 4,
         octaveRange: 3,
         playStyle: 'click_and_hold',
+        retriggerSoundingNotes: true,
       },
       voiceLeading: { mode: 'root_position' },
       soundDesign: {
@@ -85,6 +86,7 @@ describe('ChordProvider persistence', () => {
     expect(result.current.tonalCenter).toBe(4);
     expect(result.current.octaveRange).toBe(3);
     expect(result.current.playStyle).toBe('click_and_hold');
+    expect(result.current.retriggerSoundingNotes).toBe(true);
     expect(result.current.voiceLeadingMode).toBe('root_position');
     expect(result.current.synthPresetId).toBe('warmPad');
     expect(result.current.eqProfileId).toBe('flat');
@@ -97,6 +99,7 @@ describe('ChordProvider persistence', () => {
         tonalCenter: 4,
         octaveRange: 3,
         playStyle: 'click_and_hold',
+        retriggerSoundingNotes: true,
       },
     });
 
@@ -114,6 +117,9 @@ describe('ChordProvider persistence', () => {
     );
     expect(result.current.playStyle).toBe(
       DEFAULT_USER_SETTINGS.general.playStyle
+    );
+    expect(result.current.retriggerSoundingNotes).toBe(
+      DEFAULT_USER_SETTINGS.general.retriggerSoundingNotes
     );
   });
 
@@ -176,6 +182,7 @@ describe('ChordProvider persistence', () => {
         tonalCenter: 4,
         octaveRange: 3,
         playStyle: 'click_and_hold',
+        retriggerSoundingNotes: true,
       },
     });
 
@@ -190,6 +197,7 @@ describe('ChordProvider persistence', () => {
     );
     expect(result.current.tonalCenter).toBe(4);
     expect(result.current.octaveRange).toBe(3);
+    expect(result.current.retriggerSoundingNotes).toBe(true);
   });
 
   it('resetSettingsGroup restores tonal center note and octave together', () => {
@@ -199,6 +207,7 @@ describe('ChordProvider persistence', () => {
         tonalCenter: 4,
         octaveRange: 3,
         playStyle: 'click_and_hold',
+        retriggerSoundingNotes: true,
       },
     });
 

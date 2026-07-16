@@ -14,6 +14,7 @@ import { ClockLayoutToggle } from './settings/ClockLayoutToggle';
 import { GlowingOrbsToggle } from './settings/GlowingOrbsToggle';
 import { EqProfileToggle } from './settings/EqProfileToggle';
 import { PlayStyleToggle } from './settings/PlayStyleToggle';
+import { RetriggerSoundingNotesToggle } from './settings/RetriggerSoundingNotesToggle';
 import { InstrumentPresetPicker } from './settings/InstrumentPresetPicker';
 import { SettingsSettingHeader } from './settings/SettingsSettingHeader';
 import { SETTINGS_RESET_GROUP_LABELS } from '../settings/settingsResetGroups';
@@ -47,6 +48,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     setTonalCenter,
     octaveRange,
     setOctaveRange,
+    playStyle,
     resetSettingsGroup,
     resetAllSettings,
   } = useChordContext();
@@ -246,6 +248,18 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     <PlayStyleToggle />
                   </div>
                 </div>
+
+                {playStyle === 'drone' && (
+                  <div className="settings-menu-setting">
+                    <SettingsSettingHeader
+                      groupId="retriggerSoundingNotes"
+                      onReset={resetSettingsGroup}
+                    />
+                    <div className="settings-menu-section__panel">
+                      <RetriggerSoundingNotesToggle />
+                    </div>
+                  </div>
+                )}
 
                 <div className="settings-menu-setting">
                   <SettingsSettingHeader

@@ -329,6 +329,62 @@ describe('AudioEngine instrument presets', () => {
     expect(attackSpy).toHaveBeenCalled();
   });
 
+  it('sustains still-sounding synth common tones on legato chord change', async () => {
+    await audioEngine.applyPreset(getSynthPreset('warmPad'));
+    const engine = audioEngine as unknown as { voice: Tone.PolySynth };
+    const attackSpy = vi.spyOn(engine.voice, 'triggerAttack');
+
+    audioEngine.triggerAttack([60, 64, 67]);
+    attackSpy.mockClear();
+    audioEngine.triggerAttack([60, 65, 67]);
+
+    expect(attackSpy).toHaveBeenCalledWith(['F4'], expect.anything());
+  });
+
+  it('re-attacks expired sampler common tones on legato chord change', async () => {
+    await audioEngine.applyPreset(getSynthPreset('grandPiano'));
+    const engine = audioEngine as unknown as {
+      voice: Tone.Sampler;
+      noteEndTimes: Map<string, number>;
+    };
+    const attackSpy = vi.spyOn(engine.voice, 'triggerAttack');
+
+    vi.mocked(Tone.now).mockReturnValue(1);
+    audioEngine.triggerAttack([60, 64, 67]);
+    engine.noteEndTimes.set('C4', 1.5);
+    engine.noteEndTimes.set('E4', 10);
+    engine.noteEndTimes.set('G4', 10);
+    attackSpy.mockClear();
+
+    vi.mocked(Tone.now).mockReturnValue(2);
+    audioEngine.triggerAttack([60, 65, 67]);
+
+    const attacked = attackSpy.mock.calls[0]?.[0] as string[];
+    expect(attacked).toEqual(expect.arrayContaining(['C4', 'F4']));
+    expect(attacked).not.toContain('G4');
+  });
+
+  it('sustains sampler common tones that have not reached end time', async () => {
+    await audioEngine.applyPreset(getSynthPreset('grandPiano'));
+    const engine = audioEngine as unknown as {
+      voice: Tone.Sampler;
+      noteEndTimes: Map<string, number>;
+    };
+    const attackSpy = vi.spyOn(engine.voice, 'triggerAttack');
+
+    vi.mocked(Tone.now).mockReturnValue(1);
+    audioEngine.triggerAttack([60, 64, 67]);
+    engine.noteEndTimes.set('C4', 10);
+    engine.noteEndTimes.set('E4', 10);
+    engine.noteEndTimes.set('G4', 10);
+    attackSpy.mockClear();
+
+    vi.mocked(Tone.now).mockReturnValue(2);
+    audioEngine.triggerAttack([60, 65, 67]);
+
+    expect(attackSpy).toHaveBeenCalledWith(['F4'], expect.anything());
+  });
+
   it('uses natural sample release in drone mode for samplers', async () => {
     await audioEngine.applyPreset(getSynthPreset('grandPiano'));
     const engine = audioEngine as unknown as { voice: Tone.Sampler };

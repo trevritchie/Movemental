@@ -86,6 +86,8 @@ interface ChordContextType {
   setClockLayoutMode: (mode: ClockLayoutMode) => void;
   glowingOrbsEnabled: boolean;
   setGlowingOrbsEnabled: (enabled: boolean) => void;
+  retriggerSoundingNotes: boolean;
+  setRetriggerSoundingNotes: (enabled: boolean) => void;
   lastTapTilt: TiltSample;
   lastCommittedPlaybackTilt: TiltSample;
   smoothBaseParallel: number;
@@ -143,6 +145,13 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
   const [glowingOrbsEnabled, setGlowingOrbsEnabled] = useState(
     loadedSettings.glowingOrbs.enabled
   );
+  const [retriggerSoundingNotes, setRetriggerSoundingNotes] = useState(
+    loadedSettings.general.retriggerSoundingNotes
+  );
+  const retriggerSoundingNotesRef = useRef(retriggerSoundingNotes);
+  useEffect(() => {
+    retriggerSoundingNotesRef.current = retriggerSoundingNotes;
+  }, [retriggerSoundingNotes]);
 
   const selectedChordNameRef = useRef<string | null>(null);
   /** Armed by pointer commits / deferred level flushes; consumed by re-voice. */
@@ -205,6 +214,7 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
     clearNoTiltChordLocks: noTiltLocks.clearAllLocks,
     initialPlayStyle: loadedSettings.general.playStyle,
     hasPersistedSettings,
+    retriggerSoundingNotesRef,
   });
 
   useAudioLifecycle();
@@ -271,6 +281,7 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
     setBorrowingMemory: borrowing.setBorrowingMemory,
     setClockLayoutMode,
     setGlowingOrbsEnabled,
+    setRetriggerSoundingNotes,
     setSynthPresetId,
     setEqProfileId: audio.setEqProfileId,
     setChorusWet: audio.setChorusWet,
@@ -294,6 +305,7 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
         tonalCenter,
         octaveRange,
         playStyle: playback.playStyle,
+        retriggerSoundingNotes,
       },
       voiceLeading: { mode: voiceLeadingMode },
       voiceBorrowing: { memory: borrowing.borrowingMemory },
@@ -319,6 +331,7 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
       tonalCenter,
       octaveRange,
       playback.playStyle,
+      retriggerSoundingNotes,
       voiceLeadingMode,
       borrowing.borrowingMemory,
       clockLayoutMode,
@@ -436,6 +449,8 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
       setClockLayoutMode,
       glowingOrbsEnabled,
       setGlowingOrbsEnabled,
+      retriggerSoundingNotes,
+      setRetriggerSoundingNotes,
       lastTapTilt: playback.lastTapTilt,
       lastCommittedPlaybackTilt: playback.lastCommittedPlaybackTilt,
       smoothBaseParallel: playback.smoothBaseParallel,
@@ -474,6 +489,7 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
       voiceLeadingMode,
       clockLayoutMode,
       glowingOrbsEnabled,
+      retriggerSoundingNotes,
       playback.lastTapTilt,
       playback.lastCommittedPlaybackTilt,
       playback.smoothBaseParallel,
