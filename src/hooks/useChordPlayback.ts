@@ -78,7 +78,11 @@ interface UseChordPlaybackOptions {
   clearNoTiltChordLocks: () => void;
   initialPlayStyle?: PlayStyle;
   hasPersistedSettings?: boolean;
-  /** Tap sustain: force full retrigger of still-sounding notes on chord changes. */
+  /**
+   * Tap sustain: on true chord-name changes (any different button, including
+   * Branch to Sister/Twin/Brother Branch), fully retrigger still-sounding
+   * notes. Same-button re-taps always retrigger regardless of this flag.
+   */
   retriggerSoundingNotesRef: RefObject<boolean>;
 }
 
@@ -195,7 +199,6 @@ export function useChordPlayback({
   const { commitPlayback } =
     usePlaybackCommit({
       playStyleRef,
-      retriggerSoundingNotesRef,
       tiltModeRef,
       activePitchesRef,
       previousChordRef,
@@ -528,10 +531,17 @@ export function useChordPlayback({
         chord.name,
         borrowingStateRef.current
       );
+      const previousName = previousChordRef.current?.name;
+      const isSameButtonRetap = previousName === chord.name;
+      const isChordNameChange =
+        previousName != null && previousName !== chord.name;
       voiceAndPlay(chord, newState, {
+        // Same-button re-tap always retriggers. With the setting on, any
+        // different chord name (including sibling variants) also retriggers.
         retrigger:
           playStyleRef.current === 'tap' &&
-          previousChordRef.current?.name === chord.name,
+          (isSameButtonRetap ||
+            (retriggerSoundingNotesRef.current === true && isChordNameChange)),
         fromPointer: true,
         borrowingStateOverride: newState,
       });
@@ -541,6 +551,7 @@ export function useChordPlayback({
       getBorrowingStateForChord,
       borrowingStateRef,
       voiceAndPlay,
+      retriggerSoundingNotesRef,
     ]
   );
 

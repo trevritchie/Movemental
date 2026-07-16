@@ -53,8 +53,6 @@ export interface CommitPlaybackOptions extends DispatchAudioOptions {
 
 interface UsePlaybackCommitOptions {
   playStyleRef: RefObject<PlayStyle>;
-  /** When true, tap-sustain chord changes fully retrigger still-sounding notes. */
-  retriggerSoundingNotesRef: RefObject<boolean>;
   tiltModeRef: RefObject<boolean>;
   activePitchesRef: RefObject<number[]>;
   previousChordRef: RefObject<Chord | null>;
@@ -88,7 +86,6 @@ interface UsePlaybackCommitOptions {
  */
 export function usePlaybackCommit({
   playStyleRef,
-  retriggerSoundingNotesRef,
   tiltModeRef,
   activePitchesRef,
   previousChordRef,
@@ -148,11 +145,12 @@ export function usePlaybackCommit({
         return;
       }
 
-      const forceRetrigger =
-        retrigger || retriggerSoundingNotesRef.current === true;
-      audioEngine.triggerAttack(pitches, forceRetrigger);
+      // Callers set `retrigger` for same-button re-taps and for true chord-name
+      // changes when Retrigger Sounding Notes is on. Same-chord revoices leave
+      // it false so still-sounding notes can sustain.
+      audioEngine.triggerAttack(pitches, retrigger);
     },
-    [playStyleRef, retriggerSoundingNotesRef, activePitchesRef]
+    [playStyleRef, activePitchesRef]
   );
 
   const updateVoiceLeadingBaseline = useCallback(

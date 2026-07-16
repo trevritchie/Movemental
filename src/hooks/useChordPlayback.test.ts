@@ -239,8 +239,9 @@ describe('useChordPlayback audio-first pointer path', () => {
     expect(selectedChordNameRef.current).toBe('Wind');
   });
 
-  it('retriggers all notes on chord change when retriggerSoundingNotes is on', async () => {
+  it('retriggers all notes on chord-name change when retriggerSoundingNotes is on', async () => {
     baseOptions.retriggerSoundingNotesRef.current = true;
+    const sisterBranch = chordManager.getChordByName('Sister Branch')!;
 
     const { result } = renderHook(() => useChordPlayback(baseOptions));
 
@@ -259,6 +260,60 @@ describe('useChordPlayback audio-first pointer path', () => {
 
     expect(mocks.triggerAttack).toHaveBeenCalled();
     expect(mocks.triggerAttack.mock.calls.at(-1)?.[1]).toBe(true);
+
+    mocks.triggerAttack.mockClear();
+
+    await act(async () => {
+      result.current.handleChordPointerDown(sisterBranch);
+      await Promise.resolve();
+    });
+
+    expect(mocks.triggerAttack.mock.calls.at(-1)?.[1]).toBe(true);
+  });
+
+  it('does not force retrigger on chord-name change when setting is off', async () => {
+    baseOptions.retriggerSoundingNotesRef.current = false;
+
+    const { result } = renderHook(() => useChordPlayback(baseOptions));
+
+    await act(async () => {
+      result.current.enterNoTiltSession();
+      result.current.handleChordPointerDown(branch);
+      await Promise.resolve();
+    });
+
+    mocks.triggerAttack.mockClear();
+
+    await act(async () => {
+      result.current.handleChordPointerDown(earth);
+      await Promise.resolve();
+    });
+
+    expect(mocks.triggerAttack).toHaveBeenCalled();
+    expect(mocks.triggerAttack.mock.calls.at(-1)?.[1]).toBe(false);
+  });
+
+  it('does not apply retriggerSoundingNotes to same-chord revoices', async () => {
+    baseOptions.retriggerSoundingNotesRef.current = true;
+
+    const { result } = renderHook(() => useChordPlayback(baseOptions));
+
+    await act(async () => {
+      result.current.enterNoTiltSession();
+      result.current.handleChordPointerDown(branch);
+      await Promise.resolve();
+    });
+
+    mocks.triggerAttack.mockClear();
+
+    await act(async () => {
+      result.current.playAndDisplayChord(branch, borrowingState);
+      await Promise.resolve();
+    });
+
+    if (mocks.triggerAttack.mock.calls.length > 0) {
+      expect(mocks.triggerAttack.mock.calls.at(-1)?.[1]).toBe(false);
+    }
   });
 
   it('mutes all voices via release + empty commitPlayback without rewriting labels', async () => {

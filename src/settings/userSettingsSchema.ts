@@ -192,8 +192,9 @@ export type GeneralSettings = {
   octaveRange: number;
   playStyle: PlayStyle;
   /**
-   * When true (tap sustain only), chord changes fully retrigger still-sounding
-   * notes. Dead sampler notes always re-attack regardless of this flag.
+   * When true (tap sustain only), true chord-name changes fully retrigger
+   * still-sounding notes. Sibling variants count as name changes; same-button
+   * re-taps always retrigger. Dead sampler notes always re-attack.
    */
   retriggerSoundingNotes: boolean;
 };

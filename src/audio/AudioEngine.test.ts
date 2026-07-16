@@ -364,6 +364,44 @@ describe('AudioEngine instrument presets', () => {
     expect(attacked).not.toContain('G4');
   });
 
+  it('logs MIDI note-off before re-attacking expired sampler common tones', async () => {
+    await audioEngine.applyPreset(getSynthPreset('grandPiano'));
+    const engine = audioEngine as unknown as {
+      voice: Tone.Sampler;
+      noteEndTimes: Map<string, number>;
+    };
+    const attackSpy = vi.spyOn(engine.voice, 'triggerAttack');
+
+    midiRecorderMock.isRecording.mockReturnValue(true);
+    vi.mocked(Tone.now).mockReturnValue(1);
+    audioEngine.triggerAttack([60, 64, 67]);
+    engine.noteEndTimes.set('C4', 1.5);
+    engine.noteEndTimes.set('E4', 10);
+    engine.noteEndTimes.set('G4', 10);
+    attackSpy.mockClear();
+    midiRecorderMock.logNoteOns.mockClear();
+    midiRecorderMock.logNoteOffs.mockClear();
+
+    vi.mocked(Tone.now).mockReturnValue(2);
+    audioEngine.triggerAttack([60, 65, 67]);
+
+    // Tone test mock maps every note-name string to MIDI 60, so assert the
+    // expired common-tone off happens before the re-attack on-events, and
+    // verify the voice heard C4 + F4 via the attack spy.
+    expect(midiRecorderMock.logNoteOffs).toHaveBeenCalledWith([60], 2);
+    expect(midiRecorderMock.logNoteOns).toHaveBeenCalledWith(
+      [60, 60],
+      undefined,
+      2,
+    );
+    const attacked = attackSpy.mock.calls[0]?.[0] as string[];
+    expect(attacked).toEqual(expect.arrayContaining(['C4', 'F4']));
+
+    const offOrder = midiRecorderMock.logNoteOffs.mock.invocationCallOrder[0]!;
+    const onOrder = midiRecorderMock.logNoteOns.mock.invocationCallOrder[0]!;
+    expect(offOrder).toBeLessThan(onOrder);
+  });
+
   it('sustains sampler common tones that have not reached end time', async () => {
     await audioEngine.applyPreset(getSynthPreset('grandPiano'));
     const engine = audioEngine as unknown as {

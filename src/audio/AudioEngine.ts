@@ -52,6 +52,10 @@ import {
   readContextLatencyReport,
 } from './latencyRunner';
 import { audioDebugLog, isAudioEngineDebugEnabled } from './audioDebug';
+import {
+  getSamplerBuffers,
+  getSamplerNoteDurationSec as resolveSamplerNoteDurationSec,
+} from './samplerNoteLifetime';
 import { clamp } from '../utils/clamp';
 
 export { RECORDING_STOP_FADE_MS };
@@ -425,78 +429,21 @@ export class AudioEngine {
   }
 
   /**
-   * Tone.Sampler buffer store (private). Used only to read decoded durations
-   * with the same nearest-sample formula Sampler uses internally.
+   * Effective one-shot length for a sampler note. Null for synths or when
+   * buffers are unavailable.
    */
-  private getSamplerBuffers(): {
-    has: (midi: number) => boolean;
-    get: (midi: number) => { duration: number; loaded: boolean };
-  } | null {
+  private getSamplerNoteDurationSec(noteName: string): number | null {
     if (this.voiceEngine !== 'sampler' || !this.voice) {
       return null;
     }
-    const buffers = (
-      this.voice as unknown as {
-        _buffers?: {
-          has: (midi: number) => boolean;
-          get: (midi: number) => { duration: number; loaded: boolean };
-        };
-      }
-    )._buffers;
-    return buffers ?? null;
-  }
-
-  /**
-   * Interval distance to the nearest loaded sample MIDI (Tone.Sampler._findClosest).
-   * Positive means the sample is below the requested pitch.
-   */
-  private findClosestSampleInterval(
-    buffers: { has: (midi: number) => boolean },
-    midi: number,
-  ): number | null {
-    const maxInterval = 96;
-    for (let interval = 0; interval < maxInterval; interval += 1) {
-      if (buffers.has(midi + interval)) {
-        return -interval;
-      }
-      if (buffers.has(midi - interval)) {
-        return interval;
-      }
-    }
-    return null;
-  }
-
-  /**
-   * Effective one-shot length for a sampler note, matching Tone's
-   * `buffer.duration / playbackRate` calculation. Null for synths or
-   * when buffers are unavailable.
-   */
-  private getSamplerNoteDurationSec(noteName: string): number | null {
-    const buffers = this.getSamplerBuffers();
+    const buffers = getSamplerBuffers(this.voice);
     if (!buffers) {
       return null;
     }
-
-    const midiFloat = Tone.Frequency(noteName).toMidi();
-    const midi = Math.round(midiFloat);
-    const remainder = midiFloat - midi;
-    const difference = this.findClosestSampleInterval(buffers, midi);
-    if (difference === null) {
-      return null;
-    }
-
-    const closestNote = midi - difference;
-    const buffer = buffers.get(closestNote);
-    if (!buffer?.loaded || !(buffer.duration > 0)) {
-      return null;
-    }
-
-    const playbackRate = Math.pow(2, (difference + remainder) / 12);
-    if (!(playbackRate > 0)) {
-      return null;
-    }
-
-    return buffer.duration / playbackRate;
+    return resolveSamplerNoteDurationSec(
+      buffers,
+      Tone.Frequency(noteName).toMidi(),
+    );
   }
 
   private isNoteStillSounding(noteName: string, now: number): boolean {
@@ -746,16 +693,22 @@ export class AudioEngine {
 
     // Legato diff: sustain still-sounding overlaps; re-attack new pitches and
     // sampler notes whose one-shot buffer has already ended.
-    const soundingNotes = this.activeNotes.filter((n) =>
+    const previousActive = this.activeNotes;
+    const soundingNotes = previousActive.filter((n) =>
       this.isNoteStillSounding(n, now),
     );
-    const notesToRelease = this.activeNotes.filter(
+    const notesToRelease = previousActive.filter(
       (n) => !noteNames.includes(n),
     );
     const liveNotesToRelease = notesToRelease.filter((n) =>
       soundingNotes.includes(n),
     );
     const notesToAttack = noteNames.filter((n) => !soundingNotes.includes(n));
+    // Expired common tones re-enter notesToAttack while MIDI still holds them.
+    // Log note-off before note-on so SessionMidiRecorder accepts the re-attack.
+    const expiredOverlaps = notesToAttack.filter((n) =>
+      previousActive.includes(n),
+    );
 
     // Update state synchronously before any audio scheduling
     this.activeNotes = noteNames;
@@ -775,6 +728,13 @@ export class AudioEngine {
       // Dropped pitches already finished sounding; keep MIDI bookkeeping.
       this.recording.logNoteOffs(
         this.noteNamesToMidi(notesToRelease),
+        now,
+      );
+    }
+
+    if (expiredOverlaps.length > 0) {
+      this.recording.logNoteOffs(
+        this.noteNamesToMidi(expiredOverlaps),
         now,
       );
     }
