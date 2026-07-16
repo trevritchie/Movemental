@@ -408,6 +408,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                           onReset={resetSettingsGroup}
                         />
                         <div className="settings-menu-section__panel">
+                          <p className="settings-menu-section__hint">
+                            When switching chords, choose whether notes that are
+                            already playing are restarted or not.
+                          </p>
                           <RetriggerSoundingNotesToggle />
                         </div>
                       </div>
