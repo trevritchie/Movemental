@@ -23,7 +23,7 @@ const BB_TONAL_CENTER = 10;
 /** Close voicing at 2nd Position (parallelSteps=1, inputSteps=3 → width 4). */
 const SECOND_POSITION_CLOSE = tiltSampleFromLevels(3, 1);
 
-/** Default drone voicing at 2nd Position. */
+/** Default tap-mode voicing at 2nd Position. */
 const DRONE_SECOND_POSITION = tiltSampleFromLevels(
   DEFAULT_NO_TILT_VOICING_LEVEL,
   1
@@ -145,7 +145,7 @@ describe('borrowing mute integration', () => {
     expect(muted).toEqual(full.filter((n) => n % 12 !== 0));
   });
 
-  it('Branch at C: drone replay path respects mute at 2nd Position', () => {
+  it('Branch at C: tap replay path respects mute at 2nd Position', () => {
     const branch = chordManager.getChordByName('Branch')!;
     const voiced = computeVoicedWithOverlays(
       branch,

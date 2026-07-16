@@ -67,7 +67,7 @@ state. Subscribe here only from sound-design settings components
 tilt (borrowing sliders, settings) should stay on `ChordContext` alone.
 
 **`tiltModeEnabled`** is set once at splash (Tilt vs No Tilt / desktop Start).
-Settings only switch audio `playStyle` (`drone` vs `click_and_hold`). Tilt
+Settings only switch audio `playStyle` (`tap` vs `tap_and_hold`). Tilt
 coordinate mapping and sampling rules:
 [`docs/movements-not-chords-tilt.md`](docs/movements-not-chords-tilt.md).
 

@@ -40,7 +40,7 @@ vi.mock('../context/ChordContext', () => ({
     setOctaveRange,
     borrowingMemory: 'per-chord',
     setBorrowingMemory,
-    playStyle: 'drone',
+    playStyle: 'tap',
     setPlayStyle,
     clockLayoutMode: 'chromatic',
     setClockLayoutMode,
@@ -78,14 +78,14 @@ vi.mock('../context/SoundDesignContext', () => ({
     setEnvelopeSustain: vi.fn(),
     envelopeRelease: 2.5,
     setEnvelopeRelease: vi.fn(),
-    droneAttack: 0.15,
-    setDroneAttack: vi.fn(),
-    droneDecay: 2.0,
-    setDroneDecay: vi.fn(),
-    droneSustain: 0.5,
-    setDroneSustain: vi.fn(),
-    droneRelease: 2.5,
-    setDroneRelease: vi.fn(),
+    tapAttack: 0.15,
+    setTapAttack: vi.fn(),
+    tapDecay: 2.0,
+    setTapDecay: vi.fn(),
+    tapSustain: 0.5,
+    setTapSustain: vi.fn(),
+    tapRelease: 2.5,
+    setTapRelease: vi.fn(),
   }),
 }));
 
@@ -204,7 +204,7 @@ describe('MobileActionButtons', () => {
     const instrumentIndex = text.indexOf('Instrument');
     const eqIndex = text.indexOf('EQ');
     const playStyleIndex = text.indexOf('Play Style');
-    const holdModeIndex = text.indexOf('Hold Mode');
+    const holdModeIndex = text.indexOf('Sustain Mode');
     const voiceLeadingIndex = text.indexOf('Voice Leading');
     const visualsIndex = text.indexOf('Visuals');
     const clockFaceIndex = text.indexOf('Clock Face Diagram');

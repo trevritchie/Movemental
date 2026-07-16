@@ -78,7 +78,7 @@ interface UseChordPlaybackOptions {
   clearNoTiltChordLocks: () => void;
   initialPlayStyle?: PlayStyle;
   hasPersistedSettings?: boolean;
-  /** Drone: force full retrigger of still-sounding notes on chord changes. */
+  /** Tap sustain: force full retrigger of still-sounding notes on chord changes. */
   retriggerSoundingNotesRef: RefObject<boolean>;
 }
 
@@ -103,7 +103,7 @@ export function useChordPlayback({
   noTiltLockMapsRef,
   applyNoTiltLocksForChord,
   clearNoTiltChordLocks,
-  initialPlayStyle = 'drone',
+  initialPlayStyle = 'tap',
   hasPersistedSettings = false,
   retriggerSoundingNotesRef,
 }: UseChordPlaybackOptions) {
@@ -255,8 +255,8 @@ export function useChordPlayback({
     tiltModeRef.current = true;
     setTiltModeEnabled(true);
     if (!hasPersistedSettingsRef.current) {
-      playStyleRef.current = 'drone';
-      setPlayStyle('drone');
+      playStyleRef.current = 'tap';
+      setPlayStyle('tap');
     }
     clearNoTiltChordLocks();
     resetVoiceLeadingSession();
@@ -266,8 +266,8 @@ export function useChordPlayback({
     tiltModeRef.current = false;
     setTiltModeEnabled(false);
     if (!hasPersistedSettingsRef.current) {
-      playStyleRef.current = 'drone';
-      setPlayStyle('drone');
+      playStyleRef.current = 'tap';
+      setPlayStyle('tap');
     }
     resetVoiceLeadingSession();
   }, [resetVoiceLeadingSession]);
@@ -503,7 +503,7 @@ export function useChordPlayback({
     const handleGlobalPointerUp = () => {
       if (isPointerDownRef.current) {
         isPointerDownRef.current = false;
-        if (playStyleRef.current === 'click_and_hold') {
+        if (playStyleRef.current === 'tap_and_hold') {
           audioEngine.releaseActiveNotes();
         }
       }
@@ -530,7 +530,7 @@ export function useChordPlayback({
       );
       voiceAndPlay(chord, newState, {
         retrigger:
-          playStyleRef.current === 'drone' &&
+          playStyleRef.current === 'tap' &&
           previousChordRef.current?.name === chord.name,
         fromPointer: true,
         borrowingStateOverride: newState,
@@ -552,7 +552,7 @@ export function useChordPlayback({
 
   const handleChordPointerUp = useCallback(() => {
     isPointerDownRef.current = false;
-    if (playStyleRef.current === 'click_and_hold') {
+    if (playStyleRef.current === 'tap_and_hold') {
       audioEngine.releaseActiveNotes();
     }
   }, []);

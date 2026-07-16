@@ -10,8 +10,8 @@ import {
   type EqProfileId,
 } from '../audio/outputProfiles';
 import {
-  getPresetClickHoldEnvelope,
-  getPresetDroneEnvelope,
+  getPresetTapAndHoldEnvelope,
+  getPresetTapEnvelope,
   getPresetFxDefaults,
   getSynthPreset,
   isSamplerPreset,
@@ -32,8 +32,8 @@ const SAMPLER_DRY_FX = { chorusWet: 0, delayWet: 0, reverbWet: 0 };
 function applyPresetDefaultsToState(preset: SynthPreset) {
   const defaults = {
     fx: getPresetFxDefaults(preset),
-    clickHold: getPresetClickHoldEnvelope(preset),
-    drone: getPresetDroneEnvelope(preset),
+    tapAndHold: getPresetTapAndHoldEnvelope(preset),
+    tap: getPresetTapEnvelope(preset),
   };
   if (isSamplerPreset(preset)) {
     defaults.fx = { ...SAMPLER_DRY_FX };
@@ -111,15 +111,15 @@ export function useAudioSettings(
     soundDesign.envelopeRelease,
   );
 
-  const [droneAttack, setDroneAttackState] = useState(soundDesign.droneAttack);
-  const [droneDecay, setDroneDecayState] = useState(soundDesign.droneDecay);
-  const [droneSustain, setDroneSustainState] = useState(soundDesign.droneSustain);
-  const [droneRelease, setDroneReleaseState] = useState(soundDesign.droneRelease);
+  const [tapAttack, setTapAttackState] = useState(soundDesign.tapAttack);
+  const [tapDecay, setTapDecayState] = useState(soundDesign.tapDecay);
+  const [tapSustain, setTapSustainState] = useState(soundDesign.tapSustain);
+  const [tapRelease, setTapReleaseState] = useState(soundDesign.tapRelease);
 
-  const clickHoldCurvesRef = useRef<PresetEnvelopeSettings>(
-    initialDefaults.clickHold,
+  const tapAndHoldCurvesRef = useRef<PresetEnvelopeSettings>(
+    initialDefaults.tapAndHold,
   );
-  const droneCurvesRef = useRef<PresetEnvelopeSettings>(initialDefaults.drone);
+  const tapCurvesRef = useRef<PresetEnvelopeSettings>(initialDefaults.tap);
 
   const didSyncPresetOnMount = useRef(false);
 
@@ -129,7 +129,7 @@ export function useAudioSettings(
   );
 
   const isSamplerAdsrDisabled = useMemo(
-    () => isSamplerInstrumentActive && playStyle === 'drone',
+    () => isSamplerInstrumentActive && playStyle === 'tap',
     [isSamplerInstrumentActive, playStyle],
   );
 
@@ -192,16 +192,16 @@ export function useAudioSettings(
     if (isSamplerAdsrDisabled) {
       return;
     }
-    if (playStyle === 'drone') {
+    if (playStyle === 'tap') {
       audioEngine.applyEnvelopeSettings(
         envelopeToEngineSettings(
           {
-            attack: droneAttack,
-            decay: droneDecay,
-            sustain: droneSustain,
-            release: droneRelease,
+            attack: tapAttack,
+            decay: tapDecay,
+            sustain: tapSustain,
+            release: tapRelease,
           },
-          droneCurvesRef.current,
+          tapCurvesRef.current,
         ),
       );
     } else {
@@ -213,7 +213,7 @@ export function useAudioSettings(
             sustain: envelopeSustain,
             release: envelopeRelease,
           },
-          clickHoldCurvesRef.current,
+          tapAndHoldCurvesRef.current,
         ),
       );
     }
@@ -224,10 +224,10 @@ export function useAudioSettings(
     envelopeDecay,
     envelopeSustain,
     envelopeRelease,
-    droneAttack,
-    droneDecay,
-    droneSustain,
-    droneRelease,
+    tapAttack,
+    tapDecay,
+    tapSustain,
+    tapRelease,
   ]);
 
   const setEqProfileId = (id: EqProfileId) => {
@@ -238,8 +238,8 @@ export function useAudioSettings(
     const preset = getSynthPreset(id);
     const defaults = applyPresetDefaultsToState(preset);
 
-    clickHoldCurvesRef.current = defaults.clickHold;
-    droneCurvesRef.current = defaults.drone;
+    tapAndHoldCurvesRef.current = defaults.tapAndHold;
+    tapCurvesRef.current = defaults.tap;
 
     setSynthPresetIdState(id);
 
@@ -254,19 +254,19 @@ export function useAudioSettings(
       defaults.fx.reverbWet,
     );
 
-    setEnvelopeAttackState(defaults.clickHold.attack);
-    setEnvelopeDecayState(defaults.clickHold.decay);
-    setEnvelopeSustainState(defaults.clickHold.sustain);
-    setEnvelopeReleaseState(defaults.clickHold.release);
-    setDroneAttackState(defaults.drone.attack);
-    setDroneDecayState(defaults.drone.decay);
-    setDroneSustainState(defaults.drone.sustain);
-    setDroneReleaseState(defaults.drone.release);
+    setEnvelopeAttackState(defaults.tapAndHold.attack);
+    setEnvelopeDecayState(defaults.tapAndHold.decay);
+    setEnvelopeSustainState(defaults.tapAndHold.sustain);
+    setEnvelopeReleaseState(defaults.tapAndHold.release);
+    setTapAttackState(defaults.tap.attack);
+    setTapDecayState(defaults.tap.decay);
+    setTapSustainState(defaults.tap.sustain);
+    setTapReleaseState(defaults.tap.release);
 
-    if (playStyle === 'drone' && !isSamplerPreset(preset)) {
-      audioEngine.applyEnvelopeSettings(defaults.drone);
-    } else if (playStyle !== 'drone') {
-      audioEngine.applyEnvelopeSettings(defaults.clickHold);
+    if (playStyle === 'tap' && !isSamplerPreset(preset)) {
+      audioEngine.applyEnvelopeSettings(defaults.tap);
+    } else if (playStyle !== 'tap') {
+      audioEngine.applyEnvelopeSettings(defaults.tapAndHold);
     }
 
     if (isSamplerPreset(preset)) {
@@ -328,10 +328,10 @@ export function useAudioSettings(
   const setEnvelopeDecay = guardedAdsrSetter(setEnvelopeDecayState);
   const setEnvelopeSustain = guardedAdsrSetter(setEnvelopeSustainState);
   const setEnvelopeRelease = guardedAdsrSetter(setEnvelopeReleaseState);
-  const setDroneAttack = guardedAdsrSetter(setDroneAttackState);
-  const setDroneDecay = guardedAdsrSetter(setDroneDecayState);
-  const setDroneSustain = guardedAdsrSetter(setDroneSustainState);
-  const setDroneRelease = guardedAdsrSetter(setDroneReleaseState);
+  const setTapAttack = guardedAdsrSetter(setTapAttackState);
+  const setTapDecay = guardedAdsrSetter(setTapDecayState);
+  const setTapSustain = guardedAdsrSetter(setTapSustainState);
+  const setTapRelease = guardedAdsrSetter(setTapReleaseState);
 
   return {
     eqProfileId,
@@ -356,13 +356,13 @@ export function useAudioSettings(
     setEnvelopeSustain,
     envelopeRelease,
     setEnvelopeRelease,
-    droneAttack,
-    setDroneAttack,
-    droneDecay,
-    setDroneDecay,
-    droneSustain,
-    setDroneSustain,
-    droneRelease,
-    setDroneRelease,
+    tapAttack,
+    setTapAttack,
+    tapDecay,
+    setTapDecay,
+    tapSustain,
+    setTapSustain,
+    tapRelease,
+    setTapRelease,
   };
 }

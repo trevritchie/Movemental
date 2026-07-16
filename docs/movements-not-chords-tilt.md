@@ -20,7 +20,7 @@ Start for no-tilt). It selects the voicing **anchor**:
 | Tilt (`tiltModeEnabled`) | `contrary` | Roll can move the bass as width changes |
 | No tilt | `pivot` | Position sets bass; width only adds voices above |
 
-**`playStyle`** is audio-only: `drone` or `click_and_hold`. It is not a third
+**`playStyle`** is audio-only: `tap` or `tap_and_hold`. It is not a third
 tilt mode. Click and Hold works with device tilt enabled. Prefer
 `usesDeviceTilt(tiltModeEnabled)` over comparing `playStyle` to a legacy
 `"tilt"` value.

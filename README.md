@@ -79,7 +79,7 @@ sensor update.
 
 **Session tilt vs audio play style** (see next section)
 *   **`tiltModeEnabled`**: set once at splash (Tilt vs No Tilt / desktop Start)
-*   **`playStyle`**: audio-only (`drone` or `click_and_hold`); works with or without device tilt
+*   **`playStyle`**: audio-only (`tap` or `tap_and_hold`); works with or without device tilt
 
 ---
 
@@ -96,12 +96,12 @@ voicing engine, then dispatch to `AudioEngine`.
 
 | Audio play style | Trigger | Behavior |
 |------------------|---------|----------|
-| `click_and_hold` | Diagram pointer down/up | Pointer: sustained notes until release. Borrowing sliders: timed half-note preview via `playNotes`. |
-| `drone` | Diagram tap or glissando | Legato diff: common tones sustain, others crossfade (`triggerAttack`). |
+| `tap_and_hold` | Diagram pointer down/up | Pointer: sustained notes until release. Borrowing sliders: timed half-note preview via `playNotes`. |
+| `tap` | Diagram tap or glissando | Legato diff: common tones sustain, others crossfade (`triggerAttack`). |
 
 | Session tilt | Trigger | Behavior |
 |--------------|---------|----------|
-| Device tilt on (`tiltModeEnabled`) | Diagram tap (phone) | Samples **raw** device orientation at tap time for voicing. Voicing does not track continuously while holding. Independent of `playStyle` (Click and Hold works in tilt). See [`docs/movements-not-chords-tilt.md`](docs/movements-not-chords-tilt.md). |
+| Device tilt on (`tiltModeEnabled`) | Diagram tap (phone) | Samples **raw** device orientation at tap time for voicing. Voicing does not track continuously while holding. Independent of `playStyle` (Tap & Hold works in tilt). See [`docs/movements-not-chords-tilt.md`](docs/movements-not-chords-tilt.md). |
 | Device tilt off | Diagram / desktop | Pivot-anchor no-tilt controls set register and bass. |
 
 **Static vs tilt voicing anchors** ([`TiltVoicingEngine.ts`](src/music/TiltVoicingEngine.ts))

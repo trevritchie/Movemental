@@ -31,14 +31,14 @@ export interface SoundDesignContextType {
   setEnvelopeSustain: (val: number) => void;
   envelopeRelease: number;
   setEnvelopeRelease: (val: number) => void;
-  droneAttack: number;
-  setDroneAttack: (val: number) => void;
-  droneDecay: number;
-  setDroneDecay: (val: number) => void;
-  droneSustain: number;
-  setDroneSustain: (val: number) => void;
-  droneRelease: number;
-  setDroneRelease: (val: number) => void;
+  tapAttack: number;
+  setTapAttack: (val: number) => void;
+  tapDecay: number;
+  setTapDecay: (val: number) => void;
+  tapSustain: number;
+  setTapSustain: (val: number) => void;
+  tapRelease: number;
+  setTapRelease: (val: number) => void;
 }
 
 export const SoundDesignContext = createContext<

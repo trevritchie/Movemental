@@ -11,7 +11,7 @@ import type { GainStagingScenario } from './gainStagingScenarios';
 import { buildMasterBusGraph } from './masterBusGraph';
 import { getAdaptedOutputProfile } from './outputProfiles';
 import {
-  getPresetClickHoldEnvelope,
+  getPresetTapAndHoldEnvelope,
   getPresetFxDefaults,
   getSynthPreset,
 } from './synthPresets';
@@ -25,7 +25,7 @@ export async function renderScenario(
     scenario.layoutTier,
   );
   const fx = getPresetFxDefaults(preset);
-  const envelope = getPresetClickHoldEnvelope(preset);
+  const envelope = getPresetTapAndHoldEnvelope(preset);
   const noteNames = scenario.midiNotes.map((midi) =>
     Tone.Frequency(midi, 'midi').toNote(),
   );

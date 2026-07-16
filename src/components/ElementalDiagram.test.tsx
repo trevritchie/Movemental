@@ -23,7 +23,7 @@ const mockChordContext = {
   handleChordPointerDown: mockHandleChordPointerDown,
   handleChordPointerUp: mockHandleChordPointerUp,
   handleChordPointerEnter: vi.fn(),
-  playStyle: 'drone',
+  playStyle: 'tap',
   noTiltVoicingLevel: 0,
   setNoTiltVoicingLevel: vi.fn(),
   noTiltPositionLevel: 4,

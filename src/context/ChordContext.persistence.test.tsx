@@ -70,7 +70,7 @@ describe('ChordProvider persistence', () => {
       general: {
         tonalCenter: 4,
         octaveRange: 3,
-        playStyle: 'click_and_hold',
+        playStyle: 'tap_and_hold',
         retriggerSoundingNotes: true,
       },
       voiceLeading: { mode: 'root_position' },
@@ -85,7 +85,7 @@ describe('ChordProvider persistence', () => {
 
     expect(result.current.tonalCenter).toBe(4);
     expect(result.current.octaveRange).toBe(3);
-    expect(result.current.playStyle).toBe('click_and_hold');
+    expect(result.current.playStyle).toBe('tap_and_hold');
     expect(result.current.retriggerSoundingNotes).toBe(true);
     expect(result.current.voiceLeadingMode).toBe('root_position');
     expect(result.current.synthPresetId).toBe('warmPad');
@@ -98,7 +98,7 @@ describe('ChordProvider persistence', () => {
       general: {
         tonalCenter: 4,
         octaveRange: 3,
-        playStyle: 'click_and_hold',
+        playStyle: 'tap_and_hold',
         retriggerSoundingNotes: true,
       },
     });
@@ -181,7 +181,7 @@ describe('ChordProvider persistence', () => {
       general: {
         tonalCenter: 4,
         octaveRange: 3,
-        playStyle: 'click_and_hold',
+        playStyle: 'tap_and_hold',
         retriggerSoundingNotes: true,
       },
     });
@@ -206,7 +206,7 @@ describe('ChordProvider persistence', () => {
       general: {
         tonalCenter: 4,
         octaveRange: 3,
-        playStyle: 'click_and_hold',
+        playStyle: 'tap_and_hold',
         retriggerSoundingNotes: true,
       },
     });
@@ -223,7 +223,7 @@ describe('ChordProvider persistence', () => {
     expect(result.current.octaveRange).toBe(
       DEFAULT_USER_SETTINGS.general.octaveRange,
     );
-    expect(result.current.playStyle).toBe('click_and_hold');
+    expect(result.current.playStyle).toBe('tap_and_hold');
   });
 
   it('resetAllSettings uses session voice leading default in no-tilt', () => {

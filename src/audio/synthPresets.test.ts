@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   extractEnvelopeFromVoiceOptions,
-  getPresetClickHoldEnvelope,
+  getPresetTapAndHoldEnvelope,
   getPresetFxDefaults,
   getSynthPreset,
   SAMPLER_ENGINE_PRESETS,
@@ -35,15 +35,15 @@ describe('extractEnvelopeFromVoiceOptions', () => {
   });
 });
 
-describe('getPresetClickHoldEnvelope', () => {
+describe('getPresetTapAndHoldEnvelope', () => {
   it('uses Warm Pad custom envelopes', () => {
-    const warmPad = getPresetClickHoldEnvelope(getSynthPreset('warmPad'));
+    const warmPad = getPresetTapAndHoldEnvelope(getSynthPreset('warmPad'));
     expect(warmPad.attack).toBe(0.15);
     expect(warmPad.release).toBe(2.5);
   });
 
   it('uses Electric Cello pad-style envelope defaults', () => {
-    const cello = getPresetClickHoldEnvelope(getSynthPreset('electricCello'));
+    const cello = getPresetTapAndHoldEnvelope(getSynthPreset('electricCello'));
     expect(cello.attack).toBe(0.2);
     expect(cello.decay).toBe(1.5);
     expect(cello.sustain).toBe(0.45);
@@ -51,7 +51,7 @@ describe('getPresetClickHoldEnvelope', () => {
   });
 
   it('prefers envelopeDefaults over JSON attackCurve', () => {
-    const superSaw = getPresetClickHoldEnvelope(getSynthPreset('superSaw'));
+    const superSaw = getPresetTapAndHoldEnvelope(getSynthPreset('superSaw'));
     expect(superSaw.attack).toBe(0.08);
     expect(superSaw.attackCurve).toBeUndefined();
   });

@@ -401,7 +401,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                       </div>
                     </div>
 
-                    {playStyle === 'drone' && (
+                    {playStyle === 'tap' && (
                       <div className="settings-menu-setting">
                         <SettingsSettingHeader
                           groupId="retriggerSoundingNotes"

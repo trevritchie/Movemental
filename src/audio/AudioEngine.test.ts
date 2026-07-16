@@ -385,7 +385,7 @@ describe('AudioEngine instrument presets', () => {
     expect(attackSpy).toHaveBeenCalledWith(['F4'], expect.anything());
   });
 
-  it('uses natural sample release in drone mode for samplers', async () => {
+  it('uses natural sample release in tap mode for samplers', async () => {
     await audioEngine.applyPreset(getSynthPreset('grandPiano'));
     const engine = audioEngine as unknown as { voice: Tone.Sampler };
     const setSpy = vi.spyOn(engine.voice, 'set');

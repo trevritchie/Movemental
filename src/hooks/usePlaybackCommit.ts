@@ -53,7 +53,7 @@ export interface CommitPlaybackOptions extends DispatchAudioOptions {
 
 interface UsePlaybackCommitOptions {
   playStyleRef: RefObject<PlayStyle>;
-  /** When true, drone chord changes fully retrigger still-sounding notes. */
+  /** When true, tap-sustain chord changes fully retrigger still-sounding notes. */
   retriggerSoundingNotesRef: RefObject<boolean>;
   tiltModeRef: RefObject<boolean>;
   activePitchesRef: RefObject<number[]>;
@@ -139,7 +139,7 @@ export function usePlaybackCommit({
         return;
       }
 
-      if (style === 'click_and_hold') {
+      if (style === 'tap_and_hold') {
         if (fromPointer) {
           audioEngine.triggerAttack(pitches);
         } else {

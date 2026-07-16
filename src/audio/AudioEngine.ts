@@ -37,7 +37,7 @@ import {
 import {
   DEFAULT_SYNTH_PRESET_ID,
   getMaxPolyphony,
-  getPresetClickHoldEnvelope,
+  getPresetTapAndHoldEnvelope,
   getSynthPreset,
   isSamplerPreset,
   voiceOptionsWithoutEnvelope,
@@ -147,7 +147,7 @@ export class AudioEngine {
       'attackCurve' | 'decayCurve' | 'sustainCurve' | 'releaseCurve'
     >
   > = {};
-  /** When true, sampler uses preset-native release instead of user ADSR (drone mode). */
+  /** When true, sampler uses preset-native release instead of user ADSR (tap mode). */
   private samplerNaturalEnvelope = false;
   private latencyContextConfigured = false;
   private isBackgrounded = false;
@@ -358,7 +358,7 @@ export class AudioEngine {
 
   private async initSynth() {
     const profile = this.activeOutputProfile;
-    const envelope = getPresetClickHoldEnvelope(this.currentPreset);
+    const envelope = getPresetTapAndHoldEnvelope(this.currentPreset);
 
     if (isAudioEngineDebugEnabled()) {
       this.peakMeter = new Tone.Meter({ smoothing: 0.3 });

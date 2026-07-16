@@ -50,8 +50,8 @@ export interface SynthPreset {
     reverbWet: number;
   };
   envelopeDefaults?: {
-    clickHold: AdsrValues;
-    drone: AdsrValues;
+    tapAndHold: AdsrValues;
+    tap: AdsrValues;
   };
 }
 
@@ -63,16 +63,16 @@ export function isSynthPreset(preset: SynthPreset): boolean {
   return preset.engine === 'synth';
 }
 
-/** Shared click-and-hold envelope for Warm Pad. */
-const PAD_CLICK_HOLD: AdsrValues = {
+/** Shared tap-and-hold envelope for Warm Pad. */
+const PAD_TAP_AND_HOLD: AdsrValues = {
   attack: 0.15,
   decay: 2.0,
   sustain: 0.5,
   release: 2.5,
 };
 
-/** Shared drone envelope for Warm Pad. */
-const PAD_DRONE: AdsrValues = {
+/** Shared tap-sustain envelope for Warm Pad. */
+const PAD_TAP: AdsrValues = {
   attack: 0.6,
   decay: 3.5,
   sustain: 0.2,
@@ -117,13 +117,13 @@ const GRAND_PIANO_PRESET: SynthPreset = {
     reverbWet: 0.12,
   },
   envelopeDefaults: {
-    clickHold: {
+    tapAndHold: {
       attack: 0.001,
       decay: 0.3,
       sustain: 0.85,
       release: 1.2,
     },
-    drone: {
+    tap: {
       attack: 0.05,
       decay: 0.5,
       sustain: 0.6,
@@ -149,8 +149,8 @@ export const SYNTH_PRESETS: SynthPreset[] = [
     filterCutoffHz: 900,
     fxDefaults: PAD_FX,
     envelopeDefaults: {
-      clickHold: PAD_CLICK_HOLD,
-      drone: PAD_DRONE,
+      tapAndHold: PAD_TAP_AND_HOLD,
+      tap: PAD_TAP,
     },
   },
   {
@@ -162,8 +162,8 @@ export const SYNTH_PRESETS: SynthPreset[] = [
     volumeDb: -9,
     filterCutoffHz: 1200,
     envelopeDefaults: {
-      clickHold: { attack: 0.08, decay: 1.2, sustain: 0.55, release: 1.8 },
-      drone: { attack: 0.5, decay: 2.5, sustain: 0.25, release: 0.4 },
+      tapAndHold: { attack: 0.08, decay: 1.2, sustain: 0.55, release: 1.8 },
+      tap: { attack: 0.5, decay: 2.5, sustain: 0.25, release: 0.4 },
     },
   },
   {
@@ -175,8 +175,8 @@ export const SYNTH_PRESETS: SynthPreset[] = [
     volumeDb: -6,
     filterCutoffHz: 1000,
     envelopeDefaults: {
-      clickHold: { attack: 0.2, decay: 1.5, sustain: 0.45, release: 2.0 },
-      drone: { attack: 0.8, decay: 3.0, sustain: 0.2, release: 0.6 },
+      tapAndHold: { attack: 0.2, decay: 1.5, sustain: 0.45, release: 2.0 },
+      tap: { attack: 0.8, decay: 3.0, sustain: 0.2, release: 0.6 },
     },
   },
   GRAND_PIANO_PRESET,
@@ -243,11 +243,11 @@ export function voiceOptionsWithoutEnvelope(
   return rest;
 }
 
-export function getPresetClickHoldEnvelope(
+export function getPresetTapAndHoldEnvelope(
   preset: SynthPreset,
 ): PresetEnvelopeSettings {
-  if (preset.envelopeDefaults?.clickHold) {
-    return { ...preset.envelopeDefaults.clickHold };
+  if (preset.envelopeDefaults?.tapAndHold) {
+    return { ...preset.envelopeDefaults.tapAndHold };
   }
   if (preset.voiceOptions) {
     return (
@@ -259,11 +259,11 @@ export function getPresetClickHoldEnvelope(
   return { ...FALLBACK_ENVELOPE };
 }
 
-export function getPresetDroneEnvelope(
+export function getPresetTapEnvelope(
   preset: SynthPreset,
 ): PresetEnvelopeSettings {
-  if (preset.envelopeDefaults?.drone) {
-    return { ...preset.envelopeDefaults.drone };
+  if (preset.envelopeDefaults?.tap) {
+    return { ...preset.envelopeDefaults.tap };
   }
   if (preset.voiceOptions) {
     return (

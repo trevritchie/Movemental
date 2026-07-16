@@ -12,7 +12,7 @@ describe('userSettingsSchema', () => {
   it('derives DEFAULT_USER_SETTINGS from schema defaults', () => {
     expect(DEFAULT_USER_SETTINGS.general.tonalCenter).toBe(10);
     expect(DEFAULT_USER_SETTINGS.general.octaveRange).toBe(2);
-    expect(DEFAULT_USER_SETTINGS.general.playStyle).toBe('drone');
+    expect(DEFAULT_USER_SETTINGS.general.playStyle).toBe('tap');
     expect(DEFAULT_USER_SETTINGS.general.retriggerSoundingNotes).toBe(false);
     expect(DEFAULT_USER_SETTINGS.voiceLeading.mode).toBe('smooth');
     expect(DEFAULT_USER_SETTINGS.clockFace.layoutMode).toBe('chromatic');
@@ -35,7 +35,7 @@ describe('userSettingsSchema', () => {
     expect(getSectionDefaults('general')).toEqual({
       tonalCenter: 10,
       octaveRange: 2,
-      playStyle: 'drone',
+      playStyle: 'tap',
       retriggerSoundingNotes: false,
     });
     expect(getSectionDefaults('soundDesign').delayWet).toBe(0);
@@ -58,15 +58,15 @@ describe('userSettingsSchema', () => {
         envelopeDecay: 2,
         envelopeSustain: 0.5,
         envelopeRelease: 2.5,
-        droneAttack: 0.6,
-        droneDecay: 3.5,
-        droneSustain: 0.2,
-        droneRelease: 0.5,
+        tapAttack: 0.6,
+        tapDecay: 3.5,
+        tapSustain: 0.2,
+        tapRelease: 0.5,
       },
     });
 
     expect(result.general.tonalCenter).toBe(10);
-    expect(result.general.playStyle).toBe('drone');
+    expect(result.general.playStyle).toBe('tap');
     expect(result.voiceLeading.mode).toBe('smooth');
     expect(result.voiceBorrowing.memory).toBe('per-chord');
     expect(result.soundDesign.synthPresetId).toBe(DEFAULT_SYNTH_PRESET_ID);
@@ -94,7 +94,7 @@ describe('userSettingsSchema', () => {
 
   it('validateLoadedSettings accepts valid partial overrides', () => {
     const result = validateLoadedSettings({
-      general: { tonalCenter: 0, octaveRange: 4, playStyle: 'click_and_hold' },
+      general: { tonalCenter: 0, octaveRange: 4, playStyle: 'tap_and_hold' },
       voiceLeading: { mode: 'root_position' },
       voiceBorrowing: { memory: 'global' },
       soundDesign: { chorusWet: 0.5 },
@@ -103,7 +103,7 @@ describe('userSettingsSchema', () => {
     expect(result.general).toEqual({
       tonalCenter: 0,
       octaveRange: 4,
-      playStyle: 'click_and_hold',
+      playStyle: 'tap_and_hold',
       retriggerSoundingNotes: false,
     });
     expect(result.voiceLeading.mode).toBe('root_position');
@@ -112,5 +112,28 @@ describe('userSettingsSchema', () => {
     expect(result.soundDesign.reverbWet).toBe(
       DEFAULT_USER_SETTINGS.soundDesign.reverbWet
     );
+  });
+
+  it('migrates legacy drone and click_and_hold play styles and envelope keys', () => {
+    const result = validateLoadedSettings({
+      general: { playStyle: 'drone' },
+      soundDesign: {
+        droneAttack: 0.9,
+        droneDecay: 1.1,
+        droneSustain: 0.3,
+        droneRelease: 0.4,
+      },
+    });
+
+    expect(result.general.playStyle).toBe('tap');
+    expect(result.soundDesign.tapAttack).toBe(0.9);
+    expect(result.soundDesign.tapDecay).toBe(1.1);
+    expect(result.soundDesign.tapSustain).toBe(0.3);
+    expect(result.soundDesign.tapRelease).toBe(0.4);
+
+    const holdResult = validateLoadedSettings({
+      general: { playStyle: 'click_and_hold' },
+    });
+    expect(holdResult.general.playStyle).toBe('tap_and_hold');
   });
 });
