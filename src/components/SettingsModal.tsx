@@ -419,10 +419,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                         onReset={resetSettingsGroup}
                       />
                       <div className="settings-menu-section__panel">
-                        <p className="settings-menu-section__hint">
-                          Choose how parallel position is set when you move
-                          between chords.
-                        </p>
                         <VoiceLeadingToggle />
                       </div>
                     </div>
