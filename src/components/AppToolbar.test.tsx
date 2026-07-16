@@ -193,25 +193,32 @@ describe('MobileActionButtons', () => {
     expect(screen.getByRole('button', { name: /^global$/i })).toBeInTheDocument();
   });
 
-  it('lists settings with per-setting headers and reset buttons', async () => {
+  it('lists settings with grouped sections and per-setting reset buttons', async () => {
     render(<MobileActionButtons />);
 
     await openSettingsFromToolbar();
     const dialog = screen.getByRole('dialog', { name: 'Settings' });
     const text = dialog.textContent ?? '';
-    const instrumentIndex = text.indexOf('Instrument');
-    const playStyleIndex = text.indexOf('Play Style');
+    const audioIndex = text.indexOf('Audio');
     const tonalCenterIndex = text.indexOf('Tonal Center');
+    const instrumentIndex = text.indexOf('Instrument');
+    const eqIndex = text.indexOf('EQ');
+    const playStyleIndex = text.indexOf('Play Style');
+    const holdModeIndex = text.indexOf('Hold Mode');
     const voiceLeadingIndex = text.indexOf('Voice Leading');
+    const visualsIndex = text.indexOf('Visuals');
     const clockFaceIndex = text.indexOf('Clock Face Diagram');
     const glowingOrbsIndex = text.indexOf('Glowing Orbs');
 
-    expect(instrumentIndex).toBeGreaterThan(-1);
-    expect(playStyleIndex).toBeGreaterThan(-1);
-    expect(playStyleIndex).toBeLessThan(instrumentIndex);
-    expect(tonalCenterIndex).toBeGreaterThan(playStyleIndex);
-    expect(voiceLeadingIndex).toBeGreaterThan(tonalCenterIndex);
-    expect(clockFaceIndex).toBeGreaterThan(voiceLeadingIndex);
+    expect(audioIndex).toBeGreaterThan(-1);
+    expect(tonalCenterIndex).toBeGreaterThan(audioIndex);
+    expect(instrumentIndex).toBeGreaterThan(tonalCenterIndex);
+    expect(eqIndex).toBeGreaterThan(instrumentIndex);
+    expect(playStyleIndex).toBeGreaterThan(eqIndex);
+    expect(holdModeIndex).toBeGreaterThan(playStyleIndex);
+    expect(voiceLeadingIndex).toBeGreaterThan(holdModeIndex);
+    expect(visualsIndex).toBeGreaterThan(voiceLeadingIndex);
+    expect(clockFaceIndex).toBeGreaterThan(visualsIndex);
     expect(glowingOrbsIndex).toBeGreaterThan(clockFaceIndex);
     expect(screen.queryByText('Sound')).not.toBeInTheDocument();
     expect(screen.queryByText('Playback')).not.toBeInTheDocument();
@@ -219,8 +226,17 @@ describe('MobileActionButtons', () => {
       screen.getAllByRole('button', { name: /reset .* to defaults/i }).length,
     ).toBeGreaterThanOrEqual(8);
     expect(
-      screen.getByRole('heading', { level: 3, name: 'Voice Leading' }),
+      screen.getByRole('heading', { level: 3, name: 'Play Style' }),
     ).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { level: 4, name: 'Voice Leading' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getAllByRole('button', { name: /^off$/i }).length,
+    ).toBeGreaterThanOrEqual(1);
+    expect(
+      screen.getAllByRole('button', { name: /^on$/i }).length,
+    ).toBeGreaterThanOrEqual(1);
   });
 
   it('opens help directly from the toolbar without showing settings', async () => {

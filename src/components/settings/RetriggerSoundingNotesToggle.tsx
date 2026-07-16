@@ -10,19 +10,19 @@ export const RetriggerSoundingNotesToggle: React.FC = () => {
       <div className="memory-toggle">
         <button
           type="button"
-          className={`memory-btn ${retriggerSoundingNotes ? 'active' : ''}`}
-          onClick={() => setRetriggerSoundingNotes(true)}
-          aria-pressed={retriggerSoundingNotes}
-        >
-          On
-        </button>
-        <button
-          type="button"
           className={`memory-btn ${!retriggerSoundingNotes ? 'active' : ''}`}
           onClick={() => setRetriggerSoundingNotes(false)}
           aria-pressed={!retriggerSoundingNotes}
         >
           Off
+        </button>
+        <button
+          type="button"
+          className={`memory-btn ${retriggerSoundingNotes ? 'active' : ''}`}
+          onClick={() => setRetriggerSoundingNotes(true)}
+          aria-pressed={retriggerSoundingNotes}
+        >
+          On
         </button>
       </div>
     </div>

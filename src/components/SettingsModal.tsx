@@ -239,204 +239,249 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   </section>
                 )}
 
-                <div className="settings-menu-setting">
-                  <SettingsSettingHeader
-                    groupId="playStyle"
-                    onReset={resetSettingsGroup}
-                  />
-                  <div className="settings-menu-section__panel">
-                    <PlayStyleToggle />
-                  </div>
-                </div>
-
-                {playStyle === 'drone' && (
-                  <div className="settings-menu-setting">
-                    <SettingsSettingHeader
-                      groupId="retriggerSoundingNotes"
-                      onReset={resetSettingsGroup}
-                    />
-                    <div className="settings-menu-section__panel">
-                      <RetriggerSoundingNotesToggle />
-                    </div>
-                  </div>
-                )}
-
-                <div className="settings-menu-setting">
-                  <SettingsSettingHeader
-                    groupId="instrument"
-                    onReset={resetSettingsGroup}
-                  />
-                  <div className="settings-menu-section__panel">
-                  <button
-                    type="button"
-                    className={`settings-menu-accordion${showInstrument ? ' active' : ''}`}
-                    onClick={() => {
-                      setShowInstrument(!showInstrument);
-                      if (!showInstrument) {
-                        setShowAdsr(false);
-                        setShowEffects(false);
-                      }
-                    }}
-                    aria-expanded={showInstrument}
-                    aria-label={`Instrument: ${selectedInstrumentName}`}
+                <section
+                  className="settings-menu-group"
+                  aria-labelledby={`${idPrefix}group-audio`}
+                >
+                  <h3
+                    id={`${idPrefix}group-audio`}
+                    className="settings-menu-group__title"
                   >
-                    <span className="settings-menu-accordion__value">
-                      {selectedInstrumentName}
-                    </span>
-                  </button>
-                  {showInstrument && (
-                    <div className="settings-menu-accordion__panel settings-menu-accordion__panel--instrument">
-                      <InstrumentPresetPicker onPresetSelect={handlePresetSelect} />
+                    Audio
+                  </h3>
+                  <div className="settings-menu-group__body">
+                    <div className="settings-menu-setting">
+                      <SettingsSettingHeader
+                        groupId="tonalCenter"
+                        onReset={resetSettingsGroup}
+                      />
+                      <div className="settings-menu-section__panel">
+                        <div className="settings-menu-tonal-center">
+                          <select
+                            className="settings-menu-tonal-center__note"
+                            value={tonalCenter}
+                            onChange={(e) =>
+                              setTonalCenter(Number(e.target.value))
+                            }
+                            aria-label="Tonal center note"
+                          >
+                            {NOTE_NAMES_FLAT.map((note, idx) => (
+                              <option key={idx} value={idx}>
+                                {note}
+                              </option>
+                            ))}
+                          </select>
+                          <select
+                            className="settings-menu-tonal-center__octave"
+                            value={octaveRange}
+                            onChange={(e) =>
+                              setOctaveRange(Number(e.target.value))
+                            }
+                            aria-label="Tonal center octave"
+                          >
+                            {OCTAVE_RANGE_OPTIONS.map((o) => (
+                              <option key={o} value={o}>
+                                {o}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
                     </div>
-                  )}
-                  {showAdsrPanel && (
-                    <>
-                      <button
-                        type="button"
-                        className={`settings-menu-accordion${isAdsrExpanded ? ' active' : ''}`}
-                        onClick={() => {
-                          setShowAdsr(!showAdsr);
-                          if (!showAdsr) {
-                            setShowEffects(false);
-                            setShowInstrument(false);
-                          }
-                        }}
-                        aria-expanded={isAdsrExpanded}
-                      >
-                        {SETTINGS_RESET_GROUP_LABELS.envelopeAdsr}
-                      </button>
-                      {isAdsrExpanded && (
-                        <div className="settings-menu-accordion__panel">
-                          <AdsrPanelContent idPrefix={idPrefix} />
+
+                    <div className="settings-menu-setting">
+                      <SettingsSettingHeader
+                        groupId="instrument"
+                        onReset={resetSettingsGroup}
+                      />
+                      <div className="settings-menu-section__panel">
+                        <button
+                          type="button"
+                          className={`settings-menu-accordion${showInstrument ? ' active' : ''}`}
+                          onClick={() => {
+                            setShowInstrument(!showInstrument);
+                            if (!showInstrument) {
+                              setShowAdsr(false);
+                              setShowEffects(false);
+                            }
+                          }}
+                          aria-expanded={showInstrument}
+                          aria-label={`Instrument: ${selectedInstrumentName}`}
+                        >
+                          <span className="settings-menu-accordion__value">
+                            {selectedInstrumentName}
+                          </span>
+                        </button>
+                        {showInstrument && (
+                          <div className="settings-menu-accordion__panel settings-menu-accordion__panel--instrument">
+                            <InstrumentPresetPicker
+                              onPresetSelect={handlePresetSelect}
+                            />
+                          </div>
+                        )}
+                        {showAdsrPanel && (
+                          <>
+                            <button
+                              type="button"
+                              className={`settings-menu-accordion${isAdsrExpanded ? ' active' : ''}`}
+                              onClick={() => {
+                                setShowAdsr(!showAdsr);
+                                if (!showAdsr) {
+                                  setShowEffects(false);
+                                  setShowInstrument(false);
+                                }
+                              }}
+                              aria-expanded={isAdsrExpanded}
+                            >
+                              {SETTINGS_RESET_GROUP_LABELS.envelopeAdsr}
+                            </button>
+                            {isAdsrExpanded && (
+                              <div className="settings-menu-accordion__panel">
+                                <AdsrPanelContent idPrefix={idPrefix} />
+                              </div>
+                            )}
+                          </>
+                        )}
+                        {showEffectsPanel && (
+                          <>
+                            <button
+                              type="button"
+                              className={`settings-menu-accordion${isEffectsExpanded ? ' active' : ''}`}
+                              onClick={() => {
+                                setShowEffects(!showEffects);
+                                if (!showEffects) {
+                                  setShowAdsr(false);
+                                  setShowInstrument(false);
+                                }
+                              }}
+                              aria-expanded={isEffectsExpanded}
+                            >
+                              {SETTINGS_RESET_GROUP_LABELS.synthEffects}
+                            </button>
+                            {isEffectsExpanded && (
+                              <div className="settings-menu-accordion__panel">
+                                <EffectsPanelContent idPrefix={idPrefix} />
+                              </div>
+                            )}
+                          </>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="settings-menu-setting">
+                      <SettingsSettingHeader
+                        groupId="eq"
+                        onReset={resetSettingsGroup}
+                      />
+                      <div className="settings-menu-section__panel">
+                        <EqProfileToggle />
+                      </div>
+                    </div>
+                  </div>
+                </section>
+
+                <section
+                  className="settings-menu-group"
+                  aria-labelledby={`${idPrefix}group-play-style`}
+                >
+                  <h3
+                    id={`${idPrefix}group-play-style`}
+                    className="settings-menu-group__title"
+                  >
+                    Play Style
+                  </h3>
+                  <div className="settings-menu-group__body">
+                    <div className="settings-menu-setting">
+                      <SettingsSettingHeader
+                        groupId="playStyle"
+                        onReset={resetSettingsGroup}
+                      />
+                      <div className="settings-menu-section__panel">
+                        <PlayStyleToggle />
+                      </div>
+                    </div>
+
+                    {playStyle === 'drone' && (
+                      <div className="settings-menu-setting">
+                        <SettingsSettingHeader
+                          groupId="retriggerSoundingNotes"
+                          onReset={resetSettingsGroup}
+                        />
+                        <div className="settings-menu-section__panel">
+                          <RetriggerSoundingNotesToggle />
                         </div>
-                      )}
-                    </>
-                  )}
-                  {showEffectsPanel && (
-                    <>
-                      <button
-                        type="button"
-                        className={`settings-menu-accordion${isEffectsExpanded ? ' active' : ''}`}
-                        onClick={() => {
-                          setShowEffects(!showEffects);
-                          if (!showEffects) {
-                            setShowAdsr(false);
-                            setShowInstrument(false);
-                          }
-                        }}
-                        aria-expanded={isEffectsExpanded}
-                      >
-                        {SETTINGS_RESET_GROUP_LABELS.synthEffects}
-                      </button>
-                      {isEffectsExpanded && (
-                        <div className="settings-menu-accordion__panel">
-                          <EffectsPanelContent idPrefix={idPrefix} />
-                        </div>
-                      )}
-                    </>
-                  )}
-                  </div>
-                </div>
+                      </div>
+                    )}
 
-                <div className="settings-menu-setting">
-                  <SettingsSettingHeader
-                    groupId="eq"
-                    onReset={resetSettingsGroup}
-                  />
-                  <div className="settings-menu-section__panel">
-                  <EqProfileToggle />
-                  </div>
-                </div>
+                    <div className="settings-menu-setting">
+                      <SettingsSettingHeader
+                        groupId="voiceLeading"
+                        onReset={resetSettingsGroup}
+                      />
+                      <div className="settings-menu-section__panel">
+                        <p className="settings-menu-section__hint">
+                          Choose how parallel position is set when you move
+                          between chords.
+                        </p>
+                        <VoiceLeadingToggle />
+                      </div>
+                    </div>
 
-                <div className="settings-menu-setting">
-                  <SettingsSettingHeader
-                    groupId="tonalCenter"
-                    onReset={resetSettingsGroup}
-                  />
-                  <div className="settings-menu-section__panel">
-                  <div className="settings-menu-tonal-center">
-                    <select
-                      className="settings-menu-tonal-center__note"
-                      value={tonalCenter}
-                      onChange={(e) => setTonalCenter(Number(e.target.value))}
-                      aria-label="Tonal center note"
-                    >
-                      {NOTE_NAMES_FLAT.map((note, idx) => (
-                        <option key={idx} value={idx}>
-                          {note}
-                        </option>
-                      ))}
-                    </select>
-                    <select
-                      className="settings-menu-tonal-center__octave"
-                      value={octaveRange}
-                      onChange={(e) => setOctaveRange(Number(e.target.value))}
-                      aria-label="Tonal center octave"
-                    >
-                      {OCTAVE_RANGE_OPTIONS.map((o) => (
-                        <option key={o} value={o}>
-                          {o}
-                        </option>
-                      ))}
-                    </select>
+                    <div className="settings-menu-setting">
+                      <SettingsSettingHeader
+                        groupId="voiceBorrowing"
+                        onReset={resetSettingsGroup}
+                      />
+                      <div className="settings-menu-section__panel">
+                        <p className="settings-menu-section__hint">
+                          Choose whether borrowing settings are remembered per
+                          chord or shared globally.
+                        </p>
+                        <BorrowingMemoryToggle />
+                      </div>
+                    </div>
                   </div>
-                  </div>
-                </div>
+                </section>
 
-                <div className="settings-menu-setting">
-                  <SettingsSettingHeader
-                    groupId="voiceLeading"
-                    onReset={resetSettingsGroup}
-                  />
-                  <div className="settings-menu-section__panel">
-                  <p className="settings-menu-section__hint">
-                    Choose how parallel position is set when you move between
-                    chords.
-                  </p>
-                  <VoiceLeadingToggle />
-                  </div>
-                </div>
+                <section
+                  className="settings-menu-group"
+                  aria-labelledby={`${idPrefix}group-visuals`}
+                >
+                  <h3
+                    id={`${idPrefix}group-visuals`}
+                    className="settings-menu-group__title"
+                  >
+                    Visuals
+                  </h3>
+                  <div className="settings-menu-group__body">
+                    <div className="settings-menu-setting">
+                      <SettingsSettingHeader
+                        groupId="clockFace"
+                        onReset={resetSettingsGroup}
+                      />
+                      <div className="settings-menu-section__panel">
+                        <p className="settings-menu-section__hint">
+                          Choose how note names are arranged around the diagram.
+                        </p>
+                        <ClockLayoutToggle />
+                      </div>
+                    </div>
 
-                <div className="settings-menu-setting">
-                  <SettingsSettingHeader
-                    groupId="voiceBorrowing"
-                    onReset={resetSettingsGroup}
-                  />
-                  <div className="settings-menu-section__panel">
-                  <p className="settings-menu-section__hint">
-                    Choose whether borrowing settings are remembered per chord or
-                    shared globally.
-                  </p>
-                  <BorrowingMemoryToggle />
+                    <div className="settings-menu-setting">
+                      <SettingsSettingHeader
+                        groupId="glowingOrbs"
+                        onReset={resetSettingsGroup}
+                      />
+                      <div className="settings-menu-section__panel">
+                        <p className="settings-menu-section__hint">
+                          Show the ambient Earth, Wind, and Fire glow behind the
+                          diagram.
+                        </p>
+                        <GlowingOrbsToggle />
+                      </div>
+                    </div>
                   </div>
-                </div>
-
-                <div className="settings-menu-setting">
-                  <SettingsSettingHeader
-                    groupId="clockFace"
-                    onReset={resetSettingsGroup}
-                  />
-                  <div className="settings-menu-section__panel">
-                  <p className="settings-menu-section__hint">
-                    Choose how note names are arranged around the diagram.
-                  </p>
-                  <ClockLayoutToggle />
-                  </div>
-                </div>
-
-                <div className="settings-menu-setting">
-                  <SettingsSettingHeader
-                    groupId="glowingOrbs"
-                    onReset={resetSettingsGroup}
-                  />
-                  <div className="settings-menu-section__panel">
-                  <p className="settings-menu-section__hint">
-                    Show the ambient Earth, Wind, and Fire glow behind the
-                    diagram.
-                  </p>
-                  <GlowingOrbsToggle />
-                  </div>
-                </div>
+                </section>
 
                 <div className="settings-menu-reset-all">
                   <button

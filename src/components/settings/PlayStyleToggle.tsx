@@ -1,8 +1,12 @@
 import React from 'react';
 import { useChordContext } from '../../context/ChordContext';
+import { useLayoutTier } from '../../hooks/useLayoutTier';
 
 export const PlayStyleToggle: React.FC = () => {
   const { playStyle, setPlayStyle } = useChordContext();
+  const layoutTier = useLayoutTier();
+  const holdLabel =
+    layoutTier === 'desktop' ? 'Click & Hold' : 'Tap & Hold';
 
   return (
     <div className="memory-toggle">
@@ -20,7 +24,7 @@ export const PlayStyleToggle: React.FC = () => {
         onClick={() => setPlayStyle('click_and_hold')}
         aria-pressed={playStyle === 'click_and_hold'}
       >
-        Click & Hold
+        {holdLabel}
       </button>
     </div>
   );

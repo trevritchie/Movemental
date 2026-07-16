@@ -33,7 +33,7 @@ export const SETTINGS_RESET_GROUP_LABELS: Record<SettingsResetGroupId, string> =
     envelopeAdsr: 'Envelope (ADSR)',
     synthEffects: 'Synth Effects',
     eq: 'EQ',
-    playStyle: 'Play Style',
+    playStyle: 'Hold Mode',
     retriggerSoundingNotes: 'Retrigger Sounding Notes',
     tonalCenter: 'Tonal Center',
     voiceLeading: 'Voice Leading',

@@ -9,6 +9,7 @@ describe('settingsResetGroups', () => {
   it('defines labels for every reset group', () => {
     expect(SETTINGS_RESET_GROUP_LABELS.instrument).toBe('Instrument');
     expect(SETTINGS_RESET_GROUP_LABELS.tonalCenter).toBe('Tonal Center');
+    expect(SETTINGS_RESET_GROUP_LABELS.playStyle).toBe('Hold Mode');
     expect(SETTINGS_RESET_GROUP_LABELS.clockFace).toBe('Clock Face Diagram');
     expect(SETTINGS_RESET_GROUP_LABELS.glowingOrbs).toBe('Glowing Orbs');
     expect(SETTINGS_RESET_GROUP_LABELS.retriggerSoundingNotes).toBe(

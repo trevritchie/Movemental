@@ -192,7 +192,7 @@ describe('DiagramCornerActions', () => {
     expect(screen.getByText(/How Movemental works/i)).toBeInTheDocument();
   });
 
-  it('shows only drone and click-and-hold play styles on tablet', async () => {
+  it('shows drone and tap-and-hold play styles on tablet', async () => {
     vi.mocked(useLayoutTier).mockReturnValue('tablet');
 
     render(<DiagramCornerActions />);
@@ -200,8 +200,11 @@ describe('DiagramCornerActions', () => {
 
     expect(screen.getByRole('button', { name: 'Drone' })).toBeInTheDocument();
     expect(
-      screen.getByRole('button', { name: /click & hold/i }),
+      screen.getByRole('button', { name: /tap & hold/i }),
     ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /click & hold/i }),
+    ).not.toBeInTheDocument();
   });
 
   it('calls panic stop without opening the menu', () => {
