@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   DEFAULT_USER_SETTINGS,
+  getDefaultHarmonicFunctionLabelsEnabled,
   getDefaultSoundDesignSettings,
   getDefaultVoiceLeadingMode,
   getSectionDefaults,
@@ -17,6 +18,10 @@ describe('userSettingsSchema', () => {
     expect(DEFAULT_USER_SETTINGS.voiceLeading.mode).toBe('smooth');
     expect(DEFAULT_USER_SETTINGS.clockFace.layoutMode).toBe('chromatic');
     expect(DEFAULT_USER_SETTINGS.glowingOrbs.enabled).toBe(true);
+    expect(DEFAULT_USER_SETTINGS.harmonicFunctionLabels.enabled).toBe(false);
+    expect(DEFAULT_USER_SETTINGS.diagramLayout.diagramMode).toBe(
+      'complete_geometry',
+    );
     expect(DEFAULT_USER_SETTINGS.voiceBorrowing.memory).toBe('per-chord');
     expect(DEFAULT_USER_SETTINGS.soundDesign.synthPresetId).toBe(
       DEFAULT_SYNTH_PRESET_ID
@@ -92,6 +97,11 @@ describe('userSettingsSchema', () => {
     expect(getDefaultVoiceLeadingMode(false)).toBe('smoothest');
   });
 
+  it('getDefaultHarmonicFunctionLabelsEnabled follows chord-name labels', () => {
+    expect(getDefaultHarmonicFunctionLabelsEnabled(true)).toBe(true);
+    expect(getDefaultHarmonicFunctionLabelsEnabled(false)).toBe(false);
+  });
+
   it('validateLoadedSettings accepts valid partial overrides', () => {
     const result = validateLoadedSettings({
       general: { tonalCenter: 0, octaveRange: 4, playStyle: 'tap_and_hold' },
@@ -135,5 +145,44 @@ describe('userSettingsSchema', () => {
       general: { playStyle: 'click_and_hold' },
     });
     expect(holdResult.general.playStyle).toBe('tap_and_hold');
+  });
+
+  it('validateLoadedSettings defaults and accepts harmonicFunctionLabels.enabled', () => {
+    expect(validateLoadedSettings({}).harmonicFunctionLabels.enabled).toBe(
+      false,
+    );
+    expect(
+      validateLoadedSettings({
+        harmonicFunctionLabels: { enabled: true },
+      }).harmonicFunctionLabels.enabled,
+    ).toBe(true);
+    expect(
+      validateLoadedSettings({
+        harmonicFunctionLabels: { enabled: 'yes' },
+      }).harmonicFunctionLabels.enabled,
+    ).toBe(false);
+  });
+
+  it('migrates legacy axisLabels into harmonicFunctionLabels', () => {
+    const result = validateLoadedSettings({
+      axisLabels: { enabled: false },
+    });
+    expect(result.harmonicFunctionLabels.enabled).toBe(false);
+  });
+
+  it('validateLoadedSettings defaults and accepts diagramLayout.diagramMode', () => {
+    expect(validateLoadedSettings({}).diagramLayout.diagramMode).toBe(
+      'complete_geometry',
+    );
+    expect(
+      validateLoadedSettings({
+        diagramLayout: { diagramMode: 'major' },
+      }).diagramLayout.diagramMode,
+    ).toBe('major');
+    expect(
+      validateLoadedSettings({
+        diagramLayout: { diagramMode: 'minor' },
+      }).diagramLayout.diagramMode,
+    ).toBe('complete_geometry');
   });
 });

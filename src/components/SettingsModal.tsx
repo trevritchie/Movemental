@@ -12,6 +12,8 @@ import { BorrowingMemoryToggle } from './settings/BorrowingMemoryToggle';
 import { VoiceLeadingToggle } from './settings/VoiceLeadingToggle';
 import { ClockLayoutToggle } from './settings/ClockLayoutToggle';
 import { GlowingOrbsToggle } from './settings/GlowingOrbsToggle';
+import { HarmonicFunctionLabelsToggle } from './settings/HarmonicFunctionLabelsToggle';
+import { DiagramLayoutSelect } from './settings/DiagramLayoutSelect';
 import { EqProfileToggle } from './settings/EqProfileToggle';
 import { PlayStyleToggle } from './settings/PlayStyleToggle';
 import { RetriggerSoundingNotesToggle } from './settings/RetriggerSoundingNotesToggle';
@@ -393,6 +395,16 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   <div className="settings-menu-group__body">
                     <div className="settings-menu-setting">
                       <SettingsSettingHeader
+                        groupId="diagramLayout"
+                        onReset={resetSettingsGroup}
+                      />
+                      <div className="settings-menu-section__panel">
+                        <DiagramLayoutSelect />
+                      </div>
+                    </div>
+
+                    <div className="settings-menu-setting">
+                      <SettingsSettingHeader
                         groupId="playStyle"
                         onReset={resetSettingsGroup}
                       />
@@ -456,6 +468,20 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   <div className="settings-menu-group__body">
                     <div className="settings-menu-setting">
                       <SettingsSettingHeader
+                        groupId="glowingOrbs"
+                        onReset={resetSettingsGroup}
+                      />
+                      <div className="settings-menu-section__panel">
+                        <p className="settings-menu-section__hint">
+                          Show the ambient Earth, Wind, and Fire glow behind the
+                          diagram.
+                        </p>
+                        <GlowingOrbsToggle />
+                      </div>
+                    </div>
+
+                    <div className="settings-menu-setting">
+                      <SettingsSettingHeader
                         groupId="clockFace"
                         onReset={resetSettingsGroup}
                       />
@@ -469,15 +495,14 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
                     <div className="settings-menu-setting">
                       <SettingsSettingHeader
-                        groupId="glowingOrbs"
+                        groupId="harmonicFunctionLabels"
                         onReset={resetSettingsGroup}
                       />
                       <div className="settings-menu-section__panel">
                         <p className="settings-menu-section__hint">
-                          Show the ambient Earth, Wind, and Fire glow behind the
-                          diagram.
+                          Label each triangle edge with its harmonic function.
                         </p>
-                        <GlowingOrbsToggle />
+                        <HarmonicFunctionLabelsToggle />
                       </div>
                     </div>
                   </div>

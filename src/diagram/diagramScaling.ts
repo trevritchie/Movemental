@@ -1,4 +1,4 @@
-import type { LayoutTier } from '../layout/breakpoints';
+import { BREAKPOINTS, type LayoutTier } from '../layout/breakpoints';
 import {
   DIAGRAM_VIEW_W,
   DIAGRAM_VIEW_H,
@@ -38,12 +38,28 @@ export type {
 export function isCompactDiagramMode(
   tier: LayoutTier,
   containerWidth: number,
-  compactDiagramWidth = 600,
+  compactDiagramWidth: number = BREAKPOINTS.compactDiagramWidth,
 ): boolean {
   return (
     tier === 'phone' ||
     tier === 'tablet' ||
     containerWidth < compactDiagramWidth
+  );
+}
+
+/**
+ * Whether the elemental diagram shows per-chord name labels.
+ * Matches ElementalDiagram `showLabels = !isCompactDiagram`.
+ */
+export function resolveShowChordNameLabels(
+  layoutTier: LayoutTier,
+  containerWidth: number,
+  compactDiagramWidth: number = BREAKPOINTS.compactDiagramWidth,
+): boolean {
+  return !isCompactDiagramMode(
+    layoutTier,
+    containerWidth,
+    compactDiagramWidth,
   );
 }
 

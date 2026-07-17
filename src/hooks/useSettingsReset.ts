@@ -7,6 +7,7 @@
 import { useCallback, useMemo } from 'react';
 import { clearUserSettings } from '../settings/userSettingsStorage';
 import {
+  getDefaultHarmonicFunctionLabelsEnabled,
   getDefaultVoiceLeadingMode,
   getSectionDefaults,
   SETTINGS_SECTION_IDS,
@@ -19,13 +20,17 @@ import {
 } from '../settings/settingsResetGroups';
 import type {
   ClockLayoutMode,
+  DiagramLayoutMode,
   PlayStyle,
   VoiceLeadingMode,
 } from '../music/sessionModes';
 import type { EqProfileId } from '../audio/outputProfiles';
+import type { LayoutTier } from '../layout/breakpoints';
+import { resolveShowChordNameLabels } from '../diagram/diagramScaling';
 
 export interface UseSettingsResetOptions {
   tiltModeEnabled: boolean;
+  layoutTier: LayoutTier;
   synthPresetId: string;
   setTonalCenter: (val: number) => void;
   setOctaveRange: (val: number) => void;
@@ -34,6 +39,8 @@ export interface UseSettingsResetOptions {
   setBorrowingMemory: (mode: 'global' | 'per-chord') => void;
   setClockLayoutMode: (mode: ClockLayoutMode) => void;
   setGlowingOrbsEnabled: (enabled: boolean) => void;
+  setHarmonicFunctionLabelsEnabled: (enabled: boolean) => void;
+  setDiagramLayoutMode: (mode: DiagramLayoutMode) => void;
   setRetriggerSoundingNotes: (enabled: boolean) => void;
   setSynthPresetId: (id: string) => void;
   setEqProfileId: (id: EqProfileId) => void;
@@ -54,6 +61,7 @@ export interface UseSettingsResetOptions {
 
 export function useSettingsReset({
   tiltModeEnabled,
+  layoutTier,
   synthPresetId,
   setTonalCenter,
   setOctaveRange,
@@ -62,6 +70,8 @@ export function useSettingsReset({
   setBorrowingMemory,
   setClockLayoutMode,
   setGlowingOrbsEnabled,
+  setHarmonicFunctionLabelsEnabled,
+  setDiagramLayoutMode,
   setRetriggerSoundingNotes,
   setSynthPresetId,
   setEqProfileId,
@@ -90,6 +100,7 @@ export function useSettingsReset({
         memory: setBorrowingMemory,
         layoutMode: setClockLayoutMode,
         enabled: setGlowingOrbsEnabled,
+        diagramMode: setDiagramLayoutMode,
         synthPresetId: setSynthPresetId,
         eqProfileId: setEqProfileId,
         chorusWet: setChorusWet,
@@ -113,6 +124,7 @@ export function useSettingsReset({
       setClockLayoutMode,
       setGlowingOrbsEnabled,
       setRetriggerSoundingNotes,
+      setDiagramLayoutMode,
       setSynthPresetId,
       setEqProfileId,
       setChorusWet,
@@ -141,6 +153,8 @@ export function useSettingsReset({
           break;
         case 'clockFace':
         case 'glowingOrbs':
+        case 'harmonicFunctionLabels':
+        case 'diagramLayout':
         case 'soundDesign':
           break;
       }
@@ -150,6 +164,16 @@ export function useSettingsReset({
 
   const resetSettingsSection = useCallback(
     (sectionId: SettingsSectionId) => {
+      if (sectionId === 'harmonicFunctionLabels') {
+        setHarmonicFunctionLabelsEnabled(
+          getDefaultHarmonicFunctionLabelsEnabled(
+            resolveShowChordNameLabels(layoutTier, window.innerWidth),
+          ),
+        );
+        runSectionSideEffects(sectionId);
+        return;
+      }
+
       const defaults =
         sectionId === 'voiceLeading'
           ? {
@@ -162,7 +186,13 @@ export function useSettingsReset({
       }
       runSectionSideEffects(sectionId);
     },
-    [applySetting, runSectionSideEffects, tiltModeEnabled],
+    [
+      applySetting,
+      layoutTier,
+      runSectionSideEffects,
+      setHarmonicFunctionLabelsEnabled,
+      tiltModeEnabled,
+    ],
   );
 
   const resetSettingsGroup = useCallback(
@@ -176,6 +206,15 @@ export function useSettingsReset({
           },
         );
         setSynthPresetId(defaultPresetId as string);
+        return;
+      }
+
+      if (groupId === 'harmonicFunctionLabels') {
+        setHarmonicFunctionLabelsEnabled(
+          getDefaultHarmonicFunctionLabelsEnabled(
+            resolveShowChordNameLabels(layoutTier, window.innerWidth),
+          ),
+        );
         return;
       }
 
@@ -196,8 +235,10 @@ export function useSettingsReset({
     },
     [
       applySetting,
+      layoutTier,
       synthPresetId,
       setSynthPresetId,
+      setHarmonicFunctionLabelsEnabled,
       tiltModeEnabled,
       resetVoiceLeadingSession,
       clearChordBorrowingStates,

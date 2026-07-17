@@ -13,8 +13,10 @@ describe('userSettingsStorage', () => {
   });
 
   it('returns defaults when storage is empty', () => {
-    const { settings, hasPersistedSettings } = loadUserSettings();
+    const { settings, hasPersistedSettings, hasHarmonicFunctionLabelsSetting } =
+      loadUserSettings();
     expect(hasPersistedSettings).toBe(false);
+    expect(hasHarmonicFunctionLabelsSetting).toBe(false);
     expect(settings).toEqual(DEFAULT_USER_SETTINGS);
   });
 
@@ -30,15 +32,22 @@ describe('userSettingsStorage', () => {
     };
     saveUserSettings(custom);
 
-    const { settings, hasPersistedSettings } = loadUserSettings();
+    const {
+      settings,
+      hasPersistedSettings,
+      hasHarmonicFunctionLabelsSetting,
+    } = loadUserSettings();
     expect(hasPersistedSettings).toBe(true);
+    expect(hasHarmonicFunctionLabelsSetting).toBe(true);
     expect(settings.general).toEqual(custom.general);
   });
 
   it('falls back on corrupt JSON', () => {
     localStorage.setItem(STORAGE_KEY, '{not json');
-    const { settings, hasPersistedSettings } = loadUserSettings();
+    const { settings, hasPersistedSettings, hasHarmonicFunctionLabelsSetting } =
+      loadUserSettings();
     expect(hasPersistedSettings).toBe(false);
+    expect(hasHarmonicFunctionLabelsSetting).toBe(false);
     expect(settings).toEqual(DEFAULT_USER_SETTINGS);
   });
 
@@ -51,8 +60,13 @@ describe('userSettingsStorage', () => {
       STORAGE_KEY,
       JSON.stringify({ version: 99, general: { tonalCenter: 1 } })
     );
-    const { settings, hasPersistedSettings } = loadUserSettings();
+    const {
+      settings,
+      hasPersistedSettings,
+      hasHarmonicFunctionLabelsSetting,
+    } = loadUserSettings();
     expect(hasPersistedSettings).toBe(true);
+    expect(hasHarmonicFunctionLabelsSetting).toBe(false);
     expect(settings.general.tonalCenter).toBe(1);
   });
 

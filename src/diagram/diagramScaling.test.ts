@@ -12,6 +12,7 @@ import {
   layoutMeetsScalePolicy,
   nodesRenderCircular,
   resolvePreserveAspectRatio,
+  resolveShowChordNameLabels,
 } from './diagramScaling';
 import { computeGridDiagramContainerSize } from './diagramShellLayout';
 import { stretchRatioLimitsForTier } from './diagramScalePolicy';
@@ -146,5 +147,14 @@ describe('desktop layout resolution', () => {
       );
       expect(layoutMeetsScalePolicy(layout)).toBe(true);
     }
+  });
+});
+
+describe('resolveShowChordNameLabels', () => {
+  it('matches non-compact diagram (desktop side-by-side)', () => {
+    expect(resolveShowChordNameLabels('phone', 390)).toBe(false);
+    expect(resolveShowChordNameLabels('tablet', 800)).toBe(false);
+    expect(resolveShowChordNameLabels('desktop', 500)).toBe(false);
+    expect(resolveShowChordNameLabels('desktop', 900)).toBe(true);
   });
 });

@@ -12,6 +12,10 @@ describe('settingsResetGroups', () => {
     expect(SETTINGS_RESET_GROUP_LABELS.playStyle).toBe('Sustain Mode');
     expect(SETTINGS_RESET_GROUP_LABELS.clockFace).toBe('Clock Face Diagram');
     expect(SETTINGS_RESET_GROUP_LABELS.glowingOrbs).toBe('Glowing Orbs');
+    expect(SETTINGS_RESET_GROUP_LABELS.harmonicFunctionLabels).toBe(
+      'Harmonic Function Labels',
+    );
+    expect(SETTINGS_RESET_GROUP_LABELS.diagramLayout).toBe('Layout');
     expect(SETTINGS_RESET_GROUP_LABELS.retriggerSoundingNotes).toBe(
       'Retrigger Sounding Notes',
     );

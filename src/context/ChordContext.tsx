@@ -42,15 +42,24 @@ import {
 } from '../music/noTiltRevoiceSuppress';
 import type {
   ClockLayoutMode,
+  DiagramLayoutMode,
   PlayStyle,
   VoiceLeadingMode,
 } from '../music/sessionModes';
+import { isChordEnabledInLayout } from '../music/diagramLayouts';
 import { loadUserSettings } from '../settings/userSettingsStorage';
-import type { SettingsSectionId } from '../settings/userSettingsSchema';
+import {
+  getDefaultHarmonicFunctionLabelsEnabled,
+  type SettingsSectionId,
+} from '../settings/userSettingsSchema';
 import type { SettingsResetGroupId } from '../settings/settingsResetGroups';
+import { audioEngine } from '../audio/AudioEngine';
+import { useLayoutTier } from '../hooks/useLayoutTier';
+import { resolveShowChordNameLabels } from '../diagram/diagramScaling';
 
 export type {
   ClockLayoutMode,
+  DiagramLayoutMode,
   PlayStyle,
   VoiceLeadingMode,
 } from '../music/sessionModes';
@@ -86,6 +95,10 @@ interface ChordContextType {
   setClockLayoutMode: (mode: ClockLayoutMode) => void;
   glowingOrbsEnabled: boolean;
   setGlowingOrbsEnabled: (enabled: boolean) => void;
+  harmonicFunctionLabelsEnabled: boolean;
+  setHarmonicFunctionLabelsEnabled: (enabled: boolean) => void;
+  diagramLayoutMode: DiagramLayoutMode;
+  setDiagramLayoutMode: (mode: DiagramLayoutMode) => void;
   retriggerSoundingNotes: boolean;
   setRetriggerSoundingNotes: (enabled: boolean) => void;
   lastTapTilt: TiltSample;
@@ -118,10 +131,12 @@ interface ChordProviderProps {
 }
 
 export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
-  const { settings: loadedSettings, hasPersistedSettings } = useMemo(
-    () => loadUserSettings(),
-    []
-  );
+  const {
+    settings: loadedSettings,
+    hasPersistedSettings,
+    hasHarmonicFunctionLabelsSetting,
+  } = useMemo(() => loadUserSettings(), []);
+  const layoutTier = useLayoutTier();
 
   const [tonalCenter, setTonalCenter] = useState(
     loadedSettings.general.tonalCenter
@@ -145,6 +160,18 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
   const [glowingOrbsEnabled, setGlowingOrbsEnabled] = useState(
     loadedSettings.glowingOrbs.enabled
   );
+  const [harmonicFunctionLabelsEnabled, setHarmonicFunctionLabelsEnabled] =
+    useState(() => {
+      if (!hasHarmonicFunctionLabelsSetting) {
+        return getDefaultHarmonicFunctionLabelsEnabled(
+          resolveShowChordNameLabels(layoutTier, window.innerWidth),
+        );
+      }
+      return loadedSettings.harmonicFunctionLabels.enabled;
+    });
+  const [diagramLayoutMode, setDiagramLayoutModeState] = useState<
+    DiagramLayoutMode
+  >(loadedSettings.diagramLayout.diagramMode);
   const [retriggerSoundingNotes, setRetriggerSoundingNotes] = useState(
     loadedSettings.general.retriggerSoundingNotes
   );
@@ -267,12 +294,23 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
     }
   }, [enterNoTiltPlayback, hasPersistedSettings]);
 
+  const setDiagramLayoutMode = useCallback((mode: DiagramLayoutMode) => {
+    setDiagramLayoutModeState(mode);
+    const currentName = selectedChordNameRef.current;
+    if (currentName && !isChordEnabledInLayout(currentName, mode)) {
+      selectedChordNameRef.current = null;
+      setSelectedChord(null);
+      audioEngine.releaseActiveNotes();
+    }
+  }, []);
+
   const {
     resetSettingsSection,
     resetSettingsGroup,
     resetAllSettings,
   } = useSettingsReset({
     tiltModeEnabled: playback.tiltModeEnabled,
+    layoutTier,
     synthPresetId,
     setTonalCenter,
     setOctaveRange,
@@ -281,6 +319,8 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
     setBorrowingMemory: borrowing.setBorrowingMemory,
     setClockLayoutMode,
     setGlowingOrbsEnabled,
+    setHarmonicFunctionLabelsEnabled,
+    setDiagramLayoutMode,
     setRetriggerSoundingNotes,
     setSynthPresetId,
     setEqProfileId: audio.setEqProfileId,
@@ -311,6 +351,8 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
       voiceBorrowing: { memory: borrowing.borrowingMemory },
       clockFace: { layoutMode: clockLayoutMode },
       glowingOrbs: { enabled: glowingOrbsEnabled },
+      harmonicFunctionLabels: { enabled: harmonicFunctionLabelsEnabled },
+      diagramLayout: { diagramMode: diagramLayoutMode },
       soundDesign: {
         synthPresetId: audio.synthPresetId,
         eqProfileId: audio.eqProfileId,
@@ -336,6 +378,8 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
       borrowing.borrowingMemory,
       clockLayoutMode,
       glowingOrbsEnabled,
+      harmonicFunctionLabelsEnabled,
+      diagramLayoutMode,
       audio.synthPresetId,
       audio.eqProfileId,
       audio.chorusWet,
@@ -356,6 +400,7 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
 
   const handleChordSelect = useCallback(
     (chord: Chord) => {
+      if (!isChordEnabledInLayout(chord.name, diagramLayoutMode)) return;
       setSelectedChord(chord);
       const newState = getBorrowingStateForChord(
         chord.name,
@@ -365,11 +410,28 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
       playAndDisplayChord(chord, newState);
     },
     [
+      diagramLayoutMode,
       getBorrowingStateForChord,
       borrowingStateRef,
       setBorrowingState,
       playAndDisplayChord,
     ]
+  );
+
+  const handleChordPointerDown = useCallback(
+    (chord: Chord) => {
+      if (!isChordEnabledInLayout(chord.name, diagramLayoutMode)) return;
+      playback.handleChordPointerDown(chord);
+    },
+    [diagramLayoutMode, playback.handleChordPointerDown],
+  );
+
+  const handleChordPointerEnter = useCallback(
+    (chord: Chord) => {
+      if (!isChordEnabledInLayout(chord.name, diagramLayoutMode)) return;
+      playback.handleChordPointerEnter(chord);
+    },
+    [diagramLayoutMode, playback.handleChordPointerEnter],
   );
 
   useEffect(() => {
@@ -438,9 +500,9 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
       tiltModeEnabled: playback.tiltModeEnabled,
       enterTiltSession,
       enterNoTiltSession,
-      handleChordPointerDown: playback.handleChordPointerDown,
+      handleChordPointerDown: handleChordPointerDown,
       handleChordPointerUp: playback.handleChordPointerUp,
-      handleChordPointerEnter: playback.handleChordPointerEnter,
+      handleChordPointerEnter: handleChordPointerEnter,
       borrowingMemory: borrowing.borrowingMemory,
       setBorrowingMemory: borrowing.setBorrowingMemory,
       voiceLeadingMode,
@@ -449,6 +511,10 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
       setClockLayoutMode,
       glowingOrbsEnabled,
       setGlowingOrbsEnabled,
+      harmonicFunctionLabelsEnabled,
+      setHarmonicFunctionLabelsEnabled,
+      diagramLayoutMode,
+      setDiagramLayoutMode,
       retriggerSoundingNotes,
       setRetriggerSoundingNotes,
       lastTapTilt: playback.lastTapTilt,
@@ -482,13 +548,16 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
       playback.tiltModeEnabled,
       enterTiltSession,
       enterNoTiltSession,
-      playback.handleChordPointerDown,
+      handleChordPointerDown,
+      handleChordPointerEnter,
       playback.handleChordPointerUp,
-      playback.handleChordPointerEnter,
       handleChordSelect,
       voiceLeadingMode,
       clockLayoutMode,
       glowingOrbsEnabled,
+      harmonicFunctionLabelsEnabled,
+      diagramLayoutMode,
+      setDiagramLayoutMode,
       retriggerSoundingNotes,
       playback.lastTapTilt,
       playback.lastCommittedPlaybackTilt,
