@@ -80,7 +80,8 @@ export const MINOR_LAYOUT_CHORDS: ReadonlySet<string> = new Set([
 ]);
 
 /**
- * Blues beginner subset. Parents are always enabled separately.
+ * Blues beginner subset (curated; not a full pitch-class scale filter).
+ * Parents are always enabled separately.
  */
 export const BLUES_LAYOUT_CHORDS: ReadonlySet<string> = new Set([
   'Leaf',
@@ -89,7 +90,8 @@ export const BLUES_LAYOUT_CHORDS: ReadonlySet<string> = new Set([
 ]);
 
 /**
- * Jazz Blues subset. Parents are always enabled separately.
+ * Jazz Blues subset (curated; not a full pitch-class scale filter).
+ * Parents are always enabled separately.
  */
 export const JAZZ_BLUES_LAYOUT_CHORDS: ReadonlySet<string> = new Set([
   'Leaf',
@@ -106,7 +108,8 @@ export const JAZZ_BLUES_LAYOUT_CHORDS: ReadonlySet<string> = new Set([
 ]);
 
 /**
- * Rhythm Changes subset. Parents are always enabled separately.
+ * Rhythm Changes subset (curated; not a full pitch-class scale filter).
+ * Parents are always enabled separately.
  */
 export const RHYTHM_CHANGES_LAYOUT_CHORDS: ReadonlySet<string> = new Set([
   'Branch',

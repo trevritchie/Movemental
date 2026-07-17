@@ -10,10 +10,38 @@ import {
 export const STORAGE_KEY = 'movemental-user-settings';
 export const SCHEMA_VERSION = 1;
 
+function sectionHasBooleanEnabled(section: unknown): boolean {
+  return (
+    section !== null &&
+    typeof section === 'object' &&
+    typeof (section as Record<string, unknown>).enabled === 'boolean'
+  );
+}
+
+/**
+ * True only when a valid boolean `enabled` was stored under the current or
+ * legacy key. Invalid values should fall through to the responsive default.
+ */
+export function hasValidHarmonicFunctionLabelsSetting(
+  parsed: unknown,
+): boolean {
+  if (parsed === null || typeof parsed !== 'object') {
+    return false;
+  }
+  const source = parsed as Record<string, unknown>;
+  if ('harmonicFunctionLabels' in source) {
+    return sectionHasBooleanEnabled(source.harmonicFunctionLabels);
+  }
+  if ('axisLabels' in source) {
+    return sectionHasBooleanEnabled(source.axisLabels);
+  }
+  return false;
+}
+
 export function loadUserSettings(): {
   settings: PersistedUserSettings;
   hasPersistedSettings: boolean;
-  /** True when stored JSON already had this section (or legacy axisLabels). */
+  /** True when stored JSON already had a valid boolean enabled value. */
   hasHarmonicFunctionLabelsSetting: boolean;
 } {
   try {
@@ -26,17 +54,14 @@ export function loadUserSettings(): {
       };
     }
     const parsed: unknown = JSON.parse(raw);
-    const hadHarmonicFunctionLabelsSetting =
-      parsed !== null &&
-      typeof parsed === 'object' &&
-      ('harmonicFunctionLabels' in parsed || 'axisLabels' in parsed);
     // Recover whatever fields are present regardless of version mismatch.
     // hasPersistedSettings is true as long as any stored data exists; a version
     // difference means the schema evolved, not that the user is new.
     return {
       settings: validateLoadedSettings(parsed),
       hasPersistedSettings: true,
-      hasHarmonicFunctionLabelsSetting: hadHarmonicFunctionLabelsSetting,
+      hasHarmonicFunctionLabelsSetting:
+        hasValidHarmonicFunctionLabelsSetting(parsed),
     };
   } catch {
     return {

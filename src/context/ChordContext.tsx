@@ -49,13 +49,11 @@ import type {
 import { isChordEnabledInLayout } from '../music/diagramLayouts';
 import { loadUserSettings } from '../settings/userSettingsStorage';
 import {
-  getDefaultHarmonicFunctionLabelsEnabled,
   type SettingsSectionId,
 } from '../settings/userSettingsSchema';
 import type { SettingsResetGroupId } from '../settings/settingsResetGroups';
-import { audioEngine } from '../audio/AudioEngine';
 import { useLayoutTier } from '../hooks/useLayoutTier';
-import { resolveShowChordNameLabels } from '../diagram/diagramScaling';
+import { resolveDefaultHarmonicFunctionLabelsEnabled } from '../diagram/diagramScaling';
 
 export type {
   ClockLayoutMode,
@@ -163,8 +161,10 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
   const [harmonicFunctionLabelsEnabled, setHarmonicFunctionLabelsEnabled] =
     useState(() => {
       if (!hasHarmonicFunctionLabelsSetting) {
-        return getDefaultHarmonicFunctionLabelsEnabled(
-          resolveShowChordNameLabels(layoutTier, window.innerWidth),
+        return resolveDefaultHarmonicFunctionLabelsEnabled(
+          layoutTier,
+          window.innerWidth,
+          window.innerHeight,
         );
       }
       return loadedSettings.harmonicFunctionLabels.enabled;
@@ -277,6 +277,7 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
     enterTiltSession: enterTiltPlayback,
     enterNoTiltSession: enterNoTiltPlayback,
     resetVoiceLeadingSession,
+    clearPlaybackSelection,
   } = playback;
   const { synthPresetId, setSynthPresetId } = audio;
 
@@ -294,15 +295,16 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
     }
   }, [enterNoTiltPlayback, hasPersistedSettings]);
 
-  const setDiagramLayoutMode = useCallback((mode: DiagramLayoutMode) => {
-    setDiagramLayoutModeState(mode);
-    const currentName = selectedChordNameRef.current;
-    if (currentName && !isChordEnabledInLayout(currentName, mode)) {
-      selectedChordNameRef.current = null;
-      setSelectedChord(null);
-      audioEngine.releaseActiveNotes();
-    }
-  }, []);
+  const setDiagramLayoutMode = useCallback(
+    (mode: DiagramLayoutMode) => {
+      setDiagramLayoutModeState(mode);
+      const currentName = selectedChordNameRef.current;
+      if (currentName && !isChordEnabledInLayout(currentName, mode)) {
+        clearPlaybackSelection();
+      }
+    },
+    [clearPlaybackSelection],
+  );
 
   const {
     resetSettingsSection,

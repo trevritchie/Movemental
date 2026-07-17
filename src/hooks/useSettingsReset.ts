@@ -7,7 +7,6 @@
 import { useCallback, useMemo } from 'react';
 import { clearUserSettings } from '../settings/userSettingsStorage';
 import {
-  getDefaultHarmonicFunctionLabelsEnabled,
   getDefaultVoiceLeadingMode,
   getSectionDefaults,
   SETTINGS_SECTION_IDS,
@@ -26,7 +25,7 @@ import type {
 } from '../music/sessionModes';
 import type { EqProfileId } from '../audio/outputProfiles';
 import type { LayoutTier } from '../layout/breakpoints';
-import { resolveShowChordNameLabels } from '../diagram/diagramScaling';
+import { resolveDefaultHarmonicFunctionLabelsEnabled } from '../diagram/diagramScaling';
 
 export interface UseSettingsResetOptions {
   tiltModeEnabled: boolean;
@@ -166,8 +165,10 @@ export function useSettingsReset({
     (sectionId: SettingsSectionId) => {
       if (sectionId === 'harmonicFunctionLabels') {
         setHarmonicFunctionLabelsEnabled(
-          getDefaultHarmonicFunctionLabelsEnabled(
-            resolveShowChordNameLabels(layoutTier, window.innerWidth),
+          resolveDefaultHarmonicFunctionLabelsEnabled(
+            layoutTier,
+            window.innerWidth,
+            window.innerHeight,
           ),
         );
         runSectionSideEffects(sectionId);
@@ -211,8 +212,10 @@ export function useSettingsReset({
 
       if (groupId === 'harmonicFunctionLabels') {
         setHarmonicFunctionLabelsEnabled(
-          getDefaultHarmonicFunctionLabelsEnabled(
-            resolveShowChordNameLabels(layoutTier, window.innerWidth),
+          resolveDefaultHarmonicFunctionLabelsEnabled(
+            layoutTier,
+            window.innerWidth,
+            window.innerHeight,
           ),
         );
         return;

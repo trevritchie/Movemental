@@ -76,4 +76,36 @@ describe('userSettingsStorage', () => {
     clearUserSettings();
     expect(localStorage.getItem(STORAGE_KEY)).toBeNull();
   });
+
+  it('treats valid legacy axisLabels as an existing harmonic-label setting', () => {
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({ version: 1, axisLabels: { enabled: true } }),
+    );
+    const { settings, hasHarmonicFunctionLabelsSetting } = loadUserSettings();
+    expect(hasHarmonicFunctionLabelsSetting).toBe(true);
+    expect(settings.harmonicFunctionLabels.enabled).toBe(true);
+  });
+
+  it('ignores invalid harmonicFunctionLabels so defaults can apply', () => {
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({
+        version: 1,
+        harmonicFunctionLabels: { enabled: 'yes' },
+      }),
+    );
+    const { settings, hasHarmonicFunctionLabelsSetting } = loadUserSettings();
+    expect(hasHarmonicFunctionLabelsSetting).toBe(false);
+    expect(settings.harmonicFunctionLabels.enabled).toBe(false);
+  });
+
+  it('ignores invalid legacy axisLabels values', () => {
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({ version: 1, axisLabels: {} }),
+    );
+    const { hasHarmonicFunctionLabelsSetting } = loadUserSettings();
+    expect(hasHarmonicFunctionLabelsSetting).toBe(false);
+  });
 });

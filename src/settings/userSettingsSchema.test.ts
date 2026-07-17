@@ -165,7 +165,15 @@ describe('userSettingsSchema', () => {
 
   it('migrates legacy axisLabels into harmonicFunctionLabels', () => {
     const result = validateLoadedSettings({
-      axisLabels: { enabled: false },
+      axisLabels: { enabled: true },
+    });
+    expect(result.harmonicFunctionLabels.enabled).toBe(true);
+  });
+
+  it('prefers harmonicFunctionLabels over legacy axisLabels', () => {
+    const result = validateLoadedSettings({
+      harmonicFunctionLabels: { enabled: false },
+      axisLabels: { enabled: true },
     });
     expect(result.harmonicFunctionLabels.enabled).toBe(false);
   });

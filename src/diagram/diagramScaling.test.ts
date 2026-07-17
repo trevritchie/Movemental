@@ -13,6 +13,7 @@ import {
   nodesRenderCircular,
   resolvePreserveAspectRatio,
   resolveShowChordNameLabels,
+  resolveDefaultHarmonicFunctionLabelsEnabled,
 } from './diagramScaling';
 import { computeGridDiagramContainerSize } from './diagramShellLayout';
 import { stretchRatioLimitsForTier } from './diagramScalePolicy';
@@ -156,5 +157,20 @@ describe('resolveShowChordNameLabels', () => {
     expect(resolveShowChordNameLabels('tablet', 800)).toBe(false);
     expect(resolveShowChordNameLabels('desktop', 500)).toBe(false);
     expect(resolveShowChordNameLabels('desktop', 900)).toBe(true);
+  });
+});
+
+describe('resolveDefaultHarmonicFunctionLabelsEnabled', () => {
+  it('uses modeled diagram width, not raw viewport width', () => {
+    // Viewport above compact breakpoint, but desktop diagram column is under it.
+    expect(
+      resolveDefaultHarmonicFunctionLabelsEnabled('desktop', 800, 900),
+    ).toBe(false);
+    expect(
+      resolveDefaultHarmonicFunctionLabelsEnabled('desktop', 1400, 900),
+    ).toBe(true);
+    expect(
+      resolveDefaultHarmonicFunctionLabelsEnabled('phone', 390, 844),
+    ).toBe(false);
   });
 });

@@ -345,6 +345,7 @@ export const ElementalDiagram = React.memo(function ElementalDiagram({
             key={`harmonic-function-label-${spec.id}`}
             transform={`translate(${layout.x}, ${layout.y}) scale(1, ${aspectRatioCorrection}) rotate(${layout.rotationDeg})`}
             pointerEvents="none"
+            aria-hidden="true"
           >
             <text
               data-harmonic-function-label={spec.id}

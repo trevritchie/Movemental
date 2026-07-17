@@ -247,18 +247,24 @@ describe('ElementalDiagram ready gate', () => {
     const { container } = render(<ElementalDiagram />);
     await flushAnimationFrames(2);
 
-    expect(
-      container.querySelector('[data-harmonic-function-label="tonic"]')
-        ?.textContent,
-    ).toBe('Tonic');
-    expect(
-      container.querySelector('[data-harmonic-function-label="dominant"]')
-        ?.textContent,
-    ).toBe('Dominant');
-    expect(
-      container.querySelector('[data-harmonic-function-label="subdominant"]')
-        ?.textContent,
-    ).toBe('Subdominant');
+    const tonic = container.querySelector(
+      '[data-harmonic-function-label="tonic"]',
+    );
+    const dominant = container.querySelector(
+      '[data-harmonic-function-label="dominant"]',
+    );
+    const subdominant = container.querySelector(
+      '[data-harmonic-function-label="subdominant"]',
+    );
+    expect(tonic?.textContent).toBe('Tonic');
+    expect(dominant?.textContent).toBe('Dominant');
+    expect(subdominant?.textContent).toBe('Subdominant');
+
+    const labelGroup = tonic?.closest('g[aria-hidden="true"]');
+    expect(labelGroup).not.toBeNull();
+    expect(labelGroup).toHaveAttribute('pointer-events', 'none');
+    expect(labelGroup?.getAttribute('transform')).toBeTruthy();
+    expect(Number(tonic?.getAttribute('font-size'))).toBeGreaterThan(0);
   });
 
   it('hides harmonic function labels when the setting is off', async () => {

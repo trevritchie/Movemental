@@ -1,4 +1,6 @@
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
+import { chordManager } from './ChordManager';
+import { PARENT_ELEMENT_NAMES } from './elementTokens';
 import {
   BLUES_LAYOUT_CHORDS,
   DIAGRAM_LAYOUT_OPTIONS,
@@ -13,9 +15,59 @@ import {
   MINOR_SIXTH_DIMINISHED_LAYOUT_CHORDS,
   NATURAL_MINOR_LAYOUT_CHORDS,
   RHYTHM_CHANGES_LAYOUT_CHORDS,
+  type DiagramLayoutMode,
 } from './diagramLayouts';
 
+const PARENT_SET = new Set<string>(PARENT_ELEMENT_NAMES);
+
+/** Scale pitch-class sets at center C, matching diagramLayouts comments. */
+const SCALE_LAYOUT_PITCH_CLASSES: Partial<
+  Record<DiagramLayoutMode, ReadonlySet<number>>
+> = {
+  major: new Set([0, 2, 4, 5, 7, 9, 11]),
+  natural_minor: new Set([0, 2, 3, 5, 7, 8, 10]),
+  minor: new Set([0, 2, 3, 5, 7, 8, 9, 10, 11]),
+  major_sixth_diminished: new Set([0, 2, 4, 5, 7, 8, 9, 11]),
+  minor_sixth_diminished: new Set([0, 2, 3, 5, 7, 8, 9, 11]),
+  dominant_seventh_diminished: new Set([0, 2, 4, 5, 7, 8, 9, 10]),
+  dominant_seventh_flat_five_diminished: new Set([0, 2, 4, 5, 6, 8, 9, 10]),
+};
+
+function chordPitchClasses(name: string): Set<number> {
+  const chord = chordManager.getChordByName(name);
+  if (!chord) {
+    throw new Error(`Missing chord: ${name}`);
+  }
+  return new Set(
+    chord.originalPitches.map((pitch) => ((pitch % 12) + 12) % 12),
+  );
+}
+
+function isPitchClassSubset(
+  chordPcs: Set<number>,
+  scalePcs: ReadonlySet<number>,
+): boolean {
+  for (const pc of chordPcs) {
+    if (!scalePcs.has(pc)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+function chordsMatchingScale(scalePcs: ReadonlySet<number>): string[] {
+  return chordManager
+    .getAllChordNames()
+    .filter((name) => !PARENT_SET.has(name))
+    .filter((name) => isPitchClassSubset(chordPitchClasses(name), scalePcs))
+    .sort();
+}
+
 describe('diagramLayouts', () => {
+  beforeEach(() => {
+    chordManager.configureTonalSpace(0, chordManager.getOctaveRange());
+  });
+
   it('lists layout options with blues family before sixth-diminished', () => {
     expect(DIAGRAM_LAYOUT_OPTIONS.map((o) => o.value)).toEqual([
       'complete_geometry',
@@ -65,8 +117,27 @@ describe('diagramLayouts', () => {
   it('keeps parents on for every restricted layout', () => {
     for (const option of DIAGRAM_LAYOUT_OPTIONS) {
       if (option.value === 'complete_geometry') continue;
-      for (const parent of ['Earth', 'Wind', 'Fire']) {
+      for (const parent of PARENT_ELEMENT_NAMES) {
         expect(isChordEnabledInLayout(parent, option.value)).toBe(true);
+      }
+    }
+  });
+
+  it('matches scale pitch-class contracts at center C', () => {
+    for (const [mode, scalePcs] of Object.entries(SCALE_LAYOUT_PITCH_CLASSES)) {
+      const expected = chordsMatchingScale(scalePcs);
+      const allowlist = expected.filter((name) =>
+        isChordEnabledInLayout(name, mode as DiagramLayoutMode),
+      );
+      expect(allowlist).toEqual(expected);
+      for (const name of chordManager.getAllChordNames()) {
+        if (PARENT_SET.has(name)) continue;
+        const enabled = isChordEnabledInLayout(
+          name,
+          mode as DiagramLayoutMode,
+        );
+        const fits = isPitchClassSubset(chordPitchClasses(name), scalePcs);
+        expect(enabled).toBe(fits);
       }
     }
   });
@@ -101,16 +172,14 @@ describe('diagramLayouts', () => {
     expect(isChordEnabledInLayout('Ember', 'minor')).toBe(false);
   });
 
-  it('keeps Blues allowlist', () => {
+  it('treats Blues, Jazz Blues, and Rhythm Changes as curated subsets', () => {
     for (const name of BLUES_LAYOUT_CHORDS) {
       expect(isChordEnabledInLayout(name, 'blues')).toBe(true);
     }
     expect(isChordEnabledInLayout('Branch', 'blues')).toBe(false);
     expect(isChordEnabledInLayout('Glass', 'blues')).toBe(false);
     expect(isChordEnabledInLayout('Ember', 'blues')).toBe(false);
-  });
 
-  it('keeps Jazz Blues allowlist', () => {
     for (const name of JAZZ_BLUES_LAYOUT_CHORDS) {
       expect(isChordEnabledInLayout(name, 'jazz_blues')).toBe(true);
     }
@@ -118,9 +187,7 @@ describe('diagramLayouts', () => {
     expect(isChordEnabledInLayout('Fire-Storm', 'jazz_blues')).toBe(false);
     expect(isChordEnabledInLayout('Twin Fire-Storm', 'jazz_blues')).toBe(false);
     expect(isChordEnabledInLayout('Sister Ember', 'jazz_blues')).toBe(false);
-  });
 
-  it('keeps Rhythm Changes allowlist', () => {
     for (const name of RHYTHM_CHANGES_LAYOUT_CHORDS) {
       expect(isChordEnabledInLayout(name, 'rhythm_changes')).toBe(true);
     }
