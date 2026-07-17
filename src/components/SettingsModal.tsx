@@ -233,9 +233,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                         <span className="settings-help-entry__title">
                           {isFullscreen ? 'Exit Full Screen' : 'Full Screen'}
                         </span>
-                        <span className="settings-help-entry__subtitle">
-                          Expand the app to fill the display
-                        </span>
                       </span>
                     </button>
                   </section>
