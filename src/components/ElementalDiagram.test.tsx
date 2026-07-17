@@ -292,4 +292,32 @@ describe('ElementalDiagram ready gate', () => {
 
     mockChordContext.diagramLayoutMode = 'complete_geometry';
   });
+
+  it('dims and blocks disabled Minor-layout chords', async () => {
+    mockUseLayoutTier.mockReturnValue('desktop');
+    mockChordContext.diagramLayoutMode = 'minor';
+    mockHandleChordPointerDown.mockClear();
+    const { container } = render(<ElementalDiagram />);
+    await flushAnimationFrames(2);
+
+    const branchSlice = container.querySelector('[aria-label="Branch"]');
+    expect(branchSlice).toHaveAttribute('aria-disabled', 'true');
+    fireEvent.keyDown(branchSlice!, { key: 'Enter' });
+    expect(mockHandleChordPointerDown).not.toHaveBeenCalled();
+
+    const trunkSlice = container.querySelector('[aria-label="Trunk"]');
+    expect(trunkSlice).toHaveAttribute('aria-disabled', 'false');
+    fireEvent.keyDown(trunkSlice!, { key: 'Enter' });
+    expect(mockHandleChordPointerDown).toHaveBeenCalledTimes(1);
+
+    const brotherBranch = container.querySelector(
+      '[aria-label="Brother Branch"]',
+    );
+    expect(brotherBranch).toHaveAttribute('aria-disabled', 'false');
+
+    mockChordContext.diagramLayoutMode = 'complete_geometry';
+  });
 });
+
+
+

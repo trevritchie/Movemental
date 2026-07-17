@@ -181,8 +181,78 @@ describe('userSettingsSchema', () => {
     ).toBe('major');
     expect(
       validateLoadedSettings({
+        diagramLayout: { diagramMode: 'natural_minor' },
+      }).diagramLayout.diagramMode,
+    ).toBe('natural_minor');
+    expect(
+      validateLoadedSettings({
         diagramLayout: { diagramMode: 'minor' },
+      }).diagramLayout.diagramMode,
+    ).toBe('minor');
+    expect(
+      validateLoadedSettings({
+        diagramLayout: { diagramMode: 'blues' },
+      }).diagramLayout.diagramMode,
+    ).toBe('blues');
+    expect(
+      validateLoadedSettings({
+        diagramLayout: { diagramMode: 'jazz_blues' },
+      }).diagramLayout.diagramMode,
+    ).toBe('jazz_blues');
+    expect(
+      validateLoadedSettings({
+        diagramLayout: { diagramMode: 'rhythm_changes' },
+      }).diagramLayout.diagramMode,
+    ).toBe('rhythm_changes');
+    expect(
+      validateLoadedSettings({
+        diagramLayout: { diagramMode: 'major_sixth_diminished' },
+      }).diagramLayout.diagramMode,
+    ).toBe('major_sixth_diminished');
+    expect(
+      validateLoadedSettings({
+        diagramLayout: { diagramMode: 'minor_sixth_diminished' },
+      }).diagramLayout.diagramMode,
+    ).toBe('minor_sixth_diminished');
+    expect(
+      validateLoadedSettings({
+        diagramLayout: { diagramMode: 'dominant_seventh_diminished' },
+      }).diagramLayout.diagramMode,
+    ).toBe('dominant_seventh_diminished');
+    expect(
+      validateLoadedSettings({
+        diagramLayout: {
+          diagramMode: 'dominant_seventh_flat_five_diminished',
+        },
+      }).diagramLayout.diagramMode,
+    ).toBe('dominant_seventh_flat_five_diminished');
+    expect(
+      validateLoadedSettings({
+        diagramLayout: { diagramMode: 'composite_minor' },
+      }).diagramLayout.diagramMode,
+    ).toBe('minor');
+    expect(
+      validateLoadedSettings({
+        diagramLayout: { diagramMode: 'harmonic_melodic_minor' },
+      }).diagramLayout.diagramMode,
+    ).toBe('minor_sixth_diminished');
+    expect(
+      validateLoadedSettings({
+        diagramLayout: { diagramMode: 'harmonic_minor' },
+      }).diagramLayout.diagramMode,
+    ).toBe('minor_sixth_diminished');
+    expect(
+      validateLoadedSettings({
+        diagramLayout: { diagramMode: 'melodic_minor' },
+      }).diagramLayout.diagramMode,
+    ).toBe('minor_sixth_diminished');
+    expect(
+      validateLoadedSettings({
+        diagramLayout: { diagramMode: 'dorian' },
       }).diagramLayout.diagramMode,
     ).toBe('complete_geometry');
   });
 });
+
+
+

@@ -140,6 +140,24 @@ function migrateLegacySettingsPayload(
   }
   delete source.axisLabels;
 
+  // Short-lived layout ids map onto the current layout family.
+  if (source.diagramLayout && typeof source.diagramLayout === 'object') {
+    const diagramLayout = {
+      ...(source.diagramLayout as Record<string, unknown>),
+    };
+    const mode = diagramLayout.diagramMode;
+    if (mode === 'composite_minor') {
+      diagramLayout.diagramMode = 'minor';
+    } else if (
+      mode === 'harmonic_melodic_minor' ||
+      mode === 'harmonic_minor' ||
+      mode === 'melodic_minor'
+    ) {
+      diagramLayout.diagramMode = 'minor_sixth_diminished';
+    }
+    source.diagramLayout = diagramLayout;
+  }
+
   return source;
 }
 
