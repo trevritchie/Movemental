@@ -3,6 +3,7 @@
  */
 import { useCallback, useEffect, useState } from 'react';
 import { isIphone, supportsBrowserFullscreen } from '../utils/devicePlatform';
+import { isNativeApp } from '../utils/nativePlatform';
 
 type FullscreenElement = HTMLElement & {
   webkitRequestFullscreen?: () => Promise<void>;
@@ -25,6 +26,10 @@ export function useFullscreen() {
   }, []);
 
   const toggleFullscreen = useCallback(async () => {
+    // The Capacitor shell is already an installed, fullscreen app: skip the
+    // web Fullscreen API and never surface the "Add to Home Screen" hint.
+    if (isNativeApp()) return;
+
     if (isIphone()) {
       setShowIosInstallHint(true);
       return;
@@ -52,7 +57,8 @@ export function useFullscreen() {
 
   return {
     isFullscreen,
-    canFullscreen: supportsBrowserFullscreen() || isIphone(),
+    canFullscreen:
+      !isNativeApp() && (supportsBrowserFullscreen() || isIphone()),
     showIosInstallHint,
     toggleFullscreen,
     dismissIosInstallHint,
