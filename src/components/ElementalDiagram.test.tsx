@@ -3,6 +3,7 @@ import { render, waitFor, fireEvent } from '@testing-library/react';
 import { ElementalDiagram } from './ElementalDiagram';
 import { chordManager } from '../music/ChordManager';
 import { DEFAULT_OCTAVE_RANGE } from '../music/config';
+import type { DiagramLayoutMode } from '../music/sessionModes';
 
 vi.mock('./tour/TourContext', () => ({
   useTour: () => ({
@@ -37,6 +38,8 @@ const mockChordContext = {
   toggleNoTiltBassLock: vi.fn(),
   tiltModeEnabled: false,
   glowingOrbsEnabled: true,
+  harmonicFunctionLabelsEnabled: true,
+  diagramLayoutMode: 'complete_geometry' as DiagramLayoutMode,
 };
 
 // Idle diagram: no selected chord, borrowing off, tilt unsupported.
@@ -237,4 +240,90 @@ describe('ElementalDiagram ready gate', () => {
       branchAtC.traditionalName,
     );
   });
+
+  it('renders Tonic, Dominant, and Subdominant harmonic function labels when enabled', async () => {
+    mockUseLayoutTier.mockReturnValue('phone');
+    mockChordContext.harmonicFunctionLabelsEnabled = true;
+    const { container } = render(<ElementalDiagram />);
+    await flushAnimationFrames(2);
+
+    const tonic = container.querySelector(
+      '[data-harmonic-function-label="tonic"]',
+    );
+    const dominant = container.querySelector(
+      '[data-harmonic-function-label="dominant"]',
+    );
+    const subdominant = container.querySelector(
+      '[data-harmonic-function-label="subdominant"]',
+    );
+    expect(tonic?.textContent).toBe('Tonic');
+    expect(dominant?.textContent).toBe('Dominant');
+    expect(subdominant?.textContent).toBe('Subdominant');
+
+    const labelGroup = tonic?.closest('g[aria-hidden="true"]');
+    expect(labelGroup).not.toBeNull();
+    expect(labelGroup).toHaveAttribute('pointer-events', 'none');
+    expect(labelGroup?.getAttribute('transform')).toBeTruthy();
+    expect(Number(tonic?.getAttribute('font-size'))).toBeGreaterThan(0);
+  });
+
+  it('hides harmonic function labels when the setting is off', async () => {
+    mockUseLayoutTier.mockReturnValue('desktop');
+    mockChordContext.harmonicFunctionLabelsEnabled = false;
+    const { container } = render(<ElementalDiagram />);
+    await flushAnimationFrames(2);
+
+    expect(
+      container.querySelector('[data-harmonic-function-label]'),
+    ).toBeNull();
+    mockChordContext.harmonicFunctionLabelsEnabled = true;
+  });
+
+  it('dims and blocks disabled Major-layout chords', async () => {
+    mockUseLayoutTier.mockReturnValue('desktop');
+    mockChordContext.diagramLayoutMode = 'major';
+    mockHandleChordPointerDown.mockClear();
+    const { container } = render(<ElementalDiagram />);
+    await flushAnimationFrames(2);
+
+    const trunkSlice = container.querySelector('[aria-label="Trunk"]');
+    expect(trunkSlice).toHaveAttribute('aria-disabled', 'true');
+    fireEvent.keyDown(trunkSlice!, { key: 'Enter' });
+    expect(mockHandleChordPointerDown).not.toHaveBeenCalled();
+
+    const branchSlice = container.querySelector('[aria-label="Branch"]');
+    expect(branchSlice).toHaveAttribute('aria-disabled', 'false');
+    fireEvent.keyDown(branchSlice!, { key: 'Enter' });
+    expect(mockHandleChordPointerDown).toHaveBeenCalledTimes(1);
+
+    mockChordContext.diagramLayoutMode = 'complete_geometry';
+  });
+
+  it('dims and blocks disabled Minor-layout chords', async () => {
+    mockUseLayoutTier.mockReturnValue('desktop');
+    mockChordContext.diagramLayoutMode = 'minor';
+    mockHandleChordPointerDown.mockClear();
+    const { container } = render(<ElementalDiagram />);
+    await flushAnimationFrames(2);
+
+    const branchSlice = container.querySelector('[aria-label="Branch"]');
+    expect(branchSlice).toHaveAttribute('aria-disabled', 'true');
+    fireEvent.keyDown(branchSlice!, { key: 'Enter' });
+    expect(mockHandleChordPointerDown).not.toHaveBeenCalled();
+
+    const trunkSlice = container.querySelector('[aria-label="Trunk"]');
+    expect(trunkSlice).toHaveAttribute('aria-disabled', 'false');
+    fireEvent.keyDown(trunkSlice!, { key: 'Enter' });
+    expect(mockHandleChordPointerDown).toHaveBeenCalledTimes(1);
+
+    const brotherBranch = container.querySelector(
+      '[aria-label="Brother Branch"]',
+    );
+    expect(brotherBranch).toHaveAttribute('aria-disabled', 'false');
+
+    mockChordContext.diagramLayoutMode = 'complete_geometry';
+  });
 });
+
+
+

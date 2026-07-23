@@ -106,7 +106,8 @@
   gap: 12px;
 }
 
-.settings-menu-group + .settings-menu-group {
+.settings-menu-group + .settings-menu-group,
+.settings-menu-section--fullscreen + .settings-menu-group {
   margin-top: 4px;
   padding-top: 18px;
   border-top: 1px solid rgba(255, 255, 255, 0.08);

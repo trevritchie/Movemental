@@ -12,9 +12,14 @@ import {
 } from '../music/config';
 import type {
   ClockLayoutMode,
+  DiagramLayoutMode,
   PlayStyle,
   VoiceLeadingMode,
 } from '../music/sessionModes';
+import {
+  DEFAULT_DIAGRAM_LAYOUT_MODE,
+  isDiagramLayoutMode,
+} from '../music/diagramLayouts';
 import {
   DEFAULT_EQ_PROFILE_ID,
   isEqProfileId,
@@ -34,6 +39,8 @@ export type SettingsSectionId =
   | 'general'
   | 'clockFace'
   | 'glowingOrbs'
+  | 'harmonicFunctionLabels'
+  | 'diagramLayout'
   | 'voiceLeading'
   | 'voiceBorrowing'
   | 'soundDesign';
@@ -42,6 +49,8 @@ export const SETTINGS_SECTION_IDS: readonly SettingsSectionId[] = [
   'general',
   'clockFace',
   'glowingOrbs',
+  'harmonicFunctionLabels',
+  'diagramLayout',
   'voiceLeading',
   'voiceBorrowing',
   'soundDesign',
@@ -51,6 +60,8 @@ export const SETTINGS_SECTION_LABELS: Record<SettingsSectionId, string> = {
   general: 'Playback',
   clockFace: 'Clock Face Diagram',
   glowingOrbs: 'Glowing Orbs',
+  harmonicFunctionLabels: 'Harmonic Function Labels',
+  diagramLayout: 'Layout',
   voiceLeading: 'Voice Leading',
   voiceBorrowing: 'Voice Borrowing',
   soundDesign: 'Sound',
@@ -118,6 +129,33 @@ function migrateLegacySettingsPayload(
       delete soundDesign[legacyKey];
     }
     source.soundDesign = soundDesign;
+  }
+
+  // axisLabels was renamed to harmonicFunctionLabels.
+  if (
+    source.harmonicFunctionLabels === undefined &&
+    source.axisLabels !== undefined
+  ) {
+    source.harmonicFunctionLabels = source.axisLabels;
+  }
+  delete source.axisLabels;
+
+  // Short-lived layout ids map onto the current layout family.
+  if (source.diagramLayout && typeof source.diagramLayout === 'object') {
+    const diagramLayout = {
+      ...(source.diagramLayout as Record<string, unknown>),
+    };
+    const mode = diagramLayout.diagramMode;
+    if (mode === 'composite_minor') {
+      diagramLayout.diagramMode = 'minor';
+    } else if (
+      mode === 'harmonic_melodic_minor' ||
+      mode === 'harmonic_minor' ||
+      mode === 'melodic_minor'
+    ) {
+      diagramLayout.diagramMode = 'minor_sixth_diminished';
+    }
+    source.diagramLayout = diagramLayout;
   }
 
   return source;
@@ -215,6 +253,15 @@ export type GlowingOrbsSettings = {
   enabled: boolean;
 };
 
+export type HarmonicFunctionLabelsSettings = {
+  enabled: boolean;
+};
+
+export type DiagramLayoutSettings = {
+  /** Unique SettingKey (avoids collision with voiceLeading.mode / clockFace.layoutMode). */
+  diagramMode: DiagramLayoutMode;
+};
+
 export type SoundDesignSettings = {
   synthPresetId: string;
   eqProfileId: EqProfileId;
@@ -263,6 +310,18 @@ export const USER_SETTINGS_SCHEMA: Record<
     enabled: {
       default: true,
       validate: isBoolean,
+    },
+  },
+  harmonicFunctionLabels: {
+    enabled: {
+      default: false,
+      validate: isBoolean,
+    },
+  },
+  diagramLayout: {
+    diagramMode: {
+      default: DEFAULT_DIAGRAM_LAYOUT_MODE,
+      validate: isDiagramLayoutMode,
     },
   },
   voiceLeading: {
@@ -330,17 +389,23 @@ type SchemaSection<S extends SettingsSectionId> = S extends 'general'
     ? ClockFaceSettings
     : S extends 'glowingOrbs'
       ? GlowingOrbsSettings
-  : S extends 'voiceLeading'
-    ? VoiceLeadingSettings
-    : S extends 'voiceBorrowing'
-      ? VoiceBorrowingSettings
-      : SoundDesignSettings;
+      : S extends 'harmonicFunctionLabels'
+        ? HarmonicFunctionLabelsSettings
+        : S extends 'diagramLayout'
+          ? DiagramLayoutSettings
+          : S extends 'voiceLeading'
+            ? VoiceLeadingSettings
+            : S extends 'voiceBorrowing'
+              ? VoiceBorrowingSettings
+              : SoundDesignSettings;
 
 export type PersistedUserSettings = {
   version: 1;
   general: GeneralSettings;
   clockFace: ClockFaceSettings;
   glowingOrbs: GlowingOrbsSettings;
+  harmonicFunctionLabels: HarmonicFunctionLabelsSettings;
+  diagramLayout: DiagramLayoutSettings;
   voiceLeading: VoiceLeadingSettings;
   voiceBorrowing: VoiceBorrowingSettings;
   soundDesign: SoundDesignSettings;
@@ -350,6 +415,8 @@ export type SettingKey =
   | keyof GeneralSettings
   | keyof ClockFaceSettings
   | keyof GlowingOrbsSettings
+  | keyof HarmonicFunctionLabelsSettings
+  | keyof DiagramLayoutSettings
   | keyof VoiceLeadingSettings
   | keyof VoiceBorrowingSettings
   | keyof SoundDesignSettings;
@@ -371,6 +438,8 @@ export const DEFAULT_USER_SETTINGS: PersistedUserSettings = {
   general: collectSectionDefaults('general'),
   clockFace: collectSectionDefaults('clockFace'),
   glowingOrbs: collectSectionDefaults('glowingOrbs'),
+  harmonicFunctionLabels: collectSectionDefaults('harmonicFunctionLabels'),
+  diagramLayout: collectSectionDefaults('diagramLayout'),
   voiceLeading: collectSectionDefaults('voiceLeading'),
   voiceBorrowing: collectSectionDefaults('voiceBorrowing'),
   soundDesign: collectSectionDefaults('soundDesign'),
@@ -387,6 +456,16 @@ export function getDefaultVoiceLeadingMode(
   tiltModeEnabled: boolean,
 ): VoiceLeadingMode {
   return tiltModeEnabled ? 'smooth' : 'smoothest';
+}
+
+/**
+ * Harmonic function labels default with chord-name labels on the diagram
+ * (non-compact / desktop side-by-side). Compact and phone stay off.
+ */
+export function getDefaultHarmonicFunctionLabelsEnabled(
+  showChordNameLabels: boolean,
+): boolean {
+  return showChordNameLabels;
 }
 
 function validateSection<S extends SettingsSectionId>(
@@ -421,6 +500,11 @@ export function validateLoadedSettings(raw: unknown): PersistedUserSettings {
     general: validateSection('general', source.general),
     clockFace: validateSection('clockFace', source.clockFace),
     glowingOrbs: validateSection('glowingOrbs', source.glowingOrbs),
+    harmonicFunctionLabels: validateSection(
+      'harmonicFunctionLabels',
+      source.harmonicFunctionLabels,
+    ),
+    diagramLayout: validateSection('diagramLayout', source.diagramLayout),
     voiceLeading: validateSection('voiceLeading', source.voiceLeading),
     voiceBorrowing: validateSection('voiceBorrowing', source.voiceBorrowing),
     soundDesign: validateSection('soundDesign', source.soundDesign),
@@ -431,6 +515,8 @@ export function buildSettingsSnapshot(input: {
   general: GeneralSettings;
   clockFace: ClockFaceSettings;
   glowingOrbs: GlowingOrbsSettings;
+  harmonicFunctionLabels: HarmonicFunctionLabelsSettings;
+  diagramLayout: DiagramLayoutSettings;
   voiceLeading: VoiceLeadingSettings;
   voiceBorrowing: VoiceBorrowingSettings;
   soundDesign: SoundDesignSettings;
@@ -440,6 +526,8 @@ export function buildSettingsSnapshot(input: {
     general: { ...input.general },
     clockFace: { ...input.clockFace },
     glowingOrbs: { ...input.glowingOrbs },
+    harmonicFunctionLabels: { ...input.harmonicFunctionLabels },
+    diagramLayout: { ...input.diagramLayout },
     voiceLeading: { ...input.voiceLeading },
     voiceBorrowing: { ...input.voiceBorrowing },
     soundDesign: { ...input.soundDesign },
