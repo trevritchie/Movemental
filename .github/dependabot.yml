@@ -39,6 +39,18 @@ updates:
           - "eslint-plugin-*"
           - "@eslint/*"
           - "globals"
+      # Test-runtime packages (jsdom, Vitest, Playwright, Testing Library) often
+      # raise the Node floor on major bumps. Keeping them out of the broad
+      # development-dependencies group means a Node-incompatible major only
+      # blocks this PR, and review can pair the bump with a CI Node update.
+      testing-runtime:
+        patterns:
+          - "jsdom"
+          - "vitest"
+          - "@vitest/*"
+          - "playwright"
+          - "@playwright/*"
+          - "@testing-library/*"
       development-dependencies:
         dependency-type: "development"
         exclude-patterns:
@@ -49,6 +61,12 @@ updates:
           - "eslint-plugin-*"
           - "@eslint/*"
           - "globals"
+          - "jsdom"
+          - "vitest"
+          - "@vitest/*"
+          - "playwright"
+          - "@playwright/*"
+          - "@testing-library/*"
 
   # Actions used by the CI/deploy workflows in .github/workflows/.
   - package-ecosystem: "github-actions"
