@@ -4,7 +4,11 @@
  * surface in ChordContext and playback.
  */
 
-import type { ClockLayoutMode, VoiceLeadingMode } from './sessionModes';
+import type {
+  ClockLayoutMode,
+  VoiceLeadingMode,
+  VoicingElevatorFloorsMode,
+} from './sessionModes';
 
 export const NOTE_NAMES_FLAT = [
   "C", "Db", "D", "Eb", "E", "F", "Gb", "G", "Ab", "A", "Bb", "B"
@@ -25,6 +29,8 @@ export const OCTAVE_RANGE_OPTIONS = Array.from(
 );
 export const DEFAULT_VOICE_LEADING_MODE: VoiceLeadingMode = 'smooth';
 export const DEFAULT_CLOCK_LAYOUT_MODE: ClockLayoutMode = 'chromatic';
+export const DEFAULT_VOICING_ELEVATOR_FLOORS_MODE: VoicingElevatorFloorsMode =
+  'all';
 export const DEFAULT_CHORD_DURATION = "2n"; // Half note in Tone.js
 
 // Intervals

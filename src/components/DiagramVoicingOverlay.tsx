@@ -6,6 +6,10 @@ import {
   TILT_VOICING_LEVEL_NAMES,
 } from '../music/TiltVoicingEngine';
 import {
+  allowedVoicingLevels,
+  applyElevatorFloorsToTilt,
+} from '../music/voicingElevatorFloors';
+import {
   bassDegreeLabelsForSelect,
   tiltBassDegreeLabel,
   TILT_BASS_DEGREE_MOBILE_MAX_LABEL,
@@ -72,6 +76,7 @@ export const DiagramVoicingOverlay: React.FC = () => {
     lastPlayedVoicingLabel,
     lastPlayedBassLabel,
     lastElementalPlayback,
+    voicingElevatorFloorsMode,
   } = useChordContext();
 
   const { tiltStatus, tiltSample, requestTiltPermission } =
@@ -79,6 +84,19 @@ export const DiagramVoicingOverlay: React.FC = () => {
 
   const isTilt = tiltModeEnabled;
   const chordName = selectedChord?.name;
+  const elevatorTiltSample = React.useMemo(
+    () =>
+      applyElevatorFloorsToTilt(
+        tiltSample,
+        voicingElevatorFloorsMode,
+        chordName,
+      ),
+    [tiltSample, voicingElevatorFloorsMode, chordName],
+  );
+  const voicingLevelOptions = React.useMemo(
+    () => allowedVoicingLevels(voicingElevatorFloorsMode, chordName),
+    [voicingElevatorFloorsMode, chordName],
+  );
   const voicingLockLabel = chordName
     ? `${isNoTiltVoicingLocked ? 'Unlock' : 'Lock'} voicing for ${chordName}`
     : 'Lock voicing';
@@ -120,8 +138,9 @@ export const DiagramVoicingOverlay: React.FC = () => {
   );
 
   const tiltBassLabel = React.useMemo(
-    () => tiltBassDegreeLabel(tiltSample, selectedChord, tiltBassContext),
-    [tiltSample, selectedChord, tiltBassContext]
+    () =>
+      tiltBassDegreeLabel(elevatorTiltSample, selectedChord, tiltBassContext),
+    [elevatorTiltSample, selectedChord, tiltBassContext]
   );
 
   const renderVoicingValue = () => {
@@ -135,9 +154,9 @@ export const DiagramVoicingOverlay: React.FC = () => {
             title="Voicing"
             aria-label="Voicing"
           >
-            {TILT_VOICING_OVERLAY_LABELS.map((name, idx) => (
+            {voicingLevelOptions.map((idx) => (
               <option key={TILT_VOICING_LEVEL_NAMES[idx]} value={idx}>
-                {name}
+                {TILT_VOICING_OVERLAY_LABELS[idx]}
               </option>
             ))}
           </select>
@@ -194,7 +213,7 @@ export const DiagramVoicingOverlay: React.FC = () => {
           className="diagram-overlay-readout"
           title="Roll sets voicing width"
         >
-          {tiltVoicingOverlayLabel(tiltSample)}
+          {tiltVoicingOverlayLabel(elevatorTiltSample)}
         </span>
       </TiltReadoutStack>
     );

@@ -187,6 +187,22 @@ describe('userSettingsSchema', () => {
     expect(result.harmonicFunctionLabels.enabled).toBe(false);
   });
 
+  it('validateLoadedSettings defaults and accepts voicingElevatorFloors.floorsMode', () => {
+    expect(validateLoadedSettings({}).voicingElevatorFloors.floorsMode).toBe(
+      'all',
+    );
+    expect(
+      validateLoadedSettings({
+        voicingElevatorFloors: { floorsMode: 'every_other' },
+      }).voicingElevatorFloors.floorsMode,
+    ).toBe('every_other');
+    expect(
+      validateLoadedSettings({
+        voicingElevatorFloors: { floorsMode: 'nope' },
+      }).voicingElevatorFloors.floorsMode,
+    ).toBe('all');
+  });
+
   it('validateLoadedSettings defaults and accepts diagramLayout.diagramMode', () => {
     expect(validateLoadedSettings({}).diagramLayout.diagramMode).toBe(
       'complete_geometry',

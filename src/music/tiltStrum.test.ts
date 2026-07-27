@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   resolveStrumPlaybackTilt,
   strumLevelsChanged,
+  strumLevelsFromTilt,
   strumMinIntervalMs,
   strumRateLimitAllows,
 } from './tiltStrum';
@@ -54,5 +55,45 @@ describe('tiltStrum', () => {
     expect(parallelLevelFromTilt(result)).toBe(
       parallelLevelFromTilt(lastCommitted) + pitchDelta,
     );
+  });
+
+  it('gates strum levels through Every Other floors for children', () => {
+    // Two samples inside the lowest Every Other child stop (Unison).
+    const nearVertical = strumLevelsFromTilt(
+      { x: -1, y: 0 },
+      'every_other',
+      'Branch',
+    );
+    const stillUnison = strumLevelsFromTilt(
+      { x: -0.9, y: 0 },
+      'every_other',
+      'Branch',
+    );
+    expect(nearVertical.inputSteps).toBe(0);
+    expect(stillUnison.inputSteps).toBe(0);
+    expect(strumLevelsChanged(stillUnison, nearVertical)).toBe(false);
+
+    // Next Every Other stop is Triad (skips All-mode Third).
+    const triad = strumLevelsFromTilt(
+      { x: -0.75, y: 0 },
+      'every_other',
+      'Branch',
+    );
+    expect(triad.inputSteps).toBe(2);
+    expect(strumLevelsChanged(triad, nearVertical)).toBe(true);
+  });
+
+  it('resolves strum playback roll through Every Other parent floors', () => {
+    const live: TiltSample = { x: -0.75, y: 0 };
+    const flat: TiltSample = { x: 0, y: 0 };
+    const result = resolveStrumPlaybackTilt(
+      live,
+      flat,
+      flat,
+      'every_other',
+      'Earth',
+    );
+    // Stop index 1 for parents is still Third (duplicated lowest floors).
+    expect(mapTiltToPositions(result).inputSteps).toBe(1);
   });
 });

@@ -7,6 +7,7 @@
  */
 import { clamp } from '../utils/clamp';
 import type { ShortestNote } from '../settings/userSettingsSchema';
+import type { VoicingElevatorFloorsMode } from './sessionModes';
 import {
   mapTiltToPositions,
   MAX_TILT_PITCH_STEPS,
@@ -14,6 +15,7 @@ import {
   tiltSampleFromLevels,
   type TiltSample,
 } from './TiltVoicingEngine';
+import { applyElevatorFloorsToTilt } from './voicingElevatorFloors';
 
 export type StrumLevelPair = {
   inputSteps: number;
@@ -61,16 +63,23 @@ export function strumRateLimitAllows(
 /**
  * Resolve continuous-strum playback tilt from live device tilt.
  *
- * Preserves the parallel established at the last commit and applies live roll
- * plus pitch delta since the last control (tap) tilt. Does not re-run
- * opposite-element diminished root search.
+ * Applies Voicing Elevator Floors remapping to roll, preserves the parallel
+ * established at the last commit, and applies pitch delta since the last
+ * control (tap) tilt. Does not re-run opposite-element diminished root search.
  */
 export function resolveStrumPlaybackTilt(
   liveTilt: TiltSample,
   lastControlTilt: TiltSample,
   lastCommittedPlaybackTilt: TiltSample,
+  floorsMode: VoicingElevatorFloorsMode = 'all',
+  chordName: string | null | undefined = null,
 ): TiltSample {
-  const { inputSteps } = mapTiltToPositions(liveTilt);
+  const snappedLive = applyElevatorFloorsToTilt(
+    liveTilt,
+    floorsMode,
+    chordName,
+  );
+  const { inputSteps } = mapTiltToPositions(snappedLive);
   const pitchDelta =
     parallelLevelFromTilt(liveTilt) - parallelLevelFromTilt(lastControlTilt);
   const effectiveParallel = clamp(
@@ -79,4 +88,16 @@ export function resolveStrumPlaybackTilt(
     MAX_TILT_PITCH_STEPS,
   );
   return tiltSampleFromLevels(inputSteps, effectiveParallel);
+}
+
+/**
+ * Discrete roll/pitch levels for strum gating after elevator-floor remapping.
+ */
+export function strumLevelsFromTilt(
+  liveTilt: TiltSample,
+  floorsMode: VoicingElevatorFloorsMode,
+  chordName: string | null | undefined,
+): StrumLevelPair {
+  const snapped = applyElevatorFloorsToTilt(liveTilt, floorsMode, chordName);
+  return mapTiltToPositions(snapped);
 }

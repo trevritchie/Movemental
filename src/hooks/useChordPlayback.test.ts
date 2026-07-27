@@ -37,7 +37,7 @@ vi.mock('../audio/pageInteraction', () => ({
   isPageInteractiveForAudio: () => true,
 }));
 
-import type { VoiceLeadingMode } from '../music/sessionModes';
+import type { VoiceLeadingMode, VoicingElevatorFloorsMode } from '../music/sessionModes';
 import { useChordPlayback } from './useChordPlayback';
 import { chordManager } from '../music/ChordManager';
 
@@ -66,6 +66,9 @@ describe('useChordPlayback audio-first pointer path', () => {
     noTiltPositionLevelRef: { current: 0 },
     tonalCenterRef: { current: 0 },
     voiceLeadingModeRef: { current: 'smoothest' as VoiceLeadingMode },
+    voicingElevatorFloorsModeRef: {
+      current: 'all' as VoicingElevatorFloorsMode,
+    },
     setNoTiltPositionLevel,
     noTiltLockMapsRef: {
       current: { voicing: {}, bass: {} },
@@ -86,6 +89,7 @@ describe('useChordPlayback audio-first pointer path', () => {
     suppressNoTiltRevoiceRef.current = createNoTiltRevoiceSuppressState();
     baseOptions.noTiltPositionLevelRef.current = 0;
     baseOptions.voiceLeadingModeRef.current = 'smoothest';
+    baseOptions.voicingElevatorFloorsModeRef.current = 'all';
     baseOptions.retriggerSoundingNotesRef.current = false;
     baseOptions.tiltToStrumRef.current = false;
     baseOptions.shortestNoteRef.current = '16n';
@@ -504,6 +508,41 @@ describe('useChordPlayback audio-first pointer path', () => {
     });
 
     expect(mocks.updateVoicingDiff).not.toHaveBeenCalled();
+  });
+
+  it('does not strum across skipped Every Other floors', async () => {
+    baseOptions.tiltToStrumRef.current = true;
+    baseOptions.voicingElevatorFloorsModeRef.current = 'every_other';
+    // Start in the lowest Every Other child stop (Unison).
+    baseOptions.rawTiltRef.current = { x: -1, y: 0 };
+    const { result } = renderHook(() => useChordPlayback(baseOptions));
+
+    await act(async () => {
+      result.current.enterTiltSession();
+      result.current.handleChordPointerDown(branch);
+      await Promise.resolve();
+    });
+
+    mocks.updateVoicingDiff.mockClear();
+    // Still inside the Unison Every Other stop.
+    baseOptions.rawTiltRef.current = { x: -0.9, y: 0 };
+
+    await act(async () => {
+      vi.advanceTimersByTime(300);
+      result.current.handleTiltStrumSample();
+    });
+
+    expect(mocks.updateVoicingDiff).not.toHaveBeenCalled();
+
+    // Next Every Other stop (Triad) should strum.
+    baseOptions.rawTiltRef.current = { x: -0.75, y: 0 };
+
+    await act(async () => {
+      vi.advanceTimersByTime(300);
+      result.current.handleTiltStrumSample();
+    });
+
+    expect(mocks.updateVoicingDiff).toHaveBeenCalled();
   });
 
   it('blocks hold-mode strum when the pointer is up', async () => {

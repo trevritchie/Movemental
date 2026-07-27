@@ -7,6 +7,7 @@ import {
   DEFAULT_OCTAVE_RANGE,
   DEFAULT_VOICE_LEADING_MODE,
   DEFAULT_CLOCK_LAYOUT_MODE,
+  DEFAULT_VOICING_ELEVATOR_FLOORS_MODE,
   MAX_OCTAVE_RANGE,
   MIN_OCTAVE_RANGE,
 } from '../music/config';
@@ -15,6 +16,7 @@ import type {
   DiagramLayoutMode,
   PlayStyle,
   VoiceLeadingMode,
+  VoicingElevatorFloorsMode,
 } from '../music/sessionModes';
 import {
   DEFAULT_DIAGRAM_LAYOUT_MODE,
@@ -41,6 +43,7 @@ export type SettingsSectionId =
   | 'glowingOrbs'
   | 'harmonicFunctionLabels'
   | 'diagramLayout'
+  | 'voicingElevatorFloors'
   | 'voiceLeading'
   | 'voiceBorrowing'
   | 'soundDesign';
@@ -51,6 +54,7 @@ export const SETTINGS_SECTION_IDS: readonly SettingsSectionId[] = [
   'glowingOrbs',
   'harmonicFunctionLabels',
   'diagramLayout',
+  'voicingElevatorFloors',
   'voiceLeading',
   'voiceBorrowing',
   'soundDesign',
@@ -62,6 +66,7 @@ export const SETTINGS_SECTION_LABELS: Record<SettingsSectionId, string> = {
   glowingOrbs: 'Glowing Orbs',
   harmonicFunctionLabels: 'Harmonic Function Labels',
   diagramLayout: 'Layout',
+  voicingElevatorFloors: 'Voicing Elevator Floors',
   voiceLeading: 'Voice Leading',
   voiceBorrowing: 'Voice Borrowing',
   soundDesign: 'Sound',
@@ -182,6 +187,12 @@ function isClockLayoutMode(value: unknown): value is ClockLayoutMode {
   return value === 'chromatic' || value === 'circle_of_fifths';
 }
 
+function isVoicingElevatorFloorsMode(
+  value: unknown,
+): value is VoicingElevatorFloorsMode {
+  return value === 'all' || value === 'every_other';
+}
+
 function isBoolean(value: unknown): value is boolean {
   return typeof value === 'boolean';
 }
@@ -274,6 +285,11 @@ export type GeneralSettings = {
 
 export type VoiceLeadingSettings = {
   mode: VoiceLeadingMode;
+};
+
+export type VoicingElevatorFloorsSettings = {
+  /** Unique SettingKey (avoids collision with voiceLeading.mode). */
+  floorsMode: VoicingElevatorFloorsMode;
 };
 
 export type VoiceBorrowingSettings = {
@@ -371,6 +387,12 @@ export const USER_SETTINGS_SCHEMA: Record<
       validate: isDiagramLayoutMode,
     },
   },
+  voicingElevatorFloors: {
+    floorsMode: {
+      default: DEFAULT_VOICING_ELEVATOR_FLOORS_MODE,
+      validate: isVoicingElevatorFloorsMode,
+    },
+  },
   voiceLeading: {
     mode: {
       default: DEFAULT_VOICE_LEADING_MODE,
@@ -440,11 +462,13 @@ type SchemaSection<S extends SettingsSectionId> = S extends 'general'
         ? HarmonicFunctionLabelsSettings
         : S extends 'diagramLayout'
           ? DiagramLayoutSettings
-          : S extends 'voiceLeading'
-            ? VoiceLeadingSettings
-            : S extends 'voiceBorrowing'
-              ? VoiceBorrowingSettings
-              : SoundDesignSettings;
+          : S extends 'voicingElevatorFloors'
+            ? VoicingElevatorFloorsSettings
+            : S extends 'voiceLeading'
+              ? VoiceLeadingSettings
+              : S extends 'voiceBorrowing'
+                ? VoiceBorrowingSettings
+                : SoundDesignSettings;
 
 export type PersistedUserSettings = {
   version: 1;
@@ -453,6 +477,7 @@ export type PersistedUserSettings = {
   glowingOrbs: GlowingOrbsSettings;
   harmonicFunctionLabels: HarmonicFunctionLabelsSettings;
   diagramLayout: DiagramLayoutSettings;
+  voicingElevatorFloors: VoicingElevatorFloorsSettings;
   voiceLeading: VoiceLeadingSettings;
   voiceBorrowing: VoiceBorrowingSettings;
   soundDesign: SoundDesignSettings;
@@ -464,6 +489,7 @@ export type SettingKey =
   | keyof GlowingOrbsSettings
   | keyof HarmonicFunctionLabelsSettings
   | keyof DiagramLayoutSettings
+  | keyof VoicingElevatorFloorsSettings
   | keyof VoiceLeadingSettings
   | keyof VoiceBorrowingSettings
   | keyof SoundDesignSettings;
@@ -487,6 +513,7 @@ export const DEFAULT_USER_SETTINGS: PersistedUserSettings = {
   glowingOrbs: collectSectionDefaults('glowingOrbs'),
   harmonicFunctionLabels: collectSectionDefaults('harmonicFunctionLabels'),
   diagramLayout: collectSectionDefaults('diagramLayout'),
+  voicingElevatorFloors: collectSectionDefaults('voicingElevatorFloors'),
   voiceLeading: collectSectionDefaults('voiceLeading'),
   voiceBorrowing: collectSectionDefaults('voiceBorrowing'),
   soundDesign: collectSectionDefaults('soundDesign'),
@@ -552,6 +579,10 @@ export function validateLoadedSettings(raw: unknown): PersistedUserSettings {
       source.harmonicFunctionLabels,
     ),
     diagramLayout: validateSection('diagramLayout', source.diagramLayout),
+    voicingElevatorFloors: validateSection(
+      'voicingElevatorFloors',
+      source.voicingElevatorFloors,
+    ),
     voiceLeading: validateSection('voiceLeading', source.voiceLeading),
     voiceBorrowing: validateSection('voiceBorrowing', source.voiceBorrowing),
     soundDesign: validateSection('soundDesign', source.soundDesign),
@@ -564,6 +595,7 @@ export function buildSettingsSnapshot(input: {
   glowingOrbs: GlowingOrbsSettings;
   harmonicFunctionLabels: HarmonicFunctionLabelsSettings;
   diagramLayout: DiagramLayoutSettings;
+  voicingElevatorFloors: VoicingElevatorFloorsSettings;
   voiceLeading: VoiceLeadingSettings;
   voiceBorrowing: VoiceBorrowingSettings;
   soundDesign: SoundDesignSettings;
@@ -575,6 +607,7 @@ export function buildSettingsSnapshot(input: {
     glowingOrbs: { ...input.glowingOrbs },
     harmonicFunctionLabels: { ...input.harmonicFunctionLabels },
     diagramLayout: { ...input.diagramLayout },
+    voicingElevatorFloors: { ...input.voicingElevatorFloors },
     voiceLeading: { ...input.voiceLeading },
     voiceBorrowing: { ...input.voiceBorrowing },
     soundDesign: { ...input.soundDesign },

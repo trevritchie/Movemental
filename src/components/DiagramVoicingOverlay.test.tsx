@@ -33,6 +33,7 @@ vi.mock('../context/ChordContext', () => ({
     },
     previousPlayedChord: null,
     voiceLeadingMode: 'smooth',
+    voicingElevatorFloorsMode: 'all',
     lastTapTilt: { x: 0, y: 0 },
     lastCommittedPlaybackTilt: { x: 0, y: 0 },
     smoothBaseParallel: 0,

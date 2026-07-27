@@ -44,6 +44,8 @@ vi.mock('../context/ChordContext', () => ({
     setPlayStyle,
     clockLayoutMode: 'chromatic',
     setClockLayoutMode,
+    voicingElevatorFloorsMode: 'all',
+    setVoicingElevatorFloorsMode: vi.fn(),
     glowingOrbsEnabled: true,
     setGlowingOrbsEnabled: vi.fn(),
     harmonicFunctionLabelsEnabled: true,
