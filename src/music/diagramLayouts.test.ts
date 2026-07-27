@@ -4,15 +4,11 @@ import { PARENT_ELEMENT_NAMES } from './elementTokens';
 import {
   BLUES_LAYOUT_CHORDS,
   DIAGRAM_LAYOUT_OPTIONS,
-  DOMINANT_SEVENTH_DIMINISHED_LAYOUT_CHORDS,
-  DOMINANT_SEVENTH_FLAT_FIVE_DIMINISHED_LAYOUT_CHORDS,
   isChordEnabledInLayout,
   isDiagramLayoutMode,
   JAZZ_BLUES_LAYOUT_CHORDS,
   MAJOR_LAYOUT_CHORDS,
-  MAJOR_SIXTH_DIMINISHED_LAYOUT_CHORDS,
   MINOR_LAYOUT_CHORDS,
-  MINOR_SIXTH_DIMINISHED_LAYOUT_CHORDS,
   NATURAL_MINOR_LAYOUT_CHORDS,
   RHYTHM_CHANGES_LAYOUT_CHORDS,
   type DiagramLayoutMode,
@@ -27,10 +23,6 @@ const SCALE_LAYOUT_PITCH_CLASSES: Partial<
   major: new Set([0, 2, 4, 5, 7, 9, 11]),
   natural_minor: new Set([0, 2, 3, 5, 7, 8, 10]),
   minor: new Set([0, 2, 3, 5, 7, 8, 9, 10, 11]),
-  major_sixth_diminished: new Set([0, 2, 4, 5, 7, 8, 9, 11]),
-  minor_sixth_diminished: new Set([0, 2, 3, 5, 7, 8, 9, 11]),
-  dominant_seventh_diminished: new Set([0, 2, 4, 5, 7, 8, 9, 10]),
-  dominant_seventh_flat_five_diminished: new Set([0, 2, 4, 5, 6, 8, 9, 10]),
 };
 
 function chordPitchClasses(name: string): Set<number> {
@@ -68,7 +60,7 @@ describe('diagramLayouts', () => {
     chordManager.configureTonalSpace(0, chordManager.getOctaveRange());
   });
 
-  it('lists layout options with blues family before sixth-diminished', () => {
+  it('lists layout options without diminished scale presets', () => {
     expect(DIAGRAM_LAYOUT_OPTIONS.map((o) => o.value)).toEqual([
       'complete_geometry',
       'major',
@@ -77,10 +69,6 @@ describe('diagramLayouts', () => {
       'blues',
       'jazz_blues',
       'rhythm_changes',
-      'major_sixth_diminished',
-      'minor_sixth_diminished',
-      'dominant_seventh_diminished',
-      'dominant_seventh_flat_five_diminished',
     ]);
     expect(DIAGRAM_LAYOUT_OPTIONS.map((o) => o.label)).toEqual([
       'Complete Geometry',
@@ -90,10 +78,6 @@ describe('diagramLayouts', () => {
       'Blues',
       'Jazz Blues',
       'Rhythm Changes',
-      'Major Sixth Diminished',
-      'Minor Sixth Diminished',
-      'Dominant Seventh Diminished',
-      'Dominant Seventh Flat Five Diminished',
     ]);
   });
 
@@ -103,6 +87,12 @@ describe('diagramLayouts', () => {
     }
     expect(isDiagramLayoutMode('composite_minor')).toBe(false);
     expect(isDiagramLayoutMode('harmonic_melodic_minor')).toBe(false);
+    expect(isDiagramLayoutMode('major_sixth_diminished')).toBe(false);
+    expect(isDiagramLayoutMode('minor_sixth_diminished')).toBe(false);
+    expect(isDiagramLayoutMode('dominant_seventh_diminished')).toBe(false);
+    expect(
+      isDiagramLayoutMode('dominant_seventh_flat_five_diminished'),
+    ).toBe(false);
     expect(isDiagramLayoutMode(null)).toBe(false);
   });
 
@@ -196,60 +186,5 @@ describe('diagramLayouts', () => {
     expect(isChordEnabledInLayout('Brother Charcoal', 'rhythm_changes')).toBe(
       false,
     );
-  });
-
-  it('keeps Major Sixth Diminished allowlist', () => {
-    for (const name of MAJOR_SIXTH_DIMINISHED_LAYOUT_CHORDS) {
-      expect(isChordEnabledInLayout(name, 'major_sixth_diminished')).toBe(true);
-    }
-    expect(isChordEnabledInLayout('Trunk', 'major_sixth_diminished')).toBe(
-      false,
-    );
-    expect(isChordEnabledInLayout('Leaf', 'major_sixth_diminished')).toBe(
-      false,
-    );
-  });
-
-  it('keeps Minor Sixth Diminished allowlist', () => {
-    for (const name of MINOR_SIXTH_DIMINISHED_LAYOUT_CHORDS) {
-      expect(isChordEnabledInLayout(name, 'minor_sixth_diminished')).toBe(true);
-    }
-    expect(
-      isChordEnabledInLayout('Brother Branch', 'minor_sixth_diminished'),
-    ).toBe(false);
-    expect(
-      isChordEnabledInLayout('Brother Flame', 'minor_sixth_diminished'),
-    ).toBe(false);
-  });
-
-  it('keeps Dominant Seventh Diminished allowlist', () => {
-    for (const name of DOMINANT_SEVENTH_DIMINISHED_LAYOUT_CHORDS) {
-      expect(
-        isChordEnabledInLayout(name, 'dominant_seventh_diminished'),
-      ).toBe(true);
-    }
-    expect(
-      isChordEnabledInLayout('Ember', 'dominant_seventh_diminished'),
-    ).toBe(false);
-    expect(
-      isChordEnabledInLayout('Flame', 'dominant_seventh_diminished'),
-    ).toBe(false);
-  });
-
-  it('keeps Dominant Seventh Flat Five Diminished allowlist', () => {
-    for (const name of DOMINANT_SEVENTH_FLAT_FIVE_DIMINISHED_LAYOUT_CHORDS) {
-      expect(
-        isChordEnabledInLayout(
-          name,
-          'dominant_seventh_flat_five_diminished',
-        ),
-      ).toBe(true);
-    }
-    expect(
-      isChordEnabledInLayout('Branch', 'dominant_seventh_flat_five_diminished'),
-    ).toBe(false);
-    expect(
-      isChordEnabledInLayout('Trunk', 'dominant_seventh_flat_five_diminished'),
-    ).toBe(false);
   });
 });

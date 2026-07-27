@@ -17,11 +17,7 @@ export type DiagramLayoutMode =
   | 'minor'
   | 'blues'
   | 'jazz_blues'
-  | 'rhythm_changes'
-  | 'major_sixth_diminished'
-  | 'minor_sixth_diminished'
-  | 'dominant_seventh_diminished'
-  | 'dominant_seventh_flat_five_diminished';
+  | 'rhythm_changes';
 
 /** Device tilt controls voicing (splash choice; not changed in settings). */
 export function usesDeviceTilt(tiltModeEnabled: boolean): boolean {

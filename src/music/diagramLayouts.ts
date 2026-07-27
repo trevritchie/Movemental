@@ -23,16 +23,6 @@ export const DIAGRAM_LAYOUT_OPTIONS: readonly {
   { value: 'blues', label: 'Blues' },
   { value: 'jazz_blues', label: 'Jazz Blues' },
   { value: 'rhythm_changes', label: 'Rhythm Changes' },
-  { value: 'major_sixth_diminished', label: 'Major Sixth Diminished' },
-  { value: 'minor_sixth_diminished', label: 'Minor Sixth Diminished' },
-  {
-    value: 'dominant_seventh_diminished',
-    label: 'Dominant Seventh Diminished',
-  },
-  {
-    value: 'dominant_seventh_flat_five_diminished',
-    label: 'Dominant Seventh Flat Five Diminished',
-  },
 ] as const;
 
 /**
@@ -128,75 +118,6 @@ export const RHYTHM_CHANGES_LAYOUT_CHORDS: ReadonlySet<string> = new Set([
   'Sister Flame',
 ]);
 
-/**
- * Major Sixth Diminished: {0, 2, 4, 5, 7, 8, 9, 11} at center C.
- * Parents are always enabled separately.
- */
-export const MAJOR_SIXTH_DIMINISHED_LAYOUT_CHORDS: ReadonlySet<string> =
-  new Set([
-    'Branch',
-    'Ember',
-    'Flame',
-    'Sister Flame',
-    'Magma',
-    'Brother Magma',
-    'Glass',
-  ]);
-
-/**
- * Minor Sixth Diminished: {0, 2, 3, 5, 7, 8, 9, 11} at center C.
- * Parents are always enabled separately.
- */
-export const MINOR_SIXTH_DIMINISHED_LAYOUT_CHORDS: ReadonlySet<string> =
-  new Set([
-    'Trunk',
-    'Flame',
-    'Magma',
-    'Brother Magma',
-    'Twin Magma',
-    'Glass',
-    'Brother Glass',
-    'Forest-Fire',
-    'Twin Forest-Fire',
-    'Charcoal',
-  ]);
-
-/**
- * Dominant Seventh Diminished: {0, 2, 4, 5, 7, 8, 9, 10} at center C.
- * Parents are always enabled separately.
- */
-export const DOMINANT_SEVENTH_DIMINISHED_LAYOUT_CHORDS: ReadonlySet<string> =
-  new Set([
-    'Branch',
-    'Leaf',
-    'Smoke',
-    'Brother Ember',
-    'Brother Fire-Storm',
-    'Sister Fire-Storm',
-    'Brother Flame',
-    'Brother Magma',
-    'Glass',
-  ]);
-
-/**
- * Dominant Seventh Flat Five Diminished: {0, 2, 4, 5, 6, 8, 9, 10} at center C.
- * Parents are always enabled separately.
- */
-export const DOMINANT_SEVENTH_FLAT_FIVE_DIMINISHED_LAYOUT_CHORDS: ReadonlySet<string> =
-  new Set([
-    'Sister Trunk',
-    'Sand-Storm',
-    'Twin Sand-Storm',
-    'Brother Fire-Storm',
-    'Sister Fire-Storm',
-    'Brother Flame',
-    'Brother Magma',
-    'Glass',
-    'Brother Forest-Fire',
-    'Sister Forest-Fire',
-    'Sister Charcoal',
-  ]);
-
 const PARENT_SET: ReadonlySet<string> = new Set(PARENT_ELEMENT_NAMES);
 
 const LAYOUT_ALLOWLISTS: Record<
@@ -209,11 +130,6 @@ const LAYOUT_ALLOWLISTS: Record<
   blues: BLUES_LAYOUT_CHORDS,
   jazz_blues: JAZZ_BLUES_LAYOUT_CHORDS,
   rhythm_changes: RHYTHM_CHANGES_LAYOUT_CHORDS,
-  major_sixth_diminished: MAJOR_SIXTH_DIMINISHED_LAYOUT_CHORDS,
-  minor_sixth_diminished: MINOR_SIXTH_DIMINISHED_LAYOUT_CHORDS,
-  dominant_seventh_diminished: DOMINANT_SEVENTH_DIMINISHED_LAYOUT_CHORDS,
-  dominant_seventh_flat_five_diminished:
-    DOMINANT_SEVENTH_FLAT_FIVE_DIMINISHED_LAYOUT_CHORDS,
 };
 
 const DIAGRAM_LAYOUT_MODE_SET: ReadonlySet<string> = new Set(

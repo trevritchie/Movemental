@@ -214,28 +214,6 @@ describe('userSettingsSchema', () => {
     ).toBe('rhythm_changes');
     expect(
       validateLoadedSettings({
-        diagramLayout: { diagramMode: 'major_sixth_diminished' },
-      }).diagramLayout.diagramMode,
-    ).toBe('major_sixth_diminished');
-    expect(
-      validateLoadedSettings({
-        diagramLayout: { diagramMode: 'minor_sixth_diminished' },
-      }).diagramLayout.diagramMode,
-    ).toBe('minor_sixth_diminished');
-    expect(
-      validateLoadedSettings({
-        diagramLayout: { diagramMode: 'dominant_seventh_diminished' },
-      }).diagramLayout.diagramMode,
-    ).toBe('dominant_seventh_diminished');
-    expect(
-      validateLoadedSettings({
-        diagramLayout: {
-          diagramMode: 'dominant_seventh_flat_five_diminished',
-        },
-      }).diagramLayout.diagramMode,
-    ).toBe('dominant_seventh_flat_five_diminished');
-    expect(
-      validateLoadedSettings({
         diagramLayout: { diagramMode: 'composite_minor' },
       }).diagramLayout.diagramMode,
     ).toBe('minor');
@@ -243,17 +221,39 @@ describe('userSettingsSchema', () => {
       validateLoadedSettings({
         diagramLayout: { diagramMode: 'harmonic_melodic_minor' },
       }).diagramLayout.diagramMode,
-    ).toBe('minor_sixth_diminished');
+    ).toBe('minor');
     expect(
       validateLoadedSettings({
         diagramLayout: { diagramMode: 'harmonic_minor' },
       }).diagramLayout.diagramMode,
-    ).toBe('minor_sixth_diminished');
+    ).toBe('minor');
     expect(
       validateLoadedSettings({
         diagramLayout: { diagramMode: 'melodic_minor' },
       }).diagramLayout.diagramMode,
-    ).toBe('minor_sixth_diminished');
+    ).toBe('minor');
+    expect(
+      validateLoadedSettings({
+        diagramLayout: { diagramMode: 'major_sixth_diminished' },
+      }).diagramLayout.diagramMode,
+    ).toBe('complete_geometry');
+    expect(
+      validateLoadedSettings({
+        diagramLayout: { diagramMode: 'minor_sixth_diminished' },
+      }).diagramLayout.diagramMode,
+    ).toBe('complete_geometry');
+    expect(
+      validateLoadedSettings({
+        diagramLayout: { diagramMode: 'dominant_seventh_diminished' },
+      }).diagramLayout.diagramMode,
+    ).toBe('complete_geometry');
+    expect(
+      validateLoadedSettings({
+        diagramLayout: {
+          diagramMode: 'dominant_seventh_flat_five_diminished',
+        },
+      }).diagramLayout.diagramMode,
+    ).toBe('complete_geometry');
     expect(
       validateLoadedSettings({
         diagramLayout: { diagramMode: 'dorian' },

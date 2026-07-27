@@ -153,7 +153,14 @@ function migrateLegacySettingsPayload(
       mode === 'harmonic_minor' ||
       mode === 'melodic_minor'
     ) {
-      diagramLayout.diagramMode = 'minor_sixth_diminished';
+      diagramLayout.diagramMode = 'minor';
+    } else if (
+      mode === 'major_sixth_diminished' ||
+      mode === 'minor_sixth_diminished' ||
+      mode === 'dominant_seventh_diminished' ||
+      mode === 'dominant_seventh_flat_five_diminished'
+    ) {
+      diagramLayout.diagramMode = 'complete_geometry';
     }
     source.diagramLayout = diagramLayout;
   }
