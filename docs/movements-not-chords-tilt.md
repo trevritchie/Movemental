@@ -55,10 +55,10 @@ continuously while the phone moves under a held chord.
 **Tilt to Strum** (Play Style setting, tilt sessions only, default On)
 changes the audio path: when On, each change in discrete tilt level
 (`inputSteps` / `parallelSteps`) plays a **set-membership note diff** via
-`AudioEngine.updateVoicingDiff` (attack adds, release removes; common tones
-never re-attack, even after sampler buffers end). Updates are rate-limited to
-the duration of the **Shortest Note** at the current **BPM** (for example a
-1/8 at 120 BPM is 250 ms). Tap & Hold still requires the pointer to be
+`AudioEngine.updateVoicingDiff` (attack adds, release removes; still-sounding
+common tones are sustained, finished notes may re-attack). Updates are
+rate-limited to the duration of the **Shortest Note** at the current **BPM**
+(defaults 1/8 at 120 BPM = 250 ms). Tap & Hold still requires the pointer to be
 down so notes do not hang after release. Panic clears the selected chord so
 strumming stays silent until the next tap.
 

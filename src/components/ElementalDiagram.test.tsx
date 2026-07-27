@@ -37,6 +37,7 @@ const mockChordContext = {
   toggleNoTiltVoicingLock: vi.fn(),
   toggleNoTiltBassLock: vi.fn(),
   tiltModeEnabled: false,
+  voicingElevatorFloorsMode: 'all',
   glowingOrbsEnabled: true,
   harmonicFunctionLabelsEnabled: true,
   diagramLayoutMode: 'complete_geometry' as DiagramLayoutMode,

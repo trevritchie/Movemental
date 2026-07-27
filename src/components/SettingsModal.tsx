@@ -10,6 +10,7 @@ import { AdsrPanelContent } from './settings/AdsrPanelContent';
 import { EffectsPanelContent } from './settings/EffectsPanelContent';
 import { BorrowingMemoryToggle } from './settings/BorrowingMemoryToggle';
 import { VoiceLeadingToggle } from './settings/VoiceLeadingToggle';
+import { VoicingElevatorFloorsToggle } from './settings/VoicingElevatorFloorsToggle';
 import { ClockLayoutToggle } from './settings/ClockLayoutToggle';
 import { GlowingOrbsToggle } from './settings/GlowingOrbsToggle';
 import { HarmonicFunctionLabelsToggle } from './settings/HarmonicFunctionLabelsToggle';
@@ -459,6 +460,23 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                         </div>
                       </div>
                     )}
+
+                    <div className="settings-menu-setting">
+                      <SettingsSettingHeader
+                        groupId="voicingElevatorFloors"
+                        onReset={resetSettingsGroup}
+                      />
+                      <div className="settings-menu-section__panel">
+                        <p className="settings-menu-section__hint">
+                          All uses every elevator floor. Every Other uses five
+                          stops so on chords (children) and off chords (Earth,
+                          Wind, Fire) pair as Unison-Third, Triad-Third,
+                          Octave-Close, Drop 3-Drop 2, and Double Octave-Drop
+                          2&amp;4.
+                        </p>
+                        <VoicingElevatorFloorsToggle />
+                      </div>
+                    </div>
 
                     <div className="settings-menu-setting">
                       <SettingsSettingHeader
