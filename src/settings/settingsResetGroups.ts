@@ -25,7 +25,9 @@ export type SettingsResetGroupId =
   | 'voiceLeading'
   | 'voiceBorrowing'
   | 'clockFace'
-  | 'glowingOrbs';
+  | 'glowingOrbs'
+  | 'harmonicFunctionLabels'
+  | 'diagramLayout';
 
 export const SETTINGS_RESET_GROUP_LABELS: Record<SettingsResetGroupId, string> =
   {
@@ -40,6 +42,8 @@ export const SETTINGS_RESET_GROUP_LABELS: Record<SettingsResetGroupId, string> =
     voiceBorrowing: 'Voice Borrowing',
     clockFace: 'Clock Face Diagram',
     glowingOrbs: 'Glowing Orbs',
+    harmonicFunctionLabels: 'Harmonic Function Labels',
+    diagramLayout: 'Layout',
   };
 
 export function getPresetEnvelopeDefaults(synthPresetId: string): {
@@ -115,6 +119,12 @@ export function getSettingsGroupDefaults(
       return { layoutMode: defaults.clockFace.layoutMode };
     case 'glowingOrbs':
       return { enabled: defaults.glowingOrbs.enabled };
+    case 'harmonicFunctionLabels':
+      // Applied via setHarmonicFunctionLabelsEnabled in useSettingsReset
+      // (shares SettingKey "enabled" with glowingOrbs).
+      return {};
+    case 'diagramLayout':
+      return { diagramMode: defaults.diagramLayout.diagramMode };
     default:
       return {};
   }

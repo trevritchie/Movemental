@@ -46,6 +46,10 @@ vi.mock('../context/ChordContext', () => ({
     setClockLayoutMode,
     glowingOrbsEnabled: true,
     setGlowingOrbsEnabled: vi.fn(),
+    harmonicFunctionLabelsEnabled: true,
+    setHarmonicFunctionLabelsEnabled: vi.fn(),
+    diagramLayoutMode: 'complete_geometry',
+    setDiagramLayoutMode: vi.fn(),
     retriggerSoundingNotes: false,
     setRetriggerSoundingNotes: vi.fn(),
     tiltModeEnabled: false,
@@ -204,22 +208,28 @@ describe('MobileActionButtons', () => {
     const instrumentIndex = text.indexOf('Instrument');
     const eqIndex = text.indexOf('EQ');
     const playStyleIndex = text.indexOf('Play Style');
+    const layoutIndex = text.indexOf('Layout');
     const holdModeIndex = text.indexOf('Sustain Mode');
     const voiceLeadingIndex = text.indexOf('Voice Leading');
     const visualsIndex = text.indexOf('Visuals');
     const clockFaceIndex = text.indexOf('Clock Face Diagram');
     const glowingOrbsIndex = text.indexOf('Glowing Orbs');
+    const harmonicFunctionLabelsIndex = text.indexOf(
+      'Harmonic Function Labels',
+    );
 
     expect(audioIndex).toBeGreaterThan(-1);
     expect(tonalCenterIndex).toBeGreaterThan(audioIndex);
     expect(instrumentIndex).toBeGreaterThan(tonalCenterIndex);
     expect(eqIndex).toBeGreaterThan(instrumentIndex);
     expect(playStyleIndex).toBeGreaterThan(eqIndex);
-    expect(holdModeIndex).toBeGreaterThan(playStyleIndex);
+    expect(layoutIndex).toBeGreaterThan(playStyleIndex);
+    expect(holdModeIndex).toBeGreaterThan(layoutIndex);
     expect(voiceLeadingIndex).toBeGreaterThan(holdModeIndex);
     expect(visualsIndex).toBeGreaterThan(voiceLeadingIndex);
-    expect(clockFaceIndex).toBeGreaterThan(visualsIndex);
-    expect(glowingOrbsIndex).toBeGreaterThan(clockFaceIndex);
+    expect(glowingOrbsIndex).toBeGreaterThan(visualsIndex);
+    expect(clockFaceIndex).toBeGreaterThan(glowingOrbsIndex);
+    expect(harmonicFunctionLabelsIndex).toBeGreaterThan(clockFaceIndex);
     expect(screen.queryByText('Sound')).not.toBeInTheDocument();
     expect(screen.queryByText('Playback')).not.toBeInTheDocument();
     expect(

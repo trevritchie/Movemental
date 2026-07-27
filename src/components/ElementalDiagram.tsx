@@ -25,6 +25,13 @@ import {
   groupEffectiveRadius,
   primaryEffectiveRadius,
 } from '../diagram/diagramNodeGeometry';
+import {
+  HARMONIC_FUNCTION_LABEL_SPECS,
+  computeHarmonicFunctionLabelLayout,
+  computeSharedHarmonicFunctionLabelFontSize,
+  type ParentElementName,
+} from '../diagram/harmonicFunctionLabelLayout';
+import { isChordEnabledInLayout } from '../music/diagramLayouts';
 import { parentElementStyle } from '../music/elementTokens';
 import { useChordContext } from '../context/ChordContext';
 import { BREAKPOINTS } from '../layout/breakpoints';
@@ -72,6 +79,8 @@ export const ElementalDiagram = React.memo(function ElementalDiagram({
     handleChordPointerEnter,
     tonalCenter,
     octaveRange,
+    harmonicFunctionLabelsEnabled,
+    diagramLayoutMode,
   } = useChordContext();
 
   const [hoveredGroup, setHoveredGroup] = useState<string | null>(null);
@@ -140,6 +149,7 @@ export const ElementalDiagram = React.memo(function ElementalDiagram({
     preserveAspectRatio,
     aspectRatioCorrection,
     nodeRadii: { rMain: R_MAIN, rGroup: R_GROUP },
+    scaleAnalysis,
   } = diagramLayout;
 
   const showLabels = !isCompactDiagram;
@@ -211,6 +221,68 @@ export const ElementalDiagram = React.memo(function ElementalDiagram({
     // refresh cached Chord objects so slice taps use the new spellings.
   }, [tonalCenter, octaveRange]);
 
+  const parentCoordByName = useMemo(() => {
+    const map: Partial<Record<ParentElementName, { x: number; y: number }>> =
+      {};
+    if (earthC) map.Earth = earthC;
+    if (windC) map.Wind = windC;
+    if (fireC) map.Fire = fireC;
+    return map;
+  }, [earthC, windC, fireC]);
+
+  const harmonicFunctionLabelLayouts = useMemo(() => {
+    if (!harmonicFunctionLabelsEnabled) {
+      return {
+        fontSize: 0,
+        items: [] as Array<{
+          spec: (typeof HARMONIC_FUNCTION_LABEL_SPECS)[number];
+          layout: ReturnType<typeof computeHarmonicFunctionLabelLayout>;
+        }>,
+      };
+    }
+
+    const edges = HARMONIC_FUNCTION_LABEL_SPECS.flatMap((spec) => {
+      const from = parentCoordByName[spec.fromParent];
+      const to = parentCoordByName[spec.toParent];
+      if (!from || !to) return [];
+      return [
+        {
+          spec,
+          from,
+          to,
+        },
+      ];
+    });
+
+    const fontSize = computeSharedHarmonicFunctionLabelFontSize(
+      edges.map(({ spec, from, to }) => ({
+        from,
+        to,
+        macroDAlong: spec.macroDAlong,
+        labelText: spec.text,
+      })),
+      R_GROUP,
+      {
+        isCompact: isCompactDiagram,
+        screenScaleX: scaleAnalysis.sx,
+      },
+    );
+
+    return {
+      fontSize,
+      items: edges.map(({ spec, from, to }) => ({
+        spec,
+        layout: computeHarmonicFunctionLabelLayout(from, to),
+      })),
+    };
+  }, [
+    harmonicFunctionLabelsEnabled,
+    parentCoordByName,
+    R_GROUP,
+    isCompactDiagram,
+    scaleAnalysis.sx,
+  ]);
+
   return (
     <div
       className="diagram-container"
@@ -242,6 +314,21 @@ export const ElementalDiagram = React.memo(function ElementalDiagram({
               <feMergeNode in="SourceGraphic" />
             </feMerge>
           </filter>
+
+          {harmonicFunctionLabelLayouts.items.map(({ spec }) => (
+            <linearGradient
+              key={`harmonic-fn-grad-${spec.id}`}
+              id={`harmonic-function-label-grad-${spec.id}`}
+              gradientUnits="objectBoundingBox"
+              x1="0"
+              y1="0"
+              x2="1"
+              y2="0"
+            >
+              <stop offset="0%" stopColor={spec.gradientFrom} />
+              <stop offset="100%" stopColor={spec.gradientTo} />
+            </linearGradient>
+          ))}
         </defs>
 
         {earthC && windC && fireC && (
@@ -252,6 +339,36 @@ export const ElementalDiagram = React.memo(function ElementalDiagram({
             strokeWidth="3"
           />
         )}
+
+        {harmonicFunctionLabelLayouts.items.map(({ spec, layout }) => (
+          <g
+            key={`harmonic-function-label-${spec.id}`}
+            transform={`translate(${layout.x}, ${layout.y}) scale(1, ${aspectRatioCorrection}) rotate(${layout.rotationDeg})`}
+            pointerEvents="none"
+            aria-hidden="true"
+          >
+            <text
+              data-harmonic-function-label={spec.id}
+              x={0}
+              y={0}
+              fill={`url(#harmonic-function-label-grad-${spec.id})`}
+              fontSize={harmonicFunctionLabelLayouts.fontSize}
+              fontWeight="700"
+              letterSpacing="0.02em"
+              textAnchor="middle"
+              dominantBaseline="middle"
+              stroke="rgba(0,0,0,0.55)"
+              strokeWidth={Math.max(
+                1.2,
+                harmonicFunctionLabelLayouts.fontSize * 0.045,
+              )}
+              paintOrder="stroke fill"
+              style={{ userSelect: 'none' }}
+            >
+              {spec.text}
+            </text>
+          </g>
+        ))}
 
         {BASE_GROUPS.map((baseName) => {
           const center = groupCenters[baseName];
@@ -353,13 +470,20 @@ export const ElementalDiagram = React.memo(function ElementalDiagram({
                   if (!chord) return null;
                   const freshChord =
                     chordManager.getChordByName(chord.name) ?? chord;
+                  const isEnabled = isChordEnabledInLayout(
+                    freshChord.name,
+                    diagramLayoutMode,
+                  );
                   const isSelected = selectedSlice === i;
-                  const isHov = isThisGroup && hoveredSliceIdx === i;
-                  const opacity = isSelected
-                    ? 1.0
-                    : isHov
-                      ? 0.88
-                      : baseOpacity[i];
+                  const isHov =
+                    isEnabled && isThisGroup && hoveredSliceIdx === i;
+                  const opacity = !isEnabled
+                    ? 0.22
+                    : isSelected
+                      ? 1.0
+                      : isHov
+                        ? 0.88
+                        : baseOpacity[i];
 
                   return (
                     <path
@@ -367,36 +491,52 @@ export const ElementalDiagram = React.memo(function ElementalDiagram({
                       d={piePath(r, v.sliceIdx)}
                       fill={baseColor}
                       fillOpacity={opacity}
-                      stroke={isSelected ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.45)'}
-                      strokeWidth={isSelected ? 2.5 : 1}
-                      style={{ cursor: 'pointer', transition: 'fill-opacity 0.12s ease' }}
+                      stroke={
+                        isSelected && isEnabled
+                          ? 'rgba(255,255,255,0.9)'
+                          : 'rgba(0,0,0,0.45)'
+                      }
+                      strokeWidth={isSelected && isEnabled ? 2.5 : 1}
+                      style={{
+                        cursor: isEnabled ? 'pointer' : 'default',
+                        transition: 'fill-opacity 0.12s ease',
+                        pointerEvents: isEnabled ? 'auto' : 'none',
+                      }}
                       role="button"
-                      tabIndex={0}
+                      tabIndex={isEnabled ? 0 : -1}
                       aria-label={freshChord.name}
                       aria-pressed={isSelected}
+                      aria-disabled={!isEnabled}
                       onPointerEnter={() => {
+                        if (!isEnabled) return;
                         setHoveredGroup(baseName);
                         setHoveredSliceIdx(i);
                         handleChordPointerEnter(freshChord);
                       }}
                       onPointerDown={(e) => {
+                        if (!isEnabled) return;
                         e.preventDefault();
                         e.currentTarget.releasePointerCapture(e.pointerId);
                         handleChordPointerDown(freshChord);
                       }}
-                      onPointerUp={() => handleChordPointerUp()}
+                      onPointerUp={() => {
+                        if (!isEnabled) return;
+                        handleChordPointerUp();
+                      }}
                       onFocus={() => {
+                        if (!isEnabled) return;
                         setHoveredGroup(baseName);
                         setHoveredSliceIdx(i);
                       }}
                       onKeyDown={(e) => {
-                        if (e.repeat) return;
+                        if (!isEnabled || e.repeat) return;
                         if (e.key === 'Enter' || e.key === ' ') {
                           e.preventDefault();
                           handleChordPointerDown(freshChord);
                         }
                       }}
                       onKeyUp={(e) => {
+                        if (!isEnabled) return;
                         if (e.key === 'Enter' || e.key === ' ') {
                           handleChordPointerUp();
                         }
@@ -435,6 +575,10 @@ export const ElementalDiagram = React.memo(function ElementalDiagram({
           const isSelected = selectedChord?.name === chord.name;
           const r = R_MAIN;
           const freshChord = chordManager.getChordByName(chord.name) ?? chord;
+          const isEnabled = isChordEnabledInLayout(
+            freshChord.name,
+            diagramLayoutMode,
+          );
 
           return (
             <g
@@ -442,31 +586,42 @@ export const ElementalDiagram = React.memo(function ElementalDiagram({
               transform={`translate(${x}, ${y})`}
               className={`chord-node ${isSelected ? 'active' : ''}`}
               role="button"
-              tabIndex={0}
+              tabIndex={isEnabled ? 0 : -1}
               aria-label={chord.name}
               aria-pressed={isSelected}
+              aria-disabled={!isEnabled}
               onPointerDown={(e) => {
+                if (!isEnabled) return;
                 e.preventDefault();
                 e.currentTarget.releasePointerCapture(e.pointerId);
                 handleChordPointerDown(freshChord);
               }}
-              onPointerUp={() => handleChordPointerUp()}
+              onPointerUp={() => {
+                if (!isEnabled) return;
+                handleChordPointerUp();
+              }}
               onPointerEnter={() => {
+                if (!isEnabled) return;
                 handleChordPointerEnter(freshChord);
               }}
               onKeyDown={(e) => {
-                if (e.repeat) return;
+                if (!isEnabled || e.repeat) return;
                 if (e.key === 'Enter' || e.key === ' ') {
                   e.preventDefault();
                   handleChordPointerDown(freshChord);
                 }
               }}
               onKeyUp={(e) => {
+                if (!isEnabled) return;
                 if (e.key === 'Enter' || e.key === ' ') {
                   handleChordPointerUp();
                 }
               }}
-              style={{ cursor: 'pointer' }}
+              style={{
+                cursor: isEnabled ? 'pointer' : 'default',
+                pointerEvents: isEnabled ? 'auto' : 'none',
+                opacity: isEnabled ? 1 : 0.35,
+              }}
             >
               <g transform={`scale(1, ${aspectRatioCorrection})`}>
                 <circle

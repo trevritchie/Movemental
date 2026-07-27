@@ -252,6 +252,11 @@ export class ChordManager {
     return this.chordsByName.get(name);
   }
 
+  /** All dictionary chord names (parents and siblings). */
+  public getAllChordNames(): string[] {
+    return Array.from(this.chordsByName.keys());
+  }
+
   public getElementalChord(elementName: string): Chord | undefined {
     if (["Earth", "Wind", "Fire"].includes(elementName)) {
       return this.getChordByName(elementName);

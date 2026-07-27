@@ -238,6 +238,26 @@ export function useChordPlayback({
     lastNoTiltPositionLevelRef.current = DEFAULT_NO_TILT_POSITION_LEVEL;
   }, []);
 
+  /**
+   * Release audio and wipe selection / voice-leading session state. Used when
+   * a layout change disables the sounding chord so the next allowed chord
+   * does not voice-lead from a hidden predecessor.
+   */
+  const clearPlaybackSelection = useCallback(() => {
+    audioEngine.releaseActiveNotes();
+    isPointerDownRef.current = false;
+    selectedChordNameRef.current = null;
+    setSelectedChord(null);
+    previousChordRef.current = null;
+    setPreviousPlayedChord(null);
+    activePitchesRef.current = [];
+    setActivePitches([]);
+    anchorKeyRef.current = '';
+    neutralVoicingRef.current = [];
+    invalidateVoicingCache();
+    resetVoiceLeadingSession();
+  }, [resetVoiceLeadingSession, selectedChordNameRef, setSelectedChord]);
+
   const changePlayStyle = useCallback((style: PlayStyle) => {
     if (playStyleRef.current === style) {
       return;
@@ -581,6 +601,7 @@ export function useChordPlayback({
     enterTiltSession,
     enterNoTiltSession,
     resetVoiceLeadingSession,
+    clearPlaybackSelection,
     activePitches,
     previousPlayedChord,
     lastTapTilt,

@@ -10,6 +10,15 @@ export type VoiceLeadingMode = 'root_position' | 'smooth' | 'smoothest';
 
 export type ClockLayoutMode = 'chromatic' | 'circle_of_fifths';
 
+export type DiagramLayoutMode =
+  | 'complete_geometry'
+  | 'major'
+  | 'natural_minor'
+  | 'minor'
+  | 'blues'
+  | 'jazz_blues'
+  | 'rhythm_changes';
+
 /** Device tilt controls voicing (splash choice; not changed in settings). */
 export function usesDeviceTilt(tiltModeEnabled: boolean): boolean {
   return tiltModeEnabled;

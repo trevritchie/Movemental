@@ -357,4 +357,32 @@ describe('useChordPlayback audio-first pointer path', () => {
     );
     expect(result.current.activePitches.length).toBeGreaterThan(0);
   });
+
+  it('clearPlaybackSelection releases audio and wipes session state', async () => {
+    const { result } = renderHook(() => useChordPlayback(baseOptions));
+
+    await act(async () => {
+      result.current.enterNoTiltSession();
+      result.current.handleChordPointerDown(branch);
+      await Promise.resolve();
+    });
+
+    expect(result.current.activePitches.length).toBeGreaterThan(0);
+    expect(selectedChordNameRef.current).toBe('Branch');
+    expect(result.current.previousPlayedChord?.name).toBe('Branch');
+    mocks.releaseActiveNotes.mockClear();
+
+    await act(async () => {
+      result.current.clearPlaybackSelection();
+    });
+
+    expect(mocks.releaseActiveNotes).toHaveBeenCalled();
+    expect(selectedChordNameRef.current).toBeNull();
+    expect(setSelectedChord).toHaveBeenCalledWith(null);
+    expect(result.current.activePitches).toEqual([]);
+    expect(result.current.previousPlayedChord).toBeNull();
+    expect(result.current.lastPlayedBassLabel).toBeNull();
+    expect(result.current.lastPlayedVoicingLabel).toBeNull();
+    expect(result.current.lastElementalPlayback).toBeNull();
+  });
 });

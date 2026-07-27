@@ -1,4 +1,4 @@
-import type { LayoutTier } from '../layout/breakpoints';
+import { BREAKPOINTS, type LayoutTier } from '../layout/breakpoints';
 import {
   DIAGRAM_VIEW_W,
   DIAGRAM_VIEW_H,
@@ -38,12 +38,51 @@ export type {
 export function isCompactDiagramMode(
   tier: LayoutTier,
   containerWidth: number,
-  compactDiagramWidth = 600,
+  compactDiagramWidth: number = BREAKPOINTS.compactDiagramWidth,
 ): boolean {
   return (
     tier === 'phone' ||
     tier === 'tablet' ||
     containerWidth < compactDiagramWidth
+  );
+}
+
+/**
+ * Whether the elemental diagram shows per-chord name labels.
+ * Matches ElementalDiagram `showLabels = !isCompactDiagram`.
+ */
+export function resolveShowChordNameLabels(
+  layoutTier: LayoutTier,
+  containerWidth: number,
+  compactDiagramWidth: number = BREAKPOINTS.compactDiagramWidth,
+): boolean {
+  return !isCompactDiagramMode(
+    layoutTier,
+    containerWidth,
+    compactDiagramWidth,
+  );
+}
+
+/**
+ * Whether harmonic-function labels should default on for a viewport.
+ * Uses the modeled diagram column width, not raw viewport width, so the
+ * result matches ElementalDiagram compact decisions.
+ */
+export function resolveDefaultHarmonicFunctionLabelsEnabled(
+  layoutTier: LayoutTier,
+  viewportWidth: number,
+  viewportHeight: number,
+  compactDiagramWidth: number = BREAKPOINTS.compactDiagramWidth,
+): boolean {
+  const container = computeDiagramContainerSizeForTier(
+    viewportWidth,
+    viewportHeight,
+    layoutTier,
+  );
+  return resolveShowChordNameLabels(
+    layoutTier,
+    container.width,
+    compactDiagramWidth,
   );
 }
 
@@ -329,7 +368,7 @@ export function resolveDiagramLayout(input: {
 /** Pre-measure defaults derived from layout tier (before ResizeObserver fires). */
 export function createInitialDiagramLayout(
   layoutTier: LayoutTier,
-  compactDiagramWidth = 600,
+  compactDiagramWidth = BREAKPOINTS.compactDiagramWidth,
 ): DiagramLayoutResolution {
   return resolveDiagramLayout({
     containerWidth: 0,
@@ -344,7 +383,7 @@ export function resolveDiagramLayoutForViewport(
   viewportWidth: number,
   viewportHeight: number,
   tier: LayoutTier,
-  compactDiagramWidth = 600,
+  compactDiagramWidth = BREAKPOINTS.compactDiagramWidth,
 ): DiagramLayoutResolution {
   const container = computeDiagramContainerSizeForTier(
     viewportWidth,

@@ -5,6 +5,7 @@ import { ChordProvider, useChordContext } from './ChordContext';
 import { useSoundDesignContext } from './SoundDesignContext';
 import { DEFAULT_USER_SETTINGS } from '../settings/userSettingsSchema';
 import { saveUserSettings, STORAGE_KEY } from '../settings/userSettingsStorage';
+import { chordManager } from '../music/ChordManager';
 
 vi.mock('../audio/AudioEngine', () => ({
   audioEngine: {
@@ -22,10 +23,20 @@ vi.mock('../audio/AudioEngine', () => ({
     handlePageBackground: vi.fn(),
     handlePageForeground: vi.fn().mockResolvedValue(undefined),
     playChord: vi.fn(),
+    triggerAttack: vi.fn(),
     startDrone: vi.fn(),
     stopDrone: vi.fn(),
     startContext: vi.fn(),
+    isPageBackgrounded: () => false,
   },
+}));
+
+vi.mock('../audio/iosMediaChannel', () => ({
+  unlockIosMediaChannel: vi.fn(),
+}));
+
+vi.mock('../audio/pageInteraction', () => ({
+  isPageInteractiveForAudio: () => true,
 }));
 
 vi.mock('../hooks/useLayoutTier', () => ({
@@ -243,5 +254,93 @@ describe('ChordProvider persistence', () => {
     });
 
     expect(result.current.voiceLeadingMode).toBe('smoothest');
+  });
+
+  it('resetSettingsGroup restores diagram layout to Complete Geometry', () => {
+    const { result } = renderHook(() => useCombinedChordContext(), { wrapper });
+
+    act(() => {
+      result.current.setDiagramLayoutMode('blues');
+    });
+    expect(result.current.diagramLayoutMode).toBe('blues');
+
+    act(() => {
+      result.current.resetSettingsGroup('diagramLayout');
+    });
+
+    expect(result.current.diagramLayoutMode).toBe('complete_geometry');
+  });
+
+  it('resetSettingsGroup applies responsive harmonic function label default', () => {
+    const { result } = renderHook(() => useCombinedChordContext(), { wrapper });
+
+    act(() => {
+      result.current.setHarmonicFunctionLabelsEnabled(false);
+    });
+    expect(result.current.harmonicFunctionLabelsEnabled).toBe(false);
+
+    act(() => {
+      result.current.resetSettingsGroup('harmonicFunctionLabels');
+    });
+
+    // jsdom desktop width yields a wide enough diagram column for labels on.
+    expect(result.current.harmonicFunctionLabelsEnabled).toBe(true);
+  });
+
+  it('clears playback state when layout disables the selected chord', async () => {
+    const { audioEngine } = await import('../audio/AudioEngine');
+    const branch = chordManager.getChordByName('Branch')!;
+    const { result } = renderHook(() => useCombinedChordContext(), { wrapper });
+
+    act(() => {
+      result.current.enterNoTiltSession();
+      result.current.handleChordPointerDown(branch);
+    });
+
+    expect(result.current.selectedChord?.name).toBe('Branch');
+    expect(result.current.activePitches.length).toBeGreaterThan(0);
+    expect(result.current.previousPlayedChord?.name).toBe('Branch');
+    vi.mocked(audioEngine.releaseActiveNotes).mockClear();
+
+    act(() => {
+      result.current.setDiagramLayoutMode('minor');
+    });
+
+    expect(result.current.selectedChord).toBeNull();
+    expect(result.current.activePitches).toEqual([]);
+    expect(result.current.previousPlayedChord).toBeNull();
+    expect(result.current.lastPlayedBassLabel).toBeNull();
+    expect(result.current.lastPlayedVoicingLabel).toBeNull();
+    expect(audioEngine.releaseActiveNotes).toHaveBeenCalled();
+    expect(result.current.diagramLayoutMode).toBe('minor');
+  });
+
+  it('blocks disabled chords and keeps parents playable in major layout', async () => {
+    const { audioEngine } = await import('../audio/AudioEngine');
+    const trunk = chordManager.getChordByName('Trunk')!;
+    const earth = chordManager.getChordByName('Earth')!;
+    const { result } = renderHook(() => useCombinedChordContext(), { wrapper });
+
+    act(() => {
+      result.current.enterNoTiltSession();
+      result.current.setDiagramLayoutMode('major');
+    });
+    vi.mocked(audioEngine.triggerAttack).mockClear();
+
+    act(() => {
+      result.current.handleChordPointerDown(trunk);
+    });
+
+    expect(result.current.selectedChord).toBeNull();
+    expect(result.current.activePitches).toEqual([]);
+    expect(audioEngine.triggerAttack).not.toHaveBeenCalled();
+
+    act(() => {
+      result.current.handleChordPointerDown(earth);
+    });
+
+    expect(result.current.selectedChord?.name).toBe('Earth');
+    expect(result.current.activePitches.length).toBeGreaterThan(0);
+    expect(audioEngine.triggerAttack).toHaveBeenCalled();
   });
 });
