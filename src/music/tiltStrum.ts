@@ -22,6 +22,13 @@ export type StrumLevelPair = {
   parallelSteps: number;
 };
 
+/** Beats per Shortest Note value (compile-fails if the union grows). */
+const SHORTEST_NOTE_BEATS: Record<ShortestNote, number> = {
+  '16n': 0.25,
+  '8n': 0.5,
+  '4n': 1,
+};
+
 /**
  * Minimum ms between strum audio updates from BPM and shortest-note division.
  */
@@ -29,9 +36,7 @@ export function strumMinIntervalMs(
   bpm: number,
   shortestNote: ShortestNote,
 ): number {
-  const beats =
-    shortestNote === '16n' ? 0.25 : shortestNote === '8n' ? 0.5 : 1;
-  return (60_000 / bpm) * beats;
+  return (60_000 / bpm) * SHORTEST_NOTE_BEATS[shortestNote];
 }
 
 /**
@@ -61,11 +66,25 @@ export function strumRateLimitAllows(
 }
 
 /**
+ * Snap live tilt onto the elevator floors ladder and return discrete levels.
+ * Callers that both gate and resolve should reuse this snap once.
+ */
+export function strumSnapFromTilt(
+  liveTilt: TiltSample,
+  floorsMode: VoicingElevatorFloorsMode,
+  chordName: string | null | undefined,
+): { levels: StrumLevelPair; snapped: TiltSample } {
+  const snapped = applyElevatorFloorsToTilt(liveTilt, floorsMode, chordName);
+  return { levels: mapTiltToPositions(snapped), snapped };
+}
+
+/**
  * Resolve continuous-strum playback tilt from live device tilt.
  *
  * Applies Voicing Elevator Floors remapping to roll, preserves the parallel
  * established at the last commit, and applies pitch delta since the last
- * control (tap) tilt. Does not re-run opposite-element diminished root search.
+ * control sample. Does not re-run opposite-element diminished root search.
+ * Pass `snappedLive` when the caller already snapped for gating.
  */
 export function resolveStrumPlaybackTilt(
   liveTilt: TiltSample,
@@ -73,13 +92,12 @@ export function resolveStrumPlaybackTilt(
   lastCommittedPlaybackTilt: TiltSample,
   floorsMode: VoicingElevatorFloorsMode = 'all',
   chordName: string | null | undefined = null,
+  snappedLive?: TiltSample,
 ): TiltSample {
-  const snappedLive = applyElevatorFloorsToTilt(
-    liveTilt,
-    floorsMode,
-    chordName,
-  );
-  const { inputSteps } = mapTiltToPositions(snappedLive);
+  const snapped =
+    snappedLive ??
+    applyElevatorFloorsToTilt(liveTilt, floorsMode, chordName);
+  const { inputSteps } = mapTiltToPositions(snapped);
   const pitchDelta =
     parallelLevelFromTilt(liveTilt) - parallelLevelFromTilt(lastControlTilt);
   const effectiveParallel = clamp(
@@ -98,6 +116,5 @@ export function strumLevelsFromTilt(
   floorsMode: VoicingElevatorFloorsMode,
   chordName: string | null | undefined,
 ): StrumLevelPair {
-  const snapped = applyElevatorFloorsToTilt(liveTilt, floorsMode, chordName);
-  return mapTiltToPositions(snapped);
+  return strumSnapFromTilt(liveTilt, floorsMode, chordName).levels;
 }

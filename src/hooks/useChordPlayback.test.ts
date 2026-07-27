@@ -11,11 +11,15 @@ const mocks = vi.hoisted(() => {
   const updateVoicingDiff = vi.fn();
   const releaseActiveNotes = vi.fn();
   const registerReleaseListener = vi.fn(() => () => {});
+  const isPageBackgrounded = vi.fn(() => false);
+  const isPageInteractiveForAudio = vi.fn(() => true);
   return {
     triggerAttack,
     updateVoicingDiff,
     releaseActiveNotes,
     registerReleaseListener,
+    isPageBackgrounded,
+    isPageInteractiveForAudio,
   };
 });
 
@@ -25,7 +29,7 @@ vi.mock('../audio/AudioEngine', () => ({
     updateVoicingDiff: mocks.updateVoicingDiff,
     releaseActiveNotes: mocks.releaseActiveNotes,
     registerReleaseListener: mocks.registerReleaseListener,
-    isPageBackgrounded: () => false,
+    isPageBackgrounded: mocks.isPageBackgrounded,
   },
 }));
 
@@ -34,10 +38,11 @@ vi.mock('../audio/iosMediaChannel', () => ({
 }));
 
 vi.mock('../audio/pageInteraction', () => ({
-  isPageInteractiveForAudio: () => true,
+  isPageInteractiveForAudio: mocks.isPageInteractiveForAudio,
 }));
 
 import type { VoiceLeadingMode, VoicingElevatorFloorsMode } from '../music/sessionModes';
+import type { ShortestNote } from '../settings/userSettingsSchema';
 import { useChordPlayback } from './useChordPlayback';
 import { chordManager } from '../music/ChordManager';
 
@@ -78,7 +83,7 @@ describe('useChordPlayback audio-first pointer path', () => {
     hasPersistedSettings: false,
     retriggerSoundingNotesRef: { current: false },
     tiltToStrumRef: { current: false },
-    shortestNoteRef: { current: '16n' as const },
+    shortestNoteRef: { current: '16n' as ShortestNote },
     bpmRef: { current: 120 },
   };
 
@@ -94,6 +99,9 @@ describe('useChordPlayback audio-first pointer path', () => {
     baseOptions.tiltToStrumRef.current = false;
     baseOptions.shortestNoteRef.current = '16n';
     baseOptions.bpmRef.current = 120;
+    baseOptions.rawTiltRef.current = FLAT_TILT;
+    mocks.isPageBackgrounded.mockReturnValue(false);
+    mocks.isPageInteractiveForAudio.mockReturnValue(true);
   });
 
   afterEach(() => {
@@ -562,6 +570,67 @@ describe('useChordPlayback audio-first pointer path', () => {
 
     await act(async () => {
       vi.advanceTimersByTime(130);
+      result.current.handleTiltStrumSample();
+    });
+
+    expect(mocks.updateVoicingDiff).not.toHaveBeenCalled();
+  });
+
+  it('flushes a rate-limited level change after the interval without further tilt', async () => {
+    baseOptions.tiltToStrumRef.current = true;
+    baseOptions.shortestNoteRef.current = '8n';
+    baseOptions.bpmRef.current = 120;
+    const { result } = renderHook(() => useChordPlayback(baseOptions));
+
+    await act(async () => {
+      result.current.enterTiltSession();
+      result.current.handleChordPointerDown(branch);
+      await Promise.resolve();
+    });
+
+    mocks.updateVoicingDiff.mockClear();
+    baseOptions.rawTiltRef.current = { x: -0.75, y: 0 };
+
+    await act(async () => {
+      // Inside the 250 ms 8n window seeded by the tap.
+      result.current.handleTiltStrumSample();
+    });
+
+    expect(mocks.updateVoicingDiff).not.toHaveBeenCalled();
+
+    await act(async () => {
+      // Quiet sensor: only the pending timer fires.
+      vi.advanceTimersByTime(250);
+    });
+
+    expect(mocks.updateVoicingDiff).toHaveBeenCalled();
+  });
+
+  it('does not strum while the page is backgrounded or hidden', async () => {
+    baseOptions.tiltToStrumRef.current = true;
+    const { result } = renderHook(() => useChordPlayback(baseOptions));
+
+    await act(async () => {
+      result.current.enterTiltSession();
+      result.current.handleChordPointerDown(branch);
+      await Promise.resolve();
+    });
+
+    mocks.updateVoicingDiff.mockClear();
+    mocks.isPageInteractiveForAudio.mockReturnValue(false);
+    baseOptions.rawTiltRef.current = { x: -0.75, y: 0 };
+
+    await act(async () => {
+      vi.advanceTimersByTime(130);
+      result.current.handleTiltStrumSample();
+    });
+
+    expect(mocks.updateVoicingDiff).not.toHaveBeenCalled();
+
+    mocks.isPageInteractiveForAudio.mockReturnValue(true);
+    mocks.isPageBackgrounded.mockReturnValue(true);
+
+    await act(async () => {
       result.current.handleTiltStrumSample();
     });
 
