@@ -693,6 +693,31 @@ export class AudioEngine {
 
     // Legato diff: sustain still-sounding overlaps; re-attack new pitches and
     // sampler notes whose one-shot buffer has already ended.
+    this.applyNoteSetDiff(voice, noteNames, now, {
+      skipIfUnchanged: false,
+      logLabel: 'Attacking',
+      releaseErrorLabel: 'Transition release',
+    });
+  }
+
+  /**
+   * Shared note-set diffing for the legato attack path and Tilt to Strum's
+   * continuous voicing updates: sustains notes that are still sounding and
+   * remain in the intended set, re-attacks pitches whose sampler buffers
+   * have already ended (or are newly added), and releases only notes that
+   * left the set and are still live.
+   */
+  private applyNoteSetDiff(
+    voice: InstrumentVoice,
+    noteNames: string[],
+    now: number,
+    options: {
+      /** Skip all state/audio updates when the resolved note set is unchanged. */
+      skipIfUnchanged: boolean;
+      logLabel: string;
+      releaseErrorLabel: string;
+    },
+  ): void {
     const previousActive = this.activeNotes;
     const soundingNotes = previousActive.filter((n) =>
       this.isNoteStillSounding(n, now),
@@ -710,6 +735,14 @@ export class AudioEngine {
       previousActive.includes(n),
     );
 
+    if (
+      options.skipIfUnchanged &&
+      notesToRelease.length === 0 &&
+      notesToAttack.length === 0
+    ) {
+      return;
+    }
+
     // Update state synchronously before any audio scheduling
     this.activeNotes = noteNames;
     this.clearNoteEndTimes(notesToRelease);
@@ -718,7 +751,7 @@ export class AudioEngine {
       try {
         voice.triggerRelease(liveNotesToRelease, now);
       } catch (err) {
-        devWarn('[AudioEngine] Transition release error:', err);
+        devWarn(`[AudioEngine] ${options.releaseErrorLabel} error:`, err);
       }
       this.recording.logNoteOffs(
         this.noteNamesToMidi(liveNotesToRelease),
@@ -741,7 +774,7 @@ export class AudioEngine {
 
     if (notesToAttack.length > 0) {
       audioDebugLog(
-        '[AudioEngine] Attacking:',
+        `[AudioEngine] ${options.logLabel}:`,
         notesToAttack,
         '| Sustaining:',
         noteNames.filter((n) => !notesToAttack.includes(n)),
@@ -778,71 +811,12 @@ export class AudioEngine {
       (n) => clamp(n, MIDI_NOTE_MIN, MIDI_NOTE_MAX),
     );
     const noteNames: string[] = clamped.map(midiToNoteName);
-    const previousActive = this.activeNotes;
 
-    const soundingNotes = previousActive.filter((n) =>
-      this.isNoteStillSounding(n, now),
-    );
-    const notesToRelease = previousActive.filter(
-      (n) => !noteNames.includes(n),
-    );
-    const liveNotesToRelease = notesToRelease.filter((n) =>
-      soundingNotes.includes(n),
-    );
-    const notesToAttack = noteNames.filter((n) => !soundingNotes.includes(n));
-    const expiredOverlaps = notesToAttack.filter((n) =>
-      previousActive.includes(n),
-    );
-
-    if (notesToRelease.length === 0 && notesToAttack.length === 0) {
-      return;
-    }
-
-    this.activeNotes = noteNames;
-    this.clearNoteEndTimes(notesToRelease);
-
-    if (liveNotesToRelease.length > 0) {
-      try {
-        voice.triggerRelease(liveNotesToRelease, now);
-      } catch (err) {
-        devWarn('[AudioEngine] Voicing-diff release error:', err);
-      }
-      this.recording.logNoteOffs(
-        this.noteNamesToMidi(liveNotesToRelease),
-        now,
-      );
-    } else if (notesToRelease.length > 0) {
-      this.recording.logNoteOffs(
-        this.noteNamesToMidi(notesToRelease),
-        now,
-      );
-    }
-
-    if (expiredOverlaps.length > 0) {
-      this.recording.logNoteOffs(
-        this.noteNamesToMidi(expiredOverlaps),
-        now,
-      );
-    }
-
-    if (notesToAttack.length > 0) {
-      audioDebugLog(
-        '[AudioEngine] Voicing diff attack:',
-        notesToAttack,
-        '| Sustaining:',
-        noteNames.filter((n) => !notesToAttack.includes(n)),
-        '| Releasing:',
-        liveNotesToRelease,
-      );
-      voice.triggerAttack(notesToAttack, now);
-      this.recordNoteEndTimes(notesToAttack, now);
-      this.logPeakLevelIfDev();
-      this.recording.logNoteOns(
-        this.noteNamesToMidi(notesToAttack),
-        undefined,
-        now,
-      );
-    }
+    this.applyNoteSetDiff(voice, noteNames, now, {
+      skipIfUnchanged: true,
+      logLabel: 'Voicing diff attack',
+      releaseErrorLabel: 'Voicing-diff release',
+    });
   }
 
   /**
