@@ -5,6 +5,7 @@ import {
   strumLevelsFromTilt,
   strumMinIntervalMs,
   strumRateLimitAllows,
+  strumSnapFromTilt,
 } from './tiltStrum';
 import {
   mapTiltToPositions,
@@ -55,6 +56,26 @@ describe('tiltStrum', () => {
     expect(parallelLevelFromTilt(result)).toBe(
       parallelLevelFromTilt(lastCommitted) + pitchDelta,
     );
+  });
+
+  it('reuses a precomputed snap when resolving strum playback tilt', () => {
+    const live: TiltSample = { x: -0.75, y: 0 };
+    const flat: TiltSample = { x: 0, y: 0 };
+    const { snapped, levels } = strumSnapFromTilt(
+      live,
+      'every_other',
+      'Branch',
+    );
+    const result = resolveStrumPlaybackTilt(
+      live,
+      flat,
+      flat,
+      'every_other',
+      'Branch',
+      snapped,
+    );
+    expect(levels.inputSteps).toBe(2);
+    expect(mapTiltToPositions(result).inputSteps).toBe(2);
   });
 
   it('gates strum levels through Every Other floors for children', () => {

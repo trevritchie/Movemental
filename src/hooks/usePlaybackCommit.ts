@@ -129,15 +129,17 @@ export function usePlaybackCommit({
 
       if (
         !fromPointer &&
-        !voicingDiff &&
         (!isPageInteractiveForAudio() || audioEngine.isPageBackgrounded())
       ) {
         return;
       }
 
+      // Voicing-diff must reach AudioEngine even when MIDI arrays match so
+      // expired common tones can re-attack (Tilt to Strum contract).
       if (
         skipIfUnchanged &&
         !retrigger &&
+        !voicingDiff &&
         pitchesEqual(pitches, activePitchesRef.current)
       ) {
         return;
@@ -222,8 +224,16 @@ export function usePlaybackCommit({
       elemental: ElementalPlaybackResolution | undefined,
       options: CommitPlaybackOptions = {}
     ) => {
+      const fromPointer = options.fromPointer ?? false;
+      const voicingDiff = options.voicingDiff ?? false;
+
       dispatchAudio(pitches, options);
 
+      const previousName = previousChordRef.current?.name;
+      const pitchesChanged = !pitchesEqual(
+        pitches,
+        activePitchesRef.current,
+      );
       previousChordRef.current = displayChord;
       activePitchesRef.current = pitches;
       // Sole writer for selectedChordNameRef (no selectedChord mirror effect).
@@ -231,7 +241,6 @@ export function usePlaybackCommit({
       // ChordContext re-voice effect can replay the previous chord.
       selectedChordNameRef.current = displayChord.name;
 
-      const fromPointer = options.fromPointer ?? false;
       if (fromPointer) {
         // Skip the re-voice effect once. Pointer commits change selectedChord,
         // which often recreates getBorrowingStateForChord and would re-enter
@@ -247,21 +256,56 @@ export function usePlaybackCommit({
       );
       updateVoiceLeadingBaseline(playbackTilt, fromPointer);
 
+      const applyElementalState = () => {
+        if (elemental) {
+          setLastElementalPlayback(elemental);
+        } else if (!isElementalName(displayChord.name)) {
+          setLastElementalPlayback(null);
+        }
+      };
+
+      if (options.borrowingStateOverride) {
+        borrowingStateRef.current = options.borrowingStateOverride;
+        setBorrowingState(options.borrowingStateOverride);
+      }
+
+      // Tilt to Strum: keep audio + refs hot; skip redundant chord identity
+      // setState when the name is unchanged, and defer pitch/label updates.
+      if (voicingDiff) {
+        if (previousName !== displayChord.name) {
+          setPreviousPlayedChord(displayChord);
+          setSelectedChord(displayChord);
+        }
+        applyElementalState();
+        if (pitchesChanged) {
+          startTransition(() => {
+            setActivePitches(pitches);
+          });
+        }
+        if (pitches.length === 0) {
+          return;
+        }
+        startTransition(() => {
+          if (usesDeviceTilt(tiltModeRef.current)) {
+            setLastPlayedVoicingLabel(lastPlayedVoicingReadout(playbackTilt));
+            setLastPlayedBassLabel(
+              lastPlayedBassReadout(playbackTilt, displayChord, {
+                voicedPitches: pitches,
+                borrowingState: state,
+              }),
+            );
+          }
+        });
+        return;
+      }
+
       // Chord identity and readout must stay sync after audio. Deferring them
       // via startTransition races with normal-priority level updates and can
       // leave the UI (and re-voice effect) stuck on the previous chord.
       setPreviousPlayedChord(displayChord);
       setSelectedChord(displayChord);
-      if (elemental) {
-        setLastElementalPlayback(elemental);
-      } else if (!isElementalName(displayChord.name)) {
-        setLastElementalPlayback(null);
-      }
+      applyElementalState();
       setActivePitches(pitches);
-      if (options.borrowingStateOverride) {
-        borrowingStateRef.current = options.borrowingStateOverride;
-        setBorrowingState(options.borrowingStateOverride);
-      }
 
       // Empty mute shares selection/suppress/cache commit but must not rewrite
       // last-played tilt labels from parallel-from-tilt (no new sounded pitches).

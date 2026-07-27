@@ -571,7 +571,8 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
    * Re-voice the selected chord when global register or no-tilt voicing
    * controls change. Skips redundant audio when pitches are unchanged
    * (playAndDisplayChord -> skipIfUnchanged). Does not run on every tilt
-   * tick; tilt voicing is sampled at tap time only.
+   * tick; tilt voicing is sampled at tap time only, except when Voicing
+   * Elevator Floors mode changes (re-snap selected chord onto the new ladder).
    *
    * selectedChordNameRef is written only by commitPlayback (not mirrored from
    * selectedChord) so deferred level flushes cannot re-voice a stale name.
@@ -602,6 +603,7 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
     noTiltVoicingLevel,
     noTiltPositionLevel,
     voiceLeadingMode,
+    voicingElevatorFloorsMode,
     // borrowingStateRef is a stable ref object (identity never changes), so
     // including it here does not cause this effect to re-run on borrowing
     // changes. It is listed only to satisfy exhaustive-deps.
