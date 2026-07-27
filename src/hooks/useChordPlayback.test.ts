@@ -606,6 +606,47 @@ describe('useChordPlayback audio-first pointer path', () => {
     expect(mocks.updateVoicingDiff).toHaveBeenCalled();
   });
 
+  it('flushes pending strum after backgrounding when the page becomes visible', async () => {
+    baseOptions.tiltToStrumRef.current = true;
+    baseOptions.shortestNoteRef.current = '8n';
+    baseOptions.bpmRef.current = 120;
+    const { result } = renderHook(() => useChordPlayback(baseOptions));
+
+    await act(async () => {
+      result.current.enterTiltSession();
+      result.current.handleChordPointerDown(branch);
+      await Promise.resolve();
+    });
+
+    mocks.updateVoicingDiff.mockClear();
+    baseOptions.rawTiltRef.current = { x: -0.75, y: 0 };
+
+    await act(async () => {
+      result.current.handleTiltStrumSample();
+    });
+    expect(mocks.updateVoicingDiff).not.toHaveBeenCalled();
+
+    mocks.isPageInteractiveForAudio.mockReturnValue(false);
+
+    await act(async () => {
+      // Timer fires while hidden: must not orphan pending.
+      vi.advanceTimersByTime(250);
+    });
+    expect(mocks.updateVoicingDiff).not.toHaveBeenCalled();
+
+    mocks.isPageInteractiveForAudio.mockReturnValue(true);
+    Object.defineProperty(document, 'visibilityState', {
+      configurable: true,
+      get: () => 'visible',
+    });
+
+    await act(async () => {
+      document.dispatchEvent(new Event('visibilitychange'));
+    });
+
+    expect(mocks.updateVoicingDiff).toHaveBeenCalled();
+  });
+
   it('does not strum while the page is backgrounded or hidden', async () => {
     baseOptions.tiltToStrumRef.current = true;
     const { result } = renderHook(() => useChordPlayback(baseOptions));
@@ -631,6 +672,67 @@ describe('useChordPlayback audio-first pointer path', () => {
     mocks.isPageBackgrounded.mockReturnValue(true);
 
     await act(async () => {
+      // Still backgrounded via audioEngine flag; pending retries should not play.
+      vi.advanceTimersByTime(500);
+      result.current.handleTiltStrumSample();
+    });
+
+    expect(mocks.updateVoicingDiff).not.toHaveBeenCalled();
+  });
+
+  it('clears pending strum when hold-mode pointer goes up', async () => {
+    baseOptions.tiltToStrumRef.current = true;
+    baseOptions.shortestNoteRef.current = '8n';
+    const { result } = renderHook(() => useChordPlayback(baseOptions));
+
+    await act(async () => {
+      result.current.enterTiltSession();
+      result.current.setPlayStyle('tap_and_hold');
+      result.current.handleChordPointerDown(branch);
+      await Promise.resolve();
+    });
+
+    mocks.updateVoicingDiff.mockClear();
+    baseOptions.rawTiltRef.current = { x: -0.75, y: 0 };
+
+    await act(async () => {
+      result.current.handleTiltStrumSample();
+    });
+    expect(mocks.updateVoicingDiff).not.toHaveBeenCalled();
+
+    await act(async () => {
+      result.current.handleChordPointerUp();
+      vi.advanceTimersByTime(300);
+    });
+
+    expect(mocks.updateVoicingDiff).not.toHaveBeenCalled();
+  });
+
+  it('does not immediately re-strum after floors revoice while live tilt is held', async () => {
+    baseOptions.tiltToStrumRef.current = true;
+    // All-mode Third (~1) remaps to Every Other Unison (0) for children.
+    baseOptions.rawTiltRef.current = { x: -0.9, y: 0 };
+    const { result } = renderHook(() => useChordPlayback(baseOptions));
+
+    await act(async () => {
+      result.current.enterTiltSession();
+      result.current.handleChordPointerDown(branch);
+      await Promise.resolve();
+    });
+
+    baseOptions.voicingElevatorFloorsModeRef.current = 'every_other';
+    mocks.updateVoicingDiff.mockClear();
+    mocks.triggerAttack.mockClear();
+
+    await act(async () => {
+      result.current.playAndDisplayChord(branch, borrowingState);
+      await Promise.resolve();
+    });
+
+    mocks.updateVoicingDiff.mockClear();
+
+    await act(async () => {
+      vi.advanceTimersByTime(300);
       result.current.handleTiltStrumSample();
     });
 

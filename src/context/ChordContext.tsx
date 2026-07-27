@@ -114,6 +114,14 @@ interface ChordContextType {
   setShortestNote: (note: ShortestNote) => void;
   bpm: number;
   setBpm: (bpm: number) => void;
+  /**
+   * Control tilt at the last commit (pointer tap or accepted Tilt to Strum).
+   * Advanced on every accepted strum so pitch delta stays incremental.
+   */
+  lastControlTilt: TiltSample;
+  /**
+   * @deprecated Prefer lastControlTilt; same value (legacy name).
+   */
   lastTapTilt: TiltSample;
   lastCommittedPlaybackTilt: TiltSample;
   smoothBaseParallel: number;
@@ -656,6 +664,7 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
       setShortestNote,
       bpm,
       setBpm,
+      lastControlTilt: playback.lastControlTilt,
       lastTapTilt: playback.lastTapTilt,
       lastCommittedPlaybackTilt: playback.lastCommittedPlaybackTilt,
       smoothBaseParallel: playback.smoothBaseParallel,
@@ -704,6 +713,7 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
       tiltToStrum,
       shortestNote,
       bpm,
+      playback.lastControlTilt,
       playback.lastTapTilt,
       playback.lastCommittedPlaybackTilt,
       playback.smoothBaseParallel,

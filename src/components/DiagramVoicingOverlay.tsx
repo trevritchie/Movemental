@@ -70,7 +70,7 @@ export const DiagramVoicingOverlay: React.FC = () => {
     borrowingState,
     previousPlayedChord,
     voiceLeadingMode,
-    lastTapTilt,
+    lastControlTilt,
     lastCommittedPlaybackTilt,
     smoothBaseParallel,
     lastPlayedVoicingLabel,
@@ -120,7 +120,7 @@ export const DiagramVoicingOverlay: React.FC = () => {
       tiltModeEnabled,
       ...(lastElementalPlayback ? { elemental: lastElementalPlayback } : {}),
       ...(voiceLeadingMode === 'smooth' || voiceLeadingMode === 'smoothest'
-        ? { lastTapTilt, lastCommittedPlaybackTilt }
+        ? { lastTapTilt: lastControlTilt, lastCommittedPlaybackTilt }
         : {}),
       ...(voiceLeadingMode === 'smoothest'
         ? { smoothBaseParallel }
@@ -135,7 +135,7 @@ export const DiagramVoicingOverlay: React.FC = () => {
       tiltModeEnabled,
       lastElementalPlayback,
       smoothBaseParallel,
-      lastTapTilt,
+      lastControlTilt,
       lastCommittedPlaybackTilt,
     ]
   );
