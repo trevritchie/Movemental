@@ -392,8 +392,8 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
     enterNoTiltSession: enterNoTiltPlayback,
     resetVoiceLeadingSession,
     clearPlaybackSelection,
+    panicStop,
   } = playback;
-  const panicStop = clearPlaybackSelection;
   const { synthPresetId, setSynthPresetId } = audio;
 
   const enterTiltSession = useCallback(() => {
