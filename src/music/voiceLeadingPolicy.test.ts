@@ -68,6 +68,27 @@ describe('voiceLeadingPolicy.resolveReanchorPlaybackTilt', () => {
     expect(applySmoothestVoiceLeading).not.toHaveBeenCalled();
   });
 
+  it('threads the display chord name into getCurrentControlTilt in tilt mode (smooth)', () => {
+    const getCurrentControlTilt = vi.fn(() => baseTilt);
+    resolveReanchorPlaybackTilt({
+      mode: 'smooth',
+      displayChord: wind,
+      tiltMode: true,
+      playbackTilt: baseTilt,
+      smooth: {
+        ...smooth,
+        isChordChange: true,
+        getCurrentControlTilt,
+      },
+    });
+
+    // Regression: getCurrentControlTilt must receive the chord being
+    // reanchored so Voicing Elevator Floors can pick the correct (parent
+    // vs. child) floor table. A missing/undefined argument here silently
+    // snaps every parent-element chord to the wrong table.
+    expect(getCurrentControlTilt).toHaveBeenCalledWith(wind.name);
+  });
+
   it('routes smoothest mode through applySmoothestVoiceLeading on chord change', () => {
     const result = resolveReanchorPlaybackTilt({
       mode: 'smoothest',
@@ -79,6 +100,31 @@ describe('voiceLeadingPolicy.resolveReanchorPlaybackTilt', () => {
 
     expect(applySmoothestVoiceLeading).toHaveBeenCalled();
     expect(result).toEqual(smoothestTilt);
+  });
+
+  it('threads the display chord name into getBaselineTilt / getCurrentControlTilt on cold-start (smoothest)', () => {
+    const getBaselineTilt = vi.fn(() => baseTilt);
+    const getCurrentControlTilt = vi.fn(() => baseTilt);
+    resolveReanchorPlaybackTilt({
+      mode: 'smoothest',
+      displayChord: wind,
+      tiltMode: false,
+      playbackTilt: baseTilt,
+      smoothest: {
+        ...smoothest,
+        // Cold-start fallback (no neutral voicing yet) is the branch that
+        // previously called these callbacks with no arguments.
+        neutralVoicingLength: 0,
+        callbacks: {
+          ...smoothest.callbacks,
+          getBaselineTilt,
+          getCurrentControlTilt,
+        },
+      },
+    });
+
+    expect(getBaselineTilt).toHaveBeenCalledWith(wind.name);
+    expect(getCurrentControlTilt).toHaveBeenCalledWith(wind.name);
   });
 
   it('returns the control tilt unchanged for root_position', () => {

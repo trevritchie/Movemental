@@ -228,7 +228,7 @@ export interface SmoothReanchorTiltOptions {
     liveTilt: TiltSample,
     isChordChange: boolean
   ) => TiltSample;
-  getCurrentControlTilt: () => TiltSample;
+  getCurrentControlTilt: (chordName: string) => TiltSample;
   syncNoTiltPositionLevel: (effectiveParallel: number) => void;
 }
 
@@ -254,7 +254,7 @@ export function resolveSmoothReanchorTilt(
   if (tiltMode) {
     return resolveSmoothPlaybackTiltForNavigation(
       displayChord,
-      getCurrentControlTilt(),
+      getCurrentControlTilt(displayChord.name),
       isChordChange
     );
   }
@@ -302,8 +302,8 @@ export interface SmoothestReanchorCallbacks {
     elemental?: import('./tiltVoicingPlayback').ElementalPlaybackResolution
   ) => TiltSample;
   preserveSameChordSmoothestTilt: (chordName: string) => TiltSample;
-  getBaselineTilt: () => TiltSample;
-  getCurrentControlTilt: () => TiltSample;
+  getBaselineTilt: (chordName: string) => TiltSample;
+  getCurrentControlTilt: (chordName: string) => TiltSample;
 }
 
 export function resolveSmoothestReanchorTilt(
@@ -321,8 +321,8 @@ export function resolveSmoothestReanchorTilt(
     return callbacks.preserveSameChordSmoothestTilt(displayChord.name);
   }
 
-  const baselineTilt = callbacks.getBaselineTilt();
-  const currentTilt = callbacks.getCurrentControlTilt();
+  const baselineTilt = callbacks.getBaselineTilt(displayChord.name);
+  const currentTilt = callbacks.getCurrentControlTilt(displayChord.name);
   const parallelDelta =
     parallelLevelFromTilt(currentTilt) -
     parallelLevelFromTilt(baselineTilt);

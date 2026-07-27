@@ -49,7 +49,6 @@ import { audioEngine } from '../audio/AudioEngine';
 import { unlockIosMediaChannel } from '../audio/iosMediaChannel';
 import type { PlayStyle, VoiceLeadingMode, VoicingElevatorFloorsMode } from '../music/sessionModes';
 import { usesDeviceTilt } from '../music/sessionModes';
-import { applyElevatorFloorsToTilt } from '../music/voicingElevatorFloors';
 import { isElementalName, isOppositeElementNavigation, previousBassMidi, resolveElementalForNavigation, type ElementalName } from '../music/elementalRoot';
 import {
   type NoTiltChordLockMaps,
@@ -400,16 +399,6 @@ export function useChordPlayback({
       let displayChord = inputChord;
       let elemental: ElementalPlaybackResolution | undefined;
       let playbackTilt = resolvePlaybackTilt(fromPointer, inputChord.name);
-      if (usesDeviceTilt(tiltMode)) {
-        // Re-snap after resolve so settings re-voices (fromPointer false)
-        // also follow Every Other for the chord being played.
-        playbackTilt = applyElevatorFloorsToTilt(
-          playbackTilt,
-          voicingElevatorFloorsModeRef.current,
-          inputChord.name,
-        );
-        playbackTiltRef.current = playbackTilt;
-      }
       const anchorKey = buildAnchorKey(displayChord, playbackTilt);
       const needsReanchor =
         fromPointer || anchorKeyRef.current !== anchorKey;
@@ -556,7 +545,6 @@ export function useChordPlayback({
       noTiltVoicingLevelRef,
       noTiltPositionLevelRef,
       voiceLeadingModeRef,
-      voicingElevatorFloorsModeRef,
     ]
   );
 

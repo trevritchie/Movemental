@@ -148,19 +148,21 @@ export function useVoicingAnchorResolution({
   );
 
   const resolvePlaybackTilt = useCallback(
-    (fromPointer: boolean, chordName?: string | null): TiltSample => {
+    (fromPointer: boolean, chordName: string | null): TiltSample => {
       if (!usesDeviceTilt(tiltModeRef.current)) {
         return tiltFromNoTiltLevels(
           noTiltVoicingLevelRef.current,
           noTiltPositionLevelRef.current
         );
       }
-      if (fromPointer) {
-        playbackTiltRef.current = snapDeviceTilt(
-          { ...rawTiltRef.current },
-          chordName,
-        );
-      }
+      // Always snap through the elevator floors on the way out (not just on
+      // fromPointer taps), so settings re-voices for the chord being played
+      // also follow Every Other. Keeps floors ownership solely in
+      // snapDeviceTilt instead of requiring callers to re-snap separately.
+      const sourceTilt = fromPointer
+        ? { ...rawTiltRef.current }
+        : playbackTiltRef.current;
+      playbackTiltRef.current = snapDeviceTilt(sourceTilt, chordName);
       return playbackTiltRef.current;
     },
     [
@@ -174,7 +176,7 @@ export function useVoicingAnchorResolution({
   );
 
   const getBaselineTilt = useCallback(
-    (chordName?: string | null): TiltSample => {
+    (chordName: string | null): TiltSample => {
       if (usesDeviceTilt(tiltModeRef.current)) {
         return snapDeviceTilt(lastTapTiltRef.current, chordName);
       }
@@ -193,7 +195,7 @@ export function useVoicingAnchorResolution({
   );
 
   const getCurrentControlTilt = useCallback(
-    (chordName?: string | null): TiltSample => {
+    (chordName: string | null): TiltSample => {
       if (usesDeviceTilt(tiltModeRef.current)) {
         return snapDeviceTilt({ ...rawTiltRef.current }, chordName);
       }
