@@ -753,21 +753,21 @@ export function useChordPlayback({
     const liveSnap = strumSnapFromTilt(liveTilt, floorsMode, chordName);
     const pending = pendingStrumRef.current;
 
-    let candidate: PendingStrum | null = null;
-    if (strumLevelsChanged(liveSnap.levels, lastStrumLevelsRef.current)) {
-      candidate = {
-        levels: liveSnap.levels,
-        liveTilt,
-        snapped: liveSnap.snapped,
-      };
-    } else if (
-      pending != null &&
-      strumLevelsChanged(pending.levels, lastStrumLevelsRef.current)
-    ) {
-      // Live quiet/noise returned toward the last accepted floor; still flush
-      // the latched target captured during the rate-limit / background window.
-      candidate = pending;
-    } else {
+    const candidate: PendingStrum | null = strumLevelsChanged(
+      liveSnap.levels,
+      lastStrumLevelsRef.current,
+    )
+      ? {
+          levels: liveSnap.levels,
+          liveTilt,
+          snapped: liveSnap.snapped,
+        }
+      : pending != null &&
+          strumLevelsChanged(pending.levels, lastStrumLevelsRef.current)
+        ? pending
+        : null;
+
+    if (candidate == null) {
       if (pending != null) {
         clearPendingStrum();
       }
