@@ -34,6 +34,7 @@ vi.mock('../context/ChordContext', () => ({
     previousPlayedChord: null,
     voiceLeadingMode: 'smooth',
     voicingElevatorFloorsMode: 'all',
+    lastControlTilt: { x: 0, y: 0 },
     lastTapTilt: { x: 0, y: 0 },
     lastCommittedPlaybackTilt: { x: 0, y: 0 },
     smoothBaseParallel: 0,

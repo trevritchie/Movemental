@@ -59,11 +59,13 @@ changes the audio path: when On, each change in discrete tilt level
 common tones are sustained, finished notes may re-attack). Updates are
 rate-limited to the duration of the **Shortest Note** at the current **BPM**
 (defaults 1/8 at 120 BPM = 250 ms). A level change inside the quiet window is
-latched and flushed when the window opens, so a quiet sensor after a fast roll
-still delivers the new floor. Strum respects the page-visibility / background
-gate (same as other non-pointer commits). Tap & Hold still requires the pointer
-to be down so notes do not hang after release. Panic clears the selected chord
-so strumming stays silent until the next tap.
+latched (levels + snap) and flushed when the window opens, so a quiet sensor
+after a fast roll still delivers the new floor. Level changes while the page is
+hidden or backgrounded are latched and flushed on foreground (visibility /
+pageshow), with a short retry so a timer that fires while hidden does not
+orphan the pending floor. Strum respects the page-visibility gate. Tap & Hold
+clears any pending latch when the pointer goes up. Panic clears the selected
+chord so strumming stays silent until the next tap.
 
 Glowing orbs in tilt mode use an inverted bubble-level mapping tied to the
 same pitch/roll range (`orbPhysics.ts`), not gravity rolling of free bodies.

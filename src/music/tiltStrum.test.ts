@@ -73,6 +73,7 @@ describe('tiltStrum', () => {
       'every_other',
       'Branch',
       snapped,
+      levels.inputSteps,
     );
     expect(levels.inputSteps).toBe(2);
     expect(mapTiltToPositions(result).inputSteps).toBe(2);

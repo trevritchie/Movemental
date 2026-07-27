@@ -270,7 +270,9 @@ export function usePlaybackCommit({
       }
 
       // Tilt to Strum: keep audio + refs hot; skip redundant chord identity
-      // setState when the name is unchanged, and defer pitch/label updates.
+      // setState when the name is unchanged. Pitch/label React updates are
+      // deferred (visual only); activePitchesRef remains authoritative for
+      // audio / skip / revoice decisions.
       if (voicingDiff) {
         if (previousName !== displayChord.name) {
           setPreviousPlayedChord(displayChord);
