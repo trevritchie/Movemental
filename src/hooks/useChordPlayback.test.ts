@@ -59,6 +59,7 @@ describe('useChordPlayback audio-first pointer path', () => {
     noTiltPositionLevelRef: { current: 0 },
     tonalCenterRef: { current: 0 },
     voiceLeadingModeRef: { current: 'smoothest' as VoiceLeadingMode },
+    voicingElevatorFloorsModeRef: { current: 'all' as const },
     setNoTiltPositionLevel,
     noTiltLockMapsRef: {
       current: { voicing: {}, bass: {} },

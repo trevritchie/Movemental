@@ -10,6 +10,7 @@ import { AdsrPanelContent } from './settings/AdsrPanelContent';
 import { EffectsPanelContent } from './settings/EffectsPanelContent';
 import { BorrowingMemoryToggle } from './settings/BorrowingMemoryToggle';
 import { VoiceLeadingToggle } from './settings/VoiceLeadingToggle';
+import { VoicingElevatorFloorsToggle } from './settings/VoicingElevatorFloorsToggle';
 import { ClockLayoutToggle } from './settings/ClockLayoutToggle';
 import { GlowingOrbsToggle } from './settings/GlowingOrbsToggle';
 import { HarmonicFunctionLabelsToggle } from './settings/HarmonicFunctionLabelsToggle';
@@ -425,6 +426,22 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                         </div>
                       </div>
                     )}
+
+                    <div className="settings-menu-setting">
+                      <SettingsSettingHeader
+                        groupId="voicingElevatorFloors"
+                        onReset={resetSettingsGroup}
+                      />
+                      <div className="settings-menu-section__panel">
+                        <p className="settings-menu-section__hint">
+                          All uses every elevator floor. Every Other skips
+                          floors so on chords (children) and off chords
+                          (Earth, Wind, Fire) land on alternating widths at the
+                          same tilt.
+                        </p>
+                        <VoicingElevatorFloorsToggle />
+                      </div>
+                    </div>
 
                     <div className="settings-menu-setting">
                       <SettingsSettingHeader

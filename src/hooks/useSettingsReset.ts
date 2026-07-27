@@ -22,6 +22,7 @@ import type {
   DiagramLayoutMode,
   PlayStyle,
   VoiceLeadingMode,
+  VoicingElevatorFloorsMode,
 } from '../music/sessionModes';
 import type { EqProfileId } from '../audio/outputProfiles';
 import type { LayoutTier } from '../layout/breakpoints';
@@ -37,6 +38,7 @@ export interface UseSettingsResetOptions {
   setVoiceLeadingMode: (mode: VoiceLeadingMode) => void;
   setBorrowingMemory: (mode: 'global' | 'per-chord') => void;
   setClockLayoutMode: (mode: ClockLayoutMode) => void;
+  setVoicingElevatorFloorsMode: (mode: VoicingElevatorFloorsMode) => void;
   setGlowingOrbsEnabled: (enabled: boolean) => void;
   setHarmonicFunctionLabelsEnabled: (enabled: boolean) => void;
   setDiagramLayoutMode: (mode: DiagramLayoutMode) => void;
@@ -68,6 +70,7 @@ export function useSettingsReset({
   setVoiceLeadingMode,
   setBorrowingMemory,
   setClockLayoutMode,
+  setVoicingElevatorFloorsMode,
   setGlowingOrbsEnabled,
   setHarmonicFunctionLabelsEnabled,
   setDiagramLayoutMode,
@@ -98,6 +101,7 @@ export function useSettingsReset({
         mode: setVoiceLeadingMode,
         memory: setBorrowingMemory,
         layoutMode: setClockLayoutMode,
+        floorsMode: setVoicingElevatorFloorsMode,
         enabled: setGlowingOrbsEnabled,
         diagramMode: setDiagramLayoutMode,
         synthPresetId: setSynthPresetId,
@@ -121,6 +125,7 @@ export function useSettingsReset({
       setVoiceLeadingMode,
       setBorrowingMemory,
       setClockLayoutMode,
+      setVoicingElevatorFloorsMode,
       setGlowingOrbsEnabled,
       setRetriggerSoundingNotes,
       setDiagramLayoutMode,
@@ -145,6 +150,7 @@ export function useSettingsReset({
       switch (sectionId) {
         case 'general':
         case 'voiceLeading':
+        case 'voicingElevatorFloors':
           resetVoiceLeadingSession();
           break;
         case 'voiceBorrowing':
@@ -230,7 +236,7 @@ export function useSettingsReset({
         applySetting[key as SettingKey](value as never);
       }
 
-      if (groupId === 'voiceLeading') {
+      if (groupId === 'voiceLeading' || groupId === 'voicingElevatorFloors') {
         resetVoiceLeadingSession();
       } else if (groupId === 'voiceBorrowing') {
         clearChordBorrowingStates();

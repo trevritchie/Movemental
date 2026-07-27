@@ -37,8 +37,9 @@ import {
 import { invalidateVoicingCache } from '../music/voicingCache';
 import { audioEngine } from '../audio/AudioEngine';
 import { unlockIosMediaChannel } from '../audio/iosMediaChannel';
-import type { PlayStyle, VoiceLeadingMode } from '../music/sessionModes';
+import type { PlayStyle, VoiceLeadingMode, VoicingElevatorFloorsMode } from '../music/sessionModes';
 import { usesDeviceTilt } from '../music/sessionModes';
+import { applyElevatorFloorsToTilt } from '../music/voicingElevatorFloors';
 import { isElementalName, isOppositeElementNavigation, previousBassMidi, resolveElementalForNavigation, type ElementalName } from '../music/elementalRoot';
 import {
   type NoTiltChordLockMaps,
@@ -72,6 +73,7 @@ interface UseChordPlaybackOptions {
   noTiltPositionLevelRef: RefObject<number>;
   tonalCenterRef: RefObject<number>;
   voiceLeadingModeRef: RefObject<VoiceLeadingMode>;
+  voicingElevatorFloorsModeRef: RefObject<VoicingElevatorFloorsMode>;
   setNoTiltPositionLevel: (level: number) => void;
   noTiltLockMapsRef: RefObject<NoTiltChordLockMaps>;
   applyNoTiltLocksForChord: (chordName: string, deferSetState?: boolean) => void;
@@ -103,6 +105,7 @@ export function useChordPlayback({
   noTiltPositionLevelRef,
   tonalCenterRef,
   voiceLeadingModeRef,
+  voicingElevatorFloorsModeRef,
   setNoTiltPositionLevel,
   noTiltLockMapsRef,
   applyNoTiltLocksForChord,
@@ -193,6 +196,7 @@ export function useChordPlayback({
     lastNoTiltPositionLevelRef,
     noTiltLockMapsRef,
     suppressNoTiltRevoiceRef,
+    voicingElevatorFloorsModeRef,
     setNoTiltPositionLevel,
   });
 
@@ -370,7 +374,17 @@ export function useChordPlayback({
 
       let displayChord = inputChord;
       let elemental: ElementalPlaybackResolution | undefined;
-      let playbackTilt = resolvePlaybackTilt(fromPointer);
+      let playbackTilt = resolvePlaybackTilt(fromPointer, inputChord.name);
+      if (usesDeviceTilt(tiltMode)) {
+        // Re-snap after resolve so settings re-voices (fromPointer false)
+        // also follow Every Other for the chord being played.
+        playbackTilt = applyElevatorFloorsToTilt(
+          playbackTilt,
+          voicingElevatorFloorsModeRef.current,
+          inputChord.name,
+        );
+        playbackTiltRef.current = playbackTilt;
+      }
       const anchorKey = buildAnchorKey(displayChord, playbackTilt);
       const needsReanchor =
         fromPointer || anchorKeyRef.current !== anchorKey;
@@ -509,6 +523,7 @@ export function useChordPlayback({
       noTiltVoicingLevelRef,
       noTiltPositionLevelRef,
       voiceLeadingModeRef,
+      voicingElevatorFloorsModeRef,
     ]
   );
 

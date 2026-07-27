@@ -45,6 +45,7 @@ import type {
   DiagramLayoutMode,
   PlayStyle,
   VoiceLeadingMode,
+  VoicingElevatorFloorsMode,
 } from '../music/sessionModes';
 import { isChordEnabledInLayout } from '../music/diagramLayouts';
 import { loadUserSettings } from '../settings/userSettingsStorage';
@@ -54,12 +55,17 @@ import {
 import type { SettingsResetGroupId } from '../settings/settingsResetGroups';
 import { useLayoutTier } from '../hooks/useLayoutTier';
 import { resolveDefaultHarmonicFunctionLabelsEnabled } from '../diagram/diagramScaling';
+import {
+  allowedVoicingLevels,
+  snapVoicingLevelToAllowed,
+} from '../music/voicingElevatorFloors';
 
 export type {
   ClockLayoutMode,
   DiagramLayoutMode,
   PlayStyle,
   VoiceLeadingMode,
+  VoicingElevatorFloorsMode,
 } from '../music/sessionModes';
 
 interface ChordContextType {
@@ -89,6 +95,8 @@ interface ChordContextType {
   setBorrowingMemory: (mode: 'global' | 'per-chord') => void;
   voiceLeadingMode: VoiceLeadingMode;
   setVoiceLeadingMode: (mode: VoiceLeadingMode) => void;
+  voicingElevatorFloorsMode: VoicingElevatorFloorsMode;
+  setVoicingElevatorFloorsMode: (mode: VoicingElevatorFloorsMode) => void;
   clockLayoutMode: ClockLayoutMode;
   setClockLayoutMode: (mode: ClockLayoutMode) => void;
   glowingOrbsEnabled: boolean;
@@ -152,6 +160,10 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
   const [voiceLeadingMode, setVoiceLeadingMode] = useState<VoiceLeadingMode>(
     loadedSettings.voiceLeading.mode
   );
+  const [voicingElevatorFloorsMode, setVoicingElevatorFloorsMode] =
+    useState<VoicingElevatorFloorsMode>(
+      loadedSettings.voicingElevatorFloors.floorsMode,
+    );
   const [clockLayoutMode, setClockLayoutMode] = useState<ClockLayoutMode>(
     loadedSettings.clockFace.layoutMode
   );
@@ -201,6 +213,7 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
   const noTiltPositionLevelRef = useRef(noTiltPositionLevel);
   const tonalCenterRef = useRef(tonalCenter);
   const voiceLeadingModeRef = useRef(voiceLeadingMode);
+  const voicingElevatorFloorsModeRef = useRef(voicingElevatorFloorsMode);
   useEffect(() => {
     noTiltVoicingLevelRef.current = noTiltVoicingLevel;
   }, [noTiltVoicingLevel]);
@@ -213,6 +226,26 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
   useEffect(() => {
     voiceLeadingModeRef.current = voiceLeadingMode;
   }, [voiceLeadingMode]);
+  useEffect(() => {
+    voicingElevatorFloorsModeRef.current = voicingElevatorFloorsMode;
+  }, [voicingElevatorFloorsMode]);
+
+  // Keep the no-tilt VOICING dropdown on an allowed elevator floor.
+  useEffect(() => {
+    const allowed = allowedVoicingLevels(
+      voicingElevatorFloorsMode,
+      selectedChord?.name ?? null,
+    );
+    const snapped = snapVoicingLevelToAllowed(noTiltVoicingLevel, allowed);
+    if (snapped !== noTiltVoicingLevel) {
+      setNoTiltVoicingLevel(snapped);
+    }
+  }, [
+    voicingElevatorFloorsMode,
+    selectedChord?.name,
+    noTiltVoicingLevel,
+    setNoTiltVoicingLevel,
+  ]);
 
   const noTiltLocks = useNoTiltChordLocks({
     selectedChord,
@@ -235,6 +268,7 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
     noTiltPositionLevelRef,
     tonalCenterRef,
     voiceLeadingModeRef,
+    voicingElevatorFloorsModeRef,
     setNoTiltPositionLevel,
     noTiltLockMapsRef: noTiltLocks.lockMapsRef,
     applyNoTiltLocksForChord: noTiltLocks.applyLocksForChord,
@@ -320,6 +354,7 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
     setVoiceLeadingMode,
     setBorrowingMemory: borrowing.setBorrowingMemory,
     setClockLayoutMode,
+    setVoicingElevatorFloorsMode,
     setGlowingOrbsEnabled,
     setHarmonicFunctionLabelsEnabled,
     setDiagramLayoutMode,
@@ -350,6 +385,7 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
         retriggerSoundingNotes,
       },
       voiceLeading: { mode: voiceLeadingMode },
+      voicingElevatorFloors: { floorsMode: voicingElevatorFloorsMode },
       voiceBorrowing: { memory: borrowing.borrowingMemory },
       clockFace: { layoutMode: clockLayoutMode },
       glowingOrbs: { enabled: glowingOrbsEnabled },
@@ -377,6 +413,7 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
       playback.playStyle,
       retriggerSoundingNotes,
       voiceLeadingMode,
+      voicingElevatorFloorsMode,
       borrowing.borrowingMemory,
       clockLayoutMode,
       glowingOrbsEnabled,
@@ -509,6 +546,8 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
       setBorrowingMemory: borrowing.setBorrowingMemory,
       voiceLeadingMode,
       setVoiceLeadingMode,
+      voicingElevatorFloorsMode,
+      setVoicingElevatorFloorsMode,
       clockLayoutMode,
       setClockLayoutMode,
       glowingOrbsEnabled,
@@ -555,6 +594,7 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
       playback.handleChordPointerUp,
       handleChordSelect,
       voiceLeadingMode,
+      voicingElevatorFloorsMode,
       clockLayoutMode,
       glowingOrbsEnabled,
       harmonicFunctionLabelsEnabled,
