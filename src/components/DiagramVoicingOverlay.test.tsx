@@ -40,6 +40,7 @@ vi.mock('../context/ChordContext', () => ({
     lastPlayedVoicingLabel: null,
     lastPlayedBassLabel: null,
     lastElementalPlayback: null,
+    tiltToStrum: false,
     isNoTiltVoicingLocked: false,
     isNoTiltBassLocked: true,
     toggleNoTiltVoicingLock,

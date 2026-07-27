@@ -77,12 +77,15 @@ export const DiagramVoicingOverlay: React.FC = () => {
     lastPlayedBassLabel,
     lastElementalPlayback,
     voicingElevatorFloorsMode,
+    tiltToStrum,
   } = useChordContext();
 
   const { tiltStatus, tiltSample, requestTiltPermission } =
     useTiltReadoutContext();
 
   const isTilt = tiltModeEnabled;
+  /** Last-tap grey sub-labels; hidden for Tilt to Strum where live = sounding. */
+  const showLastSoundingReadout = isTilt && !tiltToStrum;
   const chordName = selectedChord?.name;
   const elevatorTiltSample = React.useMemo(
     () =>
@@ -206,7 +209,7 @@ export const DiagramVoicingOverlay: React.FC = () => {
 
     return (
       <TiltReadoutStack
-        showSounding={isTilt}
+        showSounding={showLastSoundingReadout}
         soundingLabel={lastPlayedVoicingLabel}
       >
         <span
@@ -248,7 +251,7 @@ export const DiagramVoicingOverlay: React.FC = () => {
 
     return (
       <TiltReadoutStack
-        showSounding={isTilt}
+        showSounding={showLastSoundingReadout}
         soundingLabel={lastPlayedBassLabel}
       >
         <span
