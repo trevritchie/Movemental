@@ -38,6 +38,7 @@ vi.mock('../audio/AudioEngine', () => ({
     stopDrone: vi.fn(),
     startContext: vi.fn(),
     triggerAttack: mocks.triggerAttack,
+    updateVoicingDiff: vi.fn(),
     isPageBackgrounded: () => false,
   },
 }));

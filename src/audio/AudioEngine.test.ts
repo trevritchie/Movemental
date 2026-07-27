@@ -364,6 +364,134 @@ describe('AudioEngine instrument presets', () => {
     expect(attacked).not.toContain('G4');
   });
 
+  it('updateVoicingDiff re-attacks expired common tones and added pitches', async () => {
+    await audioEngine.applyPreset(getSynthPreset('grandPiano'));
+    const engine = audioEngine as unknown as {
+      voice: Tone.Sampler;
+      noteEndTimes: Map<string, number>;
+      activeNotes: string[];
+    };
+    const attackSpy = vi.spyOn(engine.voice, 'triggerAttack');
+    const releaseSpy = vi.spyOn(engine.voice, 'triggerRelease');
+
+    vi.mocked(Tone.now).mockReturnValue(1);
+    audioEngine.triggerAttack([60, 64, 67]);
+    engine.noteEndTimes.set('C4', 1.5);
+    engine.noteEndTimes.set('E4', 1.5);
+    engine.noteEndTimes.set('G4', 1.5);
+    attackSpy.mockClear();
+    releaseSpy.mockClear();
+
+    vi.mocked(Tone.now).mockReturnValue(2);
+    audioEngine.updateVoicingDiff([60, 65, 67]);
+
+    const attacked = attackSpy.mock.calls[0]?.[0] as string[];
+    expect(attacked).toEqual(expect.arrayContaining(['C4', 'F4', 'G4']));
+    expect(attacked).toHaveLength(3);
+    // Departed E4 already finished sounding, so no live release call.
+    expect(releaseSpy).not.toHaveBeenCalled();
+    expect(engine.activeNotes).toEqual(['C4', 'F4', 'G4']);
+  });
+
+  it('updateVoicingDiff sustains still-sounding common tones', async () => {
+    await audioEngine.applyPreset(getSynthPreset('grandPiano'));
+    const engine = audioEngine as unknown as {
+      voice: Tone.Sampler;
+      noteEndTimes: Map<string, number>;
+      activeNotes: string[];
+    };
+    const attackSpy = vi.spyOn(engine.voice, 'triggerAttack');
+    const releaseSpy = vi.spyOn(engine.voice, 'triggerRelease');
+
+    vi.mocked(Tone.now).mockReturnValue(1);
+    audioEngine.triggerAttack([60, 64, 67]);
+    engine.noteEndTimes.set('C4', 10);
+    engine.noteEndTimes.set('E4', 10);
+    engine.noteEndTimes.set('G4', 10);
+    attackSpy.mockClear();
+    releaseSpy.mockClear();
+
+    vi.mocked(Tone.now).mockReturnValue(2);
+    audioEngine.updateVoicingDiff([60, 65, 67]);
+
+    expect(attackSpy).toHaveBeenCalledWith(['F4'], expect.anything());
+    expect(attackSpy.mock.calls[0]?.[0]).not.toContain('C4');
+    expect(attackSpy.mock.calls[0]?.[0]).not.toContain('G4');
+    expect(releaseSpy).toHaveBeenCalledWith(['E4'], expect.anything());
+    expect(engine.activeNotes).toEqual(['C4', 'F4', 'G4']);
+  });
+
+  it('updateVoicingDiff no-ops when the voicing set is unchanged and still sounding', async () => {
+    await audioEngine.applyPreset(getSynthPreset('warmPad'));
+    const engine = audioEngine as unknown as { voice: Tone.PolySynth };
+    const attackSpy = vi.spyOn(engine.voice, 'triggerAttack');
+    const releaseSpy = vi.spyOn(engine.voice, 'triggerRelease');
+
+    audioEngine.triggerAttack([60, 64, 67]);
+    attackSpy.mockClear();
+    releaseSpy.mockClear();
+
+    audioEngine.updateVoicingDiff([60, 64, 67]);
+
+    expect(attackSpy).not.toHaveBeenCalled();
+    expect(releaseSpy).not.toHaveBeenCalled();
+  });
+
+  it('updateVoicingDiff re-attacks expired notes when the set is unchanged', async () => {
+    await audioEngine.applyPreset(getSynthPreset('grandPiano'));
+    const engine = audioEngine as unknown as {
+      voice: Tone.Sampler;
+      noteEndTimes: Map<string, number>;
+    };
+    const attackSpy = vi.spyOn(engine.voice, 'triggerAttack');
+
+    vi.mocked(Tone.now).mockReturnValue(1);
+    audioEngine.triggerAttack([60, 64, 67]);
+    engine.noteEndTimes.set('C4', 1.5);
+    engine.noteEndTimes.set('E4', 1.5);
+    engine.noteEndTimes.set('G4', 1.5);
+    attackSpy.mockClear();
+
+    vi.mocked(Tone.now).mockReturnValue(2);
+    audioEngine.updateVoicingDiff([60, 64, 67]);
+
+    const attacked = attackSpy.mock.calls[0]?.[0] as string[];
+    expect(attacked).toEqual(expect.arrayContaining(['C4', 'E4', 'G4']));
+    expect(attacked).toHaveLength(3);
+  });
+
+  it('updateVoicingDiff logs note-off before re-attacking expired overlaps', async () => {
+    await audioEngine.applyPreset(getSynthPreset('grandPiano'));
+    const engine = audioEngine as unknown as {
+      voice: Tone.Sampler;
+      noteEndTimes: Map<string, number>;
+    };
+    const attackSpy = vi.spyOn(engine.voice, 'triggerAttack');
+
+    midiRecorderMock.isRecording.mockReturnValue(true);
+    vi.mocked(Tone.now).mockReturnValue(1);
+    audioEngine.triggerAttack([60, 64, 67]);
+    engine.noteEndTimes.set('C4', 1.5);
+    engine.noteEndTimes.set('E4', 10);
+    engine.noteEndTimes.set('G4', 10);
+    attackSpy.mockClear();
+    midiRecorderMock.logNoteOns.mockClear();
+    midiRecorderMock.logNoteOffs.mockClear();
+
+    vi.mocked(Tone.now).mockReturnValue(2);
+    audioEngine.updateVoicingDiff([60, 65, 67]);
+
+    expect(midiRecorderMock.logNoteOffs).toHaveBeenCalled();
+    expect(midiRecorderMock.logNoteOns).toHaveBeenCalled();
+    const attacked = attackSpy.mock.calls[0]?.[0] as string[];
+    expect(attacked).toEqual(expect.arrayContaining(['C4', 'F4']));
+    expect(attacked).not.toContain('G4');
+
+    const offOrder = midiRecorderMock.logNoteOffs.mock.invocationCallOrder[0]!;
+    const onOrder = midiRecorderMock.logNoteOns.mock.invocationCallOrder[0]!;
+    expect(offOrder).toBeLessThan(onOrder);
+  });
+
   it('logs MIDI note-off before re-attacking expired sampler common tones', async () => {
     await audioEngine.applyPreset(getSynthPreset('grandPiano'));
     const engine = audioEngine as unknown as {

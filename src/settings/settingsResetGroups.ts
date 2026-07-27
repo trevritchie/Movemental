@@ -21,6 +21,7 @@ export type SettingsResetGroupId =
   | 'eq'
   | 'playStyle'
   | 'retriggerSoundingNotes'
+  | 'tiltToStrum'
   | 'tonalCenter'
   | 'voiceLeading'
   | 'voiceBorrowing'
@@ -37,6 +38,7 @@ export const SETTINGS_RESET_GROUP_LABELS: Record<SettingsResetGroupId, string> =
     eq: 'EQ',
     playStyle: 'Sustain Mode',
     retriggerSoundingNotes: 'Retrigger Sounding Notes',
+    tiltToStrum: 'Tilt to Strum',
     tonalCenter: 'Tonal Center',
     voiceLeading: 'Voice Leading',
     voiceBorrowing: 'Voice Borrowing',
@@ -95,6 +97,12 @@ export function getSettingsGroupDefaults(
     case 'retriggerSoundingNotes':
       return {
         retriggerSoundingNotes: defaults.general.retriggerSoundingNotes,
+      };
+    case 'tiltToStrum':
+      return {
+        tiltToStrum: defaults.general.tiltToStrum,
+        shortestNote: defaults.general.shortestNote,
+        bpm: defaults.general.bpm,
       };
     case 'tonalCenter':
       return {

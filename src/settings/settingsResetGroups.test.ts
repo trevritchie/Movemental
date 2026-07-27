@@ -19,6 +19,7 @@ describe('settingsResetGroups', () => {
     expect(SETTINGS_RESET_GROUP_LABELS.retriggerSoundingNotes).toBe(
       'Retrigger Sounding Notes',
     );
+    expect(SETTINGS_RESET_GROUP_LABELS.tiltToStrum).toBe('Tilt to Strum');
   });
 
   it('returns play style defaults only for playStyle group', () => {
@@ -41,6 +42,19 @@ describe('settingsResetGroups', () => {
     expect(defaults).toEqual({
       retriggerSoundingNotes:
         DEFAULT_USER_SETTINGS.general.retriggerSoundingNotes,
+    });
+  });
+
+  it('returns tilt to strum, shortest note, and bpm defaults for its group', () => {
+    const defaults = getSettingsGroupDefaults('tiltToStrum', {
+      tiltModeEnabled: true,
+      synthPresetId: 'warmPad',
+    });
+
+    expect(defaults).toEqual({
+      tiltToStrum: DEFAULT_USER_SETTINGS.general.tiltToStrum,
+      shortestNote: DEFAULT_USER_SETTINGS.general.shortestNote,
+      bpm: DEFAULT_USER_SETTINGS.general.bpm,
     });
   });
 

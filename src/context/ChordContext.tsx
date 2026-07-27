@@ -50,6 +50,7 @@ import { isChordEnabledInLayout } from '../music/diagramLayouts';
 import { loadUserSettings } from '../settings/userSettingsStorage';
 import {
   type SettingsSectionId,
+  type ShortestNote,
 } from '../settings/userSettingsSchema';
 import type { SettingsResetGroupId } from '../settings/settingsResetGroups';
 import { useLayoutTier } from '../hooks/useLayoutTier';
@@ -99,6 +100,12 @@ interface ChordContextType {
   setDiagramLayoutMode: (mode: DiagramLayoutMode) => void;
   retriggerSoundingNotes: boolean;
   setRetriggerSoundingNotes: (enabled: boolean) => void;
+  tiltToStrum: boolean;
+  setTiltToStrum: (enabled: boolean) => void;
+  shortestNote: ShortestNote;
+  setShortestNote: (note: ShortestNote) => void;
+  bpm: number;
+  setBpm: (bpm: number) => void;
   lastTapTilt: TiltSample;
   lastCommittedPlaybackTilt: TiltSample;
   smoothBaseParallel: number;
@@ -112,6 +119,8 @@ interface ChordContextType {
   resetSettingsSection: (sectionId: SettingsSectionId) => void;
   resetSettingsGroup: (groupId: SettingsResetGroupId) => void;
   resetAllSettings: () => void;
+  /** Panic switch: silence notes and clear selection (disarms tilt-strum). */
+  panicStop: () => void;
 }
 
 const ChordContext = createContext<ChordContextType | undefined>(undefined);
@@ -180,22 +189,48 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
     retriggerSoundingNotesRef.current = retriggerSoundingNotes;
   }, [retriggerSoundingNotes]);
 
+  const [tiltToStrum, setTiltToStrum] = useState(
+    loadedSettings.general.tiltToStrum
+  );
+  const tiltToStrumRef = useRef(tiltToStrum);
+  useEffect(() => {
+    tiltToStrumRef.current = tiltToStrum;
+  }, [tiltToStrum]);
+
+  const [shortestNote, setShortestNote] = useState(
+    loadedSettings.general.shortestNote
+  );
+  const shortestNoteRef = useRef(shortestNote);
+  useEffect(() => {
+    shortestNoteRef.current = shortestNote;
+  }, [shortestNote]);
+
+  const [bpm, setBpm] = useState(loadedSettings.general.bpm);
+  const bpmRef = useRef(bpm);
+  useEffect(() => {
+    bpmRef.current = bpm;
+  }, [bpm]);
+
   const selectedChordNameRef = useRef<string | null>(null);
   /** Armed by pointer commits / deferred level flushes; consumed by re-voice. */
   const suppressNoTiltRevoiceRef = useRef(createNoTiltRevoiceSuppressState());
+  const tiltStrumSampleRef = useRef<() => void>(() => {});
 
   const playAndDisplayChordRef = useRef<
     (chord: Chord, state: BorrowingState) => void
   >(() => {});
 
+  const deviceTilt = useDeviceTilt({
+    onRawTiltUpdate: () => {
+      tiltStrumSampleRef.current();
+    },
+  });
   const borrowing = useBorrowingMemory({
     selectedChord,
     playAndDisplayChord: (chord, state) =>
       playAndDisplayChordRef.current(chord, state),
     initialBorrowingMemory: loadedSettings.voiceBorrowing.memory,
   });
-
-  const deviceTilt = useDeviceTilt();
 
   const noTiltVoicingLevelRef = useRef(noTiltVoicingLevel);
   const noTiltPositionLevelRef = useRef(noTiltPositionLevel);
@@ -242,6 +277,9 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
     initialPlayStyle: loadedSettings.general.playStyle,
     hasPersistedSettings,
     retriggerSoundingNotesRef,
+    tiltToStrumRef,
+    shortestNoteRef,
+    bpmRef,
   });
 
   useAudioLifecycle();
@@ -249,6 +287,10 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
   useEffect(() => {
     playAndDisplayChordRef.current = playback.playAndDisplayChord;
   }, [playback.playAndDisplayChord]);
+
+  useEffect(() => {
+    tiltStrumSampleRef.current = playback.handleTiltStrumSample;
+  }, [playback.handleTiltStrumSample]);
 
   const getBorrowingStateForChordRef = useRef(borrowing.getBorrowingStateForChord);
   useEffect(() => {
@@ -279,6 +321,7 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
     resetVoiceLeadingSession,
     clearPlaybackSelection,
   } = playback;
+  const panicStop = clearPlaybackSelection;
   const { synthPresetId, setSynthPresetId } = audio;
 
   const enterTiltSession = useCallback(() => {
@@ -324,6 +367,9 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
     setHarmonicFunctionLabelsEnabled,
     setDiagramLayoutMode,
     setRetriggerSoundingNotes,
+    setTiltToStrum,
+    setShortestNote,
+    setBpm,
     setSynthPresetId,
     setEqProfileId: audio.setEqProfileId,
     setChorusWet: audio.setChorusWet,
@@ -348,6 +394,9 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
         octaveRange,
         playStyle: playback.playStyle,
         retriggerSoundingNotes,
+        tiltToStrum,
+        shortestNote,
+        bpm,
       },
       voiceLeading: { mode: voiceLeadingMode },
       voiceBorrowing: { memory: borrowing.borrowingMemory },
@@ -376,6 +425,9 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
       octaveRange,
       playback.playStyle,
       retriggerSoundingNotes,
+      tiltToStrum,
+      shortestNote,
+      bpm,
       voiceLeadingMode,
       borrowing.borrowingMemory,
       clockLayoutMode,
@@ -519,6 +571,12 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
       setDiagramLayoutMode,
       retriggerSoundingNotes,
       setRetriggerSoundingNotes,
+      tiltToStrum,
+      setTiltToStrum,
+      shortestNote,
+      setShortestNote,
+      bpm,
+      setBpm,
       lastTapTilt: playback.lastTapTilt,
       lastCommittedPlaybackTilt: playback.lastCommittedPlaybackTilt,
       smoothBaseParallel: playback.smoothBaseParallel,
@@ -532,6 +590,7 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
       resetSettingsSection,
       resetSettingsGroup,
       resetAllSettings,
+      panicStop,
     }),
     [
       tonalCenter,
@@ -561,6 +620,9 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
       diagramLayoutMode,
       setDiagramLayoutMode,
       retriggerSoundingNotes,
+      tiltToStrum,
+      shortestNote,
+      bpm,
       playback.lastTapTilt,
       playback.lastCommittedPlaybackTilt,
       playback.smoothBaseParallel,
@@ -576,6 +638,7 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
       resetSettingsSection,
       resetSettingsGroup,
       resetAllSettings,
+      panicStop,
     ]
   );
 

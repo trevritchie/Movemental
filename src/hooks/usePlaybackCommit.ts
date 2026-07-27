@@ -45,6 +45,11 @@ export interface DispatchAudioOptions {
   retrigger?: boolean;
   skipIfUnchanged?: boolean;
   fromPointer?: boolean;
+  /**
+   * When true, apply a set-membership voicing diff (Tilt to Strum) instead of
+   * legato triggerAttack / timed playNotes.
+   */
+  voicingDiff?: boolean;
 }
 
 export interface CommitPlaybackOptions extends DispatchAudioOptions {
@@ -119,10 +124,12 @@ export function usePlaybackCommit({
         retrigger = false,
         skipIfUnchanged = false,
         fromPointer = false,
+        voicingDiff = false,
       } = options;
 
       if (
         !fromPointer &&
+        !voicingDiff &&
         (!isPageInteractiveForAudio() || audioEngine.isPageBackgrounded())
       ) {
         return;
@@ -133,6 +140,11 @@ export function usePlaybackCommit({
         !retrigger &&
         pitchesEqual(pitches, activePitchesRef.current)
       ) {
+        return;
+      }
+
+      if (voicingDiff) {
+        audioEngine.updateVoicingDiff(pitches);
         return;
       }
 

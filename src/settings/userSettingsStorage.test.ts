@@ -28,6 +28,9 @@ describe('userSettingsStorage', () => {
         octaveRange: 3,
         playStyle: 'tap_and_hold' as const,
         retriggerSoundingNotes: true,
+        tiltToStrum: true,
+        shortestNote: '8n' as const,
+        bpm: 100,
       },
     };
     saveUserSettings(custom);

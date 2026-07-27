@@ -15,6 +15,9 @@ describe('userSettingsSchema', () => {
     expect(DEFAULT_USER_SETTINGS.general.octaveRange).toBe(2);
     expect(DEFAULT_USER_SETTINGS.general.playStyle).toBe('tap');
     expect(DEFAULT_USER_SETTINGS.general.retriggerSoundingNotes).toBe(false);
+    expect(DEFAULT_USER_SETTINGS.general.tiltToStrum).toBe(true);
+    expect(DEFAULT_USER_SETTINGS.general.shortestNote).toBe('8n');
+    expect(DEFAULT_USER_SETTINGS.general.bpm).toBe(120);
     expect(DEFAULT_USER_SETTINGS.voiceLeading.mode).toBe('smooth');
     expect(DEFAULT_USER_SETTINGS.clockFace.layoutMode).toBe('chromatic');
     expect(DEFAULT_USER_SETTINGS.glowingOrbs.enabled).toBe(true);
@@ -42,6 +45,9 @@ describe('userSettingsSchema', () => {
       octaveRange: 2,
       playStyle: 'tap',
       retriggerSoundingNotes: false,
+      tiltToStrum: true,
+      shortestNote: '8n',
+      bpm: 120,
     });
     expect(getSectionDefaults('soundDesign').delayWet).toBe(0);
   });
@@ -115,6 +121,9 @@ describe('userSettingsSchema', () => {
       octaveRange: 4,
       playStyle: 'tap_and_hold',
       retriggerSoundingNotes: false,
+      tiltToStrum: true,
+      shortestNote: '8n',
+      bpm: 120,
     });
     expect(result.voiceLeading.mode).toBe('root_position');
     expect(result.voiceBorrowing.memory).toBe('global');

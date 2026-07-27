@@ -24,6 +24,7 @@ vi.mock('../audio/AudioEngine', () => ({
     handlePageForeground: vi.fn().mockResolvedValue(undefined),
     playChord: vi.fn(),
     triggerAttack: vi.fn(),
+    updateVoicingDiff: vi.fn(),
     startDrone: vi.fn(),
     stopDrone: vi.fn(),
     startContext: vi.fn(),
@@ -79,10 +80,12 @@ describe('ChordProvider persistence', () => {
     saveUserSettings({
       ...DEFAULT_USER_SETTINGS,
       general: {
+        ...DEFAULT_USER_SETTINGS.general,
         tonalCenter: 4,
         octaveRange: 3,
         playStyle: 'tap_and_hold',
         retriggerSoundingNotes: true,
+        tiltToStrum: true,
       },
       voiceLeading: { mode: 'root_position' },
       soundDesign: {
@@ -98,6 +101,7 @@ describe('ChordProvider persistence', () => {
     expect(result.current.octaveRange).toBe(3);
     expect(result.current.playStyle).toBe('tap_and_hold');
     expect(result.current.retriggerSoundingNotes).toBe(true);
+    expect(result.current.tiltToStrum).toBe(true);
     expect(result.current.voiceLeadingMode).toBe('root_position');
     expect(result.current.synthPresetId).toBe('warmPad');
     expect(result.current.eqProfileId).toBe('flat');
@@ -107,10 +111,12 @@ describe('ChordProvider persistence', () => {
     saveUserSettings({
       ...DEFAULT_USER_SETTINGS,
       general: {
+        ...DEFAULT_USER_SETTINGS.general,
         tonalCenter: 4,
         octaveRange: 3,
         playStyle: 'tap_and_hold',
         retriggerSoundingNotes: true,
+        tiltToStrum: true,
       },
     });
 
@@ -131,6 +137,9 @@ describe('ChordProvider persistence', () => {
     );
     expect(result.current.retriggerSoundingNotes).toBe(
       DEFAULT_USER_SETTINGS.general.retriggerSoundingNotes
+    );
+    expect(result.current.tiltToStrum).toBe(
+      DEFAULT_USER_SETTINGS.general.tiltToStrum
     );
   });
 
@@ -190,10 +199,12 @@ describe('ChordProvider persistence', () => {
     saveUserSettings({
       ...DEFAULT_USER_SETTINGS,
       general: {
+        ...DEFAULT_USER_SETTINGS.general,
         tonalCenter: 4,
         octaveRange: 3,
         playStyle: 'tap_and_hold',
         retriggerSoundingNotes: true,
+        tiltToStrum: true,
       },
     });
 
@@ -209,16 +220,19 @@ describe('ChordProvider persistence', () => {
     expect(result.current.tonalCenter).toBe(4);
     expect(result.current.octaveRange).toBe(3);
     expect(result.current.retriggerSoundingNotes).toBe(true);
+    expect(result.current.tiltToStrum).toBe(true);
   });
 
   it('resetSettingsGroup restores tonal center note and octave together', () => {
     saveUserSettings({
       ...DEFAULT_USER_SETTINGS,
       general: {
+        ...DEFAULT_USER_SETTINGS.general,
         tonalCenter: 4,
         octaveRange: 3,
         playStyle: 'tap_and_hold',
         retriggerSoundingNotes: true,
+        tiltToStrum: true,
       },
     });
 
