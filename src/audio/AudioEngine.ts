@@ -762,6 +762,90 @@ export class AudioEngine {
   }
 
   /**
+   * Voicing update for Tilt to Strum.
+   *
+   * Sustains notes that are still sounding and remain in the intended set.
+   * Re-attacks pitches whose sampler buffers have already ended, and attacks
+   * newly added pitches. Releases only notes that left the set and are still
+   * live. Independent of the Retrigger Sounding Notes setting (chord taps).
+   */
+  public updateVoicingDiff(midiNotes: number[]) {
+    const voice = this.getVoice();
+    if (!voice) return;
+
+    const now = Tone.now();
+    const clamped = midiNotes.map(
+      (n) => clamp(n, MIDI_NOTE_MIN, MIDI_NOTE_MAX),
+    );
+    const noteNames: string[] = clamped.map(midiToNoteName);
+    const previousActive = this.activeNotes;
+
+    const soundingNotes = previousActive.filter((n) =>
+      this.isNoteStillSounding(n, now),
+    );
+    const notesToRelease = previousActive.filter(
+      (n) => !noteNames.includes(n),
+    );
+    const liveNotesToRelease = notesToRelease.filter((n) =>
+      soundingNotes.includes(n),
+    );
+    const notesToAttack = noteNames.filter((n) => !soundingNotes.includes(n));
+    const expiredOverlaps = notesToAttack.filter((n) =>
+      previousActive.includes(n),
+    );
+
+    if (notesToRelease.length === 0 && notesToAttack.length === 0) {
+      return;
+    }
+
+    this.activeNotes = noteNames;
+    this.clearNoteEndTimes(notesToRelease);
+
+    if (liveNotesToRelease.length > 0) {
+      try {
+        voice.triggerRelease(liveNotesToRelease, now);
+      } catch (err) {
+        devWarn('[AudioEngine] Voicing-diff release error:', err);
+      }
+      this.recording.logNoteOffs(
+        this.noteNamesToMidi(liveNotesToRelease),
+        now,
+      );
+    } else if (notesToRelease.length > 0) {
+      this.recording.logNoteOffs(
+        this.noteNamesToMidi(notesToRelease),
+        now,
+      );
+    }
+
+    if (expiredOverlaps.length > 0) {
+      this.recording.logNoteOffs(
+        this.noteNamesToMidi(expiredOverlaps),
+        now,
+      );
+    }
+
+    if (notesToAttack.length > 0) {
+      audioDebugLog(
+        '[AudioEngine] Voicing diff attack:',
+        notesToAttack,
+        '| Sustaining:',
+        noteNames.filter((n) => !notesToAttack.includes(n)),
+        '| Releasing:',
+        liveNotesToRelease,
+      );
+      voice.triggerAttack(notesToAttack, now);
+      this.recordNoteEndTimes(notesToAttack, now);
+      this.logPeakLevelIfDev();
+      this.recording.logNoteOns(
+        this.noteNamesToMidi(notesToAttack),
+        undefined,
+        now,
+      );
+    }
+  }
+
+  /**
    * Explicit pointer-up / hard stop.
    * Uses synth.releaseAll() as a nuclear guarantee — no orphaned notes regardless
    * of what's in activeNotes or what voices the PolySynth has internally allocated.

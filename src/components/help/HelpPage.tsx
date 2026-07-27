@@ -187,7 +187,10 @@ export const HelpPage: React.FC<HelpPageProps> = ({
         <h4 className="help-page__section-title">Play Style and Voice Leading</h4>
         <p>
           Tap (Click on desktop) holds notes until you tap again or hit panic.
-          Tap &amp; Hold releases when you let go. Voice leading modes (Root
+          Tap &amp; Hold releases when you let go. In Tilt mode, Tilt to Strum
+          (On by default) plays only the notes that change when you move to a
+          new tilt level, without retapping. BPM and Shortest Note set how
+          quickly successive tilt levels can fire. Voice leading modes (Root
           Position, Smooth, Smoothest) control how parallel position moves
           between chords. Home Octave sets register; Tonal Center rotates the
           clock and pitch labels.

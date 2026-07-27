@@ -8,14 +8,21 @@ import {
 
 const mocks = vi.hoisted(() => {
   const triggerAttack = vi.fn();
+  const updateVoicingDiff = vi.fn();
   const releaseActiveNotes = vi.fn();
   const registerReleaseListener = vi.fn(() => () => {});
-  return { triggerAttack, releaseActiveNotes, registerReleaseListener };
+  return {
+    triggerAttack,
+    updateVoicingDiff,
+    releaseActiveNotes,
+    registerReleaseListener,
+  };
 });
 
 vi.mock('../audio/AudioEngine', () => ({
   audioEngine: {
     triggerAttack: mocks.triggerAttack,
+    updateVoicingDiff: mocks.updateVoicingDiff,
     releaseActiveNotes: mocks.releaseActiveNotes,
     registerReleaseListener: mocks.registerReleaseListener,
     isPageBackgrounded: () => false,
@@ -67,6 +74,9 @@ describe('useChordPlayback audio-first pointer path', () => {
     clearNoTiltChordLocks: vi.fn(),
     hasPersistedSettings: false,
     retriggerSoundingNotesRef: { current: false },
+    tiltToStrumRef: { current: false },
+    shortestNoteRef: { current: '16n' as const },
+    bpmRef: { current: 120 },
   };
 
   beforeEach(() => {
@@ -77,6 +87,9 @@ describe('useChordPlayback audio-first pointer path', () => {
     baseOptions.noTiltPositionLevelRef.current = 0;
     baseOptions.voiceLeadingModeRef.current = 'smoothest';
     baseOptions.retriggerSoundingNotesRef.current = false;
+    baseOptions.tiltToStrumRef.current = false;
+    baseOptions.shortestNoteRef.current = '16n';
+    baseOptions.bpmRef.current = 120;
   });
 
   afterEach(() => {
@@ -384,5 +397,135 @@ describe('useChordPlayback audio-first pointer path', () => {
     expect(result.current.lastPlayedBassLabel).toBeNull();
     expect(result.current.lastPlayedVoicingLabel).toBeNull();
     expect(result.current.lastElementalPlayback).toBeNull();
+  });
+
+  it('panicStop disarms tilt-strum until the next chord tap', async () => {
+    baseOptions.tiltToStrumRef.current = true;
+    const { result } = renderHook(() => useChordPlayback(baseOptions));
+
+    await act(async () => {
+      result.current.enterTiltSession();
+      result.current.handleChordPointerDown(branch);
+      await Promise.resolve();
+    });
+
+    expect(selectedChordNameRef.current).toBe('Branch');
+    mocks.updateVoicingDiff.mockClear();
+
+    await act(async () => {
+      result.current.panicStop();
+    });
+
+    expect(selectedChordNameRef.current).toBeNull();
+    baseOptions.rawTiltRef.current = { x: -0.75, y: 0 };
+
+    await act(async () => {
+      vi.advanceTimersByTime(130);
+      result.current.handleTiltStrumSample();
+    });
+
+    expect(mocks.updateVoicingDiff).not.toHaveBeenCalled();
+
+    await act(async () => {
+      result.current.handleChordPointerDown(branch);
+      await Promise.resolve();
+    });
+
+    mocks.updateVoicingDiff.mockClear();
+    baseOptions.rawTiltRef.current = { x: -0.5, y: -0.5 };
+
+    await act(async () => {
+      vi.advanceTimersByTime(130);
+      result.current.handleTiltStrumSample();
+    });
+
+    expect(mocks.updateVoicingDiff).toHaveBeenCalled();
+  });
+
+  it('does not strum when tiltToStrum is off', async () => {
+    const { result } = renderHook(() => useChordPlayback(baseOptions));
+
+    await act(async () => {
+      result.current.enterTiltSession();
+      result.current.handleChordPointerDown(branch);
+      await Promise.resolve();
+    });
+
+    mocks.triggerAttack.mockClear();
+    mocks.updateVoicingDiff.mockClear();
+    baseOptions.rawTiltRef.current = { x: -0.5, y: -0.5 };
+
+    await act(async () => {
+      result.current.handleTiltStrumSample();
+    });
+
+    expect(mocks.updateVoicingDiff).not.toHaveBeenCalled();
+    expect(mocks.triggerAttack).not.toHaveBeenCalled();
+  });
+
+  it('strums a voicing diff when tilt level changes in tilt mode', async () => {
+    baseOptions.tiltToStrumRef.current = true;
+    const { result } = renderHook(() => useChordPlayback(baseOptions));
+
+    await act(async () => {
+      result.current.enterTiltSession();
+      result.current.handleChordPointerDown(branch);
+      await Promise.resolve();
+    });
+
+    mocks.triggerAttack.mockClear();
+    mocks.updateVoicingDiff.mockClear();
+    baseOptions.rawTiltRef.current = { x: -0.75, y: 0 };
+
+    await act(async () => {
+      vi.advanceTimersByTime(130);
+      result.current.handleTiltStrumSample();
+    });
+
+    expect(mocks.updateVoicingDiff).toHaveBeenCalled();
+    expect(mocks.triggerAttack).not.toHaveBeenCalled();
+  });
+
+  it('does not strum on unchanged tilt levels', async () => {
+    baseOptions.tiltToStrumRef.current = true;
+    const { result } = renderHook(() => useChordPlayback(baseOptions));
+
+    await act(async () => {
+      result.current.enterTiltSession();
+      result.current.handleChordPointerDown(branch);
+      await Promise.resolve();
+    });
+
+    mocks.updateVoicingDiff.mockClear();
+
+    await act(async () => {
+      vi.advanceTimersByTime(130);
+      result.current.handleTiltStrumSample();
+    });
+
+    expect(mocks.updateVoicingDiff).not.toHaveBeenCalled();
+  });
+
+  it('blocks hold-mode strum when the pointer is up', async () => {
+    baseOptions.tiltToStrumRef.current = true;
+    const { result } = renderHook(() => useChordPlayback(baseOptions));
+
+    await act(async () => {
+      result.current.enterTiltSession();
+      result.current.setPlayStyle('tap_and_hold');
+      result.current.handleChordPointerDown(branch);
+      await Promise.resolve();
+      result.current.handleChordPointerUp();
+    });
+
+    mocks.updateVoicingDiff.mockClear();
+    baseOptions.rawTiltRef.current = { x: -0.75, y: 0 };
+
+    await act(async () => {
+      vi.advanceTimersByTime(130);
+      result.current.handleTiltStrumSample();
+    });
+
+    expect(mocks.updateVoicingDiff).not.toHaveBeenCalled();
   });
 });

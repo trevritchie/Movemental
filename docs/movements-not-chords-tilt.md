@@ -43,14 +43,24 @@ Normalized `TiltSample`:
 Large Euler wrap jumps are rejected via `isOrientationContinuous` so
 singularities at ±90° roll do not flip the sample.
 
-## Sampling rules (tap-time, not continuous audio)
+## Sampling rules (tap-time, optional continuous strum)
 
-Voicing is **sampled at chord tap / settings change**, not continuously while
-the phone moves under a held chord.
+By default, voicing is **sampled at chord tap / settings change**, not
+continuously while the phone moves under a held chord.
 
 - **Playback:** uses the **raw** orientation sample at tap time
 - **UI overlay (~7 Hz):** uses a **smoothed** sample (~150 ms) via
   `TiltReadoutContext` so borrowing controls are not blasted by sensor noise
+
+**Tilt to Strum** (Play Style setting, tilt sessions only, default On)
+changes the audio path: when On, each change in discrete tilt level
+(`inputSteps` / `parallelSteps`) plays a **set-membership note diff** via
+`AudioEngine.updateVoicingDiff` (attack adds, release removes; common tones
+never re-attack, even after sampler buffers end). Updates are rate-limited to
+the duration of the **Shortest Note** at the current **BPM** (for example a
+1/8 at 120 BPM is 250 ms). Tap & Hold still requires the pointer to be
+down so notes do not hang after release. Panic clears the selected chord so
+strumming stays silent until the next tap.
 
 Glowing orbs in tilt mode use an inverted bubble-level mapping tied to the
 same pitch/roll range (`orbPhysics.ts`), not gravity rolling of free bodies.

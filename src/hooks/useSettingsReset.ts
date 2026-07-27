@@ -12,6 +12,7 @@ import {
   SETTINGS_SECTION_IDS,
   type SettingKey,
   type SettingsSectionId,
+  type ShortestNote,
 } from '../settings/userSettingsSchema';
 import {
   getSettingsGroupDefaults,
@@ -41,6 +42,9 @@ export interface UseSettingsResetOptions {
   setHarmonicFunctionLabelsEnabled: (enabled: boolean) => void;
   setDiagramLayoutMode: (mode: DiagramLayoutMode) => void;
   setRetriggerSoundingNotes: (enabled: boolean) => void;
+  setTiltToStrum: (enabled: boolean) => void;
+  setShortestNote: (note: ShortestNote) => void;
+  setBpm: (bpm: number) => void;
   setSynthPresetId: (id: string) => void;
   setEqProfileId: (id: EqProfileId) => void;
   setChorusWet: (val: number) => void;
@@ -72,6 +76,9 @@ export function useSettingsReset({
   setHarmonicFunctionLabelsEnabled,
   setDiagramLayoutMode,
   setRetriggerSoundingNotes,
+  setTiltToStrum,
+  setShortestNote,
+  setBpm,
   setSynthPresetId,
   setEqProfileId,
   setChorusWet,
@@ -95,6 +102,9 @@ export function useSettingsReset({
         octaveRange: setOctaveRange,
         playStyle: setPlayStyle,
         retriggerSoundingNotes: setRetriggerSoundingNotes,
+        tiltToStrum: setTiltToStrum,
+        shortestNote: setShortestNote,
+        bpm: setBpm,
         mode: setVoiceLeadingMode,
         memory: setBorrowingMemory,
         layoutMode: setClockLayoutMode,
@@ -123,6 +133,9 @@ export function useSettingsReset({
       setClockLayoutMode,
       setGlowingOrbsEnabled,
       setRetriggerSoundingNotes,
+      setTiltToStrum,
+      setShortestNote,
+      setBpm,
       setDiagramLayoutMode,
       setSynthPresetId,
       setEqProfileId,

@@ -52,9 +52,18 @@ vi.mock('../context/ChordContext', () => ({
     setDiagramLayoutMode: vi.fn(),
     retriggerSoundingNotes: false,
     setRetriggerSoundingNotes: vi.fn(),
+    tiltToStrum: false,
+    setTiltToStrum: vi.fn(),
+    shortestNote: '8n',
+    setShortestNote: vi.fn(),
+    bpm: 120,
+    setBpm: vi.fn(),
     tiltModeEnabled: false,
     resetSettingsGroup: vi.fn(),
     resetAllSettings: vi.fn(),
+    panicStop: vi.fn(() => {
+      audioEngine.releaseActiveNotes();
+    }),
   }),
 }));
 

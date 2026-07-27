@@ -1,12 +1,13 @@
 import React from 'react';
 import { Settings, VolumeX, CircleHelp } from 'lucide-react';
-import { audioEngine } from '../audio/AudioEngine';
+import { useChordContext } from '../context/ChordContext';
 import { useSettingsMenu } from '../hooks/useSettingsMenu';
 import { RecordControl } from './RecordControl';
 import { SettingsMenuPortal } from './SettingsMenuPortal';
 
 /** Panic, settings, and help controls for desktop/tablet diagram corners. */
 export const DiagramCornerActions: React.FC = () => {
+  const { panicStop } = useChordContext();
   const {
     isOpen,
     openToHelp,
@@ -52,7 +53,7 @@ export const DiagramCornerActions: React.FC = () => {
           <button
             type="button"
             className="diagram-toolbar-btn diagram-toolbar-btn--panic"
-            onClick={() => audioEngine.releaseActiveNotes()}
+            onClick={panicStop}
             title="Panic Switch"
             aria-label="Panic Switch: stop all notes"
             data-tour-id="tour-panic"

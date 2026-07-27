@@ -186,6 +186,25 @@ function isBoolean(value: unknown): value is boolean {
   return typeof value === 'boolean';
 }
 
+export type ShortestNote = '16n' | '8n' | '4n';
+
+export const DEFAULT_BPM = 120;
+export const MIN_BPM = 40;
+export const MAX_BPM = 240;
+
+function isShortestNote(value: unknown): value is ShortestNote {
+  return value === '16n' || value === '8n' || value === '4n';
+}
+
+function isBpm(value: unknown): value is number {
+  return (
+    typeof value === 'number' &&
+    Number.isFinite(value) &&
+    value >= MIN_BPM &&
+    value <= MAX_BPM
+  );
+}
+
 function isWet(value: unknown): value is number {
   return typeof value === 'number' && value >= 0 && value <= 1;
 }
@@ -242,6 +261,15 @@ export type GeneralSettings = {
    * re-taps always retrigger. Dead sampler notes always re-attack.
    */
   retriggerSoundingNotes: boolean;
+  /**
+   * When true (tilt session only), discrete tilt-level changes play a
+   * set-membership note diff without retapping the diagram.
+   */
+  tiltToStrum: boolean;
+  /** Subdivision used with BPM for the Tilt to Strum rate limit. */
+  shortestNote: ShortestNote;
+  /** Tempo used with Shortest Note for the Tilt to Strum rate limit. */
+  bpm: number;
 };
 
 export type VoiceLeadingSettings = {
@@ -305,6 +333,18 @@ export const USER_SETTINGS_SCHEMA: Record<
     retriggerSoundingNotes: {
       default: false,
       validate: isBoolean,
+    },
+    tiltToStrum: {
+      default: true,
+      validate: isBoolean,
+    },
+    shortestNote: {
+      default: '8n' as ShortestNote,
+      validate: isShortestNote,
+    },
+    bpm: {
+      default: DEFAULT_BPM,
+      validate: isBpm,
     },
   },
   clockFace: {
