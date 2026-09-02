@@ -45,6 +45,9 @@ vi.mock('../context/ChordContext', () => ({
     setBorrowingMemory: vi.fn(),
     playStyle: 'tap',
     setPlayStyle,
+    panicStop: vi.fn(() => {
+      audioEngine.releaseActiveNotes();
+    }),
   }),
 }));
 

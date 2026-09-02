@@ -63,7 +63,10 @@ export const pitchTiltFromBeta = (beta: number): number => {
  *   Unlike tiltRef.x, orientationRef keeps roll sign so the orb group can slide left/right.
  *   Visual samples are gated against Euler wraparound jumps near ±90° roll.
  */
-export function useDeviceTilt() {
+export function useDeviceTilt(options?: {
+  /** Invoked after rawTiltRef is updated (Tilt to Strum hot path). */
+  onRawTiltUpdate?: () => void;
+}) {
   /** Smoothed sample for diagram overlay readouts. */
   const tiltRef = useRef<TiltSample>({ ...FLAT_TILT });
   const smoothedRef = useRef({ gamma: 0, beta: 0 });
@@ -76,6 +79,11 @@ export function useDeviceTilt() {
   const orientationRef = useRef<OrientationAngles>({ gamma: 0, beta: 0 });
   const lastReadoutRef = useRef(0);
   const rawTiltRef = useRef<TiltSample>({ ...FLAT_TILT });
+  const onRawTiltUpdateRef = useRef(options?.onRawTiltUpdate);
+
+  useEffect(() => {
+    onRawTiltUpdateRef.current = options?.onRawTiltUpdate;
+  }, [options?.onRawTiltUpdate]);
 
   const [tilt, setTilt] = useState<TiltSample>({ ...FLAT_TILT });
   const [status, setStatus] = useState<TiltStatus>(() => {
@@ -116,6 +124,7 @@ export function useDeviceTilt() {
     const xRaw = -Math.min(Math.abs(gamma) / PITCH_NORMALIZER, 1);
     const yRaw = pitchTiltFromBeta(beta);
     rawTiltRef.current = { x: xRaw, y: yRaw };
+    onRawTiltUpdateRef.current?.();
 
     const now = performance.now();
     if (now - lastReadoutRef.current >= READOUT_INTERVAL_MS) {

@@ -10,6 +10,7 @@ import { AdsrPanelContent } from './settings/AdsrPanelContent';
 import { EffectsPanelContent } from './settings/EffectsPanelContent';
 import { BorrowingMemoryToggle } from './settings/BorrowingMemoryToggle';
 import { VoiceLeadingToggle } from './settings/VoiceLeadingToggle';
+import { VoicingElevatorFloorsToggle } from './settings/VoicingElevatorFloorsToggle';
 import { ClockLayoutToggle } from './settings/ClockLayoutToggle';
 import { GlowingOrbsToggle } from './settings/GlowingOrbsToggle';
 import { HarmonicFunctionLabelsToggle } from './settings/HarmonicFunctionLabelsToggle';
@@ -17,6 +18,9 @@ import { DiagramLayoutSelect } from './settings/DiagramLayoutSelect';
 import { EqProfileToggle } from './settings/EqProfileToggle';
 import { PlayStyleToggle } from './settings/PlayStyleToggle';
 import { RetriggerSoundingNotesToggle } from './settings/RetriggerSoundingNotesToggle';
+import { TiltToStrumToggle } from './settings/TiltToStrumToggle';
+import { ShortestNoteToggle } from './settings/ShortestNoteToggle';
+import { BpmSlider } from './settings/BpmSlider';
 import { InstrumentPresetPicker } from './settings/InstrumentPresetPicker';
 import { SettingsSettingHeader } from './settings/SettingsSettingHeader';
 import { SETTINGS_RESET_GROUP_LABELS } from '../settings/settingsResetGroups';
@@ -51,6 +55,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     octaveRange,
     setOctaveRange,
     playStyle,
+    tiltModeEnabled,
+    tiltToStrum,
     resetSettingsGroup,
     resetAllSettings,
   } = useChordContext();
@@ -400,6 +406,35 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                       </div>
                     </div>
 
+                    {tiltModeEnabled && (
+                      <div className="settings-menu-setting">
+                        <SettingsSettingHeader
+                          groupId="tiltToStrum"
+                          onReset={resetSettingsGroup}
+                        />
+                        <div className="settings-menu-section__panel">
+                          <p className="settings-menu-section__hint">
+                            When off, only play notes when tapping the diagram.
+                            When on, every change in tilt level will play the
+                            changed notes.
+                          </p>
+                          <TiltToStrumToggle />
+                          {tiltToStrum && (
+                            <>
+                              <p className="settings-menu-section__hint">
+                                BPM
+                              </p>
+                              <BpmSlider />
+                              <p className="settings-menu-section__hint">
+                                Shortest Note
+                              </p>
+                              <ShortestNoteToggle />
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
                     <div className="settings-menu-setting">
                       <SettingsSettingHeader
                         groupId="playStyle"
@@ -425,6 +460,23 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                         </div>
                       </div>
                     )}
+
+                    <div className="settings-menu-setting">
+                      <SettingsSettingHeader
+                        groupId="voicingElevatorFloors"
+                        onReset={resetSettingsGroup}
+                      />
+                      <div className="settings-menu-section__panel">
+                        <p className="settings-menu-section__hint">
+                          All uses every elevator floor. Every Other uses five
+                          stops so on chords (children) and off chords (Earth,
+                          Wind, Fire) pair as Unison-Third, Triad-Third,
+                          Octave-Close, Drop 3-Drop 2, and Double Octave-Drop
+                          2&amp;4.
+                        </p>
+                        <VoicingElevatorFloorsToggle />
+                      </div>
+                    </div>
 
                     <div className="settings-menu-setting">
                       <SettingsSettingHeader

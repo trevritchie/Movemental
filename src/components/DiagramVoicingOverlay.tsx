@@ -6,6 +6,10 @@ import {
   TILT_VOICING_LEVEL_NAMES,
 } from '../music/TiltVoicingEngine';
 import {
+  allowedVoicingLevels,
+  applyElevatorFloorsToTilt,
+} from '../music/voicingElevatorFloors';
+import {
   bassDegreeLabelsForSelect,
   tiltBassDegreeLabel,
   TILT_BASS_DEGREE_MOBILE_MAX_LABEL,
@@ -66,19 +70,36 @@ export const DiagramVoicingOverlay: React.FC = () => {
     borrowingState,
     previousPlayedChord,
     voiceLeadingMode,
-    lastTapTilt,
+    lastControlTilt,
     lastCommittedPlaybackTilt,
     smoothBaseParallel,
     lastPlayedVoicingLabel,
     lastPlayedBassLabel,
     lastElementalPlayback,
+    voicingElevatorFloorsMode,
+    tiltToStrum,
   } = useChordContext();
 
   const { tiltStatus, tiltSample, requestTiltPermission } =
     useTiltReadoutContext();
 
   const isTilt = tiltModeEnabled;
+  /** Last-tap grey sub-labels; hidden for Tilt to Strum where live = sounding. */
+  const showLastSoundingReadout = isTilt && !tiltToStrum;
   const chordName = selectedChord?.name;
+  const elevatorTiltSample = React.useMemo(
+    () =>
+      applyElevatorFloorsToTilt(
+        tiltSample,
+        voicingElevatorFloorsMode,
+        chordName,
+      ),
+    [tiltSample, voicingElevatorFloorsMode, chordName],
+  );
+  const voicingLevelOptions = React.useMemo(
+    () => allowedVoicingLevels(voicingElevatorFloorsMode, chordName),
+    [voicingElevatorFloorsMode, chordName],
+  );
   const voicingLockLabel = chordName
     ? `${isNoTiltVoicingLocked ? 'Unlock' : 'Lock'} voicing for ${chordName}`
     : 'Lock voicing';
@@ -99,7 +120,7 @@ export const DiagramVoicingOverlay: React.FC = () => {
       tiltModeEnabled,
       ...(lastElementalPlayback ? { elemental: lastElementalPlayback } : {}),
       ...(voiceLeadingMode === 'smooth' || voiceLeadingMode === 'smoothest'
-        ? { lastTapTilt, lastCommittedPlaybackTilt }
+        ? { lastTapTilt: lastControlTilt, lastCommittedPlaybackTilt }
         : {}),
       ...(voiceLeadingMode === 'smoothest'
         ? { smoothBaseParallel }
@@ -114,14 +135,15 @@ export const DiagramVoicingOverlay: React.FC = () => {
       tiltModeEnabled,
       lastElementalPlayback,
       smoothBaseParallel,
-      lastTapTilt,
+      lastControlTilt,
       lastCommittedPlaybackTilt,
     ]
   );
 
   const tiltBassLabel = React.useMemo(
-    () => tiltBassDegreeLabel(tiltSample, selectedChord, tiltBassContext),
-    [tiltSample, selectedChord, tiltBassContext]
+    () =>
+      tiltBassDegreeLabel(elevatorTiltSample, selectedChord, tiltBassContext),
+    [elevatorTiltSample, selectedChord, tiltBassContext]
   );
 
   const renderVoicingValue = () => {
@@ -135,9 +157,9 @@ export const DiagramVoicingOverlay: React.FC = () => {
             title="Voicing"
             aria-label="Voicing"
           >
-            {TILT_VOICING_OVERLAY_LABELS.map((name, idx) => (
+            {voicingLevelOptions.map((idx) => (
               <option key={TILT_VOICING_LEVEL_NAMES[idx]} value={idx}>
-                {name}
+                {TILT_VOICING_OVERLAY_LABELS[idx]}
               </option>
             ))}
           </select>
@@ -187,14 +209,14 @@ export const DiagramVoicingOverlay: React.FC = () => {
 
     return (
       <TiltReadoutStack
-        showSounding={isTilt}
+        showSounding={showLastSoundingReadout}
         soundingLabel={lastPlayedVoicingLabel}
       >
         <span
           className="diagram-overlay-readout"
           title="Roll sets voicing width"
         >
-          {tiltVoicingOverlayLabel(tiltSample)}
+          {tiltVoicingOverlayLabel(elevatorTiltSample)}
         </span>
       </TiltReadoutStack>
     );
@@ -229,7 +251,7 @@ export const DiagramVoicingOverlay: React.FC = () => {
 
     return (
       <TiltReadoutStack
-        showSounding={isTilt}
+        showSounding={showLastSoundingReadout}
         soundingLabel={lastPlayedBassLabel}
       >
         <span

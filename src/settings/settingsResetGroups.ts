@@ -21,7 +21,9 @@ export type SettingsResetGroupId =
   | 'eq'
   | 'playStyle'
   | 'retriggerSoundingNotes'
+  | 'tiltToStrum'
   | 'tonalCenter'
+  | 'voicingElevatorFloors'
   | 'voiceLeading'
   | 'voiceBorrowing'
   | 'clockFace'
@@ -37,7 +39,9 @@ export const SETTINGS_RESET_GROUP_LABELS: Record<SettingsResetGroupId, string> =
     eq: 'EQ',
     playStyle: 'Sustain Mode',
     retriggerSoundingNotes: 'Retrigger Sounding Notes',
+    tiltToStrum: 'Tilt to Strum',
     tonalCenter: 'Tonal Center',
+    voicingElevatorFloors: 'Voicing Elevator Floors',
     voiceLeading: 'Voice Leading',
     voiceBorrowing: 'Voice Borrowing',
     clockFace: 'Clock Face Diagram',
@@ -96,6 +100,12 @@ export function getSettingsGroupDefaults(
       return {
         retriggerSoundingNotes: defaults.general.retriggerSoundingNotes,
       };
+    case 'tiltToStrum':
+      return {
+        tiltToStrum: defaults.general.tiltToStrum,
+        shortestNote: defaults.general.shortestNote,
+        bpm: defaults.general.bpm,
+      };
     case 'tonalCenter':
       return {
         tonalCenter: defaults.general.tonalCenter,
@@ -109,6 +119,10 @@ export function getSettingsGroupDefaults(
       return getPresetEnvelopeDefaults(options.synthPresetId);
     case 'synthEffects':
       return getPresetFxDefaultsForId(options.synthPresetId);
+    case 'voicingElevatorFloors':
+      return {
+        floorsMode: defaults.voicingElevatorFloors.floorsMode,
+      };
     case 'voiceLeading':
       return {
         mode: getDefaultVoiceLeadingMode(options.tiltModeEnabled),

@@ -45,21 +45,28 @@ import type {
   DiagramLayoutMode,
   PlayStyle,
   VoiceLeadingMode,
+  VoicingElevatorFloorsMode,
 } from '../music/sessionModes';
 import { isChordEnabledInLayout } from '../music/diagramLayouts';
 import { loadUserSettings } from '../settings/userSettingsStorage';
 import {
   type SettingsSectionId,
+  type ShortestNote,
 } from '../settings/userSettingsSchema';
 import type { SettingsResetGroupId } from '../settings/settingsResetGroups';
 import { useLayoutTier } from '../hooks/useLayoutTier';
 import { resolveDefaultHarmonicFunctionLabelsEnabled } from '../diagram/diagramScaling';
+import {
+  allowedVoicingLevels,
+  snapVoicingLevelToAllowed,
+} from '../music/voicingElevatorFloors';
 
 export type {
   ClockLayoutMode,
   DiagramLayoutMode,
   PlayStyle,
   VoiceLeadingMode,
+  VoicingElevatorFloorsMode,
 } from '../music/sessionModes';
 
 interface ChordContextType {
@@ -89,6 +96,8 @@ interface ChordContextType {
   setBorrowingMemory: (mode: 'global' | 'per-chord') => void;
   voiceLeadingMode: VoiceLeadingMode;
   setVoiceLeadingMode: (mode: VoiceLeadingMode) => void;
+  voicingElevatorFloorsMode: VoicingElevatorFloorsMode;
+  setVoicingElevatorFloorsMode: (mode: VoicingElevatorFloorsMode) => void;
   clockLayoutMode: ClockLayoutMode;
   setClockLayoutMode: (mode: ClockLayoutMode) => void;
   glowingOrbsEnabled: boolean;
@@ -99,6 +108,20 @@ interface ChordContextType {
   setDiagramLayoutMode: (mode: DiagramLayoutMode) => void;
   retriggerSoundingNotes: boolean;
   setRetriggerSoundingNotes: (enabled: boolean) => void;
+  tiltToStrum: boolean;
+  setTiltToStrum: (enabled: boolean) => void;
+  shortestNote: ShortestNote;
+  setShortestNote: (note: ShortestNote) => void;
+  bpm: number;
+  setBpm: (bpm: number) => void;
+  /**
+   * Control tilt at the last commit (pointer tap or accepted Tilt to Strum).
+   * Advanced on every accepted strum so pitch delta stays incremental.
+   */
+  lastControlTilt: TiltSample;
+  /**
+   * @deprecated Prefer lastControlTilt; same value (legacy name).
+   */
   lastTapTilt: TiltSample;
   lastCommittedPlaybackTilt: TiltSample;
   smoothBaseParallel: number;
@@ -112,6 +135,8 @@ interface ChordContextType {
   resetSettingsSection: (sectionId: SettingsSectionId) => void;
   resetSettingsGroup: (groupId: SettingsResetGroupId) => void;
   resetAllSettings: () => void;
+  /** Panic switch: silence notes and clear selection (disarms tilt-strum). */
+  panicStop: () => void;
 }
 
 const ChordContext = createContext<ChordContextType | undefined>(undefined);
@@ -152,6 +177,10 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
   const [voiceLeadingMode, setVoiceLeadingMode] = useState<VoiceLeadingMode>(
     loadedSettings.voiceLeading.mode
   );
+  const [voicingElevatorFloorsMode, setVoicingElevatorFloorsMode] =
+    useState<VoicingElevatorFloorsMode>(
+      loadedSettings.voicingElevatorFloors.floorsMode,
+    );
   const [clockLayoutMode, setClockLayoutMode] = useState<ClockLayoutMode>(
     loadedSettings.clockFace.layoutMode
   );
@@ -180,14 +209,42 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
     retriggerSoundingNotesRef.current = retriggerSoundingNotes;
   }, [retriggerSoundingNotes]);
 
+  const [tiltToStrum, setTiltToStrum] = useState(
+    loadedSettings.general.tiltToStrum
+  );
+  const tiltToStrumRef = useRef(tiltToStrum);
+  useEffect(() => {
+    tiltToStrumRef.current = tiltToStrum;
+  }, [tiltToStrum]);
+
+  const [shortestNote, setShortestNote] = useState(
+    loadedSettings.general.shortestNote
+  );
+  const shortestNoteRef = useRef(shortestNote);
+  useEffect(() => {
+    shortestNoteRef.current = shortestNote;
+  }, [shortestNote]);
+
+  const [bpm, setBpm] = useState(loadedSettings.general.bpm);
+  const bpmRef = useRef(bpm);
+  useEffect(() => {
+    bpmRef.current = bpm;
+  }, [bpm]);
+
   const selectedChordNameRef = useRef<string | null>(null);
   /** Armed by pointer commits / deferred level flushes; consumed by re-voice. */
   const suppressNoTiltRevoiceRef = useRef(createNoTiltRevoiceSuppressState());
+  const tiltStrumSampleRef = useRef<() => void>(() => {});
 
   const playAndDisplayChordRef = useRef<
     (chord: Chord, state: BorrowingState) => void
   >(() => {});
 
+  const deviceTilt = useDeviceTilt({
+    onRawTiltUpdate: () => {
+      tiltStrumSampleRef.current();
+    },
+  });
   const borrowing = useBorrowingMemory({
     selectedChord,
     playAndDisplayChord: (chord, state) =>
@@ -195,12 +252,11 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
     initialBorrowingMemory: loadedSettings.voiceBorrowing.memory,
   });
 
-  const deviceTilt = useDeviceTilt();
-
   const noTiltVoicingLevelRef = useRef(noTiltVoicingLevel);
   const noTiltPositionLevelRef = useRef(noTiltPositionLevel);
   const tonalCenterRef = useRef(tonalCenter);
   const voiceLeadingModeRef = useRef(voiceLeadingMode);
+  const voicingElevatorFloorsModeRef = useRef(voicingElevatorFloorsMode);
   useEffect(() => {
     noTiltVoicingLevelRef.current = noTiltVoicingLevel;
   }, [noTiltVoicingLevel]);
@@ -213,15 +269,73 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
   useEffect(() => {
     voiceLeadingModeRef.current = voiceLeadingMode;
   }, [voiceLeadingMode]);
+  useEffect(() => {
+    voicingElevatorFloorsModeRef.current = voicingElevatorFloorsMode;
+  }, [voicingElevatorFloorsMode]);
+
+  const setNoTiltVoicingLevelSnapped = useCallback(
+    (level: number) => {
+      const allowed = allowedVoicingLevels(
+        voicingElevatorFloorsModeRef.current,
+        selectedChordNameRef.current,
+      );
+      setNoTiltVoicingLevel(snapVoicingLevelToAllowed(level, allowed));
+    },
+    [],
+  );
+
+  const setVoicingElevatorFloorsModeSafe = useCallback(
+    (mode: VoicingElevatorFloorsMode) => {
+      setVoicingElevatorFloorsMode(mode);
+      voicingElevatorFloorsModeRef.current = mode;
+      const allowed = allowedVoicingLevels(
+        mode,
+        selectedChordNameRef.current,
+      );
+      const snapped = snapVoicingLevelToAllowed(
+        noTiltVoicingLevelRef.current,
+        allowed,
+      );
+      noTiltVoicingLevelRef.current = snapped;
+      setNoTiltVoicingLevel(snapped);
+    },
+    [],
+  );
 
   const noTiltLocks = useNoTiltChordLocks({
     selectedChord,
-    setNoTiltVoicingLevel,
+    setNoTiltVoicingLevel: setNoTiltVoicingLevelSnapped,
     setNoTiltPositionLevel,
     noTiltVoicingLevelRef,
     noTiltPositionLevelRef,
     suppressNoTiltRevoiceRef,
   });
+
+  const applyNoTiltLocksForChord = useCallback(
+    (chordName: string, deferSetState?: boolean) => {
+      noTiltLocks.applyLocksForChord(chordName, deferSetState);
+      const allowed = allowedVoicingLevels(
+        voicingElevatorFloorsModeRef.current,
+        chordName,
+      );
+      const snapped = snapVoicingLevelToAllowed(
+        noTiltVoicingLevelRef.current,
+        allowed,
+      );
+      if (snapped === noTiltVoicingLevelRef.current) {
+        return;
+      }
+      noTiltVoicingLevelRef.current = snapped;
+      if (deferSetState) {
+        queueMicrotask(() => {
+          setNoTiltVoicingLevel(snapped);
+        });
+      } else {
+        setNoTiltVoicingLevel(snapped);
+      }
+    },
+    [noTiltLocks],
+  );
 
   const playback = useChordPlayback({
     getBorrowingStateForChord: borrowing.getBorrowingStateForChord,
@@ -235,13 +349,17 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
     noTiltPositionLevelRef,
     tonalCenterRef,
     voiceLeadingModeRef,
+    voicingElevatorFloorsModeRef,
     setNoTiltPositionLevel,
     noTiltLockMapsRef: noTiltLocks.lockMapsRef,
-    applyNoTiltLocksForChord: noTiltLocks.applyLocksForChord,
+    applyNoTiltLocksForChord,
     clearNoTiltChordLocks: noTiltLocks.clearAllLocks,
     initialPlayStyle: loadedSettings.general.playStyle,
     hasPersistedSettings,
     retriggerSoundingNotesRef,
+    tiltToStrumRef,
+    shortestNoteRef,
+    bpmRef,
   });
 
   useAudioLifecycle();
@@ -249,6 +367,10 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
   useEffect(() => {
     playAndDisplayChordRef.current = playback.playAndDisplayChord;
   }, [playback.playAndDisplayChord]);
+
+  useEffect(() => {
+    tiltStrumSampleRef.current = playback.handleTiltStrumSample;
+  }, [playback.handleTiltStrumSample]);
 
   const getBorrowingStateForChordRef = useRef(borrowing.getBorrowingStateForChord);
   useEffect(() => {
@@ -278,6 +400,7 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
     enterNoTiltSession: enterNoTiltPlayback,
     resetVoiceLeadingSession,
     clearPlaybackSelection,
+    panicStop,
   } = playback;
   const { synthPresetId, setSynthPresetId } = audio;
 
@@ -320,10 +443,14 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
     setVoiceLeadingMode,
     setBorrowingMemory: borrowing.setBorrowingMemory,
     setClockLayoutMode,
+    setVoicingElevatorFloorsMode: setVoicingElevatorFloorsModeSafe,
     setGlowingOrbsEnabled,
     setHarmonicFunctionLabelsEnabled,
     setDiagramLayoutMode,
     setRetriggerSoundingNotes,
+    setTiltToStrum,
+    setShortestNote,
+    setBpm,
     setSynthPresetId,
     setEqProfileId: audio.setEqProfileId,
     setChorusWet: audio.setChorusWet,
@@ -348,8 +475,12 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
         octaveRange,
         playStyle: playback.playStyle,
         retriggerSoundingNotes,
+        tiltToStrum,
+        shortestNote,
+        bpm,
       },
       voiceLeading: { mode: voiceLeadingMode },
+      voicingElevatorFloors: { floorsMode: voicingElevatorFloorsMode },
       voiceBorrowing: { memory: borrowing.borrowingMemory },
       clockFace: { layoutMode: clockLayoutMode },
       glowingOrbs: { enabled: glowingOrbsEnabled },
@@ -376,7 +507,11 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
       octaveRange,
       playback.playStyle,
       retriggerSoundingNotes,
+      tiltToStrum,
+      shortestNote,
+      bpm,
       voiceLeadingMode,
+      voicingElevatorFloorsMode,
       borrowing.borrowingMemory,
       clockLayoutMode,
       glowingOrbsEnabled,
@@ -444,7 +579,8 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
    * Re-voice the selected chord when global register or no-tilt voicing
    * controls change. Skips redundant audio when pitches are unchanged
    * (playAndDisplayChord -> skipIfUnchanged). Does not run on every tilt
-   * tick; tilt voicing is sampled at tap time only.
+   * tick; tilt voicing is sampled at tap time only, except when Voicing
+   * Elevator Floors mode changes (re-snap selected chord onto the new ladder).
    *
    * selectedChordNameRef is written only by commitPlayback (not mirrored from
    * selectedChord) so deferred level flushes cannot re-voice a stale name.
@@ -475,6 +611,7 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
     noTiltVoicingLevel,
     noTiltPositionLevel,
     voiceLeadingMode,
+    voicingElevatorFloorsMode,
     // borrowingStateRef is a stable ref object (identity never changes), so
     // including it here does not cause this effect to re-run on borrowing
     // changes. It is listed only to satisfy exhaustive-deps.
@@ -509,6 +646,8 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
       setBorrowingMemory: borrowing.setBorrowingMemory,
       voiceLeadingMode,
       setVoiceLeadingMode,
+      voicingElevatorFloorsMode,
+      setVoicingElevatorFloorsMode: setVoicingElevatorFloorsModeSafe,
       clockLayoutMode,
       setClockLayoutMode,
       glowingOrbsEnabled,
@@ -519,6 +658,13 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
       setDiagramLayoutMode,
       retriggerSoundingNotes,
       setRetriggerSoundingNotes,
+      tiltToStrum,
+      setTiltToStrum,
+      shortestNote,
+      setShortestNote,
+      bpm,
+      setBpm,
+      lastControlTilt: playback.lastControlTilt,
       lastTapTilt: playback.lastTapTilt,
       lastCommittedPlaybackTilt: playback.lastCommittedPlaybackTilt,
       smoothBaseParallel: playback.smoothBaseParallel,
@@ -532,6 +678,7 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
       resetSettingsSection,
       resetSettingsGroup,
       resetAllSettings,
+      panicStop,
     }),
     [
       tonalCenter,
@@ -555,12 +702,18 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
       playback.handleChordPointerUp,
       handleChordSelect,
       voiceLeadingMode,
+      voicingElevatorFloorsMode,
+      setVoicingElevatorFloorsModeSafe,
       clockLayoutMode,
       glowingOrbsEnabled,
       harmonicFunctionLabelsEnabled,
       diagramLayoutMode,
       setDiagramLayoutMode,
       retriggerSoundingNotes,
+      tiltToStrum,
+      shortestNote,
+      bpm,
+      playback.lastControlTilt,
       playback.lastTapTilt,
       playback.lastCommittedPlaybackTilt,
       playback.smoothBaseParallel,
@@ -576,6 +729,7 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
       resetSettingsSection,
       resetSettingsGroup,
       resetAllSettings,
+      panicStop,
     ]
   );
 

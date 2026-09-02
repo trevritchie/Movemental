@@ -12,6 +12,7 @@ import {
   SETTINGS_SECTION_IDS,
   type SettingKey,
   type SettingsSectionId,
+  type ShortestNote,
 } from '../settings/userSettingsSchema';
 import {
   getSettingsGroupDefaults,
@@ -22,6 +23,7 @@ import type {
   DiagramLayoutMode,
   PlayStyle,
   VoiceLeadingMode,
+  VoicingElevatorFloorsMode,
 } from '../music/sessionModes';
 import type { EqProfileId } from '../audio/outputProfiles';
 import type { LayoutTier } from '../layout/breakpoints';
@@ -37,10 +39,14 @@ export interface UseSettingsResetOptions {
   setVoiceLeadingMode: (mode: VoiceLeadingMode) => void;
   setBorrowingMemory: (mode: 'global' | 'per-chord') => void;
   setClockLayoutMode: (mode: ClockLayoutMode) => void;
+  setVoicingElevatorFloorsMode: (mode: VoicingElevatorFloorsMode) => void;
   setGlowingOrbsEnabled: (enabled: boolean) => void;
   setHarmonicFunctionLabelsEnabled: (enabled: boolean) => void;
   setDiagramLayoutMode: (mode: DiagramLayoutMode) => void;
   setRetriggerSoundingNotes: (enabled: boolean) => void;
+  setTiltToStrum: (enabled: boolean) => void;
+  setShortestNote: (note: ShortestNote) => void;
+  setBpm: (bpm: number) => void;
   setSynthPresetId: (id: string) => void;
   setEqProfileId: (id: EqProfileId) => void;
   setChorusWet: (val: number) => void;
@@ -68,10 +74,14 @@ export function useSettingsReset({
   setVoiceLeadingMode,
   setBorrowingMemory,
   setClockLayoutMode,
+  setVoicingElevatorFloorsMode,
   setGlowingOrbsEnabled,
   setHarmonicFunctionLabelsEnabled,
   setDiagramLayoutMode,
   setRetriggerSoundingNotes,
+  setTiltToStrum,
+  setShortestNote,
+  setBpm,
   setSynthPresetId,
   setEqProfileId,
   setChorusWet,
@@ -95,9 +105,13 @@ export function useSettingsReset({
         octaveRange: setOctaveRange,
         playStyle: setPlayStyle,
         retriggerSoundingNotes: setRetriggerSoundingNotes,
+        tiltToStrum: setTiltToStrum,
+        shortestNote: setShortestNote,
+        bpm: setBpm,
         mode: setVoiceLeadingMode,
         memory: setBorrowingMemory,
         layoutMode: setClockLayoutMode,
+        floorsMode: setVoicingElevatorFloorsMode,
         enabled: setGlowingOrbsEnabled,
         diagramMode: setDiagramLayoutMode,
         synthPresetId: setSynthPresetId,
@@ -121,8 +135,12 @@ export function useSettingsReset({
       setVoiceLeadingMode,
       setBorrowingMemory,
       setClockLayoutMode,
+      setVoicingElevatorFloorsMode,
       setGlowingOrbsEnabled,
       setRetriggerSoundingNotes,
+      setTiltToStrum,
+      setShortestNote,
+      setBpm,
       setDiagramLayoutMode,
       setSynthPresetId,
       setEqProfileId,
@@ -145,6 +163,7 @@ export function useSettingsReset({
       switch (sectionId) {
         case 'general':
         case 'voiceLeading':
+        case 'voicingElevatorFloors':
           resetVoiceLeadingSession();
           break;
         case 'voiceBorrowing':
@@ -230,7 +249,7 @@ export function useSettingsReset({
         applySetting[key as SettingKey](value as never);
       }
 
-      if (groupId === 'voiceLeading') {
+      if (groupId === 'voiceLeading' || groupId === 'voicingElevatorFloors') {
         resetVoiceLeadingSession();
       } else if (groupId === 'voiceBorrowing') {
         clearChordBorrowingStates();

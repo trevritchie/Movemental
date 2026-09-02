@@ -10,6 +10,9 @@ export type VoiceLeadingMode = 'root_position' | 'smooth' | 'smoothest';
 
 export type ClockLayoutMode = 'chromatic' | 'circle_of_fifths';
 
+/** Roll-stop density for the voicing elevator (tilt + no-tilt VOICING). */
+export type VoicingElevatorFloorsMode = 'all' | 'every_other';
+
 export type DiagramLayoutMode =
   | 'complete_geometry'
   | 'major'

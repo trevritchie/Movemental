@@ -38,6 +38,7 @@ vi.mock('../audio/AudioEngine', () => ({
     stopDrone: vi.fn(),
     startContext: vi.fn(),
     triggerAttack: mocks.triggerAttack,
+    updateVoicingDiff: vi.fn(),
     isPageBackgrounded: () => false,
   },
 }));
@@ -284,5 +285,77 @@ describe('ChordProvider pointer re-voice', () => {
     expect(result.current.selectedChord?.traditionalName).toBe(
       freshBranch.traditionalName,
     );
+  });
+
+  it('re-voices after Voicing Elevator Floors mode change when level snaps', async () => {
+    const { result } = renderHook(() => useChordContext(), { wrapper });
+    const branch = chordManager.getChordByName('Branch')!;
+
+    await act(async () => {
+      result.current.enterNoTiltSession();
+    });
+    await act(async () => {
+      result.current.handleChordPointerDown(branch);
+      await Promise.resolve();
+    });
+
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+
+    // All-mode Third (1) is not on the Every Other child ladder; snaps to 0 or 2.
+    await act(async () => {
+      result.current.setNoTiltVoicingLevel(1);
+      await Promise.resolve();
+    });
+
+    expect(result.current.noTiltVoicingLevel).toBe(1);
+    const afterLevel = mocks.triggerAttack.mock.calls.length;
+
+    await act(async () => {
+      result.current.setVoicingElevatorFloorsMode('every_other');
+      await Promise.resolve();
+    });
+
+    expect(result.current.voicingElevatorFloorsMode).toBe('every_other');
+    expect(result.current.noTiltVoicingLevel).not.toBe(1);
+    expect(mocks.triggerAttack.mock.calls.length).toBeGreaterThan(afterLevel);
+  });
+
+  it('re-voices when floors mode changes even if the numeric level stays allowed', async () => {
+    const { result } = renderHook(() => useChordContext(), { wrapper });
+    await enterNoTiltAndTapEarth(result);
+
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+
+    // Parent Third (1) is allowed under All and Every Other.
+    await act(async () => {
+      result.current.setNoTiltVoicingLevel(1);
+      await Promise.resolve();
+    });
+
+    expect(result.current.noTiltVoicingLevel).toBe(1);
+    const afterLevel = mocks.triggerAttack.mock.calls.length;
+
+    await act(async () => {
+      result.current.setVoicingElevatorFloorsMode('every_other');
+      await Promise.resolve();
+    });
+
+    expect(result.current.voicingElevatorFloorsMode).toBe('every_other');
+    expect(result.current.noTiltVoicingLevel).toBe(1);
+
+    // Floors mode is in the revoice deps: suppress must not stick for later
+    // register changes even when this floors switch skipped audio (same pitches).
+    await act(async () => {
+      result.current.setOctaveRange(
+        result.current.octaveRange === 3 ? 4 : 3,
+      );
+      await Promise.resolve();
+    });
+
+    expect(mocks.triggerAttack.mock.calls.length).toBeGreaterThan(afterLevel);
   });
 });

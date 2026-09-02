@@ -4,7 +4,7 @@
  * Pipeline: re-anchor tilt (voiceLeadingPolicy) -> elemental resolution ->
  * neutral voicing + borrow/mute overlays -> AudioEngine via commitPlayback.
  * Voicing is sampled at tap/settings time, not continuously while the phone
- * moves (see docs/movements-not-chords-tilt.md).
+ * moves, unless Tilt to Strum is on (see docs/movements-not-chords-tilt.md).
  *
  * Entry points:
  * - Pointer (diagram): applyChordWithBorrowing -> voiceAndPlay(fromPointer)
@@ -28,6 +28,15 @@ import {
   type TiltSample,
 } from '../music/TiltVoicingEngine';
 import {
+  resolveStrumPlaybackTilt,
+  strumLevelsChanged,
+  strumMinIntervalMs,
+  strumRateLimitAllows,
+  strumSnapFromTilt,
+  type StrumLevelPair,
+} from '../music/tiltStrum';
+import type { ShortestNote } from '../settings/userSettingsSchema';
+import {
   applyVoicingOverlays,
   type ElementalPlaybackResolution,
 } from '../music/tiltVoicingPlayback';
@@ -37,7 +46,8 @@ import {
 import { invalidateVoicingCache } from '../music/voicingCache';
 import { audioEngine } from '../audio/AudioEngine';
 import { unlockIosMediaChannel } from '../audio/iosMediaChannel';
-import type { PlayStyle, VoiceLeadingMode } from '../music/sessionModes';
+import { isPageInteractiveForAudio } from '../audio/pageInteraction';
+import type { PlayStyle, VoiceLeadingMode, VoicingElevatorFloorsMode } from '../music/sessionModes';
 import { usesDeviceTilt } from '../music/sessionModes';
 import { isElementalName, isOppositeElementNavigation, previousBassMidi, resolveElementalForNavigation, type ElementalName } from '../music/elementalRoot';
 import {
@@ -72,6 +82,7 @@ interface UseChordPlaybackOptions {
   noTiltPositionLevelRef: RefObject<number>;
   tonalCenterRef: RefObject<number>;
   voiceLeadingModeRef: RefObject<VoiceLeadingMode>;
+  voicingElevatorFloorsModeRef: RefObject<VoicingElevatorFloorsMode>;
   setNoTiltPositionLevel: (level: number) => void;
   noTiltLockMapsRef: RefObject<NoTiltChordLockMaps>;
   applyNoTiltLocksForChord: (chordName: string, deferSetState?: boolean) => void;
@@ -84,12 +95,29 @@ interface UseChordPlaybackOptions {
    * notes. Same-button re-taps always retrigger regardless of this flag.
    */
   retriggerSoundingNotesRef: RefObject<boolean>;
+  /**
+   * Tilt session only: when true, discrete tilt-level changes play a
+   * set-membership note diff without retapping.
+   */
+  tiltToStrumRef: RefObject<boolean>;
+  shortestNoteRef: RefObject<ShortestNote>;
+  bpmRef: RefObject<number>;
 }
 
 interface PlaybackResolution {
   displayChord: Chord;
   elemental?: ElementalPlaybackResolution;
 }
+
+/** Latched strum target when rate-limited or backgrounded. */
+type PendingStrum = {
+  levels: StrumLevelPair;
+  liveTilt: TiltSample;
+  snapped: TiltSample;
+};
+
+/** Retry delay while waiting for the page to become interactive again. */
+const PENDING_STRUM_BACKGROUND_RETRY_MS = 100;
 
 export function useChordPlayback({
   getBorrowingStateForChord,
@@ -103,6 +131,7 @@ export function useChordPlayback({
   noTiltPositionLevelRef,
   tonalCenterRef,
   voiceLeadingModeRef,
+  voicingElevatorFloorsModeRef,
   setNoTiltPositionLevel,
   noTiltLockMapsRef,
   applyNoTiltLocksForChord,
@@ -110,6 +139,9 @@ export function useChordPlayback({
   initialPlayStyle = 'tap',
   hasPersistedSettings = false,
   retriggerSoundingNotesRef,
+  tiltToStrumRef,
+  shortestNoteRef,
+  bpmRef,
 }: UseChordPlaybackOptions) {
   const [playStyle, setPlayStyle] = useState<PlayStyle>(initialPlayStyle);
   const [tiltModeEnabled, setTiltModeEnabled] = useState(false);
@@ -117,7 +149,7 @@ export function useChordPlayback({
   const [previousPlayedChord, setPreviousPlayedChord] = useState<Chord | null>(
     null
   );
-  const [lastTapTilt, setLastTapTilt] = useState<TiltSample>(FLAT_TILT);
+  const [lastControlTilt, setLastControlTilt] = useState<TiltSample>(FLAT_TILT);
   const [lastCommittedPlaybackTilt, setLastCommittedPlaybackTilt] =
     useState<TiltSample>(FLAT_TILT);
   const [smoothBaseParallel, setSmoothBaseParallel] = useState(0);
@@ -145,8 +177,8 @@ export function useChordPlayback({
   const neutralVoicingRef = useRef<number[]>([]);
   /** Detect stale anchors when chord or register settings change. */
   const anchorKeyRef = useRef<string>('');
-  /** Raw tilt at the tap that committed the previous chord. */
-  const lastTapTiltRef = useRef<TiltSample>(FLAT_TILT);
+  /** Control tilt at the last commit (pointer tap or accepted strum). */
+  const lastControlTiltRef = useRef<TiltSample>(FLAT_TILT);
   /** Resolved playback tilt at the last chord commit. */
   const lastCommittedPlaybackTiltRef = useRef<TiltSample>(FLAT_TILT);
   /** Winning parallel steps from smooth search (before pitch delta). */
@@ -154,6 +186,66 @@ export function useChordPlayback({
   /** No-tilt control levels at the previous chord commit. */
   const lastNoTiltVoicingLevelRef = useRef(DEFAULT_NO_TILT_VOICING_LEVEL);
   const lastNoTiltPositionLevelRef = useRef(DEFAULT_NO_TILT_POSITION_LEVEL);
+  /** Last discrete tilt levels accepted by Tilt to Strum (or the last tap). */
+  const lastStrumLevelsRef = useRef<StrumLevelPair | null>(null);
+  const lastStrumTimeRef = useRef(0);
+  /** Latest strum target waiting for rate-limit and/or foreground. */
+  const pendingStrumRef = useRef<PendingStrum | null>(null);
+  const pendingStrumTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
+  const handleTiltStrumSampleRef = useRef<() => void>(() => {});
+
+  const clearPendingStrum = useCallback(() => {
+    pendingStrumRef.current = null;
+    if (pendingStrumTimerRef.current != null) {
+      clearTimeout(pendingStrumTimerRef.current);
+      pendingStrumTimerRef.current = null;
+    }
+  }, []);
+
+  const schedulePendingStrumFlush = useCallback((delayMs: number) => {
+    // Don't re-arm when a timer is already running: the existing timer calls
+    // handleTiltStrumSampleRef.current(), which always reads the current
+    // pendingStrumRef at fire time. Re-arming would only shorten the interval.
+    if (pendingStrumTimerRef.current != null) {
+      return;
+    }
+    pendingStrumTimerRef.current = setTimeout(() => {
+      pendingStrumTimerRef.current = null;
+      handleTiltStrumSampleRef.current();
+    }, Math.max(0, delayMs));
+  }, []);
+
+  const latchPendingStrum = useCallback(
+    (
+      pending: PendingStrum,
+      flushDelayMs: number,
+    ) => {
+      pendingStrumRef.current = pending;
+      schedulePendingStrumFlush(flushDelayMs);
+    },
+    [schedulePendingStrumFlush],
+  );
+
+  /**
+   * Seed the strum gate from live raw tilt (same source as the hot path),
+   * not from resolved playbackTilt whose parallel can differ under smooth VL.
+   */
+  const reconcileStrumGateFromRaw = useCallback(
+    (chordName: string, options?: { seedRateLimit?: boolean }) => {
+      lastStrumLevelsRef.current = strumSnapFromTilt(
+        rawTiltRef.current,
+        voicingElevatorFloorsModeRef.current,
+        chordName,
+      ).levels;
+      if (options?.seedRateLimit) {
+        lastStrumTimeRef.current = performance.now();
+      }
+      clearPendingStrum();
+    },
+    [rawTiltRef, voicingElevatorFloorsModeRef, clearPendingStrum],
+  );
 
   useEffect(() => {
     playStyleRef.current = playStyle;
@@ -166,6 +258,29 @@ export function useChordPlayback({
   useEffect(() => {
     hasPersistedSettingsRef.current = hasPersistedSettings;
   }, [hasPersistedSettings]);
+
+  useEffect(() => {
+    return () => {
+      clearPendingStrum();
+    };
+  }, [clearPendingStrum]);
+
+  useEffect(() => {
+    const flushPendingIfVisible = () => {
+      if (
+        document.visibilityState === 'visible' &&
+        pendingStrumRef.current != null
+      ) {
+        handleTiltStrumSampleRef.current();
+      }
+    };
+    document.addEventListener('visibilitychange', flushPendingIfVisible);
+    window.addEventListener('pageshow', flushPendingIfVisible);
+    return () => {
+      document.removeEventListener('visibilitychange', flushPendingIfVisible);
+      window.removeEventListener('pageshow', flushPendingIfVisible);
+    };
+  }, []);
 
   const {
     buildAnchorKey,
@@ -186,13 +301,14 @@ export function useChordPlayback({
     previousChordRef,
     playbackTiltRef,
     neutralVoicingRef,
-    lastTapTiltRef,
+    lastTapTiltRef: lastControlTiltRef,
     lastCommittedPlaybackTiltRef,
     smoothBaseParallelRef,
     lastNoTiltVoicingLevelRef,
     lastNoTiltPositionLevelRef,
     noTiltLockMapsRef,
     suppressNoTiltRevoiceRef,
+    voicingElevatorFloorsModeRef,
     setNoTiltPositionLevel,
   });
 
@@ -205,7 +321,7 @@ export function useChordPlayback({
       selectedChordNameRef,
       suppressNoTiltRevoiceRef,
       rawTiltRef,
-      lastTapTiltRef,
+      lastTapTiltRef: lastControlTiltRef,
       lastCommittedPlaybackTiltRef,
       smoothBaseParallelRef,
       lastNoTiltVoicingLevelRef,
@@ -220,13 +336,13 @@ export function useChordPlayback({
       setLastPlayedVoicingLabel,
       setLastPlayedBassLabel,
       setLastCommittedPlaybackTilt,
-      setLastTapTilt,
+      setLastTapTilt: setLastControlTilt,
       setSmoothBaseParallel,
     });
 
   const resetVoiceLeadingSession = useCallback(() => {
-    lastTapTiltRef.current = FLAT_TILT;
-    setLastTapTilt(FLAT_TILT);
+    lastControlTiltRef.current = FLAT_TILT;
+    setLastControlTilt(FLAT_TILT);
     lastCommittedPlaybackTiltRef.current = FLAT_TILT;
     setLastCommittedPlaybackTilt(FLAT_TILT);
     smoothBaseParallelRef.current = 0;
@@ -236,12 +352,17 @@ export function useChordPlayback({
     setLastElementalPlayback(null);
     lastNoTiltVoicingLevelRef.current = DEFAULT_NO_TILT_VOICING_LEVEL;
     lastNoTiltPositionLevelRef.current = DEFAULT_NO_TILT_POSITION_LEVEL;
-  }, []);
+    lastStrumLevelsRef.current = null;
+    lastStrumTimeRef.current = 0;
+    clearPendingStrum();
+  }, [clearPendingStrum]);
 
   /**
    * Release audio and wipe selection / voice-leading session state. Used when
    * a layout change disables the sounding chord so the next allowed chord
-   * does not voice-lead from a hidden predecessor.
+   * does not voice-lead from a hidden predecessor. Also the Panic Switch:
+   * clearing selection disarms Tilt to Strum until the next chord tap
+   * (intentional for all play styles, not only tilt-strum sessions).
    */
   const clearPlaybackSelection = useCallback(() => {
     audioEngine.releaseActiveNotes();
@@ -370,7 +491,7 @@ export function useChordPlayback({
 
       let displayChord = inputChord;
       let elemental: ElementalPlaybackResolution | undefined;
-      let playbackTilt = resolvePlaybackTilt(fromPointer);
+      let playbackTilt = resolvePlaybackTilt(fromPointer, inputChord.name);
       const anchorKey = buildAnchorKey(displayChord, playbackTilt);
       const needsReanchor =
         fromPointer || anchorKeyRef.current !== anchorKey;
@@ -486,10 +607,21 @@ export function useChordPlayback({
           elemental,
           options
         );
+        if (fromPointer) {
+          reconcileStrumGateFromRaw(displayChord.name, { seedRateLimit: true });
+        } else if (usesDeviceTilt(tiltModeRef.current)) {
+          // Floors / settings revoice: reconcile the strum gate to live raw.
+          reconcileStrumGateFromRaw(displayChord.name);
+        }
         return;
       }
 
       commitPlayback(displayChord, pitches, playbackTilt, state, elemental, options);
+      if (fromPointer) {
+        reconcileStrumGateFromRaw(displayChord.name, { seedRateLimit: true });
+      } else if (usesDeviceTilt(tiltModeRef.current)) {
+        reconcileStrumGateFromRaw(displayChord.name);
+      }
     },
     [
       resolveElementalAfterTilt,
@@ -509,6 +641,7 @@ export function useChordPlayback({
       noTiltVoicingLevelRef,
       noTiltPositionLevelRef,
       voiceLeadingModeRef,
+      reconcileStrumGateFromRaw,
     ]
   );
 
@@ -594,6 +727,152 @@ export function useChordPlayback({
     }
   }, [applyChordWithBorrowing]);
 
+  /**
+   * Continuous Tilt to Strum sample. Invoked after rawTiltRef updates, from a
+   * pending rate-limit / background retry timer, and on foreground visibility.
+   * Plays only the set-membership diff when discrete tilt levels change.
+   */
+  const handleTiltStrumSample = useCallback(() => {
+    if (!tiltToStrumRef.current || !usesDeviceTilt(tiltModeRef.current)) {
+      clearPendingStrum();
+      return;
+    }
+    const chordName = selectedChordNameRef.current;
+    if (!chordName) {
+      clearPendingStrum();
+      return;
+    }
+    // Hold mode with pointer up: abandon any latched floor.
+    if (
+      playStyleRef.current === 'tap_and_hold' &&
+      !isPointerDownRef.current
+    ) {
+      clearPendingStrum();
+      return;
+    }
+
+    const floorsMode = voicingElevatorFloorsModeRef.current;
+    const liveTilt = rawTiltRef.current;
+    const liveSnap = strumSnapFromTilt(liveTilt, floorsMode, chordName);
+    const pending = pendingStrumRef.current;
+
+    const candidate: PendingStrum | null = strumLevelsChanged(
+      liveSnap.levels,
+      lastStrumLevelsRef.current,
+    )
+      ? {
+          levels: liveSnap.levels,
+          liveTilt,
+          snapped: liveSnap.snapped,
+        }
+      : pending != null &&
+          strumLevelsChanged(pending.levels, lastStrumLevelsRef.current)
+        ? pending
+        : null;
+
+    if (candidate == null) {
+      if (pending != null) {
+        clearPendingStrum();
+      }
+      return;
+    }
+
+    const interactive =
+      isPageInteractiveForAudio() && !audioEngine.isPageBackgrounded();
+    if (!interactive) {
+      // Latch while hidden/backgrounded; retry until foreground (also flushed
+      // from the visibilitychange / pageshow listener).
+      latchPendingStrum(candidate, PENDING_STRUM_BACKGROUND_RETRY_MS);
+      return;
+    }
+
+    const now = performance.now();
+    const minIntervalMs = strumMinIntervalMs(
+      bpmRef.current,
+      shortestNoteRef.current,
+    );
+    if (!strumRateLimitAllows(now, lastStrumTimeRef.current, minIntervalMs)) {
+      const remaining = Math.max(
+        0,
+        minIntervalMs - (now - lastStrumTimeRef.current),
+      );
+      latchPendingStrum(candidate, remaining);
+      return;
+    }
+
+    const chord = chordManager.getChordByName(chordName);
+    if (!chord) {
+      clearPendingStrum();
+      return;
+    }
+
+    const playbackTilt = resolveStrumPlaybackTilt(
+      candidate.liveTilt,
+      lastControlTiltRef.current,
+      lastCommittedPlaybackTiltRef.current,
+      floorsMode,
+      chordName,
+      { snapped: candidate.snapped, inputSteps: candidate.levels.inputSteps },
+    );
+    playbackTiltRef.current = playbackTilt;
+
+    const capturedPreviousBassMidi = previousBassMidi(
+      neutralVoicingRef.current,
+    );
+    const { displayChord, elemental } = resolveElementalAfterTilt(
+      chord,
+      playbackTilt,
+      capturedPreviousBassMidi,
+    );
+
+    neutralVoicingRef.current = computeNeutralVoicing(
+      displayChord,
+      playbackTilt,
+      elemental,
+    );
+    anchorKeyRef.current = buildAnchorKey(displayChord, playbackTilt);
+
+    const state = borrowingStateRef.current;
+    const pitches = computeVoicedPitchesFromAnchor(displayChord, state);
+
+    lastStrumLevelsRef.current = candidate.levels;
+    lastStrumTimeRef.current = now;
+    clearPendingStrum();
+
+    if (pitches.length === 0) {
+      audioEngine.releaseActiveNotes();
+      commitPlayback(displayChord, [], playbackTilt, state, elemental, {
+        voicingDiff: true,
+      });
+      return;
+    }
+
+    commitPlayback(displayChord, pitches, playbackTilt, state, elemental, {
+      voicingDiff: true,
+    });
+  }, [
+    // lastControlTiltRef and lastCommittedPlaybackTiltRef are stable mutable
+    // refs (never reassigned after initialization) — intentionally omitted.
+    tiltToStrumRef,
+    shortestNoteRef,
+    bpmRef,
+    selectedChordNameRef,
+    rawTiltRef,
+    voicingElevatorFloorsModeRef,
+    borrowingStateRef,
+    resolveElementalAfterTilt,
+    computeNeutralVoicing,
+    computeVoicedPitchesFromAnchor,
+    buildAnchorKey,
+    commitPlayback,
+    clearPendingStrum,
+    latchPendingStrum,
+  ]);
+
+  useEffect(() => {
+    handleTiltStrumSampleRef.current = handleTiltStrumSample;
+  }, [handleTiltStrumSample]);
+
   return {
     playStyle,
     setPlayStyle: changePlayStyle,
@@ -602,9 +881,14 @@ export function useChordPlayback({
     enterNoTiltSession,
     resetVoiceLeadingSession,
     clearPlaybackSelection,
+    /** Panic switch: silence notes and clear selection so tilt-strum stays disarmed. */
+    panicStop: clearPlaybackSelection,
     activePitches,
     previousPlayedChord,
-    lastTapTilt,
+    /** Control tilt at last commit (tap or accepted strum). */
+    lastControlTilt,
+    /** @deprecated Prefer lastControlTilt; same value. */
+    lastTapTilt: lastControlTilt,
     lastCommittedPlaybackTilt,
     smoothBaseParallel,
     lastPlayedVoicingLabel,
@@ -614,5 +898,6 @@ export function useChordPlayback({
     handleChordPointerDown,
     handleChordPointerUp,
     handleChordPointerEnter,
+    handleTiltStrumSample,
   };
 }

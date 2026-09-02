@@ -29,6 +29,8 @@ import {
   resolveSmoothPlaybackTiltForNavigation as resolveSmoothNavTilt,
 } from '../music/playbackTiltResolution';
 import { usesDeviceTilt } from '../music/sessionModes';
+import type { VoicingElevatorFloorsMode } from '../music/sessionModes';
+import { applyElevatorFloorsToTilt } from '../music/voicingElevatorFloors';
 import {
   getLockedNoTiltBass,
   getLockedNoTiltVoicing,
@@ -58,6 +60,7 @@ interface UseVoicingAnchorResolutionOptions {
   lastNoTiltPositionLevelRef: RefObject<number>;
   noTiltLockMapsRef: RefObject<NoTiltChordLockMaps>;
   suppressNoTiltRevoiceRef: RefObject<NoTiltRevoiceSuppressState>;
+  voicingElevatorFloorsModeRef: RefObject<VoicingElevatorFloorsMode>;
   setNoTiltPositionLevel: (level: number) => void;
 }
 
@@ -82,8 +85,18 @@ export function useVoicingAnchorResolution({
   lastNoTiltPositionLevelRef,
   noTiltLockMapsRef,
   suppressNoTiltRevoiceRef,
+  voicingElevatorFloorsModeRef,
   setNoTiltPositionLevel,
 }: UseVoicingAnchorResolutionOptions) {
+  const snapDeviceTilt = useCallback(
+    (tilt: TiltSample, chordName: string | null | undefined): TiltSample =>
+      applyElevatorFloorsToTilt(
+        tilt,
+        voicingElevatorFloorsModeRef.current,
+        chordName,
+      ),
+    [voicingElevatorFloorsModeRef],
+  );
   const buildAnchorKey = useCallback(
     (displayChord: Chord, tilt: TiltSample): string => {
       const tonalCenter = tonalCenterRef.current;
@@ -135,40 +148,70 @@ export function useVoicingAnchorResolution({
   );
 
   const resolvePlaybackTilt = useCallback(
-    (fromPointer: boolean): TiltSample => {
+    (fromPointer: boolean, chordName: string | null): TiltSample => {
       if (!usesDeviceTilt(tiltModeRef.current)) {
         return tiltFromNoTiltLevels(
           noTiltVoicingLevelRef.current,
           noTiltPositionLevelRef.current
         );
       }
-      if (fromPointer) {
-        playbackTiltRef.current = { ...rawTiltRef.current };
-      }
+      // Always snap through the elevator floors on the way out (not just on
+      // fromPointer taps), so settings re-voices for the chord being played
+      // also follow Every Other. Keeps floors ownership solely in
+      // snapDeviceTilt instead of requiring callers to re-snap separately.
+      const sourceTilt = fromPointer
+        ? { ...rawTiltRef.current }
+        : playbackTiltRef.current;
+      playbackTiltRef.current = snapDeviceTilt(sourceTilt, chordName);
       return playbackTiltRef.current;
     },
-    [rawTiltRef, noTiltVoicingLevelRef, noTiltPositionLevelRef, tiltModeRef, playbackTiltRef]
+    [
+      rawTiltRef,
+      noTiltVoicingLevelRef,
+      noTiltPositionLevelRef,
+      tiltModeRef,
+      playbackTiltRef,
+      snapDeviceTilt,
+    ]
   );
 
-  const getBaselineTilt = useCallback((): TiltSample => {
-    if (usesDeviceTilt(tiltModeRef.current)) {
-      return lastTapTiltRef.current;
-    }
-    return tiltFromNoTiltLevels(
-      lastNoTiltVoicingLevelRef.current,
-      lastNoTiltPositionLevelRef.current
-    );
-  }, [tiltModeRef, lastTapTiltRef, lastNoTiltVoicingLevelRef, lastNoTiltPositionLevelRef]);
+  const getBaselineTilt = useCallback(
+    (chordName: string | null): TiltSample => {
+      if (usesDeviceTilt(tiltModeRef.current)) {
+        return snapDeviceTilt(lastTapTiltRef.current, chordName);
+      }
+      return tiltFromNoTiltLevels(
+        lastNoTiltVoicingLevelRef.current,
+        lastNoTiltPositionLevelRef.current
+      );
+    },
+    [
+      tiltModeRef,
+      lastTapTiltRef,
+      lastNoTiltVoicingLevelRef,
+      lastNoTiltPositionLevelRef,
+      snapDeviceTilt,
+    ],
+  );
 
-  const getCurrentControlTilt = useCallback((): TiltSample => {
-    if (usesDeviceTilt(tiltModeRef.current)) {
-      return { ...rawTiltRef.current };
-    }
-    return tiltFromNoTiltLevels(
-      noTiltVoicingLevelRef.current,
-      noTiltPositionLevelRef.current
-    );
-  }, [rawTiltRef, noTiltVoicingLevelRef, noTiltPositionLevelRef, tiltModeRef]);
+  const getCurrentControlTilt = useCallback(
+    (chordName: string | null): TiltSample => {
+      if (usesDeviceTilt(tiltModeRef.current)) {
+        return snapDeviceTilt({ ...rawTiltRef.current }, chordName);
+      }
+      return tiltFromNoTiltLevels(
+        noTiltVoicingLevelRef.current,
+        noTiltPositionLevelRef.current
+      );
+    },
+    [
+      rawTiltRef,
+      noTiltVoicingLevelRef,
+      noTiltPositionLevelRef,
+      tiltModeRef,
+      snapDeviceTilt,
+    ],
+  );
 
   const syncNoTiltPositionLevel = useCallback(
     (effectiveParallel: number, deferSetState = false) => {
@@ -217,8 +260,8 @@ export function useVoicingAnchorResolution({
         }
       }
 
-      const baselineTilt = getBaselineTilt();
-      const currentTilt = getCurrentControlTilt();
+      const baselineTilt = getBaselineTilt(chordName);
+      const currentTilt = getCurrentControlTilt(chordName);
       const anchor = usesDeviceTilt(tiltModeRef.current) ? 'contrary' : 'pivot';
       const { rootPitchClass, homeMidi, pitchStructure } = resolveVoicingRoot(
         displayChord,
@@ -304,7 +347,7 @@ export function useVoicingAnchorResolution({
       chordName: string,
       syncPositionLevel: (effectiveParallel: number) => void = syncNoTiltPositionLevel
     ): TiltSample => {
-      const currentTilt = getCurrentControlTilt();
+      const currentTilt = getCurrentControlTilt(chordName);
       const parallelDelta =
         parallelLevelFromTilt(currentTilt) -
         parallelLevelFromTilt(lastTapTiltRef.current);
