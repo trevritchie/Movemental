@@ -355,7 +355,7 @@ export const USER_SETTINGS_SCHEMA: Record<
       validate: isBoolean,
     },
     shortestNote: {
-      default: '8n' as ShortestNote,
+      default: '4n' as ShortestNote,
       validate: isShortestNote,
     },
     bpm: {
