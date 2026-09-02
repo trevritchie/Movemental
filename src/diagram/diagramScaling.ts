@@ -16,7 +16,6 @@ import {
   DIAGRAM_SCALE_POLICY,
   stretchRatioLimitsForTier,
 } from './diagramScalePolicy';
-import { clamp } from '../utils/clamp';
 import type {
   DiagramContainerSize,
   DiagramLayoutResolution,
@@ -205,11 +204,7 @@ export function computePhoneLayoutScale(
   if (containerWidth <= 0 || containerHeight <= 0) {
     return layoutScaleMin;
   }
-  return clamp(
-    Math.min(containerHeight / referenceHeight, containerWidth / referenceShortSide),
-    layoutScaleMin,
-    layoutScaleMax,
-  );
+  return Math.max(layoutScaleMin, Math.min(layoutScaleMax, Math.min(containerHeight / referenceHeight, containerWidth / referenceShortSide)));
 }
 
 /** Center gutter and max half-width for phone corner overlays (clock, readout, pills). */
@@ -217,7 +212,7 @@ export function computeOverlayCornerSpans(
   containerWidth: number,
   insetX: number,
 ): { centerGutter: number; maxHalfSpan: number } {
-  const centerGutter = clamp(Math.round(containerWidth * 0.14), 36, 56);
+  const centerGutter = Math.max(36, Math.min(56, Math.round(containerWidth * 0.14)));
   const maxHalfSpan = Math.max(
     72,
     Math.floor((containerWidth - centerGutter) / 2 - insetX - 4),

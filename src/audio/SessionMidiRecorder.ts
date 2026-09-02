@@ -1,7 +1,6 @@
 /**
  * In-memory MIDI note log encoded to Standard MIDI File on session stop.
  */
-import { clamp } from '../utils/clamp';
 
 const DEFAULT_VELOCITY = 100;
 const DEFAULT_BPM = 120;
@@ -61,7 +60,7 @@ export class SessionMidiRecorder {
       return;
     }
 
-    const clampedMidi = clamp(Math.round(midi), 0, 127);
+    const clampedMidi = Math.max(0, Math.min(127, Math.round(midi)));
     // Skip duplicate on-events while a pitch is already held.
     if (this.heldNotes.has(clampedMidi)) {
       return;
@@ -81,7 +80,7 @@ export class SessionMidiRecorder {
       return;
     }
 
-    const clampedMidi = clamp(Math.round(midi), 0, 127);
+    const clampedMidi = Math.max(0, Math.min(127, Math.round(midi)));
     if (!this.heldNotes.has(clampedMidi)) {
       return;
     }

@@ -9,10 +9,9 @@
  *   second voicing when sounded pitches are already available.
  */
 import type { Chord } from './ChordManager';
-import { borrowingLogic, getInitialBorrowingState, type BorrowingState } from './BorrowingLogic';
+import { getRootPositionMapping, prepareVoicingInput, getInitialBorrowingState, type BorrowingState } from './BorrowingLogic';
 import type { VoiceLeadingMode } from './sessionModes';
 import { usesDeviceTilt } from './sessionModes';
-import { clamp } from '../utils/clamp';
 import { resolveLabelPlaybackTilt } from './voiceLeadingPolicy';
 import {
   NO_TILT_POSITION_LEVEL_COUNT,
@@ -76,7 +75,7 @@ function borrowingPitchStructure(
   chord: Chord,
   borrowingState: BorrowingState
 ): (number | null)[] {
-  return borrowingLogic.prepareVoicingInput(chord, borrowingState)
+  return prepareVoicingInput(chord, borrowingState)
     .pitchStructure;
 }
 
@@ -146,7 +145,7 @@ export function pitchAxisArrowSteps(tilt: TiltSample): number {
 
 export function voiceLineForParallelSteps(parallelSteps: number): VoiceLine {
   const idx = positionLabelIndexFromParallelSteps(parallelSteps);
-  return (clamp(idx, 0, 3) + 1) as VoiceLine;
+  return (Math.max(0, Math.min(3, idx)) + 1) as VoiceLine;
 }
 
 export function getBassDegreeLabelForParallelSteps(
@@ -193,7 +192,7 @@ function voiceLineForLowestPitch(
     return spelledLine;
   }
 
-  const mapping = borrowingLogic.getRootPositionMapping(chord);
+  const mapping = getRootPositionMapping(chord);
 
   // Map pitch class back to chord line 1-4. If borrowing collapsed two lines
   // to the same PC, the first matching line wins.

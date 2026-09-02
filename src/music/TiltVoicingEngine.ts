@@ -50,7 +50,6 @@ const THINNING_RULES: Record<number, number[]> = {
   9: [2, 3, 5, 8], // double octave chord
 };
 
-import { clamp } from '../utils/clamp';
 
 /**
  * Build the tone cycle from a pre-voicing pitch structure.
@@ -95,7 +94,7 @@ export function ladderPitch(
  * No-tilt UI encodes the full ±4 range via tiltSampleFromLevels.
  */
 export function parallelLevelFromTilt(tilt: TiltSample): number {
-  const y = clamp(tilt.y, -1, 1);
+  const y = Math.max(-1, Math.min(1, tilt.y));
   if (y === 0) return 0;
   if (y < 0) {
     return Math.round(Math.abs(y) * MAX_TILT_PITCH_STEPS);
@@ -127,7 +126,7 @@ export function mapTiltToPositions(tilt: TiltSample): {
   inputSteps: number;
   parallelSteps: number;
 } {
-  const x = clamp(tilt.x, -1, 0);
+  const x = Math.max(-1, Math.min(0, tilt.x));
   return {
     inputSteps: Math.round((x + 1) * MAX_INPUT_STEPS),
     parallelSteps: parallelLevelFromTilt(tilt),
@@ -145,14 +144,14 @@ export const DEFAULT_NO_TILT_POSITION_LEVEL = MAX_TILT_PITCH_STEPS;
 
 /** Map a no-tilt position dropdown index to signed parallel ladder steps. */
 export function parallelStepsFromNoTiltPositionLevel(level: number): number {
-  const idx = clamp(level, 0, NO_TILT_POSITION_LEVEL_COUNT - 1);
+  const idx = Math.max(0, Math.min(NO_TILT_POSITION_LEVEL_COUNT - 1, level));
   return idx - MAX_TILT_PITCH_STEPS;
 }
 
 /** Map signed parallel ladder steps to a no-tilt position dropdown index. */
 export function noTiltPositionLevelFromParallelSteps(steps: number): number {
   return (
-    clamp(steps, -MAX_TILT_PITCH_STEPS, MAX_TILT_PITCH_STEPS) +
+    Math.max(-MAX_TILT_PITCH_STEPS, Math.min(MAX_TILT_PITCH_STEPS, steps)) +
     MAX_TILT_PITCH_STEPS
   );
 }
@@ -167,12 +166,8 @@ export function tiltSampleFromLevels(
   inputSteps: number,
   parallelSteps: number
 ): TiltSample {
-  const clampedInput = clamp(inputSteps, 0, MAX_INPUT_STEPS);
-  const clampedParallel = clamp(
-    parallelSteps,
-    -MAX_TILT_PITCH_STEPS,
-    MAX_TILT_PITCH_STEPS
-  );
+  const clampedInput = Math.max(0, Math.min(MAX_INPUT_STEPS, inputSteps));
+  const clampedParallel = Math.max(-MAX_TILT_PITCH_STEPS, Math.min(MAX_TILT_PITCH_STEPS, parallelSteps));
   const x = clampedInput / MAX_INPUT_STEPS - 1;
   let y = 0;
   if (clampedParallel > 0) {
@@ -193,11 +188,7 @@ export function resolvePlaybackTiltWithFlatBaseline(
   liveTilt: TiltSample
 ): TiltSample {
   const { inputSteps } = mapTiltToPositions(liveTilt);
-  const parallel = clamp(
-    flatBaseline + parallelLevelFromTilt(liveTilt),
-    -MAX_TILT_PITCH_STEPS,
-    MAX_TILT_PITCH_STEPS
-  );
+  const parallel = Math.max(-MAX_TILT_PITCH_STEPS, Math.min(MAX_TILT_PITCH_STEPS, flatBaseline + parallelLevelFromTilt(liveTilt)));
   return tiltSampleFromLevels(inputSteps, parallel);
 }
 
@@ -261,7 +252,7 @@ export const TILT_READOUT_MAX_LABEL = (
  */
 export function voicingWidthFromTilt(tilt: TiltSample): number {
   const { inputSteps } = mapTiltToPositions(tilt);
-  return clamp(inputSteps + 1, 1, MAX_CHAIN_WIDTH);
+  return Math.max(1, Math.min(MAX_CHAIN_WIDTH, inputSteps + 1));
 }
 
 /**
@@ -370,7 +361,7 @@ export function computeTiltVoicing(
 
   const { parallelSteps } = mapTiltToPositions(tilt);
   const maxPivot = cycle.length;
-  const pivot = clamp(parallelSteps, -maxPivot, maxPivot);
+  const pivot = Math.max(-maxPivot, Math.min(maxPivot, parallelSteps));
   const width = voicingWidthFromTilt(tilt);
   if (anchor === 'pivot') {
     return buildThinnedChain(pivot, width, cycle, ladderBase);
