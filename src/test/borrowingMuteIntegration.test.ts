@@ -1,9 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import {
-  BorrowingLogic,
-  getInitialBorrowingState,
-  type BorrowingState,
-} from '../music/BorrowingLogic';
+import { getVoicePitchClasses, getInitialBorrowingState, type BorrowingState } from '../music/BorrowingLogic';
 import type { Chord } from '../music/ChordManager';
 import {
   tiltSampleFromLevels,
@@ -16,7 +12,6 @@ import {
 } from '../music/tiltVoicingPlayback';
 import { chordManager } from '../music/ChordManager';
 
-const logic = new BorrowingLogic();
 const OCTAVE_RANGE = 3;
 const BB_TONAL_CENTER = 10;
 
@@ -334,7 +329,7 @@ describe('borrowing overlay integration', () => {
 
     const muted = applyVoicingOverlays(neutral, branch, mutedWhileBorrowed);
     expect(muted.some((n) => n % 12 === gPc)).toBe(false);
-    const { effectivePc } = logic.getVoicePitchClasses(
+    const { effectivePc } = getVoicePitchClasses(
       branch,
       mutedWhileBorrowed,
       4

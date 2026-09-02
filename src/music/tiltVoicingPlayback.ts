@@ -5,10 +5,7 @@
  * Borrowing and mutes are overlays on that MIDI spread, not tone-cycle rebuilds.
  */
 import type { Chord } from './ChordManager';
-import {
-  borrowingLogic,
-  type BorrowingState,
-} from './BorrowingLogic';
+import { type BorrowingState, applyVoicingOverlays as logicApplyVoicingOverlays } from './BorrowingLogic';
 import {
   computeTiltVoicing,
   type TiltSample,
@@ -160,7 +157,7 @@ export function applyVoicingOverlays(
   chord: Chord,
   borrowingState: BorrowingState
 ): number[] {
-  return borrowingLogic.applyVoicingOverlays(
+  return logicApplyVoicingOverlays(
     neutralVoicing,
     chord,
     borrowingState

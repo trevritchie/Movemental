@@ -1,6 +1,6 @@
 import React, { useRef, useCallback } from 'react';
 import type { BorrowingDirection } from '../music/BorrowingLogic';
-import { borrowingLogic, cloneBorrowingState } from '../music/BorrowingLogic';
+import { getRootPositionMapping, cloneBorrowingState } from '../music/BorrowingLogic';
 import { useChordContext } from '../context/ChordContext';
 import { useLayoutTier } from '../hooks/useLayoutTier';
 import { isPageInteractiveForAudio } from '../audio/pageInteraction';
@@ -258,7 +258,7 @@ export const BorrowingControls: React.FC<BorrowingControlsProps> = ({
 
   const getNeutralColor = useCallback((line: number): string => {
     if (!selectedChord) return 'rgba(255,255,255,0.45)';
-    const mapping = borrowingLogic.getRootPositionMapping(selectedChord);
+    const mapping = getRootPositionMapping(selectedChord);
     const idx = mapping[line];
     if (idx >= selectedChord.pitches.length) {
       return 'rgba(255,255,255,0.45)';
