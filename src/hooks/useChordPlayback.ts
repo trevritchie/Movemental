@@ -205,6 +205,9 @@ export function useChordPlayback({
   }, []);
 
   const schedulePendingStrumFlush = useCallback((delayMs: number) => {
+    // Don't re-arm when a timer is already running: the existing timer calls
+    // handleTiltStrumSampleRef.current(), which always reads the current
+    // pendingStrumRef at fire time. Re-arming would only shorten the interval.
     if (pendingStrumTimerRef.current != null) {
       return;
     }
@@ -809,8 +812,7 @@ export function useChordPlayback({
       lastCommittedPlaybackTiltRef.current,
       floorsMode,
       chordName,
-      candidate.snapped,
-      candidate.levels.inputSteps,
+      { snapped: candidate.snapped, inputSteps: candidate.levels.inputSteps },
     );
     playbackTiltRef.current = playbackTilt;
 
@@ -849,6 +851,8 @@ export function useChordPlayback({
       voicingDiff: true,
     });
   }, [
+    // lastControlTiltRef and lastCommittedPlaybackTiltRef are stable mutable
+    // refs (never reassigned after initialization) — intentionally omitted.
     tiltToStrumRef,
     shortestNoteRef,
     bpmRef,

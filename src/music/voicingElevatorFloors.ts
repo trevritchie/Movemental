@@ -85,6 +85,9 @@ export function snapVoicingLevelToAllowed(
 
 /**
  * Quantize continuous roll x in [-1, 0] to an Every Other stop index 0..4.
+ *
+ * Ties (exact midpoints) round toward the higher stop index (wider voicing),
+ * which is the natural behaviour of JS Math.round for positive fractional 0.5.
  */
 export function everyOtherStopIndexFromRoll(tiltX: number): number {
   const x = clamp(tiltX, -1, 0);

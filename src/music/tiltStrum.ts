@@ -84,7 +84,8 @@ export function strumSnapFromTilt(
  * Applies Voicing Elevator Floors remapping to roll, preserves the parallel
  * established at the last commit, and applies pitch delta since the last
  * control sample. Does not re-run opposite-element diminished root search.
- * Pass `snappedLive` / `inputSteps` when the caller already snapped for gating.
+ * Pass `snap.snapped` / `snap.inputSteps` when the caller already snapped
+ * for gating so the snap is not computed a second time.
  */
 export function resolveStrumPlaybackTilt(
   liveTilt: TiltSample,
@@ -92,13 +93,12 @@ export function resolveStrumPlaybackTilt(
   lastCommittedPlaybackTilt: TiltSample,
   floorsMode: VoicingElevatorFloorsMode = 'all',
   chordName: string | null | undefined = null,
-  snappedLive?: TiltSample,
-  inputSteps?: number,
+  snap?: { snapped: TiltSample; inputSteps: number },
 ): TiltSample {
   const steps =
-    inputSteps ??
+    snap?.inputSteps ??
     mapTiltToPositions(
-      snappedLive ??
+      snap?.snapped ??
         applyElevatorFloorsToTilt(liveTilt, floorsMode, chordName),
     ).inputSteps;
   const pitchDelta =
