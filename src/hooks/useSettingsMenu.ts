@@ -11,7 +11,7 @@ export function useSettingsMenu() {
   const menuId = useId();
   const triggerRef = useRef<HTMLButtonElement>(null);
   const helpTriggerRef = useRef<HTMLButtonElement>(null);
-  const modalRef = useRef<HTMLDivElement>(null);
+  const modalRef = useRef<HTMLDialogElement>(null);
 
   const openMenu = useCallback(() => {
     setShouldMountModal(true);

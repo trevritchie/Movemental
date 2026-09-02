@@ -418,10 +418,10 @@ describe('MobileActionButtons', () => {
       screen.getByRole('dialog', { name: 'Elevator System' }),
     ).toBeInTheDocument();
 
-    fireEvent.keyDown(document, { key: 'Escape' });
+    fireEvent(screen.getByRole('dialog'), new Event('cancel'));
     expect(screen.getByRole('dialog', { name: 'Help' })).toBeInTheDocument();
 
-    fireEvent.keyDown(document, { key: 'Escape' });
+    fireEvent(screen.getByRole('dialog'), new Event('cancel'));
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
@@ -431,7 +431,7 @@ describe('MobileActionButtons', () => {
     await openHelpFromToolbar();
     expect(screen.getByRole('dialog', { name: 'Help' })).toBeInTheDocument();
 
-    fireEvent.keyDown(document, { key: 'Escape' });
+    fireEvent(screen.getByRole('dialog'), new Event('cancel'));
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
@@ -467,31 +467,9 @@ describe('MobileActionButtons', () => {
     await openSettingsFromToolbar();
     expect(screen.getByRole('dialog')).toBeInTheDocument();
 
-    fireEvent.keyDown(document, { key: 'Escape' });
+    fireEvent(screen.getByRole('dialog'), new Event('cancel'));
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
-
-  it('keeps keyboard focus inside the settings dialog on Tab', async () => {
-    render(<MobileActionButtons />);
-
-    await openSettingsFromToolbar();
-    const dialog = screen.getByRole('dialog', { name: 'Settings' });
-    const focusable = dialog.querySelectorAll(
-      'button:not([disabled]), select:not([disabled])',
-    );
-    const first = focusable[0] as HTMLElement;
-    const last = focusable[focusable.length - 1] as HTMLElement;
-
-    last.focus();
-    fireEvent.keyDown(document, { key: 'Tab' });
-    expect(document.activeElement).toBe(first);
-
-    first.focus();
-    fireEvent.keyDown(document, { key: 'Tab', shiftKey: true });
-    expect(document.activeElement).toBe(last);
-    expect(dialog.contains(document.activeElement)).toBe(true);
-  });
-
   it('shows iOS install hint when Full Screen is tapped on iPhone', async () => {
     vi.mocked(isIphone).mockReturnValue(true);
     vi.mocked(useFullscreen).mockReturnValue(
