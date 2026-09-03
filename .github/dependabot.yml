@@ -1,79 +1,13 @@
 version: 2
 updates:
-  # JavaScript/TypeScript dependencies for the web app (package.json/package-lock.json
-  # at the repo root). python-prototype/ has no dependency manifest, so there is
-  # nothing for Dependabot to manage there.
-  - package-ecosystem: "npm"
-    directory: "/"
-    schedule:
-      interval: "weekly"
-      day: "monday"
-    open-pull-requests-limit: 10
-    versioning-strategy: increase
-    labels:
-      - "dependencies"
-    commit-message:
-      prefix: "chore(deps)"
-      include: "scope"
-    # typescript-eslint@8.x still peers typescript <6.1.0. Ignore TypeScript
-    # majors until that peer range moves; otherwise Dependabot will keep opening
-    # install-breaking typescript-tooling PRs. Minor/patch TypeScript bumps in
-    # the 6.x line remain allowed.
-    ignore:
-      - dependency-name: "typescript"
-        update-types: ["version-update:semver-major"]
-    groups:
-      production-dependencies:
-        dependency-type: "production"
-      # typescript and the eslint/typescript-eslint toolchain have tightly
-      # coupled peer dependency ranges (typescript-eslint typically lags a
-      # new TypeScript major for a while). Grouping them separately means a
-      # temporarily incompatible combination only blocks this group's PR,
-      # not the unrelated dev-dependency bumps below.
-      typescript-tooling:
-        patterns:
-          - "typescript"
-          - "typescript-eslint"
-          - "@typescript-eslint/*"
-          - "eslint"
-          - "eslint-plugin-*"
-          - "@eslint/*"
-          - "globals"
-      # Test-runtime packages (jsdom, Vitest, Playwright, Testing Library) often
-      # raise the Node floor on major bumps. Keeping them out of the broad
-      # development-dependencies group means a Node-incompatible major only
-      # blocks this PR, and review can pair the bump with a CI Node update.
-      testing-runtime:
-        patterns:
-          - "jsdom"
-          - "vitest"
-          - "@vitest/*"
-          - "playwright"
-          - "@playwright/*"
-          - "@testing-library/*"
-      development-dependencies:
-        dependency-type: "development"
-        exclude-patterns:
-          - "typescript"
-          - "typescript-eslint"
-          - "@typescript-eslint/*"
-          - "eslint"
-          - "eslint-plugin-*"
-          - "@eslint/*"
-          - "globals"
-          - "jsdom"
-          - "vitest"
-          - "@vitest/*"
-          - "playwright"
-          - "@playwright/*"
-          - "@testing-library/*"
-
   # Actions used by the CI/deploy workflows in .github/workflows/.
+  # Routine npm version updates are disabled to avoid PR noise; security
+  # vulnerabilities in npm dependencies are handled via Dependabot grouped
+  # security updates configured in repository settings.
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
-      interval: "weekly"
-      day: "monday"
+      interval: "monthly"
     labels:
       - "dependencies"
       - "github-actions"
