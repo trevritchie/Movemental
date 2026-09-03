@@ -16,7 +16,6 @@ import {
   DIAGRAM_SCALE_POLICY,
   stretchRatioLimitsForTier,
 } from './diagramScalePolicy';
-import { clamp } from '../utils/clamp';
 import type {
   DiagramContainerSize,
   DiagramLayoutResolution,
@@ -65,25 +64,19 @@ export function resolveShowChordNameLabels(
 
 /**
  * Whether harmonic-function labels should default on for a viewport.
- * Uses the modeled diagram column width, not raw viewport width, so the
- * result matches ElementalDiagram compact decisions.
+ * Harmonic function labels default to off across all viewports.
  */
 export function resolveDefaultHarmonicFunctionLabelsEnabled(
-  layoutTier: LayoutTier,
-  viewportWidth: number,
-  viewportHeight: number,
+  layoutTier?: LayoutTier,
+  viewportWidth?: number,
+  viewportHeight?: number,
   compactDiagramWidth: number = BREAKPOINTS.compactDiagramWidth,
 ): boolean {
-  const container = computeDiagramContainerSizeForTier(
-    viewportWidth,
-    viewportHeight,
-    layoutTier,
-  );
-  return resolveShowChordNameLabels(
-    layoutTier,
-    container.width,
-    compactDiagramWidth,
-  );
+  void layoutTier;
+  void viewportWidth;
+  void viewportHeight;
+  void compactDiagramWidth;
+  return false;
 }
 
 export function getDiagramViewBox(isCompactDiagram: boolean): DiagramViewBox {
@@ -205,11 +198,7 @@ export function computePhoneLayoutScale(
   if (containerWidth <= 0 || containerHeight <= 0) {
     return layoutScaleMin;
   }
-  return clamp(
-    Math.min(containerHeight / referenceHeight, containerWidth / referenceShortSide),
-    layoutScaleMin,
-    layoutScaleMax,
-  );
+  return Math.max(layoutScaleMin, Math.min(layoutScaleMax, Math.min(containerHeight / referenceHeight, containerWidth / referenceShortSide)));
 }
 
 /** Center gutter and max half-width for phone corner overlays (clock, readout, pills). */
@@ -217,7 +206,7 @@ export function computeOverlayCornerSpans(
   containerWidth: number,
   insetX: number,
 ): { centerGutter: number; maxHalfSpan: number } {
-  const centerGutter = clamp(Math.round(containerWidth * 0.14), 36, 56);
+  const centerGutter = Math.max(36, Math.min(56, Math.round(containerWidth * 0.14)));
   const maxHalfSpan = Math.max(
     72,
     Math.floor((containerWidth - centerGutter) / 2 - insetX - 4),

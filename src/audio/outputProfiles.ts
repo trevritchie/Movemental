@@ -3,7 +3,6 @@
  */
 import { resolveLayoutTier, type LayoutTier } from '../layout/breakpoints';
 import type { SynthPreset } from './synthPresets';
-import { clamp } from '../utils/clamp';
 
 export type EqProfileId = 'smallSpeakers' | 'largeSpeakers' | 'flat';
 
@@ -284,5 +283,5 @@ export function getEffectiveSynthVolumeDb(
 }
 
 export function scaleFxWet(baseWet: number, profile: OutputProfile): number {
-  return clamp(baseWet * profile.loudness.fxScale, 0, 1);
+  return Math.max(0, Math.min(1, baseWet * profile.loudness.fxScale));
 }

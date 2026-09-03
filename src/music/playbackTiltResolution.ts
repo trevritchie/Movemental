@@ -33,7 +33,6 @@ import {
   tiltSampleFromLevels,
   type TiltSample,
 } from './TiltVoicingEngine';
-import { clamp } from '../utils/clamp';
 
 export function tiltFromNoTiltLevels(
   voicingLevel: number,
@@ -60,11 +59,7 @@ function tiltWithEntryBaselineAndDelta(
   entryBaseline: number
 ): TiltSample {
   const { inputSteps } = mapTiltToPositions(liveTilt);
-  const effectiveParallel = clamp(
-    entryBaseline + pitchDeltaSinceLastControl(liveTilt, lastControlTilt),
-    -MAX_TILT_PITCH_STEPS,
-    MAX_TILT_PITCH_STEPS
-  );
+  const effectiveParallel = Math.max(-MAX_TILT_PITCH_STEPS, Math.min(MAX_TILT_PITCH_STEPS, entryBaseline + pitchDeltaSinceLastControl(liveTilt, lastControlTilt)));
   return tiltSampleFromLevels(inputSteps, effectiveParallel);
 }
 
@@ -327,11 +322,7 @@ export function resolveSmoothestReanchorTilt(
     parallelLevelFromTilt(currentTilt) -
     parallelLevelFromTilt(baselineTilt);
   const baseParallel = parallelLevelFromTilt(playbackTilt);
-  const effectiveParallel = clamp(
-    baseParallel + parallelDelta,
-    -MAX_TILT_PITCH_STEPS,
-    MAX_TILT_PITCH_STEPS
-  );
+  const effectiveParallel = Math.max(-MAX_TILT_PITCH_STEPS, Math.min(MAX_TILT_PITCH_STEPS, baseParallel + parallelDelta));
   const { inputSteps } = mapTiltToPositions(currentTilt);
   const tilt = tiltSampleFromLevels(inputSteps, effectiveParallel);
   // Ref only; React flush happens after audio in commitPlayback.

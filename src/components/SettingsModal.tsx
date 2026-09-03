@@ -4,7 +4,6 @@ import { Maximize2, Minimize2, X } from 'lucide-react';
 import { NOTE_NAMES_FLAT, OCTAVE_RANGE_OPTIONS } from '../music/config';
 import { useChordContext } from '../context/ChordContext';
 import { useSoundDesignContext } from '../context/SoundDesignContext';
-import { useBodyScrollLock } from '../hooks/useBodyScrollLock';
 import { useFullscreen } from '../hooks/useFullscreen';
 import { AdsrPanelContent } from './settings/AdsrPanelContent';
 import { EffectsPanelContent } from './settings/EffectsPanelContent';
@@ -31,15 +30,12 @@ import { HelpPage } from './help/HelpPage';
 import { helpDialogTitle, type HelpView } from './help/helpTypes';
 import { useTour } from './tour/tourContext';
 
-const FOCUSABLE_SELECTOR =
-  'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
-
 export interface SettingsModalProps {
   isOpen: boolean;
   openToHelp: boolean;
   onClose: () => void;
   menuId: string;
-  modalRef: React.RefObject<HTMLDivElement | null>;
+  modalRef: React.RefObject<HTMLDialogElement | null>;
 }
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({
@@ -128,53 +124,28 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     [closeModal, startTour],
   );
 
-  useBodyScrollLock(isOpen);
-
   useEffect(() => {
-    if (!isOpen) return;
+    const dialog = modalRef.current;
+    if (!dialog) return;
 
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        if (openToHelp && helpView !== 'hub') {
-          backWithinHelp();
-        } else {
-          closeModal();
-        }
-        return;
-      }
-
-      if (e.key !== 'Tab') return;
-
-      const modal = modalRef.current;
-      if (!modal) return;
-
-      const focusable = modal.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR);
-      if (focusable.length === 0) return;
-
-      const first = focusable[0];
-      const last = focusable[focusable.length - 1];
-      const active = document.activeElement;
-
-      if (e.shiftKey) {
-        if (active === first || !modal.contains(active)) {
-          e.preventDefault();
-          last.focus();
-        }
-      } else if (active === last) {
-        e.preventDefault();
-        first.focus();
-      }
-    };
-
-    document.addEventListener('keydown', onKeyDown);
-    return () => document.removeEventListener('keydown', onKeyDown);
-  }, [isOpen, closeModal, backWithinHelp, openToHelp, helpView, modalRef]);
-
-  useEffect(() => {
     if (isOpen) {
-      modalRef.current?.focus();
+      if (!dialog.open) {
+        dialog.showModal();
+        dialog.focus();
+      }
+    } else {
+      if (dialog.open) dialog.close();
     }
   }, [isOpen, modalRef]);
+
+  const handleCancel = (e: React.SyntheticEvent) => {
+    if (openToHelp && helpView !== 'hub') {
+      e.preventDefault();
+      backWithinHelp();
+    } else {
+      closeModal();
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -186,21 +157,15 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
   return createPortal(
     <>
-      <div
-        className="settings-modal-backdrop"
+      <dialog
+        ref={modalRef}
+        id={menuId}
+        className="settings-modal"
+        aria-label={helpTitle}
         onClick={handleBackdropClick}
-        role="presentation"
+        onCancel={handleCancel}
+        onClose={closeModal}
       >
-        <div
-          ref={modalRef}
-          id={menuId}
-          className="settings-modal"
-          role="dialog"
-          aria-modal="true"
-          aria-label={helpTitle}
-          tabIndex={-1}
-          onClick={(e) => e.stopPropagation()}
-        >
           <div className="settings-modal__header">
             <h2 className="settings-modal__title">{helpTitle}</h2>
             <button
@@ -569,8 +534,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               </>
             )}
           </div>
-        </div>
-      </div>
+      </dialog>
       <IosInstallHintPortal
         isOpen={showIosInstallHint && isIphone()}
         onDismiss={dismissIosInstallHint}

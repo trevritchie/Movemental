@@ -8,7 +8,6 @@ import {
   measureTourTarget,
   type TourStepDef,
 } from '../../tour/tourSteps';
-import { useBodyScrollLock } from '../../hooks/useBodyScrollLock';
 import { popoverStyle } from './tourPopoverPlacement';
 
 interface TourOverlayProps {
@@ -34,7 +33,12 @@ export const TourOverlay: React.FC<TourOverlayProps> = ({
 }) => {
   const [layoutVersion, setLayoutVersion] = useState(0);
 
-  useBodyScrollLock(true);
+  useEffect(() => {
+    document.body.classList.add('scroll-lock');
+    return () => {
+      document.body.classList.remove('scroll-lock');
+    };
+  }, []);
 
   void layoutVersion;
   const targetRect = measureTourTarget(step.targetId);

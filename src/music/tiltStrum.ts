@@ -5,7 +5,6 @@
  * (see AudioEngine.updateVoicingDiff; finished notes may re-attack on tilt).
  * Pitch-shifting slides are out of scope.
  */
-import { clamp } from '../utils/clamp';
 import type { ShortestNote } from '../settings/userSettingsSchema';
 import type { VoicingElevatorFloorsMode } from './sessionModes';
 import {
@@ -103,11 +102,7 @@ export function resolveStrumPlaybackTilt(
     ).inputSteps;
   const pitchDelta =
     parallelLevelFromTilt(liveTilt) - parallelLevelFromTilt(lastControlTilt);
-  const effectiveParallel = clamp(
-    parallelLevelFromTilt(lastCommittedPlaybackTilt) + pitchDelta,
-    -MAX_TILT_PITCH_STEPS,
-    MAX_TILT_PITCH_STEPS,
-  );
+  const effectiveParallel = Math.max(-MAX_TILT_PITCH_STEPS, Math.min(MAX_TILT_PITCH_STEPS, parallelLevelFromTilt(lastCommittedPlaybackTilt) + pitchDelta));
   return tiltSampleFromLevels(steps, effectiveParallel);
 }
 

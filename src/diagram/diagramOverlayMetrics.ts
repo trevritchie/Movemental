@@ -1,4 +1,3 @@
-import { clamp } from '../utils/clamp';
 import { computeOverlayCornerSpans, computePhoneLayoutScale } from './diagramScaling';
 import type { DiagramContainerSize } from './diagramLayoutTypes';
 
@@ -50,24 +49,20 @@ export function computeDiagramOverlayMetrics(
   }
 
   const shortSide = Math.min(width, height);
-  const insetX = clamp(Math.round(shortSide * 0.006), 2, 4);
-  const insetY = clamp(Math.round(shortSide * 0.012), 4, 8);
+  const insetX = Math.max(2, Math.min(4, Math.round(shortSide * 0.006)));
+  const insetY = Math.max(4, Math.min(8, Math.round(shortSide * 0.012)));
 
   const layoutScale = computePhoneLayoutScale(width, height);
 
-  const valueSize = clamp(shortSide * 0.034 * layoutScale, 12, 17);
-  const labelSize = clamp(valueSize * 0.72, 9, 12);
-  const titleSize = clamp(
-    valueSize * CHORD_TITLE_SIZE_SCALE,
-    14,
-    17 * CHORD_TITLE_SIZE_SCALE,
-  );
-  const subtitleSize = clamp(valueSize * 0.82, 10.5, 14.5);
+  const valueSize = Math.max(12, Math.min(17, shortSide * 0.034 * layoutScale));
+  const labelSize = Math.max(9, Math.min(12, valueSize * 0.72));
+  const titleSize = Math.max(14, Math.min(17 * CHORD_TITLE_SIZE_SCALE, valueSize * CHORD_TITLE_SIZE_SCALE));
+  const subtitleSize = Math.max(10.5, Math.min(14.5, valueSize * 0.82));
 
   const { maxHalfSpan } = computeOverlayCornerSpans(width, insetX);
 
   const clockSize = Math.round(
-    clamp(width * 0.34, 72, Math.min(132, maxHalfSpan)),
+    Math.max(72, Math.min(Math.min(132, maxHalfSpan), width * 0.34)),
   );
 
   const cornerMaxW = Math.max(
@@ -75,8 +70,8 @@ export function computeDiagramOverlayMetrics(
     Math.round(Math.min(width * 0.44, maxHalfSpan)),
   );
 
-  const pillPadY = clamp(Math.round(4 + layoutScale * 2), 4, 6);
-  const pillPadX = clamp(Math.round(7 + layoutScale * 3), 7, 10);
+  const pillPadY = Math.max(4, Math.min(6, Math.round(4 + layoutScale * 2)));
+  const pillPadX = Math.max(7, Math.min(10, Math.round(7 + layoutScale * 3)));
 
   return {
     '--overlay-inset': `${insetY}px`,

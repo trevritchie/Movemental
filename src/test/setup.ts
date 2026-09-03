@@ -278,3 +278,28 @@ vi.mock('tone', () => {
     getTransport,
   };
 });
+
+// Mock HTMLDialogElement for jsdom
+if (typeof window.HTMLDialogElement === 'function') {
+  HTMLDialogElement.prototype.showModal = function (this: HTMLDialogElement) {
+    this.open = true;
+  };
+  HTMLDialogElement.prototype.close = function (this: HTMLDialogElement) {
+    this.open = false;
+  };
+} else {
+  class MockHTMLDialogElement extends HTMLElement {
+    open = false;
+    showModal() {
+      this.open = true;
+    }
+    close() {
+      this.open = false;
+    }
+  }
+
+  Object.defineProperty(window, 'HTMLDialogElement', {
+    value: MockHTMLDialogElement,
+    writable: true,
+  });
+}

@@ -56,7 +56,6 @@ import {
   getSamplerBuffers,
   getSamplerNoteDurationSec as resolveSamplerNoteDurationSec,
 } from './samplerNoteLifetime';
-import { clamp } from '../utils/clamp';
 
 export { RECORDING_STOP_FADE_MS };
 /** PolySynth or sample-based Sampler; shared note trigger API. */
@@ -83,7 +82,7 @@ const MIDI_NOTE_NAME_CACHE: string[] = (() => {
 })();
 
 function midiToNoteName(midi: number): string {
-  const clamped = clamp(midi, MIDI_NOTE_MIN, MIDI_NOTE_MAX);
+  const clamped = Math.max(MIDI_NOTE_MIN, Math.min(MIDI_NOTE_MAX, midi));
   return MIDI_NOTE_NAME_CACHE[clamped]!;
 }
 
@@ -611,7 +610,7 @@ export class AudioEngine {
 
     // Clamp MIDI to piano range (A0=21, C8=108) to avoid Tone.js errors
     const clamped = midiNotes.map(
-      (n) => clamp(n, MIDI_NOTE_MIN, MIDI_NOTE_MAX),
+      (n) => Math.max(MIDI_NOTE_MIN, Math.min(MIDI_NOTE_MAX, n)),
     );
 
     // Convert MIDI → note names (e.g. 60 → "C4")
@@ -660,7 +659,7 @@ export class AudioEngine {
 
     // Clamp MIDI to piano range (A0=21, C8=108) to avoid Tone.js errors
     const clamped = midiNotes.map(
-      (n) => clamp(n, MIDI_NOTE_MIN, MIDI_NOTE_MAX),
+      (n) => Math.max(MIDI_NOTE_MIN, Math.min(MIDI_NOTE_MAX, n)),
     );
     // Cast to string[] — Tone internally accepts note name strings; the strict union
     // type on toNote() is overly narrow for filter/includes operations.
@@ -808,7 +807,7 @@ export class AudioEngine {
 
     const now = Tone.now();
     const clamped = midiNotes.map(
-      (n) => clamp(n, MIDI_NOTE_MIN, MIDI_NOTE_MAX),
+      (n) => Math.max(MIDI_NOTE_MIN, Math.min(MIDI_NOTE_MAX, n)),
     );
     const noteNames: string[] = clamped.map(midiToNoteName);
 
@@ -960,21 +959,21 @@ export class AudioEngine {
   public setChorusWet(value: number) {
     this.chorusWetVal = value;
     if (this.chorus) {
-      this.chorus.wet.value = clamp(value, 0, 1);
+      this.chorus.wet.value = Math.max(0, Math.min(1, value));
     }
   }
 
   public setDelayWet(value: number) {
     this.delayWetVal = value;
     if (this.delay) {
-      this.delay.wet.value = clamp(value, 0, 1);
+      this.delay.wet.value = Math.max(0, Math.min(1, value));
     }
   }
 
   public setReverbWet(value: number) {
     this.reverbWetVal = value;
     if (this.reverb) {
-      this.reverb.wet.value = clamp(value, 0, 1);
+      this.reverb.wet.value = Math.max(0, Math.min(1, value));
     }
   }
 

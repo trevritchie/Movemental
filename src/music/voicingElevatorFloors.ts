@@ -17,7 +17,6 @@ import {
   tiltSampleFromLevels,
   type TiltSample,
 } from './TiltVoicingEngine';
-import { clamp } from '../utils/clamp';
 
 /** Absolute inputSteps for child chords under Every Other (5 stops). */
 export const EVERY_OTHER_CHILD_INPUT_STEPS = [0, 2, 4, 6, 8] as const;
@@ -90,7 +89,7 @@ export function snapVoicingLevelToAllowed(
  * which is the natural behaviour of JS Math.round for positive fractional 0.5.
  */
 export function everyOtherStopIndexFromRoll(tiltX: number): number {
-  const x = clamp(tiltX, -1, 0);
+  const x = Math.max(-1, Math.min(0, tiltX));
   return Math.round((x + 1) * MAX_EVERY_OTHER_STOP_INDEX);
 }
 
@@ -101,11 +100,7 @@ export function everyOtherInputStepsFromRoll(
   tiltX: number,
   chordName: string | null | undefined,
 ): number {
-  const stopIndex = clamp(
-    everyOtherStopIndexFromRoll(tiltX),
-    0,
-    MAX_EVERY_OTHER_STOP_INDEX,
-  );
+  const stopIndex = Math.max(0, Math.min(MAX_EVERY_OTHER_STOP_INDEX, everyOtherStopIndexFromRoll(tiltX)));
   const table = isParentElementChord(chordName)
     ? EVERY_OTHER_PARENT_INPUT_STEPS
     : EVERY_OTHER_CHILD_INPUT_STEPS;

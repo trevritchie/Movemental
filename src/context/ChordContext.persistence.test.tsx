@@ -285,20 +285,19 @@ describe('ChordProvider persistence', () => {
     expect(result.current.diagramLayoutMode).toBe('complete_geometry');
   });
 
-  it('resetSettingsGroup applies responsive harmonic function label default', () => {
+  it('resetSettingsGroup applies harmonic function label default (off)', () => {
     const { result } = renderHook(() => useCombinedChordContext(), { wrapper });
 
     act(() => {
-      result.current.setHarmonicFunctionLabelsEnabled(false);
+      result.current.setHarmonicFunctionLabelsEnabled(true);
     });
-    expect(result.current.harmonicFunctionLabelsEnabled).toBe(false);
+    expect(result.current.harmonicFunctionLabelsEnabled).toBe(true);
 
     act(() => {
       result.current.resetSettingsGroup('harmonicFunctionLabels');
     });
 
-    // jsdom desktop width yields a wide enough diagram column for labels on.
-    expect(result.current.harmonicFunctionLabelsEnabled).toBe(true);
+    expect(result.current.harmonicFunctionLabelsEnabled).toBe(false);
   });
 
   it('clears playback state when layout disables the selected chord', async () => {

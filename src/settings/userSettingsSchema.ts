@@ -533,13 +533,13 @@ export function getDefaultVoiceLeadingMode(
 }
 
 /**
- * Harmonic function labels default with chord-name labels on the diagram
- * (non-compact / desktop side-by-side). Compact and phone stay off.
+ * Harmonic function labels default to off across all viewports.
  */
 export function getDefaultHarmonicFunctionLabelsEnabled(
-  showChordNameLabels: boolean,
+  showChordNameLabels?: boolean,
 ): boolean {
-  return showChordNameLabels;
+  void showChordNameLabels;
+  return false;
 }
 
 function validateSection<S extends SettingsSectionId>(

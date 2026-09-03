@@ -161,14 +161,13 @@ describe('resolveShowChordNameLabels', () => {
 });
 
 describe('resolveDefaultHarmonicFunctionLabelsEnabled', () => {
-  it('uses modeled diagram width, not raw viewport width', () => {
-    // Viewport above compact breakpoint, but desktop diagram column is under it.
+  it('defaults to false for all layout tiers and viewports', () => {
     expect(
       resolveDefaultHarmonicFunctionLabelsEnabled('desktop', 800, 900),
     ).toBe(false);
     expect(
       resolveDefaultHarmonicFunctionLabelsEnabled('desktop', 1400, 900),
-    ).toBe(true);
+    ).toBe(false);
     expect(
       resolveDefaultHarmonicFunctionLabelsEnabled('phone', 390, 844),
     ).toBe(false);

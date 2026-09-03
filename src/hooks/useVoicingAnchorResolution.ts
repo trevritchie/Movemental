@@ -42,7 +42,6 @@ import {
   armNoTiltRevoiceSuppress,
   type NoTiltRevoiceSuppressState,
 } from '../music/noTiltRevoiceSuppress';
-import { clamp } from '../utils/clamp';
 
 interface UseVoicingAnchorResolutionOptions {
   tiltModeRef: RefObject<boolean>;
@@ -292,11 +291,7 @@ export function useVoicingAnchorResolution({
       const parallelDelta =
         parallelLevelFromTilt(currentTilt) -
         parallelLevelFromTilt(baselineTilt);
-      effectiveParallel = clamp(
-        effectiveParallel + parallelDelta,
-        -MAX_TILT_PITCH_STEPS,
-        MAX_TILT_PITCH_STEPS
-      );
+      effectiveParallel = Math.max(-MAX_TILT_PITCH_STEPS, Math.min(MAX_TILT_PITCH_STEPS, effectiveParallel + parallelDelta));
 
       if (
         !usesDeviceTilt(tiltModeRef.current) &&
@@ -352,11 +347,7 @@ export function useVoicingAnchorResolution({
         parallelLevelFromTilt(currentTilt) -
         parallelLevelFromTilt(lastTapTiltRef.current);
       const lockMaps = noTiltLockMapsRef.current;
-      let effectiveParallel = clamp(
-        smoothBaseParallelRef.current + parallelDelta,
-        -MAX_TILT_PITCH_STEPS,
-        MAX_TILT_PITCH_STEPS
-      );
+      let effectiveParallel = Math.max(-MAX_TILT_PITCH_STEPS, Math.min(MAX_TILT_PITCH_STEPS, smoothBaseParallelRef.current + parallelDelta));
 
       if (!usesDeviceTilt(tiltModeRef.current) && isNoTiltBassLocked(lockMaps, chordName)) {
         effectiveParallel = parallelStepsFromNoTiltPositionLevel(

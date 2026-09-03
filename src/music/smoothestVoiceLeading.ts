@@ -14,7 +14,6 @@ import {
   type TiltVoicingAnchor,
 } from './TiltVoicingEngine';
 
-import { clamp } from '../utils/clamp';
 
 function computeHomeMidi(
   tonalCenter: number,
@@ -278,7 +277,7 @@ export function resolveSmoothParallelSteps(
   }
 
   if (evaluated.length === 0) {
-    return clamp(baselineParallel, -maxPivot, maxPivot);
+    return Math.max(-maxPivot, Math.min(maxPivot, baselineParallel));
   }
 
   let bestOverall = evaluated[0];
@@ -301,9 +300,5 @@ export function computeEffectiveParallelSteps(
 ): number {
   const delta =
     parallelLevelFromTilt(liveTilt) - parallelLevelFromTilt(lastTapTilt);
-  return clamp(
-    smoothBaseParallel + delta,
-    -MAX_TILT_PITCH_STEPS,
-    MAX_TILT_PITCH_STEPS
-  );
+  return Math.max(-MAX_TILT_PITCH_STEPS, Math.min(MAX_TILT_PITCH_STEPS, smoothBaseParallel + delta));
 }

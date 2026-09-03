@@ -7,7 +7,6 @@
 import { chordManager, type Chord } from './ChordManager';
 import { ELEMENTAL_RELATIONSHIPS, NOTE_POSITION_MAPPING } from './config';
 import { normalizePitchClass } from './pitchClass';
-import { clamp } from '../utils/clamp';
 
 export type BorrowingDirection = 'up' | 'down' | null;
 export type NoteState = 'on' | 'off';
@@ -38,7 +37,7 @@ export function cloneBorrowingState(state: BorrowingState): BorrowingState {
   };
 }
 
-const clampMidi = (pitch: number): number => clamp(pitch, 21, 108);
+const clampMidi = (pitch: number): number => Math.max(21, Math.min(108, pitch));
 
 /** Nearest MIDI note matching targetPc to referenceMidi. */
 export function closestMidiWithPitchClass(
@@ -61,9 +60,7 @@ export function closestMidiWithPitchClass(
 
   return best;
 }
-
-export class BorrowingLogic {
-  public getRootPositionMapping(chord: Chord): Record<number, number> {
+export function getRootPositionMapping(chord: Chord): Record<number, number> {
     if (chord.rootPositionIndex === undefined) return NOTE_POSITION_MAPPING;
 
     const rootIdx = chord.rootPositionIndex;
@@ -80,22 +77,21 @@ export class BorrowingLogic {
   }
 
   // Caches unique pitch classes (mod 12) from an array of pitches to avoid redundant Math.floor/modulo.
-  private getUniquePitchClasses(pitches: number[]): number[] {
+function getUniquePitchClasses(pitches: number[]): number[] {
     const pces = new Set<number>();
     for (let i = 0; i < pitches.length; i++) {
       pces.add(pitches[i] % 12);
     }
     return Array.from(pces);
   }
-
-  public findNextHigherNote(referencePitch: number, availablePitches: number[]): number {
+export function findNextHigherNote(referencePitch: number, availablePitches: number[]): number {
     const referencePc = referencePitch % 12;
     const referenceOctave = Math.floor(referencePitch / 12);
 
     let minHigherPc = 12; // Modulo max is 11, so 12 acts as Infinity
     let minPc = 12;
 
-    const uniquePCs = this.getUniquePitchClasses(availablePitches);
+    const uniquePCs = getUniquePitchClasses(availablePitches);
 
     for (let i = 0; i < uniquePCs.length; i++) {
       const pc = uniquePCs[i];
@@ -109,15 +105,14 @@ export class BorrowingLogic {
       return minPc + ((referenceOctave + 1) * 12);
     }
   }
-
-  public findNextLowerNote(referencePitch: number, availablePitches: number[]): number {
+export function findNextLowerNote(referencePitch: number, availablePitches: number[]): number {
     const referencePc = referencePitch % 12;
     const referenceOctave = Math.floor(referencePitch / 12);
 
     let maxLowerPc = -1; // Modulo min is 0, so -1 acts as -Infinity
     let maxPc = -1;
 
-    const uniquePCs = this.getUniquePitchClasses(availablePitches);
+    const uniquePCs = getUniquePitchClasses(availablePitches);
 
     for (let i = 0; i < uniquePCs.length; i++) {
       const pc = uniquePCs[i];
@@ -133,8 +128,8 @@ export class BorrowingLogic {
   }
 
   /** Pitch classes to drop from a voiced chord when voice lines are muted. */
-  public getMutedPitchClasses(chord: Chord, state: BorrowingState): Set<number> {
-    return this.prepareVoicingInput(chord, state).mutedPitchClasses;
+export function getMutedPitchClasses(chord: Chord, state: BorrowingState): Set<number> {
+    return prepareVoicingInput(chord, state).mutedPitchClasses;
   }
 
   /**
@@ -144,15 +139,15 @@ export class BorrowingLogic {
    * collapsed two lines to the same PC, muting one line removes every
    * voiced note with that PC.
    */
-  public prepareVoicingInput(
+export function prepareVoicingInput(
     chord: Chord,
     state: BorrowingState
   ): {
     pitchStructure: (number | null)[];
     mutedPitchClasses: Set<number>;
   } {
-    const borrowedPitches = this.applyBorrowing(chord, state, true);
-    const rootPositionMapping = this.getRootPositionMapping(chord);
+    const borrowedPitches = applyBorrowing(chord, state, true);
+    const rootPositionMapping = getRootPositionMapping(chord);
     const pitchStructure: (number | null)[] = [null, null, null, null];
     const mutedPitchClasses = new Set<number>();
 
@@ -176,14 +171,13 @@ export class BorrowingLogic {
   }
 
   /** Full 4-slot structure for tilt voicing (borrowing on, all voices on). */
-  public generatePitchStructureForVoicing(
+export function generatePitchStructureForVoicing(
     chord: Chord,
     state: BorrowingState
   ): (number | null)[] {
-    return this.prepareVoicingInput(chord, state).pitchStructure;
+    return prepareVoicingInput(chord, state).pitchStructure;
   }
-
-  public filterVoicingMutes(
+export function filterVoicingMutes(
     voicedPitches: number[],
     mutedPitchClasses: Set<number>
   ): number[] {
@@ -196,15 +190,15 @@ export class BorrowingLogic {
   }
 
   /** Natural and borrowed pitch classes for one harmonic voice line. */
-  public getVoicePitchClasses(
+export function getVoicePitchClasses(
     chord: Chord,
     state: BorrowingState,
     line: number
   ): { naturalPc: number; effectivePc: number } {
-    const rootPositionMapping = this.getRootPositionMapping(chord);
+    const rootPositionMapping = getRootPositionMapping(chord);
     const noteIndex = rootPositionMapping[line];
     const naturalPc = normalizePitchClass(chord.pitches[noteIndex]);
-    const borrowedPitches = this.applyBorrowing(chord, state, true);
+    const borrowedPitches = applyBorrowing(chord, state, true);
     const effectivePc = normalizePitchClass(borrowedPitches[noteIndex]);
     return { naturalPc, effectivePc };
   }
@@ -213,13 +207,13 @@ export class BorrowingLogic {
    * Substitute borrowed pitch classes on an anchored neutral voicing.
    * Each active borrow replaces natural PCs with the closest MIDI match.
    */
-  public applyBorrowingOverlay(
+export function applyBorrowingOverlay(
     neutralVoicing: number[],
     chord: Chord,
     state: BorrowingState
   ): number[] {
-    const rootPositionMapping = this.getRootPositionMapping(chord);
-    const borrowedPitches = this.applyBorrowing(chord, state, true);
+    const rootPositionMapping = getRootPositionMapping(chord);
+    const borrowedPitches = applyBorrowing(chord, state, true);
     let result = neutralVoicing;
 
     for (let line = 1; line <= 4; line++) {
@@ -241,23 +235,22 @@ export class BorrowingLogic {
   }
 
   /** Borrow substitution then mute filter on an anchored neutral voicing. */
-  public applyVoicingOverlays(
+export function applyVoicingOverlays(
     neutralVoicing: number[],
     chord: Chord,
     state: BorrowingState
   ): number[] {
-    const withBorrowing = this.applyBorrowingOverlay(
+    const withBorrowing = applyBorrowingOverlay(
       neutralVoicing,
       chord,
       state
     );
-    return this.filterVoicingMutes(
+    return filterVoicingMutes(
       withBorrowing,
-      this.getMutedPitchClasses(chord, state)
+      getMutedPitchClasses(chord, state)
     );
   }
-
-  private applyBorrowing(
+function applyBorrowing(
     chord: Chord,
     state: BorrowingState,
     ignoreMute: boolean
@@ -271,7 +264,7 @@ export class BorrowingLogic {
     if (!oppositeChord) return borrowedPitches;
 
     const oppositePitches = oppositeChord.pitches;
-    const rootPositionMapping = this.getRootPositionMapping(chord);
+    const rootPositionMapping = getRootPositionMapping(chord);
 
     for (let line = 1; line <= 4; line++) {
       if (!ignoreMute && state.noteStates[line] === 'off') continue;
@@ -285,9 +278,9 @@ export class BorrowingLogic {
           let replacement = targetPitch;
 
           if (direction === 'up') {
-            replacement = this.findNextHigherNote(targetPitch, oppositePitches);
+            replacement = findNextHigherNote(targetPitch, oppositePitches);
           } else if (direction === 'down') {
-            replacement = this.findNextLowerNote(targetPitch, oppositePitches);
+            replacement = findNextLowerNote(targetPitch, oppositePitches);
           }
 
           borrowedPitches[targetNoteIndex] = replacement;
@@ -301,11 +294,11 @@ export class BorrowingLogic {
   // Pre-voicing pitch structure: borrowing applied, voices toggled off as
   // nulls, no octave-range or drop-voicing offsets. Used directly by the
   // tilt play style, which voices chords itself.
-  public generatePitchStructure(chord: Chord, state: BorrowingState): (number | null)[] {
-    const borrowedPitches = this.applyBorrowing(chord, state, false);
+export function generatePitchStructure(chord: Chord, state: BorrowingState): (number | null)[] {
+    const borrowedPitches = applyBorrowing(chord, state, false);
 
     const fullPitchStructure: (number | null)[] = [null, null, null, null];
-    const rootPositionMapping = this.getRootPositionMapping(chord);
+    const rootPositionMapping = getRootPositionMapping(chord);
 
     for (let line = 1; line <= 4; line++) {
       if (state.noteStates[line] === 'on') {
@@ -318,6 +311,3 @@ export class BorrowingLogic {
 
     return fullPitchStructure;
   }
-}
-
-export const borrowingLogic = new BorrowingLogic();

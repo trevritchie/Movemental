@@ -3,7 +3,7 @@ import {
   isExportPeakSafe,
   measureAudioPeakDb,
 } from './audioPeakMeasure';
-import { isM4aCompatibleBlob } from './recordingMimeTypes';
+import { extensionForMimeType, isM4aCompatibleBlob } from './recordingMimeTypes';
 
 /**
  * Lazy WebM/Opus to M4A/AAC transcode for downloads.
@@ -35,23 +35,6 @@ type FfmpegInstance = {
 
 let ffmpegInstance: FfmpegInstance | null = null;
 let loadPromise: Promise<FfmpegInstance> | null = null;
-
-function inputExtensionForBlob(blob: Blob): string {
-  const type = blob.type.toLowerCase();
-  if (type.includes('webm')) {
-    return 'webm';
-  }
-  if (type.includes('ogg')) {
-    return 'ogg';
-  }
-  if (type.includes('wav')) {
-    return 'wav';
-  }
-  if (type.includes('mp4') || type.includes('aac')) {
-    return 'm4a';
-  }
-  return 'bin';
-}
 
 function buildExportAudioFilter(peakDb: number | null): string | null {
   const trimDb = peakDb !== null ? exportTrimDbForPeak(peakDb) : 0;
@@ -101,7 +84,7 @@ async function ensureFfmpegLoaded(): Promise<FfmpegInstance> {
 async function transcodeToM4a(input: Blob, peakDb: number | null): Promise<Blob> {
   const ffmpeg = await ensureFfmpegLoaded();
   const { fetchFile } = await import('@ffmpeg/util');
-  const inputName = `input.${inputExtensionForBlob(input)}`;
+  const inputName = `input.${extensionForMimeType(input.type)}`;
   const outputName = 'output.m4a';
   const audioFilter = buildExportAudioFilter(peakDb);
 

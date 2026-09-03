@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ChordManager } from './ChordManager';
-import { borrowingLogic, getInitialBorrowingState } from './BorrowingLogic';
+import { getRootPositionMapping, prepareVoicingInput, getInitialBorrowingState } from './BorrowingLogic';
 import {
   getDefaultElementalRoot,
   resolveElementalRoot,
@@ -61,12 +61,12 @@ describe('elementalRoot', () => {
     chord: ReturnType<ChordManager['getChordByName']>,
     voiced: number[]
   ): string {
-    const structure = borrowingLogic.prepareVoicingInput(
+    const structure = prepareVoicingInput(
       chord!,
       getInitialBorrowingState()
     ).pitchStructure;
     const lowestPc = ((Math.min(...voiced) % 12) + 12) % 12;
-    const mapping = borrowingLogic.getRootPositionMapping(chord!);
+    const mapping = getRootPositionMapping(chord!);
     for (let line = 1; line <= 4; line++) {
       const pitch = structure[mapping[line]];
       if (pitch !== null && ((pitch % 12) + 12) % 12 === lowestPc) {

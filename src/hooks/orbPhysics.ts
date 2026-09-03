@@ -11,7 +11,6 @@
  *
  * Orientation uses the same ~90° normalizer as voicing/bass tilt readouts.
  */
-import { clamp } from '../utils/clamp';
 import { ORIENTATION_ANGLE_NORMALIZER } from './orientationUtils';
 
 export {
@@ -79,8 +78,8 @@ export function computeBubbleLevelTarget(
 
   const orbDiameter =
     maxOrbDiameter > 0 ? maxOrbDiameter : fallbackOrbDiameter(bounds);
-  const nx = clamp(gamma / ORIENTATION_ANGLE_NORMALIZER, -1, 1);
-  const ny = clamp(beta / ORIENTATION_ANGLE_NORMALIZER, -1, 1);
+  const nx = Math.max(-1, Math.min(1, gamma / ORIENTATION_ANGLE_NORMALIZER));
+  const ny = Math.max(-1, Math.min(1, beta / ORIENTATION_ANGLE_NORMALIZER));
   const travelX =
     (bounds.width / 2 + orbDiameter * ORB_OVERSHOOT_FRACTION) * ORB_TRAVEL_SCALE;
   const travelY =
@@ -100,7 +99,7 @@ export function stepBubbleLevelOffset(
   target: Point2D,
   config: BubbleLevelConfig = DEFAULT_BUBBLE_LEVEL_CONFIG,
 ): Point2D {
-  const spring = clamp(config.spring, 0, 1);
+  const spring = Math.max(0, Math.min(1, config.spring));
   return {
     x: current.x + (target.x - current.x) * spring,
     y: current.y + (target.y - current.y) * spring,
