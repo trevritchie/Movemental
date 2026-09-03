@@ -281,15 +281,14 @@ vi.mock('tone', () => {
 
 // Mock HTMLDialogElement for jsdom
 if (typeof window.HTMLDialogElement === 'function') {
-  HTMLDialogElement.prototype.showModal = function () {
+  HTMLDialogElement.prototype.showModal = function (this: HTMLDialogElement) {
     this.open = true;
   };
-  HTMLDialogElement.prototype.close = function () {
+  HTMLDialogElement.prototype.close = function (this: HTMLDialogElement) {
     this.open = false;
   };
 } else {
-  // If undefined, define it
-  (window as any).HTMLDialogElement = class HTMLDialogElement extends HTMLElement {
+  class MockHTMLDialogElement extends HTMLElement {
     open = false;
     showModal() {
       this.open = true;
@@ -297,5 +296,10 @@ if (typeof window.HTMLDialogElement === 'function') {
     close() {
       this.open = false;
     }
-  };
+  }
+
+  Object.defineProperty(window, 'HTMLDialogElement', {
+    value: MockHTMLDialogElement,
+    writable: true,
+  });
 }
