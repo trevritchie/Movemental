@@ -103,8 +103,8 @@ describe('userSettingsSchema', () => {
     expect(getDefaultVoiceLeadingMode(false)).toBe('smoothest');
   });
 
-  it('getDefaultHarmonicFunctionLabelsEnabled follows chord-name labels', () => {
-    expect(getDefaultHarmonicFunctionLabelsEnabled(true)).toBe(true);
+  it('getDefaultHarmonicFunctionLabelsEnabled defaults to false', () => {
+    expect(getDefaultHarmonicFunctionLabelsEnabled(true)).toBe(false);
     expect(getDefaultHarmonicFunctionLabelsEnabled(false)).toBe(false);
   });
 

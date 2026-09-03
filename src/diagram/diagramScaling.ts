@@ -64,25 +64,19 @@ export function resolveShowChordNameLabels(
 
 /**
  * Whether harmonic-function labels should default on for a viewport.
- * Uses the modeled diagram column width, not raw viewport width, so the
- * result matches ElementalDiagram compact decisions.
+ * Harmonic function labels default to off across all viewports.
  */
 export function resolveDefaultHarmonicFunctionLabelsEnabled(
-  layoutTier: LayoutTier,
-  viewportWidth: number,
-  viewportHeight: number,
+  layoutTier?: LayoutTier,
+  viewportWidth?: number,
+  viewportHeight?: number,
   compactDiagramWidth: number = BREAKPOINTS.compactDiagramWidth,
 ): boolean {
-  const container = computeDiagramContainerSizeForTier(
-    viewportWidth,
-    viewportHeight,
-    layoutTier,
-  );
-  return resolveShowChordNameLabels(
-    layoutTier,
-    container.width,
-    compactDiagramWidth,
-  );
+  void layoutTier;
+  void viewportWidth;
+  void viewportHeight;
+  void compactDiagramWidth;
+  return false;
 }
 
 export function getDiagramViewBox(isCompactDiagram: boolean): DiagramViewBox {
