@@ -84,4 +84,23 @@ describe('useProductTour', () => {
     expect(localStorage.getItem(TOUR_COMPLETED_KEY)).toBe('true');
     expect(result.current.isActive).toBe(false);
   });
+
+  it('passes tiltToStrum setting through to tour step bodies', () => {
+    seedTourTargets(getTourStepsForMode(true).map((step) => step.targetId));
+    const { result } = renderHook(() => useProductTour(true, false));
+
+    act(() => {
+      result.current.startTour();
+    });
+
+    // Step 0 is diagram, Step 1 is voicing
+    act(() => {
+      result.current.nextStep();
+    });
+
+    expect(result.current.currentStep?.id).toBe('voicing');
+    expect(result.current.currentStep?.body).toContain(
+      'The top value is what sounded last',
+    );
+  });
 });

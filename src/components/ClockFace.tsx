@@ -177,7 +177,7 @@ export const ClockFace: React.FC<{ isMobileOverlay?: boolean }> = ({
   const noteLabelSize = isMobileOverlay ? 18 : 13;
 
   const clockSvg = (
-    <svg viewBox="0 0 300 300" className="clock-svg">
+    <svg viewBox="0 0 300 300" className="clock-svg" data-tour-id="tour-clock">
       <circle
         cx={CLOCK_CX}
         cy={CLOCK_CY}
@@ -248,6 +248,7 @@ export const ClockFace: React.FC<{ isMobileOverlay?: boolean }> = ({
         <div
           className="diagram-chord-readout"
           title={elementalName ?? undefined}
+          data-tour-id="tour-chord-readout"
         >
           <div className="diagram-chord-readout__sizer" aria-hidden="true">
             {CHORD_READOUT_WIDTH_SIZER}
@@ -259,8 +260,8 @@ export const ClockFace: React.FC<{ isMobileOverlay?: boolean }> = ({
   }
 
   return (
-    <div className="clock-container" data-tour-id="tour-clock">
-      <div className="clock-info">{chordInfo}</div>
+    <div className="clock-container">
+      <div className="clock-info" data-tour-id="tour-chord-readout">{chordInfo}</div>
       {clockSvg}
     </div>
   );

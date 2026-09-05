@@ -35,8 +35,8 @@ interface TourProviderProps {
 }
 
 export const TourProvider: React.FC<TourProviderProps> = ({ children }) => {
-  const { tiltModeEnabled } = useChordContext();
-  const tour = useProductTour(tiltModeEnabled);
+  const { tiltModeEnabled, tiltToStrum } = useChordContext();
+  const tour = useProductTour(tiltModeEnabled, tiltToStrum);
   const [hasEnteredApp, setHasEnteredApp] = useState(false);
   const [promptDismissed, setPromptDismissed] = useState(
     () => readTourPromptDismissed(),

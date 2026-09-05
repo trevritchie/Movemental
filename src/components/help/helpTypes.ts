@@ -3,8 +3,9 @@ export type HelpView =
   | 'hub'
   | 'elemental-scores'
   | 'creation-theory'
-  | 'borrowing-neighbors'
-  | 'elevator-system';
+  | 'elevator-system'
+  | 'applied-movemental'
+  | 'borrowing-neighbors';
 
 export function helpDialogTitle(view: HelpView): string {
   switch (view) {
@@ -12,11 +13,14 @@ export function helpDialogTitle(view: HelpView): string {
       return 'Elemental Scores';
     case 'creation-theory':
       return 'Creation Theory';
+    case 'elevator-system':
+      return 'The Elevator System';
+    case 'applied-movemental':
+      return 'Applied to Movemental';
     case 'borrowing-neighbors':
       return 'Borrowing from the Neighbors';
-    case 'elevator-system':
-      return 'Elevator System';
     default:
       return 'Help';
   }
 }
+

@@ -7,7 +7,7 @@ This repository is well-documented. **Before making any structural changes, modi
 Do not guess or apply generic React patterns; strictly adhere to the context boundaries, performance rules, and cross-file utility conventions defined in `CONTRIBUTING.md`.
 
 # 2. Verification Rules
-Before considering a task complete, writing a commit, or presenting a final solution, you must verify your changes by running the following commands locally:
+Before considering a PR ready, you must verify your changes by running the following commands locally:
 
 1.  **Lint:** `npm run lint`
 2.  **Unit Tests:** `npm test` (Runs the fast, mocked test suite)

@@ -192,7 +192,7 @@ describe('DiagramCornerActions', () => {
 
     expect(screen.getByRole('dialog', { name: 'Help' })).toBeInTheDocument();
     expect(screen.queryByText('Tonal Center')).not.toBeInTheDocument();
-    expect(screen.getByText(/How Movemental works/i)).toBeInTheDocument();
+    expect(screen.getByText(/How to Play/i)).toBeInTheDocument();
   });
 
   it('shows tap and tap-and-hold play styles on tablet', async () => {
