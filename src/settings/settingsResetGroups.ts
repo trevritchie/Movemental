@@ -19,6 +19,7 @@ export type SettingsResetGroupId =
   | 'envelopeAdsr'
   | 'synthEffects'
   | 'eq'
+  | 'tiltMode'
   | 'playStyle'
   | 'retriggerSoundingNotes'
   | 'tiltToStrum'
@@ -37,6 +38,7 @@ export const SETTINGS_RESET_GROUP_LABELS: Record<SettingsResetGroupId, string> =
     envelopeAdsr: 'Envelope (ADSR)',
     synthEffects: 'Synth Effects',
     eq: 'EQ',
+    tiltMode: 'Tilt',
     playStyle: 'Sustain Mode',
     retriggerSoundingNotes: 'Retrigger Sounding Notes',
     tiltToStrum: 'Tilt to Strum',
@@ -94,6 +96,8 @@ export function getSettingsGroupDefaults(
   const defaults = DEFAULT_USER_SETTINGS;
 
   switch (groupId) {
+    case 'tiltMode':
+      return { tiltModeEnabled: defaults.general.tiltModeEnabled };
     case 'playStyle':
       return { playStyle: defaults.general.playStyle };
     case 'retriggerSoundingNotes':

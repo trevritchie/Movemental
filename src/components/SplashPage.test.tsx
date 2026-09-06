@@ -22,10 +22,19 @@ vi.mock('../audio/AudioEngine', () => ({
 
 const enterTiltSession = vi.fn();
 const enterNoTiltSession = vi.fn();
+const setTiltToStrum = vi.fn();
 const requestTiltPermission = vi.fn().mockResolvedValue(undefined);
 
+let mockChordContextState = {
+  enterTiltSession,
+  enterNoTiltSession,
+  setTiltToStrum,
+  tiltModeEnabled: true,
+  hasPersistedSettings: false,
+};
+
 vi.mock('../context/ChordContext', () => ({
-  useChordContext: () => ({ enterTiltSession, enterNoTiltSession }),
+  useChordContext: () => mockChordContextState,
 }));
 
 vi.mock('../context/TiltReadoutContext', () => ({
@@ -47,13 +56,20 @@ describe('SplashPage', () => {
     vi.clearAllMocks();
     vi.useFakeTimers();
     vi.mocked(useLayoutTier).mockReturnValue('desktop');
+    mockChordContextState = {
+      enterTiltSession,
+      enterNoTiltSession,
+      setTiltToStrum,
+      tiltModeEnabled: true,
+      hasPersistedSettings: false,
+    };
   });
 
   afterEach(() => {
     vi.useRealTimers();
   });
 
-  it('unlocks iOS media channel and starts audio on Start click', async () => {
+  it('unlocks iOS media channel and starts audio on Start click (desktop)', async () => {
     const onEnter = vi.fn();
     render(<SplashPage onEnter={onEnter} />);
 
@@ -85,53 +101,155 @@ describe('SplashPage', () => {
       screen.queryByRole('button', { name: /tilt/i }),
     ).not.toBeInTheDocument();
     expect(
-      screen.queryByRole('button', { name: /static/i }),
-    ).not.toBeInTheDocument();
-    expect(
       screen.queryByRole('button', { name: /no tilt/i }),
     ).not.toBeInTheDocument();
   });
 
-  it('shows Tilt and No Tilt buttons on mobile', () => {
+  it('shows Tilt and No Tilt buttons on first mobile visit (no persisted settings)', () => {
     vi.mocked(useLayoutTier).mockReturnValue('phone');
+    mockChordContextState.hasPersistedSettings = false;
     render(<SplashPage onEnter={vi.fn()} />);
-    expect(screen.getByRole('button', { name: /^tilt$/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /no tilt/i })).toBeInTheDocument();
+    expect(screen.getByText('Tilt').closest('button')).toBeInTheDocument();
+    expect(screen.getByText('No Tilt').closest('button')).toBeInTheDocument();
+    expect(
+      screen.getByText(/You can change this anytime in Settings\./i),
+    ).toBeInTheDocument();
     expect(
       screen.queryByRole('button', { name: /^start$/i }),
     ).not.toBeInTheDocument();
   });
 
-  it('requests motion permission and enters tilt mode from the Tilt button', async () => {
+  it('enters no-tilt session from the No Tilt button on first mobile visit without permission request', async () => {
     vi.mocked(useLayoutTier).mockReturnValue('phone');
+    mockChordContextState.hasPersistedSettings = false;
     const onEnter = vi.fn();
     render(<SplashPage onEnter={onEnter} />);
 
+    const noTiltButton = screen.getByText('No Tilt').closest('button')!;
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: /^tilt$/i }));
+      fireEvent.click(noTiltButton);
     });
 
-    expect(requestTiltPermission).toHaveBeenCalledTimes(1);
-    expect(enterTiltSession).toHaveBeenCalledTimes(1);
-    expect(enterNoTiltSession).not.toHaveBeenCalled();
+    expect(requestTiltPermission).not.toHaveBeenCalled();
+    expect(enterNoTiltSession).toHaveBeenCalledTimes(1);
+    expect(enterTiltSession).not.toHaveBeenCalled();
     expect(unlockIosMediaChannel).toHaveBeenCalled();
 
     await flushSplashEnterTimers();
     expect(onEnter).toHaveBeenCalled();
   });
 
-  it('enters no-tilt session from the No Tilt button without a permission request', async () => {
+  it('requests motion permission, enters tilt mode, and presents Tilt to Strum options when Tilt is selected', async () => {
+    vi.mocked(useLayoutTier).mockReturnValue('phone');
+    mockChordContextState.hasPersistedSettings = false;
+    const onEnter = vi.fn();
+    render(<SplashPage onEnter={onEnter} />);
+
+    const tiltButton = screen.getByText('Tilt').closest('button')!;
+    await act(async () => {
+      fireEvent.click(tiltButton);
+    });
+
+    expect(requestTiltPermission).toHaveBeenCalledTimes(1);
+    expect(enterTiltSession).toHaveBeenCalledTimes(1);
+    expect(enterNoTiltSession).not.toHaveBeenCalled();
+
+    // The second prompt should now be visible
+    expect(screen.getByRole('heading', { name: /Tilt to Strum/i })).toBeInTheDocument();
+    const onButton = screen.getByText('On').closest('button')!;
+    const offButton = screen.getByText('Off').closest('button')!;
+    expect(onButton).toBeInTheDocument();
+    expect(offButton).toBeInTheDocument();
+
+    // Audio has not started yet
+    expect(unlockIosMediaChannel).not.toHaveBeenCalled();
+
+    // Tap "On"
+    await act(async () => {
+      fireEvent.click(onButton);
+    });
+
+    expect(setTiltToStrum).toHaveBeenCalledWith(true);
+    expect(unlockIosMediaChannel).toHaveBeenCalledTimes(1);
+
+    await flushSplashEnterTimers();
+    expect(onEnter).toHaveBeenCalled();
+  });
+
+  it('allows choosing Off in the Tilt to Strum prompt', async () => {
     vi.mocked(useLayoutTier).mockReturnValue('tablet');
+    mockChordContextState.hasPersistedSettings = false;
+    const onEnter = vi.fn();
+    render(<SplashPage onEnter={onEnter} />);
+
+    const tiltButton = screen.getByText('Tilt').closest('button')!;
+    await act(async () => {
+      fireEvent.click(tiltButton);
+    });
+
+    const offButton = screen.getByText('Off').closest('button')!;
+
+    // Tap "Off"
+    await act(async () => {
+      fireEvent.click(offButton);
+    });
+
+    expect(setTiltToStrum).toHaveBeenCalledWith(false);
+    expect(unlockIosMediaChannel).toHaveBeenCalledTimes(1);
+
+    await flushSplashEnterTimers();
+    expect(onEnter).toHaveBeenCalled();
+  });
+
+  it('shows single Start button for returning mobile user (hasPersistedSettings: true)', () => {
+    vi.mocked(useLayoutTier).mockReturnValue('phone');
+    mockChordContextState.hasPersistedSettings = true;
+    render(<SplashPage onEnter={vi.fn()} />);
+
+    expect(screen.getByRole('button', { name: /^start$/i })).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /^tilt$/i }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /no tilt/i }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('returning mobile user with tiltModeEnabled: true taps Start and requests permission + enters tilt mode', async () => {
+    vi.mocked(useLayoutTier).mockReturnValue('phone');
+    mockChordContextState.hasPersistedSettings = true;
+    mockChordContextState.tiltModeEnabled = true;
     const onEnter = vi.fn();
     render(<SplashPage onEnter={onEnter} />);
 
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: /no tilt/i }));
+      fireEvent.click(screen.getByRole('button', { name: /^start$/i }));
+    });
+
+    expect(requestTiltPermission).toHaveBeenCalledTimes(1);
+    expect(enterTiltSession).toHaveBeenCalledTimes(1);
+    expect(enterNoTiltSession).not.toHaveBeenCalled();
+    expect(unlockIosMediaChannel).toHaveBeenCalledTimes(1);
+
+    await flushSplashEnterTimers();
+    expect(onEnter).toHaveBeenCalled();
+  });
+
+  it('returning mobile user with tiltModeEnabled: false taps Start and enters no-tilt mode without permission request', async () => {
+    vi.mocked(useLayoutTier).mockReturnValue('phone');
+    mockChordContextState.hasPersistedSettings = true;
+    mockChordContextState.tiltModeEnabled = false;
+    const onEnter = vi.fn();
+    render(<SplashPage onEnter={onEnter} />);
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /^start$/i }));
     });
 
     expect(requestTiltPermission).not.toHaveBeenCalled();
     expect(enterNoTiltSession).toHaveBeenCalledTimes(1);
     expect(enterTiltSession).not.toHaveBeenCalled();
+    expect(unlockIosMediaChannel).toHaveBeenCalledTimes(1);
 
     await flushSplashEnterTimers();
     expect(onEnter).toHaveBeenCalled();

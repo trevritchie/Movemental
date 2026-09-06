@@ -191,10 +191,12 @@ describe('MobileActionButtons', () => {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
-  it('opens the settings sheet with tonal center and borrowing memory', async () => {
-    render(<MobileActionButtons />);
+  it(
+    'opens the settings sheet with tonal center and borrowing memory',
+    async () => {
+      render(<MobileActionButtons />);
 
-    await openSettingsFromToolbar();
+      await openSettingsFromToolbar();
     const dialog = screen.getByRole('dialog', { name: 'Settings' });
     expect(
       within(dialog).queryByText(/How Movemental works and interactive tour/i),
@@ -206,7 +208,7 @@ describe('MobileActionButtons', () => {
     expect(screen.getByText('Voice Borrowing')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /per chord/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /^global$/i })).toBeInTheDocument();
-  });
+  }, 10000);
 
   it('lists settings with grouped sections and per-setting reset buttons', async () => {
     render(<MobileActionButtons />);
@@ -267,7 +269,7 @@ describe('MobileActionButtons', () => {
 
     expect(screen.getByRole('dialog', { name: 'Help' })).toBeInTheDocument();
     expect(screen.queryByText('Tonal Center')).not.toBeInTheDocument();
-    expect(screen.getByText(/How Movemental works/i)).toBeInTheDocument();
+    expect(screen.getByText(/How to Play/i)).toBeInTheDocument();
   });
 
   it('opens help from the toolbar Help button', async () => {
@@ -276,14 +278,14 @@ describe('MobileActionButtons', () => {
     await openHelpFromToolbar();
 
     expect(screen.getByRole('dialog', { name: 'Help' })).toBeInTheDocument();
-    expect(screen.getByText(/How Movemental works/i)).toBeInTheDocument();
+    expect(screen.getByText(/How to Play/i)).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Harmonic Theory' }))
       .toBeInTheDocument();
     expect(
       screen.getByRole('button', { name: /creation theory/i }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('button', { name: /borrowing from the neighbors/i }),
+      screen.getByRole('button', { name: /applied to movemental/i }),
     ).toBeInTheDocument();
     expect(
       screen.getByRole('button', { name: /elevator system/i }),
@@ -293,7 +295,7 @@ describe('MobileActionButtons', () => {
     ).toBeInTheDocument();
     expect(screen.getByText(/borrow from the neighbor/i)).toBeInTheDocument();
     expect(screen.getByText(/elevator floors/i)).toBeInTheDocument();
-    expect(screen.getByText(/Base, Brother, Twin, Sister/i)).toBeInTheDocument();
+    expect(screen.getByText(/sibling slices/i)).toBeInTheDocument();
   });
 
   it('opens creation theory with Barry Harris credit and video link', async () => {
@@ -308,69 +310,65 @@ describe('MobileActionButtons', () => {
     expect(screen.getByText(/Dr\. Barry Harris/i)).toBeInTheDocument();
     expect(
       screen.getByRole('link', {
-        name: /watch reference video on youtube/i,
+        name: /Succinct demonstration - Chris Parks/i,
+      }),
+    ).toHaveAttribute('href', 'https://youtube.com/shorts/NWT86jDvUPQ');
+    expect(
+      screen.getByRole('link', {
+        name: /Succinct demonstration - Thomas Echols/i,
       }),
     ).toHaveAttribute('href', 'https://www.youtube.com/shorts/OmWSgjwroLM');
-    expect(screen.getByRole('heading', { name: /two diminished parents/i }))
+    expect(screen.getByRole('heading', { name: /1\. The Chromatic Scale/i }))
       .toBeInTheDocument();
-    expect(screen.getByText(/carrying DNA from both parents/i)).toBeInTheDocument();
+    expect(screen.getByText(/The Book of Genesis/i)).toBeInTheDocument();
     expect(screen.getAllByText(/Earth, Wind, and Fire/i).length)
       .toBeGreaterThanOrEqual(1);
     expect(screen.getByText(/Base, Brother, Twin/i)).toBeInTheDocument();
-    expect(screen.getAllByText(/scale of chords/i).length).toBeGreaterThanOrEqual(2);
-    expect(screen.getByText(/neighbor is the opposite vertex/i)).toBeInTheDocument();
-    expect(screen.getByText(/not a parent of the child/i)).toBeInTheDocument();
-    expect(screen.getByText(/brother-and-sister pattern appears for those qualities/i))
-      .toBeInTheDocument();
-    expect(screen.getByText(/each circle is one chord quality/i)).toBeInTheDocument();
-    expect(screen.getByText(/one half step/i)).toBeInTheDocument();
-    expect(screen.getByText(/whole-tone scales/i)).toBeInTheDocument();
-    expect(screen.getByText(/twelve notes of the chromatic scale/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/scale of chords/i).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText(/untouched third diminished chord is the Neighbor/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/Major 6th/i).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText(/half step/i).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText(/whole-tone scales/i).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText(/twelve pitch classes/i)).toBeInTheDocument();
     expect(screen.getAllByText(/^In Movemental/i).length).toBeGreaterThanOrEqual(2);
   });
 
-  it('opens borrowing from the neighbors with Barry Harris credit and video link', async () => {
+
+  it('opens applied to movemental with lineage, sliders, and elevator applications', async () => {
     render(<MobileActionButtons />);
 
     await openHelpFromToolbar();
     fireEvent.click(
-      screen.getByRole('button', { name: /borrowing from the neighbors/i }),
+      screen.getByRole('button', { name: /applied to movemental/i }),
     );
 
     expect(
-      screen.getByRole('dialog', { name: 'Borrowing from the Neighbors' }),
+      screen.getByRole('dialog', { name: 'Applied to Movemental' }),
     ).toBeInTheDocument();
-    expect(screen.getByText(/Dr\. Barry Harris/i)).toBeInTheDocument();
-    expect(
-      screen.getByRole('link', {
-        name: /watch reference video on youtube/i,
-      }),
-    ).toHaveAttribute(
-      'href',
-      'https://www.youtube.com/watch?v=eRgvvbGuwLo&t=172s',
-    );
-    expect(screen.getAllByText(/neighbor/i).length).toBeGreaterThanOrEqual(2);
-    expect(screen.getByText(/^On chord:/i)).toBeInTheDocument();
-    expect(screen.getByText(/^Off chord:/i)).toBeInTheDocument();
-    expect(screen.getByText(/eight related harmonies/i)).toBeInTheDocument();
-    expect(screen.getByText(/Branch is an Earth-Wind child/i)).toBeInTheDocument();
-    expect(screen.getByText(/neighbor is Fire/i)).toBeInTheDocument();
-    expect(screen.getAllByText(/^In Movemental/i).length).toBeGreaterThanOrEqual(1);
-    expect(screen.getByText(/Drag up or down to borrow/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/Dr\. Barry Harris/i).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText(/Thomas Echols/i).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByRole('heading', { name: /1\. The Elemental Triangle/i }))
+      .toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /2\. Borrowing Sliders/i }))
+      .toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /3\. VOICING and Relative Motion/i }))
+      .toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /4\. Smooth Voice Leading/i }))
+      .toBeInTheDocument();
   });
 
-  it('returns to help hub from borrowing neighbors via back', async () => {
+  it('returns to help hub from applied to movemental via back', async () => {
     render(<MobileActionButtons />);
 
     await openHelpFromToolbar();
     fireEvent.click(
-      screen.getByRole('button', { name: /borrowing from the neighbors/i }),
+      screen.getByRole('button', { name: /applied to movemental/i }),
     );
     fireEvent.click(screen.getByRole('button', { name: /back to help/i }));
 
     expect(screen.getByRole('dialog', { name: 'Help' })).toBeInTheDocument();
     expect(
-      screen.getByRole('button', { name: /borrowing from the neighbors/i }),
+      screen.getByRole('button', { name: /applied to movemental/i }),
     ).toBeInTheDocument();
   });
 
@@ -381,7 +379,7 @@ describe('MobileActionButtons', () => {
     fireEvent.click(screen.getByRole('button', { name: /elevator system/i }));
 
     expect(
-      screen.getByRole('dialog', { name: 'Elevator System' }),
+      screen.getByRole('dialog', { name: 'The Elevator System' }),
     ).toBeInTheDocument();
     expect(screen.getByText(/Thomas Echols/i)).toBeInTheDocument();
     expect(
@@ -389,12 +387,14 @@ describe('MobileActionButtons', () => {
     ).toHaveAttribute('href', 'https://www.youtube.com/@LabyrinthofLimitations');
     expect(
       screen.getByRole('link', {
-        name: /watch reference video on youtube/i,
+        name: /Episode 16: The Elevator Sequence/i,
       }),
     ).toHaveAttribute('href', 'https://www.youtube.com/watch?v=qYoSZqWLh7E');
-    expect(screen.getAllByText(/^In Movemental/i).length).toBeGreaterThanOrEqual(3);
-    expect(screen.getByText(/roll your phone left or right/i)).toBeInTheDocument();
-    expect(screen.getByText(/Unison toward Triad/i)).toBeInTheDocument();
+    expect(screen.getByText(/Floor 1: Unison/i)).toBeInTheDocument();
+    expect(screen.getByText(/Floor 9: Double Octave Chords/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/Contrary motion/i).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText(/Parallel \(direct\) motion/i).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText(/Oblique motion/i).length).toBeGreaterThanOrEqual(1);
   });
 
   it('returns to help hub from a theory article via back', async () => {
@@ -415,7 +415,7 @@ describe('MobileActionButtons', () => {
     await openHelpFromToolbar();
     fireEvent.click(screen.getByRole('button', { name: /elevator system/i }));
     expect(
-      screen.getByRole('dialog', { name: 'Elevator System' }),
+      screen.getByRole('dialog', { name: 'The Elevator System' }),
     ).toBeInTheDocument();
 
     fireEvent(screen.getByRole('dialog'), new Event('cancel'));

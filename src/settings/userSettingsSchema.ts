@@ -267,6 +267,10 @@ export type GeneralSettings = {
   octaveRange: number;
   playStyle: PlayStyle;
   /**
+   * When true (mobile/tablet only), tilt sensing is active for voicing control.
+   */
+  tiltModeEnabled: boolean;
+  /**
    * When true (tap sustain only), true chord-name changes fully retrigger
    * still-sounding notes. Sibling variants count as name changes; same-button
    * re-taps always retrigger. Dead sampler notes always re-attack.
@@ -345,6 +349,10 @@ export const USER_SETTINGS_SCHEMA: Record<
     playStyle: {
       default: 'tap' as PlayStyle,
       validate: isPlayStyle,
+    },
+    tiltModeEnabled: {
+      default: true,
+      validate: isBoolean,
     },
     retriggerSoundingNotes: {
       default: false,

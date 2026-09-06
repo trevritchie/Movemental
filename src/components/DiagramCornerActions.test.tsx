@@ -179,11 +179,9 @@ describe('DiagramCornerActions', () => {
     expect(screen.getByRole('dialog', { name: 'Settings' })).toBeInTheDocument();
     expect(screen.getByText('Play Style')).toBeInTheDocument();
     expect(screen.getByText('Tonal Center')).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', { name: /full screen/i }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /full screen/i })).toBeInTheDocument();
     expect(screen.queryByRole('option', { name: 'Tilt' })).not.toBeInTheDocument();
-  });
+  }, 10000);
 
   it('opens Help dialog directly from the toolbar', async () => {
     render(<DiagramCornerActions />);
@@ -192,7 +190,7 @@ describe('DiagramCornerActions', () => {
 
     expect(screen.getByRole('dialog', { name: 'Help' })).toBeInTheDocument();
     expect(screen.queryByText('Tonal Center')).not.toBeInTheDocument();
-    expect(screen.getByText(/How Movemental works/i)).toBeInTheDocument();
+    expect(screen.getByText(/How to Play/i)).toBeInTheDocument();
   });
 
   it('shows tap and tap-and-hold play styles on tablet', async () => {

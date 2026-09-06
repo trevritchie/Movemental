@@ -58,11 +58,14 @@ export interface ProductTourState {
   finishTour: () => void;
 }
 
-export function useProductTour(tiltModeEnabled: boolean): ProductTourState {
+export function useProductTour(
+  tiltModeEnabled: boolean,
+  tiltToStrum = true,
+): ProductTourState {
   const layoutTier = useLayoutTier();
   const baseSteps = useMemo(
-    () => getTourStepsForMode(tiltModeEnabled),
-    [tiltModeEnabled],
+    () => getTourStepsForMode(tiltModeEnabled, tiltToStrum),
+    [tiltModeEnabled, tiltToStrum],
   );
 
   const [isActive, setIsActive] = useState(false);

@@ -9,6 +9,7 @@ describe('settingsResetGroups', () => {
   it('defines labels for every reset group', () => {
     expect(SETTINGS_RESET_GROUP_LABELS.instrument).toBe('Instrument');
     expect(SETTINGS_RESET_GROUP_LABELS.tonalCenter).toBe('Tonal Center');
+    expect(SETTINGS_RESET_GROUP_LABELS.tiltMode).toBe('Tilt');
     expect(SETTINGS_RESET_GROUP_LABELS.playStyle).toBe('Sustain Mode');
     expect(SETTINGS_RESET_GROUP_LABELS.clockFace).toBe('Clock Face Diagram');
     expect(SETTINGS_RESET_GROUP_LABELS.glowingOrbs).toBe('Glowing Orbs');
@@ -20,6 +21,17 @@ describe('settingsResetGroups', () => {
       'Retrigger Sounding Notes',
     );
     expect(SETTINGS_RESET_GROUP_LABELS.tiltToStrum).toBe('Tilt to Strum');
+  });
+
+  it('returns tilt mode default for tiltMode group', () => {
+    const defaults = getSettingsGroupDefaults('tiltMode', {
+      tiltModeEnabled: false,
+      synthPresetId: 'warmPad',
+    });
+
+    expect(defaults).toEqual({
+      tiltModeEnabled: DEFAULT_USER_SETTINGS.general.tiltModeEnabled,
+    });
   });
 
   it('returns play style defaults only for playStyle group', () => {

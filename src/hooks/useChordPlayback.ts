@@ -88,6 +88,7 @@ interface UseChordPlaybackOptions {
   applyNoTiltLocksForChord: (chordName: string, deferSetState?: boolean) => void;
   clearNoTiltChordLocks: () => void;
   initialPlayStyle?: PlayStyle;
+  initialTiltModeEnabled?: boolean;
   hasPersistedSettings?: boolean;
   /**
    * Tap sustain: on true chord-name changes (any different button, including
@@ -137,6 +138,7 @@ export function useChordPlayback({
   applyNoTiltLocksForChord,
   clearNoTiltChordLocks,
   initialPlayStyle = 'tap',
+  initialTiltModeEnabled = false,
   hasPersistedSettings = false,
   retriggerSoundingNotesRef,
   tiltToStrumRef,
@@ -144,7 +146,9 @@ export function useChordPlayback({
   bpmRef,
 }: UseChordPlaybackOptions) {
   const [playStyle, setPlayStyle] = useState<PlayStyle>(initialPlayStyle);
-  const [tiltModeEnabled, setTiltModeEnabled] = useState(false);
+  const [tiltModeEnabled, setTiltModeEnabled] = useState(
+    initialTiltModeEnabled,
+  );
   const [activePitches, setActivePitches] = useState<(number | null)[]>([]);
   const [previousPlayedChord, setPreviousPlayedChord] = useState<Chord | null>(
     null

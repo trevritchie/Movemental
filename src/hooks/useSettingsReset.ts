@@ -36,6 +36,7 @@ export interface UseSettingsResetOptions {
   setTonalCenter: (val: number) => void;
   setOctaveRange: (val: number) => void;
   setPlayStyle: (mode: PlayStyle) => void;
+  setTiltModeEnabled: (enabled: boolean) => void;
   setVoiceLeadingMode: (mode: VoiceLeadingMode) => void;
   setBorrowingMemory: (mode: 'global' | 'per-chord') => void;
   setClockLayoutMode: (mode: ClockLayoutMode) => void;
@@ -71,6 +72,7 @@ export function useSettingsReset({
   setTonalCenter,
   setOctaveRange,
   setPlayStyle,
+  setTiltModeEnabled,
   setVoiceLeadingMode,
   setBorrowingMemory,
   setClockLayoutMode,
@@ -104,6 +106,7 @@ export function useSettingsReset({
         tonalCenter: setTonalCenter,
         octaveRange: setOctaveRange,
         playStyle: setPlayStyle,
+        tiltModeEnabled: setTiltModeEnabled,
         retriggerSoundingNotes: setRetriggerSoundingNotes,
         tiltToStrum: setTiltToStrum,
         shortestNote: setShortestNote,
@@ -132,6 +135,7 @@ export function useSettingsReset({
       setTonalCenter,
       setOctaveRange,
       setPlayStyle,
+      setTiltModeEnabled,
       setVoiceLeadingMode,
       setBorrowingMemory,
       setClockLayoutMode,

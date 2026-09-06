@@ -28,7 +28,7 @@ describe('popoverStyle', () => {
     });
   });
 
-  it('centers popover for a large diagram target on phone', () => {
+  it('centers popover for a large diagram target on phone taking available width', () => {
     const style = popoverStyle({
       top: 0,
       left: 0,
@@ -39,10 +39,11 @@ describe('popoverStyle', () => {
     expect(style.top).toBeTypeOf('number');
     expect(style.top as number).toBeGreaterThanOrEqual(16);
     expect(style.top as number).toBeLessThanOrEqual(844 - 240 - 16);
-    expect(style.left).toBe(35);
+    expect(style.left).toBe(16);
+    expect(style.width).toBe(358);
   });
 
-  it('keeps popover below a small target when space allows', () => {
+  it('keeps popover below a small target when space allows with dynamic maxHeight', () => {
     const style = popoverStyle({
       top: 40,
       left: 300,
@@ -51,5 +52,18 @@ describe('popoverStyle', () => {
     });
 
     expect(style.top).toBe(100);
+    expect(style.maxHeight).toBe(844 - 16 - 100);
+  });
+
+  it('anchors popover above a target near the bottom', () => {
+    const style = popoverStyle({
+      top: 750,
+      left: 100,
+      width: 48,
+      height: 48,
+    });
+
+    expect(style.bottom).toBe(844 - 750 + 12);
+    expect(style.maxHeight).toBe(750 - 16 - 12);
   });
 });

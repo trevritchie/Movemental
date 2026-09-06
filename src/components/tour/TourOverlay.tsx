@@ -9,6 +9,7 @@ import {
   type TourStepDef,
 } from '../../tour/tourSteps';
 import { popoverStyle } from './tourPopoverPlacement';
+import { renderFormattedTourText } from './renderFormattedTourText';
 
 interface TourOverlayProps {
   step: TourStepDef;
@@ -112,7 +113,9 @@ export const TourOverlay: React.FC<TourOverlayProps> = ({
         <h3 id="tour-popover-title" className="tour-popover__title">
           {step.title}
         </h3>
-        <p className="tour-popover__body">{step.body}</p>
+        <div className="tour-popover__body">
+          {renderFormattedTourText(step.body)}
+        </div>
         <div className="tour-popover__actions">
           <button
             type="button"

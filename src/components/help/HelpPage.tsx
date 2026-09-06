@@ -11,18 +11,11 @@ import {
 } from 'lucide-react';
 import { useChordContext } from '../../context/ChordContext';
 import type { HelpView } from './helpTypes';
-import { BorrowingNeighborsHelp } from './BorrowingNeighborsHelp';
+import { AppliedMovementalHelp } from './AppliedMovementalHelp';
 import { CreationTheoryHelp } from './CreationTheoryHelp';
 import { ElementalScoresHelp } from './ElementalScoresHelp';
 import { ElevatorSystemHelp } from './ElevatorSystemHelp';
-import {
-  HELP_HUB_BORROWING_BODY,
-  HELP_HUB_DIAGRAM_BODY,
-  HELP_HUB_LEDE,
-  HELP_HUB_THEORY_POINTER,
-  HELP_HUB_VOICING_NO_TILT_BODY,
-  HELP_HUB_VOICING_TILT_BODY,
-} from './helpTheoryContent';
+import { HelpAccordion } from './HelpAccordion';
 
 interface HelpPageProps {
   helpView: HelpView;
@@ -55,15 +48,15 @@ export const HelpPage: React.FC<HelpPageProps> = ({
     );
   }
 
-  if (helpView === 'borrowing-neighbors') {
-    return (
-      <BorrowingNeighborsHelp onBack={() => onHelpViewChange('hub')} />
-    );
-  }
-
   if (helpView === 'elevator-system') {
     return (
       <ElevatorSystemHelp onBack={() => onHelpViewChange('hub')} />
+    );
+  }
+
+  if (helpView === 'applied-movemental' || helpView === 'borrowing-neighbors') {
+    return (
+      <AppliedMovementalHelp onBack={() => onHelpViewChange('hub')} />
     );
   }
 
@@ -108,22 +101,7 @@ export const HelpPage: React.FC<HelpPageProps> = ({
                 Creation Theory
               </span>
               <span className="help-page__theory-entry-subtitle">
-                Barry Harris's harmonic teachings
-              </span>
-            </span>
-          </button>
-          <button
-            type="button"
-            className="help-page__theory-entry"
-            onClick={() => onHelpViewChange('borrowing-neighbors')}
-          >
-            <ArrowUpDown size={22} aria-hidden="true" />
-            <span className="help-page__theory-entry-text">
-              <span className="help-page__theory-entry-title">
-                Borrowing from the Neighbors
-              </span>
-              <span className="help-page__theory-entry-subtitle">
-                On/off "scale of chords" and borrowing
+                Barry Harris&apos;s foundational framework
               </span>
             </span>
           </button>
@@ -135,85 +113,156 @@ export const HelpPage: React.FC<HelpPageProps> = ({
             <Layers size={22} aria-hidden="true" />
             <span className="help-page__theory-entry-text">
               <span className="help-page__theory-entry-title">
-                Elevator System
+                The Elevator System
               </span>
               <span className="help-page__theory-entry-subtitle">
-                Nine voicing floors for relative motion
+                Thomas Echols&apos;s voicing floors
+              </span>
+            </span>
+          </button>
+          <button
+            type="button"
+            className="help-page__theory-entry"
+            onClick={() => onHelpViewChange('applied-movemental')}
+          >
+            <ArrowUpDown size={22} aria-hidden="true" />
+            <span className="help-page__theory-entry-text">
+              <span className="help-page__theory-entry-title">
+                Applied to Movemental
+              </span>
+              <span className="help-page__theory-entry-subtitle">
+                Performing both systems on the instrument
               </span>
             </span>
           </button>
         </div>
       </section>
 
-      <section className="help-page__section">
-        <h4 className="help-page__section-title">How Movemental Works</h4>
-        <p>{HELP_HUB_LEDE}</p>
-      </section>
-
-      <section className="help-page__section">
-        <h4 className="help-page__section-title">Elemental Diagram</h4>
-        <p>{HELP_HUB_DIAGRAM_BODY}</p>
-      </section>
-
-      <section className="help-page__section">
-        <h4 className="help-page__section-title">Voice Borrowing</h4>
-        <p>{HELP_HUB_BORROWING_BODY}</p>
-      </section>
-
-      <section className="help-page__section">
-        <h4 className="help-page__section-title">VOICING and IN THE BASS</h4>
+      <HelpAccordion title="How to Play">
         <p>
-          {tiltModeEnabled
-            ? HELP_HUB_VOICING_TILT_BODY
-            : HELP_HUB_VOICING_NO_TILT_BODY}
+          <strong>Movemental</strong> is a harmonic playground built around an elemental chord diagram:
         </p>
-      </section>
+        <ul className="help-page__accordion-list">
+          <li>
+            <strong>Tap chords</strong> to play them immediately, or drag across slices for smooth voice-led transitions.
+          </li>
+          <li>
+            <strong>Elevator floors</strong> expand and contract chord width from narrow Unison to wide Double Octave.
+          </li>
+          <li>
+            <strong>Voice borrowing</strong> pulls colorful tones from the opposite vertex on the triangle for dynamic tension.
+          </li>
+        </ul>
+      </HelpAccordion>
 
-      <section className="help-page__section">
-        <h4 className="help-page__section-title">Learn More</h4>
-        <p>{HELP_HUB_THEORY_POINTER}</p>
-      </section>
-
-      <section className="help-page__section">
-        <h4 className="help-page__section-title">Tilt vs No Tilt</h4>
+      <HelpAccordion title="Diagram and Clock Face">
         <p>
-          Tilt mode (phone) uses motion sensors for voicing and bass note selection. No Tilt
-          mode uses manual dropdowns and locks. Desktop Start always enters No
-          Tilt with smoothest voice leading.
+          <strong>Earth</strong>, <strong>Wind</strong>, and <strong>Fire</strong> are &quot;parent&quot; vertices at the triangle corners (fully diminished seventh chords).
         </p>
-      </section>
-
-      <section className="help-page__section">
-        <h4 className="help-page__section-title">Play Style and Voice Leading</h4>
         <p>
-          Tap (Click on desktop) holds notes until you tap again or hit panic.
-          Tap &amp; Hold releases when you let go. In Tilt mode, Tilt to Strum
-          (On by default) plays only the notes that change when you move to a
-          new tilt level, without retapping. BPM and Shortest Note set how
-          quickly successive tilt levels can fire. Voice leading modes (Root
-          Position, Smooth, Smoothest) control how parallel position moves
-          between chords. Home Octave sets register; Tonal Center rotates the
-          clock and pitch labels.
+          <strong>Child chords</strong> inherit notes from two parents along each axis, divided into four sibling slices (<strong>Base</strong>, <strong>Brother</strong>, <strong>Twin</strong>, <strong>Sister</strong>).
         </p>
-      </section>
-
-      <section className="help-page__section">
-        <h4 className="help-page__section-title">Recording and Panic</h4>
         <p>
-          Session recording captures audio (WebM, exportable as M4A) and MIDI.
-          Stop triggers the panic switch with a 300 ms fade out. The panic
-          button instantly silences all notes anytime.
+          <strong>How Diagram Nodes Get Their Names</strong>: Each node name reflects the proportion of notes inherited from its two parents:
         </p>
-      </section>
-
-      <section className="help-page__section">
-        <h4 className="help-page__section-title">Phone vs Desktop</h4>
+        <ul className="help-page__accordion-list">
+          <li>
+            <strong>3-to-1 Ratio (Minor 6)</strong>: Leans heavily toward the first parent. <strong>Trunk</strong> has 3 Earth notes and 1 Wind note (rooted in the earth). Likewise, <strong>Smoke</strong> has 3 Wind / 1 Fire, and <strong>Magma</strong> has 3 Fire / 1 Earth.
+          </li>
+          <li>
+            <strong>2-to-2 Ratio (Major 6 &amp; Dominant 7&#9837;5)</strong>: Equal balance of both parents. <strong>Branch</strong> has 2 Earth notes and 2 Wind notes (grounded yet reaching into the air), while <strong>Sand-Storm</strong> shares this 2-and-2 balance across a symmetrical tritone drop. Likewise, <strong>Ember</strong> and <strong>Fire-Storm</strong> have 2 Wind / 2 Fire, while <strong>Glass</strong> and <strong>Forest-Fire</strong> have 2 Fire / 2 Earth.
+          </li>
+          <li>
+            <strong>1-to-3 Ratio (Dominant 7)</strong>: Leans heavily toward the second parent. <strong>Leaf</strong> has 1 Earth note and 3 Wind notes (light and airy in the wind). Likewise, <strong>Flame</strong> has 1 Wind / 3 Fire, and <strong>Charcoal</strong> has 1 Fire / 3 Earth.
+          </li>
+        </ul>
         <p>
-          On phone, the diagram fills the screen with borrowing sliders below
-          and toolbar buttons on the sides. On desktop, the clock face and
-          borrowing panel sit beside the diagram with corner action buttons.
+          <strong>Clock Face Diagram</strong>: Displays all twelve pitch classes around a circular dial with elemental colors (switch between Chromatic and Circle of Fifths in Settings).
         </p>
-      </section>
+        <p>
+          <strong>Four-Level Chord Naming</strong>:
+        </p>
+        <ul className="help-page__accordion-list">
+          <li><strong>Elemental Name</strong>: family and sibling slice</li>
+          <li><strong>Chord Chemistry</strong>: Earth, Wind, and Fire DNA balance</li>
+          <li><strong>Traditional Name</strong>: standard jazz/classical symbol</li>
+          <li><strong>Note Names</strong>: exact sounding pitches</li>
+        </ul>
+      </HelpAccordion>
+
+      <HelpAccordion title="Voice Borrowing Sliders">
+        <p>
+          Four vertical sliders represent the chord voices (<strong>Root</strong>, <strong>Third</strong>, <strong>Fifth</strong>, <strong>Sixth/Seventh</strong>).
+        </p>
+        <p>
+          The center line plays the pure chord tone; drag up or down to <strong>borrow from the neighbor</strong> (the opposite vertex across the triangle) for extra color.
+        </p>
+        <p>
+          Tap an active slider node again to <strong>mute that voice</strong> (creating smaller voicings such as triads or two-note shells).
+        </p>
+      </HelpAccordion>
+
+      <HelpAccordion title="VOICING, IN THE BASS, and Tilt">
+        {tiltModeEnabled ? (
+          <>
+            <p>
+              <strong>VOICING (Tilt Roll)</strong>: Roll your phone left or right to step through nine elevator floors from narrow <strong>Unison</strong> (full tilt) to wide <strong>Double Octave</strong> (flat), enabling <strong>contrary motion</strong>.
+            </p>
+            <p>
+              <strong>IN THE BASS (Tilt Pitch)</strong>: Tilt forward or backward to shift registers and choose which chord tone anchors the bass, enabling <strong>parallel motion</strong>.
+            </p>
+            <p>
+              With <strong>Tilt to Strum</strong> on, the readout shows your live floor and bass note. With it off, the top value is what you will hear if you tap a chord now, while the lower value is what sounded last.
+            </p>
+          </>
+        ) : (
+          <>
+            <p>
+              <strong>VOICING</strong>: Select an elevator floor from the VOICING pill to shape chord width from narrow <strong>Unison</strong> to wide <strong>Double Octave</strong> using <strong>oblique motion</strong> (expanding upward from the bass).
+            </p>
+            <p>
+              <strong>IN THE BASS</strong>: Choose which chord tone anchors the bottom voice independently of your voicing floor.
+            </p>
+            <p>
+              Tap the <strong>lock icons</strong> to save your preferred voicing floor and bass inversion per chord.
+            </p>
+          </>
+        )}
+      </HelpAccordion>
+
+      <HelpAccordion title="Play Style, Settings, and Voice Leading">
+        <ul className="help-page__accordion-list">
+          <li>
+            <strong>Play Style</strong>: <strong>Tap</strong> (Click on desktop) holds notes until you tap again or hit panic. <strong>Tap &amp; Hold</strong> releases notes when you let go.
+          </li>
+          <li>
+            <strong>Tilt to Strum</strong>: Dynamically re-voices chords as you move between tilt levels without retapping, with tempo rate limits set by <strong>BPM</strong> and <strong>Shortest Note</strong>.
+          </li>
+          <li>
+            <strong>Retrigger Sounding Notes</strong>: Toggles whether common tones re-attack when changing chords.
+          </li>
+          <li>
+            <strong>Voice Leading</strong>: Choose between <strong>Root Position</strong>, <strong>Smooth</strong>, and <strong>Smoothest</strong> to control how chord degrees transition across moves.
+          </li>
+          <li>
+            <strong>Customization</strong>: Adjust <strong>tonal center</strong>, <strong>home octave</strong>, <strong>Borrowing Memory</strong> (Global vs Per-Chord), <strong>Clock Face layouts</strong> (Chromatic or Circle of Fifths), <strong>Glowing Orbs</strong>, <strong>Harmonic Function Labels</strong>, <strong>Synth Presets</strong>, <strong>ADSR envelopes</strong>, EQ profiles, and <strong>audio FX</strong> (Chorus, Delay, Reverb).
+          </li>
+        </ul>
+      </HelpAccordion>
+
+      <HelpAccordion title="Recording and Panic">
+        <ul className="help-page__accordion-list">
+          <li>
+            <strong>Session Recording</strong>: Captures your performance live in <strong>audio</strong> and <strong>MIDI</strong>.
+          </li>
+          <li>
+            <strong>Stop &amp; Review</strong>: Stopping a take engages a clean 300 ms fade and opens the review dialog to audition your take, download audio, or export MIDI.
+          </li>
+          <li>
+            <strong>Panic Switch</strong>: Instantly silences all sounding audio, cuts synth envelopes, and releases active MIDI notes anytime.
+          </li>
+        </ul>
+      </HelpAccordion>
     </div>
   );
 };

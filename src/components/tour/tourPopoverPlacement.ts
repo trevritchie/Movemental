@@ -16,7 +16,9 @@ const VIEWPORT_PAD = 16;
 export function popoverStyle(target: TargetRect): CSSProperties {
   const vw = window.innerWidth;
   const vh = window.innerHeight;
-  const popoverWidth = Math.min(320, vw - VIEWPORT_PAD * 2);
+  // On mobile screens, take full width minus viewport padding; on wider screens clamp to 400px.
+  const popoverWidth =
+    vw < 480 ? vw - VIEWPORT_PAD * 2 : Math.min(400, vw - VIEWPORT_PAD * 2);
 
   let left = target.left + target.width / 2 - popoverWidth / 2;
   left = Math.max(
@@ -40,31 +42,47 @@ export function popoverStyle(target: TargetRect): CSSProperties {
         safeBottom - POPOVER_EST_HEIGHT,
       ),
     );
-    return { top, left, width: popoverWidth };
+    return {
+      top,
+      left,
+      width: popoverWidth,
+      maxHeight: safeBottom - safeTop,
+    };
   }
 
   if (spaceBelow >= POPOVER_EST_HEIGHT + 12) {
+    const top = targetBottom + 12;
     return {
-      top: targetBottom + 12,
+      top,
       left,
       width: popoverWidth,
+      maxHeight: safeBottom - top,
     };
   }
 
   if (spaceAbove >= POPOVER_EST_HEIGHT + 12) {
     return {
-      top: Math.max(safeTop, target.top - POPOVER_EST_HEIGHT - 12),
+      bottom: vh - target.top + 12,
       left,
       width: popoverWidth,
+      maxHeight: target.top - safeTop - 12,
     };
   }
 
-  const top = Math.max(
-    safeTop,
-    Math.min(
-      (vh - POPOVER_EST_HEIGHT) / 2,
-      safeBottom - POPOVER_EST_HEIGHT,
-    ),
-  );
-  return { top, left, width: popoverWidth };
+  if (spaceBelow >= spaceAbove) {
+    const top = targetBottom + 12;
+    return {
+      top,
+      left,
+      width: popoverWidth,
+      maxHeight: Math.max(160, safeBottom - top),
+    };
+  }
+
+  return {
+    bottom: vh - target.top + 12,
+    left,
+    width: popoverWidth,
+    maxHeight: Math.max(160, target.top - safeTop - 12),
+  };
 }

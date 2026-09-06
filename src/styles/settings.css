@@ -35,6 +35,7 @@
   animation: settingsModalIn 0.22s cubic-bezier(0.4, 0, 0.2, 1) forwards;
   box-shadow: 0 24px 48px rgba(0, 0, 0, 0.45);
   background: #18181b;
+  color: var(--text-primary);
   border: 1px solid var(--panel-border);
 }
 
@@ -56,12 +57,15 @@
   padding: 16px 20px 12px;
   flex-shrink: 0;
   border-bottom: 1px solid var(--panel-border);
+  color: var(--text-primary);
 }
 
 .settings-modal__title {
   font-size: 1.05rem;
   font-weight: 700;
   letter-spacing: -0.01em;
+  color: var(--text-primary);
+  margin: 0;
 }
 
 .settings-modal__close {
