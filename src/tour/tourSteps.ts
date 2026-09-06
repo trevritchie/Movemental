@@ -36,7 +36,7 @@ export function getTiltTourSteps(tiltToStrum = true): TourStepDef[] {
         'This enables **contrary motion**: imagine your hands moving closer together or further apart on a piano.\n\n' +
         (tiltToStrum
           ? 'The readout shows your active floor.'
-          : 'The top value is what sounded last, while the lower value is what you will hear if you tap a chord now.'),
+          : 'The top value is what you will hear if you tap a chord now, while the lower value is what sounded last.'),
     },
     {
       id: 'bass',
@@ -47,7 +47,7 @@ export function getTiltTourSteps(tiltToStrum = true): TourStepDef[] {
         'This enables **parallel motion**: imagine your hands moving together up or down a piano.\n\n' +
         (tiltToStrum
           ? 'The readout shows your active bass note.'
-          : 'The top value is what sounded last, while the lower value is what you will hear if you tap a chord now.'),
+          : 'The top value is what you will hear if you tap a chord now, while the lower value is what sounded last.'),
     },
     {
       id: 'borrowing',

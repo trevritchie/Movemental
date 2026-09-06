@@ -13,6 +13,7 @@ export const HELP_HUB_HOW_TO_PLAY_BODY =
 export const HELP_HUB_DIAGRAM_AND_CLOCK_BODY =
   'Earth, Wind, and Fire anchor the triangle corners as fully diminished seventh parents. ' +
   'Child chord families sit along each axis, combining notes from their two parents. ' +
+  'Node names reflect their elemental proportions (Trunk: 3 Earth / 1 Wind, Branch & Sand-Storm: 2 / 2, Leaf: 1 / 3). ' +
   'Each family divides into four sibling slices (Base, Brother, Twin, Sister). ' +
   'The Clock Face dial displays all twelve pitch classes around a circular dial with elemental colors, ' +
   'and the four-level chord readout provides Elemental Name, Chord Chemistry, Traditional Name, and Note Names.';
@@ -140,7 +141,9 @@ export const CREATION_STEP_4_SIBLINGS_BODY =
   'music theory, such as tritone substitution or back-door dominants.';
 
 export const CREATION_STEP_4_MOVEMENTAL =
-  'On the diagram, each circular group along an axis is a chord quality. ' +
+  'On the diagram, each circular group along an axis is a chord quality that ' +
+  'reflects the ratio of notes inherited from its parents (Trunk has 3 Earth notes ' +
+  'and 1 Wind note, Branch has 2 and 2, and Leaf has 1 and 3). ' +
   'The four slices in that circle (Base, Brother, Twin, and Sister) are the ' +
   'siblings. Rotating between sibling slices simply rotates the chord\'s ' +
   'geometry around the clock face.';

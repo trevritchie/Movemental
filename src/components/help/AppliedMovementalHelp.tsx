@@ -50,6 +50,29 @@ export const AppliedMovementalHelp: React.FC<AppliedMovementalHelpProps> = ({
         Rotating between sibling slices preserves the chord type while rotating its geometric polygon around the{' '}
         <strong>Clock Face dial</strong>.
       </p>
+      <p>
+        <strong>How Diagram Nodes Get Their Names</strong>: The poetic names of the child nodes describe the
+        exact balance of notes inherited from their two parent vertices:
+      </p>
+      <ul className="help-article__list">
+        <li className="help-article__list-item">
+          <strong>3 Parts Parent A + 1 Part Parent B (Minor 6):</strong> Leans heavily toward the first parent. On the
+          Earth and Wind axis, <strong>Trunk</strong> contains 3 Earth notes and 1 Wind note (rooted firmly in the earth).
+          Similarly, <strong>Smoke</strong> has 3 Wind and 1 Fire, while <strong>Magma</strong> has 3 Fire and 1 Earth.
+        </li>
+        <li className="help-article__list-item">
+          <strong>2 Parts Parent A + 2 Parts Parent B (Major 6 &amp; Dominant 7&#9837;5):</strong> An equal balance of both
+          parents. <strong>Branch</strong> contains 2 Earth notes and 2 Wind notes (reaching into the air with equal
+          grounding and lift), while <strong>Sand-Storm</strong> shares this 2-and-2 balance across a symmetrical tritone drop.
+          Similarly, <strong>Ember</strong> and <strong>Fire-Storm</strong> have 2 Wind and 2 Fire, while <strong>Glass</strong>{' '}
+          and <strong>Forest-Fire</strong> have 2 Fire and 2 Earth.
+        </li>
+        <li className="help-article__list-item">
+          <strong>1 Part Parent A + 3 Parts Parent B (Dominant 7):</strong> Leans heavily toward the second parent. <strong>Leaf</strong>{' '}
+          contains 1 Earth note and 3 Wind notes (light and airy, dancing in the breeze). Similarly, <strong>Flame</strong> has
+          1 Wind and 3 Fire, while <strong>Charcoal</strong> has 1 Fire and 3 Earth.
+        </li>
+      </ul>
     </HelpAccordion>
 
     <HelpAccordion title={APPLIED_TOPIC_2_TITLE}>

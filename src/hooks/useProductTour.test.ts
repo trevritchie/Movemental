@@ -100,7 +100,7 @@ describe('useProductTour', () => {
 
     expect(result.current.currentStep?.id).toBe('voicing');
     expect(result.current.currentStep?.body).toContain(
-      'The top value is what sounded last',
+      'The top value is what you will hear',
     );
   });
 });

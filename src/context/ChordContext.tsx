@@ -87,6 +87,8 @@ interface ChordContextType {
   playStyle: PlayStyle;
   setPlayStyle: (mode: PlayStyle) => void;
   tiltModeEnabled: boolean;
+  setTiltModeEnabled: (enabled: boolean) => void;
+  hasPersistedSettings: boolean;
   enterTiltSession: () => void;
   enterNoTiltSession: () => void;
   handleChordPointerDown: (chord: Chord) => void;
@@ -355,6 +357,7 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
     applyNoTiltLocksForChord,
     clearNoTiltChordLocks: noTiltLocks.clearAllLocks,
     initialPlayStyle: loadedSettings.general.playStyle,
+    initialTiltModeEnabled: loadedSettings.general.tiltModeEnabled,
     hasPersistedSettings,
     retriggerSoundingNotesRef,
     tiltToStrumRef,
@@ -418,6 +421,17 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
     }
   }, [enterNoTiltPlayback, hasPersistedSettings]);
 
+  const setTiltModeEnabled = useCallback(
+    (enabled: boolean) => {
+      if (enabled) {
+        enterTiltSession();
+      } else {
+        enterNoTiltSession();
+      }
+    },
+    [enterTiltSession, enterNoTiltSession],
+  );
+
   const setDiagramLayoutMode = useCallback(
     (mode: DiagramLayoutMode) => {
       setDiagramLayoutModeState(mode);
@@ -440,6 +454,7 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
     setTonalCenter,
     setOctaveRange,
     setPlayStyle: playback.setPlayStyle,
+    setTiltModeEnabled,
     setVoiceLeadingMode,
     setBorrowingMemory: borrowing.setBorrowingMemory,
     setClockLayoutMode,
@@ -474,6 +489,7 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
         tonalCenter,
         octaveRange,
         playStyle: playback.playStyle,
+        tiltModeEnabled: playback.tiltModeEnabled,
         retriggerSoundingNotes,
         tiltToStrum,
         shortestNote,
@@ -506,6 +522,7 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
       tonalCenter,
       octaveRange,
       playback.playStyle,
+      playback.tiltModeEnabled,
       retriggerSoundingNotes,
       tiltToStrum,
       shortestNote,
@@ -637,6 +654,8 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
       playStyle: playback.playStyle,
       setPlayStyle: playback.setPlayStyle,
       tiltModeEnabled: playback.tiltModeEnabled,
+      setTiltModeEnabled,
+      hasPersistedSettings,
       enterTiltSession,
       enterNoTiltSession,
       handleChordPointerDown: handleChordPointerDown,
@@ -695,6 +714,8 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
       playback.playStyle,
       playback.setPlayStyle,
       playback.tiltModeEnabled,
+      setTiltModeEnabled,
+      hasPersistedSettings,
       enterTiltSession,
       enterNoTiltSession,
       handleChordPointerDown,

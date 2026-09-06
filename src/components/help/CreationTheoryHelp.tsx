@@ -130,9 +130,11 @@ export const CreationTheoryHelp: React.FC<CreationTheoryHelpProps> = ({
         <strong>Base, Brother, Twin, and Sister</strong>.
       </p>
       <HelpCallout>
-        <strong>In Movemental</strong>, each child group along a triangle axis (such as <strong>Branch</strong>,{' '}
-        <strong>Smoke</strong>, or <strong>Magma</strong>) represents one quality family, split into four{' '}
-        <strong>sibling slices</strong> that rotate symmetrically around the clock face.
+        <strong>In Movemental</strong>, each child group along a triangle axis (such as <strong>Trunk</strong>,{' '}
+        <strong>Branch</strong>, or <strong>Leaf</strong>) reflects the ratio of notes inherited from its parents:{' '}
+        <strong>Trunk</strong> contains 3 Earth notes and 1 Wind note, <strong>Branch</strong> contains 2 Earth and 2 Wind,{' '}
+        and <strong>Leaf</strong> contains 1 Earth and 3 Wind. Each group splits into four <strong>sibling slices</strong> that{' '}
+        rotate symmetrically around the clock face.
       </HelpCallout>
     </HelpAccordion>
 

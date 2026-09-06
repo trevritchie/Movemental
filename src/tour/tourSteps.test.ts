@@ -79,14 +79,14 @@ describe('tourSteps', () => {
     const offVoicing = strumOffSteps.find((s) => s.id === 'voicing');
     expect(onVoicing?.body).toContain('The readout shows your active floor.');
     expect(offVoicing?.body).toContain(
-      'The top value is what sounded last, while the lower value is what you will hear if you tap a chord now.',
+      'The top value is what you will hear if you tap a chord now, while the lower value is what sounded last.',
     );
 
     const onBass = strumOnSteps.find((s) => s.id === 'bass');
     const offBass = strumOffSteps.find((s) => s.id === 'bass');
     expect(onBass?.body).toContain('The readout shows your active bass note.');
     expect(offBass?.body).toContain(
-      'The top value is what sounded last, while the lower value is what you will hear if you tap a chord now.',
+      'The top value is what you will hear if you tap a chord now, while the lower value is what sounded last.',
     );
   });
 });

@@ -14,6 +14,7 @@ describe('userSettingsSchema', () => {
     expect(DEFAULT_USER_SETTINGS.general.tonalCenter).toBe(10);
     expect(DEFAULT_USER_SETTINGS.general.octaveRange).toBe(2);
     expect(DEFAULT_USER_SETTINGS.general.playStyle).toBe('tap');
+    expect(DEFAULT_USER_SETTINGS.general.tiltModeEnabled).toBe(true);
     expect(DEFAULT_USER_SETTINGS.general.retriggerSoundingNotes).toBe(false);
     expect(DEFAULT_USER_SETTINGS.general.tiltToStrum).toBe(true);
     expect(DEFAULT_USER_SETTINGS.general.shortestNote).toBe('4n');
@@ -44,6 +45,7 @@ describe('userSettingsSchema', () => {
       tonalCenter: 10,
       octaveRange: 2,
       playStyle: 'tap',
+      tiltModeEnabled: true,
       retriggerSoundingNotes: false,
       tiltToStrum: true,
       shortestNote: '4n',
@@ -120,6 +122,7 @@ describe('userSettingsSchema', () => {
       tonalCenter: 0,
       octaveRange: 4,
       playStyle: 'tap_and_hold',
+      tiltModeEnabled: true,
       retriggerSoundingNotes: false,
       tiltToStrum: true,
       shortestNote: '4n',

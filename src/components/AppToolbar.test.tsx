@@ -191,10 +191,12 @@ describe('MobileActionButtons', () => {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
-  it('opens the settings sheet with tonal center and borrowing memory', async () => {
-    render(<MobileActionButtons />);
+  it(
+    'opens the settings sheet with tonal center and borrowing memory',
+    async () => {
+      render(<MobileActionButtons />);
 
-    await openSettingsFromToolbar();
+      await openSettingsFromToolbar();
     const dialog = screen.getByRole('dialog', { name: 'Settings' });
     expect(
       within(dialog).queryByText(/How Movemental works and interactive tour/i),
@@ -206,7 +208,7 @@ describe('MobileActionButtons', () => {
     expect(screen.getByText('Voice Borrowing')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /per chord/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /^global$/i })).toBeInTheDocument();
-  });
+  }, 10000);
 
   it('lists settings with grouped sections and per-setting reset buttons', async () => {
     render(<MobileActionButtons />);

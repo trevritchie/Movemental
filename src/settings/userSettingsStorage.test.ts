@@ -27,6 +27,7 @@ describe('userSettingsStorage', () => {
         tonalCenter: 3,
         octaveRange: 3,
         playStyle: 'tap_and_hold' as const,
+        tiltModeEnabled: true,
         retriggerSoundingNotes: true,
         tiltToStrum: true,
         shortestNote: '8n' as const,

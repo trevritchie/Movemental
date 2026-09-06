@@ -17,11 +17,13 @@ import { DiagramLayoutSelect } from './settings/DiagramLayoutSelect';
 import { EqProfileToggle } from './settings/EqProfileToggle';
 import { PlayStyleToggle } from './settings/PlayStyleToggle';
 import { RetriggerSoundingNotesToggle } from './settings/RetriggerSoundingNotesToggle';
+import { TiltModeToggle } from './settings/TiltModeToggle';
 import { TiltToStrumToggle } from './settings/TiltToStrumToggle';
 import { ShortestNoteToggle } from './settings/ShortestNoteToggle';
 import { BpmSlider } from './settings/BpmSlider';
 import { InstrumentPresetPicker } from './settings/InstrumentPresetPicker';
 import { SettingsSettingHeader } from './settings/SettingsSettingHeader';
+import { useLayoutTier } from '../hooks/useLayoutTier';
 import { SETTINGS_RESET_GROUP_LABELS } from '../settings/settingsResetGroups';
 import { IosInstallHintPortal } from './IosInstallHintPortal';
 import { isIphone } from '../utils/devicePlatform';
@@ -56,6 +58,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     resetSettingsGroup,
     resetAllSettings,
   } = useChordContext();
+  const layoutTier = useLayoutTier();
+  const isDesktop = layoutTier === 'desktop';
 
   const {
     synthPresetId,
@@ -371,7 +375,23 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                       </div>
                     </div>
 
-                    {tiltModeEnabled && (
+                    {!isDesktop && (
+                      <div className="settings-menu-setting">
+                        <SettingsSettingHeader
+                          groupId="tiltMode"
+                          onReset={resetSettingsGroup}
+                        />
+                        <div className="settings-menu-section__panel">
+                          <p className="settings-menu-section__hint">
+                            Use device motion to shape chord voicings. When off,
+                            voicing and bass levels are controlled on-screen.
+                          </p>
+                          <TiltModeToggle />
+                        </div>
+                      </div>
+                    )}
+
+                    {!isDesktop && tiltModeEnabled && (
                       <div className="settings-menu-setting">
                         <SettingsSettingHeader
                           groupId="tiltToStrum"

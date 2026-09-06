@@ -163,6 +163,20 @@ export const HelpPage: React.FC<HelpPageProps> = ({
           <strong>Child chords</strong> inherit notes from two parents along each axis, divided into four sibling slices (<strong>Base</strong>, <strong>Brother</strong>, <strong>Twin</strong>, <strong>Sister</strong>).
         </p>
         <p>
+          <strong>How Diagram Nodes Get Their Names</strong>: Each node name reflects the proportion of notes inherited from its two parents:
+        </p>
+        <ul className="help-page__accordion-list">
+          <li>
+            <strong>3-to-1 Ratio (Minor 6)</strong>: Leans heavily toward the first parent. <strong>Trunk</strong> has 3 Earth notes and 1 Wind note (rooted in the earth). Likewise, <strong>Smoke</strong> has 3 Wind / 1 Fire, and <strong>Magma</strong> has 3 Fire / 1 Earth.
+          </li>
+          <li>
+            <strong>2-to-2 Ratio (Major 6 &amp; Dominant 7&#9837;5)</strong>: Equal balance of both parents. <strong>Branch</strong> has 2 Earth notes and 2 Wind notes (grounded yet reaching into the air), while <strong>Sand-Storm</strong> shares this 2-and-2 balance across a symmetrical tritone drop. Likewise, <strong>Ember</strong> and <strong>Fire-Storm</strong> have 2 Wind / 2 Fire, while <strong>Glass</strong> and <strong>Forest-Fire</strong> have 2 Fire / 2 Earth.
+          </li>
+          <li>
+            <strong>1-to-3 Ratio (Dominant 7)</strong>: Leans heavily toward the second parent. <strong>Leaf</strong> has 1 Earth note and 3 Wind notes (light and airy in the wind). Likewise, <strong>Flame</strong> has 1 Wind / 3 Fire, and <strong>Charcoal</strong> has 1 Fire / 3 Earth.
+          </li>
+        </ul>
+        <p>
           <strong>Clock Face Diagram</strong>: Displays all twelve pitch classes around a circular dial with elemental colors (switch between Chromatic and Circle of Fifths in Settings).
         </p>
         <p>
@@ -198,7 +212,7 @@ export const HelpPage: React.FC<HelpPageProps> = ({
               <strong>IN THE BASS (Tilt Pitch)</strong>: Tilt forward or backward to shift registers and choose which chord tone anchors the bass, enabling <strong>parallel motion</strong>.
             </p>
             <p>
-              With <strong>Tilt to Strum</strong> on, the readout shows your live floor and bass note. With it off, the top value is what sounded last, while the lower value is what you will hear if you tap a chord now.
+              With <strong>Tilt to Strum</strong> on, the readout shows your live floor and bass note. With it off, the top value is what you will hear if you tap a chord now, while the lower value is what sounded last.
             </p>
           </>
         ) : (

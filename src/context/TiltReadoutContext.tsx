@@ -65,3 +65,8 @@ export function useTiltReadoutContext(): TiltReadoutContextType {
   }
   return ctx;
 }
+
+export function useTiltReadoutContextSafe(): TiltReadoutContextType | null {
+  return useContext(TiltReadoutContext);
+}
+
