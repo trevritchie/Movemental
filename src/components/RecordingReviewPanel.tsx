@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
-import { Download, X } from 'lucide-react';
+import { Download, Share, X } from 'lucide-react';
+import { isNativeApp } from '../utils/nativePlatform';
 
 interface RecordingReviewPanelProps {
   objectUrl: string;
@@ -30,6 +31,30 @@ function releaseReviewPlayer(
     source.removeAttribute('type');
   }
   audio.load();
+}
+
+function exportActionVerb(nativeShare: boolean): 'Share' | 'Download' {
+  return nativeShare ? 'Share' : 'Download';
+}
+
+function audioExportLabel(
+  nativeShare: boolean,
+  isExporting: boolean,
+  extension: string | null,
+): string {
+  if (isExporting) {
+    return nativeShare ? 'Preparing share...' : 'Preparing download...';
+  }
+  const verb = exportActionVerb(nativeShare);
+  return extension ? `${verb} .${extension}` : verb;
+}
+
+function midiExportLabel(
+  nativeShare: boolean,
+  extension: string | null,
+): string {
+  const verb = exportActionVerb(nativeShare);
+  return extension ? `${verb} .${extension}` : `${verb} MIDI`;
 }
 
 /** Playback and download UI shown after a recording is saved. */
@@ -73,14 +98,17 @@ export const RecordingReviewPanel: React.FC<RecordingReviewPanelProps> = ({
     };
   }, [objectUrl]);
 
-  const downloadLabel = isExportingAudio
-    ? 'Preparing download...'
-    : downloadExtension
-      ? `Download .${downloadExtension}`
-      : 'Download';
-  const midiDownloadLabel = midiDownloadExtension
-    ? `Download .${midiDownloadExtension}`
-    : 'Download MIDI';
+  const nativeShare = isNativeApp();
+  const ActionIcon = nativeShare ? Share : Download;
+  const downloadLabel = audioExportLabel(
+    nativeShare,
+    isExportingAudio,
+    downloadExtension,
+  );
+  const midiDownloadLabel = midiExportLabel(
+    nativeShare,
+    midiDownloadExtension,
+  );
 
   return (
     <div className={className} role="region" aria-label="Recording review">
@@ -111,7 +139,7 @@ export const RecordingReviewPanel: React.FC<RecordingReviewPanelProps> = ({
           onClick={onDownload}
           disabled={isExportingAudio}
         >
-          <Download size={16} />
+          <ActionIcon size={16} />
           {downloadLabel}
         </button>
         <button
@@ -119,7 +147,7 @@ export const RecordingReviewPanel: React.FC<RecordingReviewPanelProps> = ({
           className="record-review__download"
           onClick={onDownloadMidi}
         >
-          <Download size={16} />
+          <ActionIcon size={16} />
           {midiDownloadLabel}
         </button>
         <button

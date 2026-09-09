@@ -129,8 +129,13 @@ vi.mock('../utils/devicePlatform', () => ({
   isIphone: vi.fn(() => true),
 }));
 
+vi.mock('../utils/nativePlatform', () => ({
+  isNativeApp: vi.fn(() => false),
+}));
+
 import { useFullscreen } from '../hooks/useFullscreen';
 import { isIphone } from '../utils/devicePlatform';
+import { isNativeApp } from '../utils/nativePlatform';
 
 function mockFullscreenState(
   overrides: Partial<ReturnType<typeof useFullscreen>> = {},
@@ -173,6 +178,7 @@ describe('MobileActionButtons', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(isIphone).mockReturnValue(true);
+    vi.mocked(isNativeApp).mockReturnValue(false);
     vi.mocked(useFullscreen).mockReturnValue(mockFullscreenState());
   });
 
@@ -490,6 +496,19 @@ describe('MobileActionButtons', () => {
     );
 
     render(<MobileActionButtons />);
+
+    expect(screen.queryByText(/Full Screen on iPhone/i)).not.toBeInTheDocument();
+  });
+
+  it('does not show iOS install hint inside the native Capacitor shell', async () => {
+    vi.mocked(isIphone).mockReturnValue(true);
+    vi.mocked(isNativeApp).mockReturnValue(true);
+    vi.mocked(useFullscreen).mockReturnValue(
+      mockFullscreenState({ showIosInstallHint: true }),
+    );
+
+    render(<MobileActionButtons />);
+    await openSettingsFromToolbar();
 
     expect(screen.queryByText(/Full Screen on iPhone/i)).not.toBeInTheDocument();
   });

@@ -7,6 +7,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { audioEngine, RECORDING_STOP_FADE_MS } from '../audio/AudioEngine';
 import { exportM4a } from '../audio/SessionAudioExporter';
+import {
+  extensionForMimeType,
+  isM4aCompatibleBlob,
+} from '../audio/recordingMimeTypes';
+import { isNativeApp } from '../utils/nativePlatform';
+import { shareOrDownloadFile } from '../utils/nativeShare';
 
 export type RecordingStatus = 'idle' | 'recording' | 'ready';
 
@@ -26,6 +32,21 @@ function formatRecordingTimestamp(date: Date): string {
     pad(date.getMinutes()),
     pad(date.getSeconds()),
   ].join('');
+}
+
+/** Native non-M4A captures keep their MIME extension; web always exports .m4a. */
+function recordingExportExtension(audio: Blob, mimeType: string): string {
+  if (isNativeApp() && !isM4aCompatibleBlob(audio)) {
+    return extensionForMimeType(mimeType);
+  }
+  return 'm4a';
+}
+
+async function resolveExportBlob(captured: Blob): Promise<Blob> {
+  if (isNativeApp()) {
+    return captured;
+  }
+  return exportM4a(captured);
 }
 
 function revokeObjectUrl(url: string | null): void {
@@ -140,6 +161,7 @@ export function useRecording(): UseRecordingResult {
       const resolvedMime = audio.type || 'audio/webm';
       const url = URL.createObjectURL(audio);
       const timestamp = formatRecordingTimestamp(new Date());
+      const audioExtension = recordingExportExtension(audio, resolvedMime);
 
       revokeObjectUrl(objectUrlRef.current);
       blobRef.current = audio;
@@ -148,9 +170,8 @@ export function useRecording(): UseRecordingResult {
       objectUrlRef.current = url;
       setObjectUrl(url);
       setMimeType(resolvedMime);
-      // Review plays the native recording MIME; download always offers .m4a.
-      setDownloadFilename(`movemental-${timestamp}.m4a`);
-      setDownloadExtension('m4a');
+      setDownloadFilename(`movemental-${timestamp}.${audioExtension}`);
+      setDownloadExtension(audioExtension);
       setMidiDownloadFilename(`movemental-${timestamp}.mid`);
       setMidiDownloadExtension('mid');
       statusRef.current = 'ready';
@@ -205,7 +226,8 @@ export function useRecording(): UseRecordingResult {
   }, [clearTimers, isSupported, resetReview, stop]);
 
   const download = useCallback(() => {
-    if (!blobRef.current || !downloadFilename || exportInFlightRef.current) {
+    const captured = blobRef.current;
+    if (!captured || !downloadFilename || exportInFlightRef.current) {
       return;
     }
 
@@ -214,17 +236,10 @@ export function useRecording(): UseRecordingResult {
 
     void (async () => {
       try {
-        if (!m4aBlobRef.current) {
-          // Passthrough on Safari/iOS M4A; lazy ffmpeg for WebM sources.
-          m4aBlobRef.current = await exportM4a(blobRef.current!);
-        }
-
-        const url = URL.createObjectURL(m4aBlobRef.current);
-        const anchor = document.createElement('a');
-        anchor.href = url;
-        anchor.download = downloadFilename;
-        anchor.click();
-        URL.revokeObjectURL(url);
+        const exportBlob =
+          m4aBlobRef.current ?? (await resolveExportBlob(captured));
+        m4aBlobRef.current = exportBlob;
+        await shareOrDownloadFile(exportBlob, downloadFilename);
       } catch (err) {
         const message =
           err instanceof Error ? err.message : 'Failed to export recording';
@@ -241,13 +256,13 @@ export function useRecording(): UseRecordingResult {
       return;
     }
 
-    // Ephemeral URL: MIDI has no in-app preview, only file download.
-    const url = URL.createObjectURL(midiBlobRef.current);
-    const anchor = document.createElement('a');
-    anchor.href = url;
-    anchor.download = midiDownloadFilename;
-    anchor.click();
-    URL.revokeObjectURL(url);
+    void shareOrDownloadFile(midiBlobRef.current, midiDownloadFilename).catch(
+      (err: unknown) => {
+        const message =
+          err instanceof Error ? err.message : 'Failed to export MIDI';
+        setError(message);
+      },
+    );
   }, [midiDownloadFilename]);
 
   useEffect(() => {

@@ -32,6 +32,7 @@ import {
   armNoTiltRevoiceSuppress,
   type NoTiltRevoiceSuppressState,
 } from '../music/noTiltRevoiceSuppress';
+import { triggerChordCommitHaptic } from '../utils/nativeHaptics';
 
 function pitchesEqual(a: number[], b: number[]): boolean {
   if (a.length !== b.length) return false;
@@ -228,6 +229,12 @@ export function usePlaybackCommit({
       const voicingDiff = options.voicingDiff ?? false;
 
       dispatchAudio(pitches, options);
+
+      // After audio, never before: light haptic on pointer commits only.
+      // Skip voicing-diff (Tilt to Strum) so continuous motion does not buzz.
+      if (fromPointer && !voicingDiff && pitches.length > 0) {
+        triggerChordCommitHaptic();
+      }
 
       const previousName = previousChordRef.current?.name;
       const pitchesChanged = !pitchesEqual(

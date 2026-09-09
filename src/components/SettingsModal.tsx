@@ -27,6 +27,7 @@ import { useLayoutTier } from '../hooks/useLayoutTier';
 import { SETTINGS_RESET_GROUP_LABELS } from '../settings/settingsResetGroups';
 import { IosInstallHintPortal } from './IosInstallHintPortal';
 import { isIphone } from '../utils/devicePlatform';
+import { isNativeApp } from '../utils/nativePlatform';
 import { getSynthPreset, isSamplerPreset } from '../audio/synthPresets';
 import { HelpPage } from './help/HelpPage';
 import { helpDialogTitle, type HelpView } from './help/helpTypes';
@@ -158,13 +159,19 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   };
 
   const helpTitle = openToHelp ? helpDialogTitle(helpView) : 'Settings';
+  const nativePhoneSheet = isNativeApp() && !isDesktop;
+  const dialogClassName = nativePhoneSheet
+    ? 'settings-modal settings-modal--native-sheet'
+    : 'settings-modal';
+  const showWebIosInstallHint =
+    showIosInstallHint && isIphone() && !isNativeApp();
 
   return createPortal(
     <>
       <dialog
         ref={modalRef}
         id={menuId}
-        className="settings-modal"
+        className={dialogClassName}
         aria-label={helpTitle}
         onClick={handleBackdropClick}
         onCancel={handleCancel}
@@ -556,7 +563,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           </div>
       </dialog>
       <IosInstallHintPortal
-        isOpen={showIosInstallHint && isIphone()}
+        isOpen={showWebIosInstallHint}
         onDismiss={dismissIosInstallHint}
       />
     </>,
