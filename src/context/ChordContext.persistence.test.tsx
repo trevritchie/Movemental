@@ -381,7 +381,7 @@ describe('ChordProvider persistence', () => {
     });
     expect(result.current.selectedChord?.name).toBe('Branch');
     expect(result.current.activeSimpleTriadId).toBe('I');
-    const sounded = (audioEngine.triggerAttack.mock.calls.at(-1)?.[0] ??
+    const sounded = (vi.mocked(audioEngine.triggerAttack).mock.calls.at(-1)?.[0] ??
       []) as number[];
     const pcs = [...new Set(sounded.map((midi) => ((midi % 12) + 12) % 12))].sort(
       (a, b) => a - b,

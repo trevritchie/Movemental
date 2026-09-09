@@ -69,7 +69,7 @@ export const SimpleTriadsSurface: React.FC = () => {
     const fire = chordManager.getCoordinateForChord('Fire');
     if (!earth || !wind || !fire) return null;
     return { earth, wind, fire };
-  }, [tonalCenter]);
+  }, []);
 
   const resolvedById = useMemo(() => {
     return Object.fromEntries(
@@ -100,7 +100,7 @@ export const SimpleTriadsSurface: React.FC = () => {
       onPointerDown: (event: React.PointerEvent<HTMLButtonElement>) => {
         if (!chord) return;
         event.preventDefault();
-        event.currentTarget.releasePointerCapture(event.pointerId);
+        event.currentTarget.releasePointerCapture?.(event.pointerId);
         handleChordPointerDown(chord);
       },
       onPointerUp: () => handleChordPointerUp(),
@@ -231,7 +231,7 @@ export const SimpleTriadsSurface: React.FC = () => {
             onPointerDown={(event) => {
               if (unavailable) return;
               event.preventDefault();
-              event.currentTarget.releasePointerCapture(event.pointerId);
+              event.currentTarget.releasePointerCapture?.(event.pointerId);
               handleSimpleTriadPointerDown(def.id);
             }}
             onPointerUp={() => handleChordPointerUp()}

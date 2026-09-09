@@ -414,6 +414,9 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
     resetVoiceLeadingSession,
     clearPlaybackSelection,
     panicStop,
+    clearActiveSimpleTriad,
+    handleSimpleTriadPointerDown: playSimpleTriad,
+    activeSimpleTriadIdRef,
   } = playback;
   const { synthPresetId, setSynthPresetId } = audio;
 
@@ -446,14 +449,14 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
     (mode: DiagramLayoutMode) => {
       setDiagramLayoutModeState(mode);
       if (!isSimpleMajorTriadsLayout(mode)) {
-        playback.clearActiveSimpleTriad();
+        clearActiveSimpleTriad();
       }
       const currentName = selectedChordNameRef.current;
       if (currentName && !isChordEnabledInLayout(currentName, mode)) {
         clearPlaybackSelection();
       }
     },
-    [clearPlaybackSelection, playback.clearActiveSimpleTriad],
+    [clearPlaybackSelection, clearActiveSimpleTriad],
   );
 
   const {
@@ -596,9 +599,9 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
   const handleSimpleTriadPointerDown = useCallback(
     (id: SimpleMajorTriadId) => {
       if (!isSimpleMajorTriadsLayout(diagramLayoutMode)) return;
-      playback.handleSimpleTriadPointerDown(id);
+      playSimpleTriad(id);
     },
-    [diagramLayoutMode, playback.handleSimpleTriadPointerDown],
+    [diagramLayoutMode, playSimpleTriad],
   );
 
   const handleChordPointerEnter = useCallback(
@@ -644,7 +647,7 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
     const newState = applySimpleTriadMutesIfActive(
       borrowed,
       updatedChord,
-      playback.activeSimpleTriadIdRef.current,
+      activeSimpleTriadIdRef.current,
       tonalCenterRef.current,
     );
     setBorrowingStateRef.current(newState);
@@ -660,6 +663,7 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
     // including it here does not cause this effect to re-run on borrowing
     // changes. It is listed only to satisfy exhaustive-deps.
     borrowing.borrowingStateRef,
+    activeSimpleTriadIdRef,
   ]);
 
   const value: ChordContextType = useMemo(

@@ -136,6 +136,7 @@ describe('useChordPlayback audio-first pointer path', () => {
   it('plays Simple Major Triad I through the pointer hot path as a triad', async () => {
     chordManager.configureTonalSpace(0, 2);
     baseOptions.tonalCenterRef.current = 0;
+    baseOptions.noTiltVoicingLevelRef.current = 5;
     const callOrder: string[] = [];
     mocks.triggerAttack.mockImplementation(() => {
       callOrder.push('audio');
