@@ -1,8 +1,14 @@
 /// <reference types="node" />
 import { render, screen, fireEvent } from '@testing-library/react';
-import { describe, it, expect, vi, afterEach } from 'vitest';
+import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
 import { RecordingReviewPanel } from './RecordingReviewPanel';
 import type { ComponentProps } from 'react';
+
+vi.mock('../utils/nativePlatform', () => ({
+  isNativeApp: vi.fn(() => false),
+}));
+
+import { isNativeApp } from '../utils/nativePlatform';
 
 const defaultPanelProps: ComponentProps<typeof RecordingReviewPanel> = {
   objectUrl: 'blob:mock-recording',
@@ -24,6 +30,10 @@ function renderPanel(
 }
 
 describe('RecordingReviewPanel', () => {
+  beforeEach(() => {
+    vi.mocked(isNativeApp).mockReturnValue(false);
+  });
+
   afterEach(() => {
     vi.restoreAllMocks();
   });
@@ -78,5 +88,18 @@ describe('RecordingReviewPanel', () => {
     fireEvent.click(midiButton);
 
     expect(onDownloadMidi).toHaveBeenCalledTimes(1);
+  });
+
+  it('labels export actions as Share inside the native shell', () => {
+    vi.mocked(isNativeApp).mockReturnValue(true);
+
+    renderPanel();
+
+    expect(
+      screen.getByRole('button', { name: 'Share .m4a' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Share .mid' }),
+    ).toBeInTheDocument();
   });
 });

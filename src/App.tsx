@@ -8,10 +8,12 @@ import { SplashPage } from './components/SplashPage';
 import { LandscapePrompt } from './components/LandscapePrompt';
 import { useLayoutTier, LayoutTierProvider } from './hooks/useLayoutTier';
 import { usePhoneLandscapeBlocked } from './hooks/usePhoneLandscapeBlocked';
+import { useNativeBackButton } from './hooks/useNativeBackButton';
 import { TourProvider } from './components/tour/TourProvider';
 import { useTour } from './components/tour/tourContext';
 import { preloadSettingsModalAfterSplash } from './components/preloadSettingsModal';
 import { initVisualPriorityListeners } from './audio/visualPriority';
+import { isNativeApp } from './utils/nativePlatform';
 
 const PRIMARY_ELEMENT_NAMES = new Set(['Earth', 'Wind', 'Fire']);
 
@@ -81,8 +83,18 @@ function AppShell() {
   );
 }
 
+function applyNativeAppDocumentClass(): () => void {
+  const root = document.documentElement;
+  root.classList.toggle('native-app', isNativeApp());
+  return () => {
+    root.classList.remove('native-app');
+  };
+}
+
 function App() {
+  useNativeBackButton();
   useEffect(() => initVisualPriorityListeners(), []);
+  useEffect(applyNativeAppDocumentClass, []);
 
   return (
     <ErrorBoundary>

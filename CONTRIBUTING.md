@@ -24,7 +24,7 @@ Participation in this project is governed by the
 | Hooks | `src/hooks/` | Playback, tilt sensor, layout tier, borrowing memory |
 | UI | `src/components/` | SVG diagram, controls, overlays |
 | Styles | `src/styles/` | Global CSS ownership surfaces (imported from `index.css`) |
-| Utils | `src/utils/` | Small cross-cutting helpers (`clamp`) |
+| Utils | `src/utils/` | Small cross-cutting helpers (`isNativeApp`, share/haptics bridges) |
 | Tests | Colocated `*.test.ts(x)` next to the module under test |
 
 Add a short module header comment when the file's purpose is not obvious from
@@ -43,7 +43,10 @@ Prefer these instead of duplicating logic in components or hooks:
 | `music/playbackTiltResolution.ts` | Smooth/smoothest tilt rules shared by playback and labels |
 | `music/voiceLeadingPolicy.ts` | Playback re-anchor dispatcher for voice-leading modes |
 | `music/voicingCache.ts` | Single-entry memo for tilt label readouts (~7 Hz) |
-| `utils/clamp.ts` | Numeric clamp helper |
+| `utils/nativePlatform.ts` | Capacitor `isNativeApp` / platform detection |
+| `utils/nativeHaptics.ts` | Light haptic after native chord commits |
+| `utils/nativeShare.ts` | Share sheet vs `<a download>` for exports |
+| `utils/nativeAudioSession.ts` | JS bridge to native AVAudioSession / audio focus |
 
 `diagramMetadata.ts` `GROUP_PALETTE` is chord-group HSL styling, separate from
 `elementTokens.ts` parent-element colors.

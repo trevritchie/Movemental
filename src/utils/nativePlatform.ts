@@ -14,3 +14,13 @@ export function isNativeApp(): boolean {
 export function getNativePlatform(): string {
   return Capacitor.getPlatform();
 }
+
+/** True inside the Capacitor iOS shell. */
+export function isNativeIos(): boolean {
+  return isNativeApp() && getNativePlatform() === 'ios';
+}
+
+/** True inside the Capacitor Android shell. */
+export function isNativeAndroid(): boolean {
+  return isNativeApp() && getNativePlatform() === 'android';
+}

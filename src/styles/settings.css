@@ -50,6 +50,25 @@
   }
 }
 
+.settings-modal.settings-modal--native-sheet {
+  max-width: none;
+  max-height: none;
+  width: 100%;
+  height: 100%;
+  height: 100dvh;
+  border-radius: 0;
+  box-shadow: none;
+  animation: none;
+}
+
+.settings-modal.settings-modal--native-sheet .settings-modal__header {
+  padding-top: max(16px, env(safe-area-inset-top, 0px));
+}
+
+.settings-modal.settings-modal--native-sheet .settings-modal__body {
+  padding-bottom: max(24px, env(safe-area-inset-bottom, 0px));
+}
+
 .settings-modal__header {
   display: flex;
   align-items: center;

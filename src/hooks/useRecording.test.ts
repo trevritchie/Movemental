@@ -3,6 +3,8 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { useRecording } from './useRecording';
 import { audioEngine, RECORDING_STOP_FADE_MS } from '../audio/AudioEngine';
 import { exportM4a } from '../audio/SessionAudioExporter';
+import { isNativeApp } from '../utils/nativePlatform';
+import { shareOrDownloadFile } from '../utils/nativeShare';
 
 vi.mock('../audio/AudioEngine', () => ({
   RECORDING_STOP_FADE_MS: 300,
@@ -25,6 +27,14 @@ vi.mock('../audio/SessionAudioExporter', () => ({
   ),
 }));
 
+vi.mock('../utils/nativePlatform', () => ({
+  isNativeApp: vi.fn(() => false),
+}));
+
+vi.mock('../utils/nativeShare', () => ({
+  shareOrDownloadFile: vi.fn(async () => undefined),
+}));
+
 describe('useRecording', () => {
   const createObjectURL = vi.fn(() => 'blob:mock-url');
   const revokeObjectURL = vi.fn();
@@ -43,6 +53,7 @@ describe('useRecording', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(isNativeApp).mockReturnValue(false);
     vi.stubGlobal('URL', {
       createObjectURL,
       revokeObjectURL,
@@ -140,9 +151,7 @@ describe('useRecording', () => {
     expect(audioEngine.fadeOutRecordingTap).not.toHaveBeenCalled();
   });
 
-  it('download exports M4A and saves a .m4a file', async () => {
-    const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click')
-      .mockImplementation(() => undefined);
+  it('download exports M4A and shares or saves a .m4a file', async () => {
     const { result } = renderHook(() => useRecording());
 
     await recordUntilReady(result);
@@ -155,14 +164,11 @@ describe('useRecording', () => {
       expect(exportM4a).toHaveBeenCalledTimes(1);
     });
 
-    expect(createObjectURL).toHaveBeenCalledTimes(2);
-    expect(clickSpy).toHaveBeenCalled();
+    expect(shareOrDownloadFile).toHaveBeenCalledTimes(1);
     expect(result.current.downloadFilename).toMatch(/^movemental-.*\.m4a$/);
   });
 
-  it('downloadMidi saves a .mid file from the stored blob', async () => {
-    const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click')
-      .mockImplementation(() => undefined);
+  it('downloadMidi shares or saves a .mid file from the stored blob', async () => {
     const { result } = renderHook(() => useRecording());
 
     await recordUntilReady(result);
@@ -171,9 +177,25 @@ describe('useRecording', () => {
       result.current.downloadMidi();
     });
 
-    expect(createObjectURL).toHaveBeenCalledTimes(2);
-    expect(clickSpy).toHaveBeenCalled();
+    expect(shareOrDownloadFile).toHaveBeenCalledTimes(1);
     expect(result.current.midiDownloadFilename).toMatch(/^movemental-.*\.mid$/);
+  });
+
+  it('skips ffmpeg and shares the captured blob inside the native shell', async () => {
+    vi.mocked(isNativeApp).mockReturnValue(true);
+    const { result } = renderHook(() => useRecording());
+
+    await recordUntilReady(result);
+
+    await act(async () => {
+      result.current.download();
+    });
+
+    await waitFor(() => {
+      expect(shareOrDownloadFile).toHaveBeenCalledTimes(1);
+    });
+
+    expect(exportM4a).not.toHaveBeenCalled();
   });
 
   it('resets recorder tail gain when stop fails', async () => {

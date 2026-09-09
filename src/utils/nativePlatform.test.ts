@@ -9,7 +9,12 @@ vi.mock('@capacitor/core', () => ({
 }));
 
 import { Capacitor } from '@capacitor/core';
-import { isNativeApp, getNativePlatform } from './nativePlatform';
+import {
+  isNativeApp,
+  getNativePlatform,
+  isNativeIos,
+  isNativeAndroid,
+} from './nativePlatform';
 
 describe('nativePlatform', () => {
   beforeEach(() => {
@@ -22,6 +27,8 @@ describe('nativePlatform', () => {
 
     expect(isNativeApp()).toBe(false);
     expect(getNativePlatform()).toBe('web');
+    expect(isNativeIos()).toBe(false);
+    expect(isNativeAndroid()).toBe(false);
   });
 
   it('reports native when Capacitor sees the iOS shell', () => {
@@ -30,5 +37,15 @@ describe('nativePlatform', () => {
 
     expect(isNativeApp()).toBe(true);
     expect(getNativePlatform()).toBe('ios');
+    expect(isNativeIos()).toBe(true);
+    expect(isNativeAndroid()).toBe(false);
+  });
+
+  it('reports native Android separately from iOS', () => {
+    vi.mocked(Capacitor.isNativePlatform).mockReturnValue(true);
+    vi.mocked(Capacitor.getPlatform).mockReturnValue('android');
+
+    expect(isNativeAndroid()).toBe(true);
+    expect(isNativeIos()).toBe(false);
   });
 });

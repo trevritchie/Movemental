@@ -3,6 +3,7 @@
  * audible when the hardware mute switch is on. Call synchronously from a
  * user gesture before Tone.start().
  */
+import { isNativeApp } from '../utils/nativePlatform';
 import { audioDebugLog, isAudioEngineDebugEnabled } from './audioDebug';
 
 interface NavigatorWithAudioSession extends Navigator {
@@ -46,8 +47,15 @@ function createSilentWavDataUri(sampleRate: number): string {
 }
 
 export function ensurePlaybackAudioSession(): boolean {
+  // Native AVAudioSession already owns .playback; skip the WebKit API.
+  if (isNativeApp()) {
+    return true;
+  }
+
   const nav = navigator as NavigatorWithAudioSession;
-  if (!nav.audioSession) return false;
+  if (!nav.audioSession) {
+    return false;
+  }
   nav.audioSession.type = 'playback';
   return true;
 }

@@ -104,9 +104,14 @@ vi.mock('../utils/devicePlatform', () => ({
   isIphone: vi.fn(() => false),
 }));
 
+vi.mock('../utils/nativePlatform', () => ({
+  isNativeApp: vi.fn(() => false),
+}));
+
 import { useLayoutTier } from '../hooks/useLayoutTier';
 import { useFullscreen } from '../hooks/useFullscreen';
 import { isIphone } from '../utils/devicePlatform';
+import { isNativeApp } from '../utils/nativePlatform';
 
 function mockFullscreenState(
   overrides: Partial<ReturnType<typeof useFullscreen>> = {},
@@ -150,6 +155,7 @@ describe('DiagramCornerActions', () => {
     vi.clearAllMocks();
     vi.mocked(useLayoutTier).mockReturnValue('desktop');
     vi.mocked(isIphone).mockReturnValue(false);
+    vi.mocked(isNativeApp).mockReturnValue(false);
     vi.mocked(useFullscreen).mockReturnValue(mockFullscreenState());
   });
 

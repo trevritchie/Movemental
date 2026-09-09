@@ -14,6 +14,9 @@ const config: CapacitorConfig = {
     contentInset: 'automatic',
     backgroundColor: '#09090b',
   },
+  android: {
+    backgroundColor: '#09090b',
+  },
   plugins: {
     StatusBar: {
       overlaysWebView: false,
