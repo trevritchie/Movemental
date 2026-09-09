@@ -78,7 +78,8 @@ ehthumbs.db
 
 # Local agent / AI tooling (not shared project source)
 .agents/
-.cursor/
+.cursor/*
+!.cursor/environment.json
 .claude/
 .kilocode/
 skills-lock.json
