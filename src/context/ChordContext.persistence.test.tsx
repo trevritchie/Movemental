@@ -356,4 +356,48 @@ describe('ChordProvider persistence', () => {
     expect(result.current.activePitches.length).toBeGreaterThan(0);
     expect(audioEngine.triggerAttack).toHaveBeenCalled();
   });
+
+  it('plays Simple Major Triad I as a strict triad and keeps parents', async () => {
+    const { audioEngine } = await import('../audio/AudioEngine');
+    const flame = chordManager.getChordByName('Flame')!;
+    const earth = chordManager.getChordByName('Earth')!;
+    const { result } = renderHook(() => useCombinedChordContext(), { wrapper });
+
+    act(() => {
+      result.current.enterNoTiltSession();
+      result.current.setTonalCenter(0);
+      result.current.setDiagramLayoutMode('simple_major_triads');
+    });
+    vi.mocked(audioEngine.triggerAttack).mockClear();
+
+    act(() => {
+      result.current.handleChordPointerDown(flame);
+    });
+    expect(result.current.selectedChord).toBeNull();
+    expect(audioEngine.triggerAttack).not.toHaveBeenCalled();
+
+    act(() => {
+      result.current.handleSimpleTriadPointerDown('I');
+    });
+    expect(result.current.selectedChord?.name).toBe('Branch');
+    expect(result.current.activeSimpleTriadId).toBe('I');
+    const sounded = (audioEngine.triggerAttack.mock.calls.at(-1)?.[0] ??
+      []) as number[];
+    const pcs = [...new Set(sounded.map((midi) => ((midi % 12) + 12) % 12))].sort(
+      (a, b) => a - b,
+    );
+    expect(pcs).toEqual([0, 4, 7]);
+
+    act(() => {
+      result.current.handleChordPointerDown(earth);
+    });
+    expect(result.current.activeSimpleTriadId).toBeNull();
+    expect(result.current.selectedChord?.name).toBe('Earth');
+
+    act(() => {
+      result.current.resetSettingsGroup('diagramLayout');
+    });
+    expect(result.current.diagramLayoutMode).toBe('complete_geometry');
+    expect(result.current.activeSimpleTriadId).toBeNull();
+  });
 });

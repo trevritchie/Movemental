@@ -47,7 +47,14 @@ import type {
   VoiceLeadingMode,
   VoicingElevatorFloorsMode,
 } from '../music/sessionModes';
-import { isChordEnabledInLayout } from '../music/diagramLayouts';
+import {
+  isChordEnabledInLayout,
+  isSimpleMajorTriadsLayout,
+} from '../music/diagramLayouts';
+import {
+  applySimpleTriadMutesIfActive,
+  type SimpleMajorTriadId,
+} from '../music/simpleMajorTriads';
 import { loadUserSettings } from '../settings/userSettingsStorage';
 import {
   type SettingsSectionId,
@@ -68,6 +75,7 @@ export type {
   VoiceLeadingMode,
   VoicingElevatorFloorsMode,
 } from '../music/sessionModes';
+export type { SimpleMajorTriadId } from '../music/simpleMajorTriads';
 
 interface ChordContextType {
   tonalCenter: number;
@@ -92,8 +100,10 @@ interface ChordContextType {
   enterTiltSession: () => void;
   enterNoTiltSession: () => void;
   handleChordPointerDown: (chord: Chord) => void;
+  handleSimpleTriadPointerDown: (id: SimpleMajorTriadId) => void;
   handleChordPointerUp: () => void;
   handleChordPointerEnter: (chord: Chord) => void;
+  activeSimpleTriadId: SimpleMajorTriadId | null;
   borrowingMemory: 'global' | 'per-chord';
   setBorrowingMemory: (mode: 'global' | 'per-chord') => void;
   voiceLeadingMode: VoiceLeadingMode;
@@ -435,12 +445,15 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
   const setDiagramLayoutMode = useCallback(
     (mode: DiagramLayoutMode) => {
       setDiagramLayoutModeState(mode);
+      if (!isSimpleMajorTriadsLayout(mode)) {
+        playback.clearActiveSimpleTriad();
+      }
       const currentName = selectedChordNameRef.current;
       if (currentName && !isChordEnabledInLayout(currentName, mode)) {
         clearPlaybackSelection();
       }
     },
-    [clearPlaybackSelection],
+    [clearPlaybackSelection, playback.clearActiveSimpleTriad],
   );
 
   const {
@@ -580,6 +593,14 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
     [diagramLayoutMode, playback.handleChordPointerDown],
   );
 
+  const handleSimpleTriadPointerDown = useCallback(
+    (id: SimpleMajorTriadId) => {
+      if (!isSimpleMajorTriadsLayout(diagramLayoutMode)) return;
+      playback.handleSimpleTriadPointerDown(id);
+    },
+    [diagramLayoutMode, playback.handleSimpleTriadPointerDown],
+  );
+
   const handleChordPointerEnter = useCallback(
     (chord: Chord) => {
       if (!isChordEnabledInLayout(chord.name, diagramLayoutMode)) return;
@@ -616,9 +637,15 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
     if (!updatedChord) return;
 
     setSelectedChord(updatedChord);
-    const newState = getBorrowingStateForChordRef.current(
+    const borrowed = getBorrowingStateForChordRef.current(
       name,
       borrowing.borrowingStateRef.current
+    );
+    const newState = applySimpleTriadMutesIfActive(
+      borrowed,
+      updatedChord,
+      playback.activeSimpleTriadIdRef.current,
+      tonalCenterRef.current,
     );
     setBorrowingStateRef.current(newState);
     playAndDisplayChordRef.current(updatedChord, newState);
@@ -659,8 +686,10 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
       enterTiltSession,
       enterNoTiltSession,
       handleChordPointerDown: handleChordPointerDown,
+      handleSimpleTriadPointerDown,
       handleChordPointerUp: playback.handleChordPointerUp,
       handleChordPointerEnter: handleChordPointerEnter,
+      activeSimpleTriadId: playback.activeSimpleTriadId,
       borrowingMemory: borrowing.borrowingMemory,
       setBorrowingMemory: borrowing.setBorrowingMemory,
       voiceLeadingMode,
@@ -719,7 +748,9 @@ export const ChordProvider: React.FC<ChordProviderProps> = ({ children }) => {
       enterTiltSession,
       enterNoTiltSession,
       handleChordPointerDown,
+      handleSimpleTriadPointerDown,
       handleChordPointerEnter,
+      playback.activeSimpleTriadId,
       playback.handleChordPointerUp,
       handleChordSelect,
       voiceLeadingMode,

@@ -1,0 +1,172 @@
+/* ==========================================================================
+   Simple Major Triads play surface
+   ========================================================================== */
+.simple-triads {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  container-type: size;
+  pointer-events: none;
+}
+
+.simple-triads__frame {
+  position: absolute;
+  inset: 6%;
+  width: 88%;
+  height: 88%;
+  overflow: visible;
+}
+
+.simple-triads__edge {
+  fill: none;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+}
+
+.simple-triads__edge--earth-wind {
+  stroke: url(#simple-triads-grad-earth-wind);
+}
+
+.simple-triads__edge--earth-fire {
+  stroke: url(#simple-triads-grad-earth-fire);
+}
+
+.simple-triads__edge--wind-fire {
+  stroke: url(#simple-triads-grad-wind-fire);
+}
+
+.simple-triads__axis-label {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  margin: 0;
+  pointer-events: none;
+  font-size: clamp(0.62rem, 1.8cqw, 0.8rem);
+  font-weight: 650;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.65);
+  white-space: nowrap;
+}
+
+.simple-triads__parent,
+.simple-triads__rn {
+  pointer-events: auto;
+  position: absolute;
+  transform: translate(-50%, -50%);
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: var(--text-primary);
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    transform 0.14s ease,
+    box-shadow 0.14s ease,
+    border-color 0.14s ease,
+    background-color 0.14s ease;
+}
+
+.simple-triads__parent {
+  width: clamp(56px, 14cqmin, 92px);
+  height: clamp(56px, 14cqmin, 92px);
+  border-radius: 50%;
+  font-size: clamp(0.72rem, 2.4cqw, 0.95rem);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  background: var(--parent-fill, var(--color-mixed));
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.35), 0 8px 22px var(--parent-glow, rgba(0, 0, 0, 0.35));
+}
+
+.simple-triads__parent[aria-pressed='true'] {
+  border-color: rgba(255, 255, 255, 0.92);
+  box-shadow:
+    0 0 0 3px rgba(255, 255, 255, 0.35),
+    0 0 28px var(--parent-glow, rgba(255, 255, 255, 0.3));
+}
+
+.simple-triads__rn {
+  min-width: clamp(64px, 16cqmin, 118px);
+  min-height: clamp(64px, 16cqmin, 118px);
+  padding: 0.35rem 0.55rem 0.45rem;
+  border-radius: 22px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.08), transparent 42%),
+    rgba(18, 18, 22, 0.78);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.35);
+}
+
+.simple-triads__rn--earth-wind {
+  border-color: color-mix(in srgb, var(--color-earth) 45%, var(--color-wind));
+}
+
+.simple-triads__rn--earth-fire {
+  border-color: color-mix(in srgb, var(--color-earth) 45%, var(--color-fire));
+}
+
+.simple-triads__rn--wind-fire {
+  border-color: color-mix(in srgb, var(--color-wind) 45%, var(--color-fire));
+}
+
+.simple-triads__rn[aria-pressed='true'] {
+  border-color: #fff;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.16), transparent 50%),
+    rgba(28, 28, 34, 0.92);
+  box-shadow:
+    0 0 0 3px rgba(255, 255, 255, 0.28),
+    0 12px 32px rgba(0, 0, 0, 0.45);
+  transform: translate(-50%, -50%) scale(1.04);
+}
+
+.simple-triads__rn:focus-visible,
+.simple-triads__parent:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 3px;
+}
+
+.simple-triads__rn:disabled,
+.simple-triads__parent:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.simple-triads__rn-mark {
+  font-size: clamp(1.55rem, 7cqmin, 2.85rem);
+  font-weight: 750;
+  line-height: 0.95;
+  letter-spacing: 0.01em;
+}
+
+.simple-triads__rn-caption {
+  margin-top: 0.15rem;
+  font-size: clamp(0.62rem, 2cqw, 0.78rem);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.simple-triads__empty {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  margin: 0;
+  max-width: 16rem;
+  text-align: center;
+  color: var(--text-secondary);
+  pointer-events: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .simple-triads__rn:hover:not(:disabled),
+  .simple-triads__parent:hover:not(:disabled) {
+    transform: translate(-50%, -50%) scale(1.03);
+  }
+
+  .simple-triads__rn[aria-pressed='true']:hover:not(:disabled) {
+    transform: translate(-50%, -50%) scale(1.06);
+  }
+}

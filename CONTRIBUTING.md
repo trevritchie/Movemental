@@ -39,6 +39,7 @@ Prefer these instead of duplicating logic in components or hooks:
 | `music/pitchClass.ts` | Pitch-class normalization, tonal-center relatives, chord root PC |
 | `music/elementTokens.ts` | Parent-element CSS colors and mod-3 bucket styling |
 | `music/diagramMetadata.ts` | Chord groups, slice variants, group palettes |
+| `music/simpleMajorTriads.ts` | Simple Major RN ↔ elemental-chord mapping and triad mutes |
 | `diagram/diagramLayout.ts` | SVG viewBox dimensions and coordinate-to-pixel helpers |
 | `music/playbackTiltResolution.ts` | Smooth/smoothest tilt rules shared by playback and labels |
 | `music/voiceLeadingPolicy.ts` | Playback re-anchor dispatcher for voice-leading modes |

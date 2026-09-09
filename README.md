@@ -173,6 +173,12 @@ Every group is a micro-diamond of **4 chord variations**, positioned via normal 
 > [!NOTE]
 > By rendering coordinates symmetrically on an SVG grid, the `ElementalDiagram` maps cursor position to complex mathematical vectors, allowing fluid, continuous micro-tonal exploration.
 
+### Simple Major Triads (opt-in layout)
+
+Settings → Layout → **Simple Major Triads** replaces the full diamond diagram with large Roman-numeral buttons on the three elemental axes. Earth / Wind / Fire stay as playable triangle vertices. Default remains **Complete Geometry**.
+
+Mapping is derived at the live tonal center from `MAJOR_LAYOUT_CHORDS` and `chord.pitches` (mod-12 pitch classes after tonal-center transpose; templates are MIDI note numbers). Seventh-quality hosts such as Flame are not used under RN buttons. Extra pitch classes from the maj6 / min6 hosts are muted through the existing borrowing overlay so each button sounds a strict triad. See [`src/music/simpleMajorTriads.ts`](src/music/simpleMajorTriads.ts).
+
 ---
 
 ## The Advanced Voice Borrowing System
@@ -364,6 +370,7 @@ Cross-file utilities introduced in the second-pass refactor. See
 | Module | Purpose |
 |--------|---------|
 | [`pitchClass.ts`](src/music/pitchClass.ts) | Pitch-class math (`normalizePitchClass`, tonal-center relatives, chord root) |
+| [`simpleMajorTriads.ts`](src/music/simpleMajorTriads.ts) | Simple Major Triads RN mapping and triad mute overlay |
 | [`elementTokens.ts`](src/music/elementTokens.ts) | Parent-element CSS colors and mod-3 styling helpers |
 | [`diagramLayout.ts`](src/diagram/diagramLayout.ts) | SVG viewBox constants and `coordToPixels` |
 | [`playbackTiltResolution.ts`](src/music/playbackTiltResolution.ts) | Smooth/smoothest tilt rules shared by playback and bass labels |
