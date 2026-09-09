@@ -740,12 +740,18 @@ export function useChordPlayback({
   const handleSimpleTriadPointerDown = useCallback((id: SimpleMajorTriadId) => {
     unlockIosMediaChannel();
     isPointerDownRef.current = true;
-    const resolved = resolveSimpleMajorTriad(id, tonalCenterRef.current);
-    if (!resolved) return;
-    const chord = chordManager.getChordByName(resolved.chordName);
-    if (!chord) return;
 
+    const resolved = resolveSimpleMajorTriad(id, tonalCenterRef.current);
+    const chord = resolved
+      ? chordManager.getChordByName(resolved.chordName)
+      : null;
+    if (!resolved || !chord) return;
+
+    // Read the last committed triad id before latching this tap. I and vi
+    // share a host chord, so same-button retap needs both name and triad id.
+    const previousTriadId = activeSimpleTriadId;
     activeSimpleTriadIdRef.current = id;
+
     const newState = applySimpleTriadMutes(
       getBorrowingStateForChord(chord.name, borrowingStateRef.current),
       chord,
@@ -753,9 +759,10 @@ export function useChordPlayback({
     );
     const previousName = previousChordRef.current?.name;
     const isSameButtonRetap =
-      previousName === chord.name && activeSimpleTriadId === id;
+      previousName === chord.name && previousTriadId === id;
     const isChordNameChange =
       previousName != null && previousName !== chord.name;
+
     voiceAndPlay(chord, newState, {
       retrigger:
         playStyleRef.current === 'tap' &&

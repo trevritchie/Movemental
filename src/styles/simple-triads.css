@@ -59,9 +59,10 @@
 
 .simple-triads__parent,
 .simple-triads__rn {
+  --simple-triads-scale: 1;
   pointer-events: auto;
   position: absolute;
-  transform: translate(-50%, -50%);
+  transform: translate(-50%, -50%) scale(var(--simple-triads-scale));
   display: grid;
   place-items: center;
   border: 1px solid rgba(255, 255, 255, 0.18);
@@ -118,6 +119,7 @@
 }
 
 .simple-triads__rn[aria-pressed='true'] {
+  --simple-triads-scale: 1.07;
   border-width: 2px;
   border-color: #fff;
   background:
@@ -126,7 +128,6 @@
   box-shadow:
     0 0 0 4px rgba(255, 255, 255, 0.42),
     0 14px 36px rgba(0, 0, 0, 0.5);
-  transform: translate(-50%, -50%) scale(1.07);
 }
 
 .simple-triads__rn[aria-pressed='true'] .simple-triads__rn-mark {
@@ -180,10 +181,10 @@
 @media (hover: hover) and (pointer: fine) {
   .simple-triads__rn:hover:not(:disabled),
   .simple-triads__parent:hover:not(:disabled) {
-    transform: translate(-50%, -50%) scale(1.03);
+    --simple-triads-scale: 1.03;
   }
 
   .simple-triads__rn[aria-pressed='true']:hover:not(:disabled) {
-    transform: translate(-50%, -50%) scale(1.06);
+    --simple-triads-scale: 1.06;
   }
 }

@@ -137,16 +137,21 @@ export const SIMPLE_MAJOR_TRIAD_DEFS: readonly SimpleMajorTriadDef[] = [
 
 const SEVENTH_QUALITIES = new Set(['7', '7b5']);
 
+const AXIS_ID_BY_PARENT_PAIR: Record<string, SimpleTriadAxisId> = {
+  'Earth-Wind': 'earth_wind',
+  'Wind-Fire': 'wind_fire',
+  'Fire-Earth': 'earth_fire',
+};
+
+const TRIAD_DEFS_BY_ID: ReadonlyMap<SimpleMajorTriadId, SimpleMajorTriadDef> =
+  new Map(SIMPLE_MAJOR_TRIAD_DEFS.map((def) => [def.id, def]));
+
 function axisIdForChordName(chordName: string): SimpleTriadAxisId | null {
   const group = CHORD_TO_GROUP.get(chordName);
   if (!group) return null;
   const parents = AXIS_PARENTS[group];
   if (!parents) return null;
-  const pair = `${parents.p1}-${parents.p2}`;
-  if (pair === 'Earth-Wind') return 'earth_wind';
-  if (pair === 'Wind-Fire') return 'wind_fire';
-  if (pair === 'Fire-Earth') return 'earth_fire';
-  return null;
+  return AXIS_ID_BY_PARENT_PAIR[`${parents.p1}-${parents.p2}`] ?? null;
 }
 
 function livePitchClassSet(chord: Chord): Set<number> {
@@ -171,6 +176,36 @@ function isSeventhQuality(chordName: string): boolean {
   return SEVENTH_QUALITIES.has(getChordQuality(chordName));
 }
 
+/** True when the live set is exactly the triad PCs (same members and size). */
+function isExactTriadMatch(
+  livePcs: ReadonlySet<number>,
+  triadPcs: readonly number[],
+): boolean {
+  return (
+    livePcs.size === triadPcs.length &&
+    isPitchClassSubset([...livePcs], new Set(triadPcs))
+  );
+}
+
+/**
+ * Prefer the host whose root is the triad root, then fewer extra PCs,
+ * then a stable name order.
+ */
+function compareSourceChords(
+  a: Chord,
+  b: Chord,
+  triadRoot: number,
+  triadCount: number,
+): number {
+  const aRoot = getChordRootPitchClass(a) === triadRoot ? 0 : 1;
+  const bRoot = getChordRootPitchClass(b) === triadRoot ? 0 : 1;
+  if (aRoot !== bRoot) return aRoot - bRoot;
+  const aExtra = livePitchClassSet(a).size - triadCount;
+  const bExtra = livePitchClassSet(b).size - triadCount;
+  if (aExtra !== bExtra) return aExtra - bExtra;
+  return a.name.localeCompare(b.name);
+}
+
 /**
  * Candidate pool: Major-layout names on the requested axis, skipping 7th
  * qualities unless the live PC set is exactly the triad (none today).
@@ -186,9 +221,7 @@ function sourceCandidates(
     if (!chord) continue;
     const livePcs = livePitchClassSet(chord);
     if (!isPitchClassSubset(triadPcs, livePcs)) continue;
-    const exactTriad =
-      livePcs.size === triadPcs.length && isPitchClassSubset([...livePcs], new Set(triadPcs));
-    if (isSeventhQuality(name) && !exactTriad) continue;
+    if (isSeventhQuality(name) && !isExactTriadMatch(livePcs, triadPcs)) continue;
     matches.push(chord);
   }
   return matches;
@@ -203,22 +236,16 @@ function pickSourceChord(
   if (candidates.length === 0) return null;
 
   const triadRoot = normalizePitchClass(def.triadRootRel + tonalCenter);
-  candidates.sort((a, b) => {
-    const aRoot = getChordRootPitchClass(a) === triadRoot ? 0 : 1;
-    const bRoot = getChordRootPitchClass(b) === triadRoot ? 0 : 1;
-    if (aRoot !== bRoot) return aRoot - bRoot;
-    const aExtra = livePitchClassSet(a).size - triadPcs.length;
-    const bExtra = livePitchClassSet(b).size - triadPcs.length;
-    if (aExtra !== bExtra) return aExtra - bExtra;
-    return a.name.localeCompare(b.name);
-  });
+  candidates.sort((a, b) =>
+    compareSourceChords(a, b, triadRoot, triadPcs.length),
+  );
   return candidates[0] ?? null;
 }
 
 export function getSimpleMajorTriadDef(
   id: SimpleMajorTriadId,
 ): SimpleMajorTriadDef | undefined {
-  return SIMPLE_MAJOR_TRIAD_DEFS.find((def) => def.id === id);
+  return TRIAD_DEFS_BY_ID.get(id);
 }
 
 /** Map one Roman numeral to a live elemental chord at `tonalCenter`. */
@@ -262,9 +289,14 @@ export function formatSimpleTriadCaption(
   tonalCenter: number,
 ): string {
   const rootName = NOTE_NAMES_FLAT[normalizePitchClass(def.triadRootRel + tonalCenter)];
-  if (def.quality === 'minor') return `${rootName}m`;
-  if (def.quality === 'diminished') return `${rootName}°`;
-  return rootName;
+  switch (def.quality) {
+    case 'minor':
+      return `${rootName}m`;
+    case 'diminished':
+      return `${rootName}°`;
+    default:
+      return rootName;
+  }
 }
 
 export function simpleTriadAriaLabel(
