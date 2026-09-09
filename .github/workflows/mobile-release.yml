@@ -1,0 +1,273 @@
+name: Mobile Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      create_release:
+        description: 'Create a GitHub Release and attach artifacts'
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+env:
+  NODE_VERSION: '22'
+
+jobs:
+  web-dist:
+    name: Build web dist
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - run: npm ci
+
+      - run: npm run build
+        env:
+          CI: true
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: web-dist
+          path: dist
+          retention-days: 7
+
+  android:
+    name: Android APK / AAB
+    needs: web-dist
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - uses: android-actions/setup-android@v3
+
+      - run: npm ci
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: web-dist
+          path: dist
+
+      - name: Sync Capacitor Android
+        run: npx cap sync android
+
+      - name: Build debug APK
+        working-directory: android
+        run: ./gradlew assembleDebug --no-daemon
+
+      - name: Upload debug APK
+        uses: actions/upload-artifact@v7
+        with:
+          name: android-debug-apk
+          path: android/app/build/outputs/apk/debug/*.apk
+          retention-days: 14
+
+      - name: Configure Android signing
+        id: android_signing
+        if: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' && secrets.ANDROID_KEYSTORE_PASSWORD != '' && secrets.ANDROID_KEY_ALIAS != '' && secrets.ANDROID_KEY_PASSWORD != '' }}
+        working-directory: android
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > keystore.jks
+          cat >> gradle.properties <<EOF
+          MOVEMENTAL_STORE_FILE=keystore.jks
+          MOVEMENTAL_STORE_PASSWORD=${ANDROID_KEYSTORE_PASSWORD}
+          MOVEMENTAL_KEY_ALIAS=${ANDROID_KEY_ALIAS}
+          MOVEMENTAL_KEY_PASSWORD=${ANDROID_KEY_PASSWORD}
+          EOF
+          echo "enabled=true" >> "$GITHUB_OUTPUT"
+
+      - name: Build signed release
+        if: steps.android_signing.outputs.enabled == 'true'
+        working-directory: android
+        run: ./gradlew assembleRelease bundleRelease --no-daemon
+
+      - name: Upload signed Android artifacts
+        if: steps.android_signing.outputs.enabled == 'true'
+        uses: actions/upload-artifact@v7
+        with:
+          name: android-release
+          path: |
+            android/app/build/outputs/apk/release/*.apk
+            android/app/build/outputs/bundle/release/*.aab
+          retention-days: 14
+
+  ios:
+    name: iOS simulator app / IPA
+    needs: web-dist
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - run: npm ci
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: web-dist
+          path: dist
+
+      - name: Sync Capacitor iOS
+        run: npx cap sync ios
+
+      - name: Build unsigned iOS Simulator app
+        run: |
+          xcodebuild \
+            -project ios/App/App.xcodeproj \
+            -scheme App \
+            -configuration Release \
+            -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath ios/build \
+            CODE_SIGNING_ALLOWED=NO
+          APP_PATH=$(find ios/build/Build/Products -name 'App.app' | head -n 1)
+          mkdir -p ios/artifacts
+          ditto -c -k --sequesterRsrc --keepParent "$APP_PATH" ios/artifacts/Movemental-simulator.app.zip
+
+      - name: Upload simulator app
+        uses: actions/upload-artifact@v7
+        with:
+          name: ios-simulator-app
+          path: ios/artifacts/Movemental-simulator.app.zip
+          retention-days: 14
+
+      - name: Import iOS signing materials
+        id: ios_signing
+        if: ${{ secrets.IOS_CERTIFICATE_P12_BASE64 != '' && secrets.IOS_CERTIFICATE_PASSWORD != '' && secrets.IOS_PROVISIONING_PROFILE_BASE64 != '' && secrets.IOS_TEAM_ID != '' }}
+        env:
+          IOS_CERTIFICATE_P12_BASE64: ${{ secrets.IOS_CERTIFICATE_P12_BASE64 }}
+          IOS_CERTIFICATE_PASSWORD: ${{ secrets.IOS_CERTIFICATE_PASSWORD }}
+          IOS_PROVISIONING_PROFILE_BASE64: ${{ secrets.IOS_PROVISIONING_PROFILE_BASE64 }}
+          IOS_TEAM_ID: ${{ secrets.IOS_TEAM_ID }}
+          IOS_BUNDLE_ID: ${{ secrets.IOS_BUNDLE_ID }}
+        run: |
+          CERT_PATH="$RUNNER_TEMP/movemental.p12"
+          PROFILE_PATH="$RUNNER_TEMP/movemental.mobileprovision"
+          echo "$IOS_CERTIFICATE_P12_BASE64" | base64 --decode > "$CERT_PATH"
+          echo "$IOS_PROVISIONING_PROFILE_BASE64" | base64 --decode > "$PROFILE_PATH"
+          KEYCHAIN_PATH="$RUNNER_TEMP/movemental.keychain-db"
+          security create-keychain -p "" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "" "$KEYCHAIN_PATH"
+          security import "$CERT_PATH" -P "$IOS_CERTIFICATE_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH"
+          security list-keychain -d user -s "$KEYCHAIN_PATH"
+          mkdir -p "$HOME/Library/MobileDevice/Provisioning Profiles"
+          PROFILE_UUID=$(security cms -D -i "$PROFILE_PATH" | plutil -extract UUID raw -)
+          cp "$PROFILE_PATH" "$HOME/Library/MobileDevice/Provisioning Profiles/${PROFILE_UUID}.mobileprovision"
+          echo "enabled=true" >> "$GITHUB_OUTPUT"
+          echo "team_id=$IOS_TEAM_ID" >> "$GITHUB_OUTPUT"
+          echo "bundle_id=${IOS_BUNDLE_ID:-com.movemental.app}" >> "$GITHUB_OUTPUT"
+
+      - name: Archive and export IPA
+        if: steps.ios_signing.outputs.enabled == 'true'
+        env:
+          IOS_TEAM_ID: ${{ steps.ios_signing.outputs.team_id }}
+          IOS_BUNDLE_ID: ${{ steps.ios_signing.outputs.bundle_id }}
+          IOS_CODE_SIGN_IDENTITY: ${{ secrets.IOS_CODE_SIGN_IDENTITY }}
+        run: |
+          IDENTITY="${IOS_CODE_SIGN_IDENTITY:-Apple Distribution}"
+          xcodebuild \
+            -project ios/App/App.xcodeproj \
+            -scheme App \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -archivePath ios/build/Movemental.xcarchive \
+            DEVELOPMENT_TEAM="$IOS_TEAM_ID" \
+            CODE_SIGN_STYLE=Manual \
+            CODE_SIGN_IDENTITY="$IDENTITY" \
+            archive
+          cat > ios/build/ExportOptions.plist <<EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>method</key>
+            <string>release-testing</string>
+            <key>teamID</key>
+            <string>${IOS_TEAM_ID}</string>
+            <key>signingStyle</key>
+            <string>manual</string>
+            <key>compileBitcode</key>
+            <false/>
+          </dict>
+          </plist>
+          EOF
+          xcodebuild -exportArchive \
+            -archivePath ios/build/Movemental.xcarchive \
+            -exportPath ios/artifacts/ipa \
+            -exportOptionsPlist ios/build/ExportOptions.plist
+
+      - name: Upload IPA
+        if: steps.ios_signing.outputs.enabled == 'true'
+        uses: actions/upload-artifact@v7
+        with:
+          name: ios-ipa
+          path: ios/artifacts/ipa/*.ipa
+          retention-days: 14
+
+  github-release:
+    name: GitHub Release
+    needs: [android, ios]
+    if: github.ref_type == 'tag'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          path: release-artifacts
+
+      - name: Stage release files
+        run: |
+          mkdir -p staged
+          find release-artifacts -type f \( \
+            -name '*.apk' -o -name '*.aab' -o -name '*.zip' -o -name '*.ipa' \
+          \) -exec cp {} staged/ \;
+          ls -la staged
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: ${{ github.ref_name }}
+          draft: false
+          generate_release_notes: true
+          files: staged/*
+          body: |
+            Capacitor mobile artifacts for Movemental.
+
+            Unsigned/debug builds are attached when signing secrets are not configured.
+            See `docs/RELEASES.md` for Android keystore and Apple certificate secrets.
+
+            Store submission (App Store Connect / Play Console) is not part of this
+            workflow. The app is licensed PolyForm Noncommercial; commercial store
+            distribution requires a separate license.
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

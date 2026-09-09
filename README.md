@@ -19,7 +19,8 @@ movemental-chords@proton.me to discuss commercial licensing.
 | Directory | Role |
 |-----------|------|
 | Repository root | **Active product** (React, TypeScript, Vite, Tone.js). Deploy output: `dist` (Firebase Hosting). |
-| [`ios/`](ios/) | **Capacitor iOS shell** wrapping the same web build for App Store distribution. Loads bundled `dist/`, never the Firebase URL. |
+| [`ios/`](ios/) | **Capacitor iOS shell** wrapping the same web build. Loads bundled `dist/`, never the Firebase URL. |
+| [`android/`](android/) | **Capacitor Android shell** with the same bundled assets. |
 | [`python-prototype/`](python-prototype/) | **Archived prototype** (CreativePython / PySide desktop app kept for reference). |
 
 The legacy desktop app lives under `python-prototype/`. See [`python-prototype/README.md`](python-prototype/README.md) for setup if you need to run it locally.
@@ -461,14 +462,15 @@ The repo includes a CLI utility `scripts/check.ts` that initializes the chord di
 npx vite-node scripts/check.ts
 ```
 
-## Capacitor iOS Shell
+## Capacitor iOS and Android shells
 
-The `ios/` directory is a Capacitor-wrapped native shell around the same
-Vite build, so the App Store binary ships bundled assets instead of
-loading the Firebase-hosted site. See
+The `ios/` and `android/` directories are Capacitor-wrapped native shells
+around the same Vite build, so store binaries ship bundled assets instead
+of loading the Firebase-hosted site. See
 [`docs/capacitor-ios-shell.md`](docs/capacitor-ios-shell.md) for setup,
-what is implemented so far, and what still needs a macOS machine (Xcode
-build, on-device latency and tilt-permission smoke tests).
+native polish (haptics, audio session, share sheet), and what still needs
+a device. GitHub Release automation and signing secrets are in
+[`docs/RELEASES.md`](docs/RELEASES.md).
 
 ## Contributing
 
