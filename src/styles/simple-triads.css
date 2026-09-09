@@ -3,24 +3,29 @@
    ========================================================================== */
 .simple-triads {
   position: absolute;
-  inset: 0;
+  inset: 4% 3% 7% 3%;
   z-index: 1;
   container-type: size;
   pointer-events: none;
 }
 
+.diagram-container[data-layout-tier='phone'] .simple-triads {
+  inset: 5% 2% 28% 2%;
+}
+
 .simple-triads__frame {
   position: absolute;
-  inset: 6%;
-  width: 88%;
-  height: 88%;
+  inset: 0;
+  width: 100%;
+  height: 100%;
   overflow: visible;
 }
 
 .simple-triads__edge {
   fill: none;
-  stroke-width: 1.6;
+  stroke-width: 2.1;
   stroke-linecap: round;
+  opacity: 0.92;
 }
 
 .simple-triads__edge--earth-wind {
@@ -40,11 +45,14 @@
   transform: translate(-50%, -50%);
   margin: 0;
   pointer-events: none;
-  font-size: clamp(0.62rem, 1.8cqw, 0.8rem);
+  padding: 0.15rem 0.4rem;
+  border-radius: 999px;
+  font-size: clamp(0.58rem, 1.6cqw, 0.75rem);
   font-weight: 650;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--text-secondary);
+  color: var(--text-primary);
+  background: rgba(9, 9, 11, 0.55);
   text-shadow: 0 1px 8px rgba(0, 0, 0, 0.65);
   white-space: nowrap;
 }
@@ -80,10 +88,10 @@
 }
 
 .simple-triads__parent[aria-pressed='true'] {
-  border-color: rgba(255, 255, 255, 0.92);
+  border-color: #fff;
   box-shadow:
-    0 0 0 3px rgba(255, 255, 255, 0.35),
-    0 0 28px var(--parent-glow, rgba(255, 255, 255, 0.3));
+    0 0 0 4px rgba(255, 255, 255, 0.55),
+    0 0 34px var(--parent-glow, rgba(255, 255, 255, 0.4));
 }
 
 .simple-triads__rn {
@@ -110,14 +118,23 @@
 }
 
 .simple-triads__rn[aria-pressed='true'] {
+  border-width: 2px;
   border-color: #fff;
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.16), transparent 50%),
-    rgba(28, 28, 34, 0.92);
+    linear-gradient(180deg, rgba(255, 255, 255, 0.22), transparent 46%),
+    rgba(48, 48, 56, 0.96);
   box-shadow:
-    0 0 0 3px rgba(255, 255, 255, 0.28),
-    0 12px 32px rgba(0, 0, 0, 0.45);
-  transform: translate(-50%, -50%) scale(1.04);
+    0 0 0 4px rgba(255, 255, 255, 0.42),
+    0 14px 36px rgba(0, 0, 0, 0.5);
+  transform: translate(-50%, -50%) scale(1.07);
+}
+
+.simple-triads__rn[aria-pressed='true'] .simple-triads__rn-mark {
+  color: #fff;
+}
+
+.simple-triads__rn[aria-pressed='true'] .simple-triads__rn-caption {
+  color: #e2e8f0;
 }
 
 .simple-triads__rn:focus-visible,

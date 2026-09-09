@@ -43,9 +43,19 @@ const RN_EDGE_T: Record<string, number> = {
 
 const AXIS_LABEL_T: Record<SimpleTriadAxisId, number> = {
   earth_wind: 0.5,
-  earth_fire: 0.12,
-  wind_fire: 0.12,
+  earth_fire: 0.5,
+  wind_fire: 0.5,
 };
+
+function offsetFromCentroid(point: Point, centroid: Point, distance: number): Point {
+  const dx = point.x - centroid.x;
+  const dy = point.y - centroid.y;
+  const len = Math.hypot(dx, dy) || 1;
+  return {
+    x: point.x + (dx / len) * distance,
+    y: point.y + (dy / len) * distance,
+  };
+}
 
 function axisClass(axis: SimpleTriadAxisId): string {
   if (axis === 'earth_wind') return 'simple-triads__rn--earth-wind';
@@ -91,6 +101,10 @@ export const SimpleTriadsSurface: React.FC = () => {
   }
 
   const { earth, wind, fire } = geometry;
+  const centroid = {
+    x: (earth.x + wind.x + fire.x) / 3,
+    y: (earth.y + wind.y + fire.y) / 3,
+  };
   const parentSelected =
     activeSimpleTriadId == null ? selectedChord?.name ?? null : null;
 
@@ -158,19 +172,37 @@ export const SimpleTriadsSurface: React.FC = () => {
 
       <p
         className="simple-triads__axis-label"
-        style={pct(lerp(earth, wind, AXIS_LABEL_T.earth_wind))}
+        style={pct(
+          offsetFromCentroid(
+            lerp(earth, wind, AXIS_LABEL_T.earth_wind),
+            centroid,
+            0.07,
+          ),
+        )}
       >
         {SIMPLE_TRIAD_AXIS_LABELS.earth_wind}
       </p>
       <p
         className="simple-triads__axis-label"
-        style={pct(lerp(earth, fire, AXIS_LABEL_T.earth_fire))}
+        style={pct(
+          offsetFromCentroid(
+            lerp(earth, fire, AXIS_LABEL_T.earth_fire),
+            centroid,
+            0.08,
+          ),
+        )}
       >
         {SIMPLE_TRIAD_AXIS_LABELS.earth_fire}
       </p>
       <p
         className="simple-triads__axis-label"
-        style={pct(lerp(wind, fire, AXIS_LABEL_T.wind_fire))}
+        style={pct(
+          offsetFromCentroid(
+            lerp(wind, fire, AXIS_LABEL_T.wind_fire),
+            centroid,
+            0.08,
+          ),
+        )}
       >
         {SIMPLE_TRIAD_AXIS_LABELS.wind_fire}
       </p>
