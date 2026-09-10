@@ -84,7 +84,11 @@ describe('simpleMajorTriads', () => {
   });
 
   it('resolves each RN to the C-center triad PC set and elemental host', () => {
-    const expected = [
+    const expected: ReadonlyArray<{
+      id: 'I' | 'ii' | 'iii' | 'IV' | 'V' | 'vi' | 'vii_dim';
+      chordName: string;
+      pcs: readonly number[];
+    }> = [
       { id: 'I', chordName: 'Branch', pcs: [0, 4, 7] },
       { id: 'ii', chordName: 'Magma', pcs: [2, 5, 9] },
       { id: 'iii', chordName: 'Ember', pcs: [4, 7, 11] },
@@ -92,14 +96,15 @@ describe('simpleMajorTriads', () => {
       { id: 'V', chordName: 'Ember', pcs: [7, 11, 2] },
       { id: 'vi', chordName: 'Branch', pcs: [9, 0, 4] },
       { id: 'vii_dim', chordName: 'Magma', pcs: [11, 2, 5] },
-    ] as const;
+    ];
 
     for (const row of expected) {
       const resolved = resolveSimpleMajorTriad(row.id, 0)!;
       expect(resolved.chordName).toBe(row.chordName);
       expect(uniquePcs(resolved.triadPitchClasses)).toEqual(uniquePcs(row.pcs));
+      const triadSet = new Set(row.pcs);
       expect(
-        resolved.extraPitchClasses.every((pc) => !row.pcs.includes(pc)),
+        resolved.extraPitchClasses.every((pc) => !triadSet.has(pc)),
       ).toBe(true);
     }
 
