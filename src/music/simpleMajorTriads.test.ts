@@ -83,6 +83,32 @@ describe('simpleMajorTriads', () => {
     }
   });
 
+  it('resolves each RN to the C-center triad PC set and elemental host', () => {
+    const expected = [
+      { id: 'I', chordName: 'Branch', pcs: [0, 4, 7] },
+      { id: 'ii', chordName: 'Magma', pcs: [2, 5, 9] },
+      { id: 'iii', chordName: 'Ember', pcs: [4, 7, 11] },
+      { id: 'IV', chordName: 'Glass', pcs: [5, 9, 0] },
+      { id: 'V', chordName: 'Ember', pcs: [7, 11, 2] },
+      { id: 'vi', chordName: 'Branch', pcs: [9, 0, 4] },
+      { id: 'vii_dim', chordName: 'Magma', pcs: [11, 2, 5] },
+    ] as const;
+
+    for (const row of expected) {
+      const resolved = resolveSimpleMajorTriad(row.id, 0)!;
+      expect(resolved.chordName).toBe(row.chordName);
+      expect(uniquePcs(resolved.triadPitchClasses)).toEqual(uniquePcs(row.pcs));
+      expect(
+        resolved.extraPitchClasses.every((pc) => !row.pcs.includes(pc)),
+      ).toBe(true);
+    }
+
+    chordManager.configureTonalSpace(10, 2);
+    const tonicAtBb = resolveSimpleMajorTriad('I', 10)!;
+    expect(tonicAtBb.chordName).toBe('Branch');
+    expect(uniquePcs(tonicAtBb.triadPitchClasses)).toEqual([2, 5, 10]);
+  });
+
   it('keeps issue #94 axis grouping', () => {
     const byId = Object.fromEntries(
       resolveAllSimpleMajorTriads(0).map((row) => [row.id, row]),

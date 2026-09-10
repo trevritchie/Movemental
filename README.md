@@ -179,6 +179,18 @@ Settings → Layout → **Simple Major Triads** replaces the full diamond diagra
 
 Mapping is derived at the live tonal center from `MAJOR_LAYOUT_CHORDS` and `chord.pitches` (mod-12 pitch classes after tonal-center transpose; templates are MIDI note numbers). Seventh-quality hosts such as Flame are not used under RN buttons. Extra pitch classes from the maj6 / min6 hosts are muted through the existing borrowing overlay so each button sounds a strict triad. See [`src/music/simpleMajorTriads.ts`](src/music/simpleMajorTriads.ts).
 
+Targets at tonal center C, then `+ tonalCenter` mod 12:
+
+| RN | Elemental host | Pitch-class set at C |
+| --- | --- | --- |
+| I | Branch | {0, 4, 7} |
+| ii | Magma | {2, 5, 9} |
+| iii | Ember | {4, 7, 11} |
+| IV | Glass | {5, 9, 0} |
+| V | Ember | {7, 11, 2} |
+| vi | Branch | {9, 0, 4} |
+| vii° | Magma | {11, 2, 5} |
+
 ---
 
 ## The Advanced Voice Borrowing System

@@ -72,7 +72,11 @@ export const SIMPLE_TRIAD_AXIS_LABELS: Record<SimpleTriadAxisId, string> = {
 };
 
 /**
- * Issue #94 axis grouping, aligned with harmonic-function edges:
+ * Diatonic triad targets at tonal center C (pitch classes 0..11), then
+ * transposed by the active tonal-center PC:
+ *   I={0,4,7}  ii={2,5,9}  iii={4,7,11}  IV={5,9,0}
+ *   V={7,11,2}  vi={9,0,4}  vii°={11,2,5}
+ * Axis grouping (issue #94 / harmonic-function edges):
  * Earth-Wind = tonic (I vi), Earth-Fire = subdominant (ii IV vii°),
  * Wind-Fire = dominant (iii V).
  */
