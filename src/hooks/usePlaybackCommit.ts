@@ -147,7 +147,9 @@ export function usePlaybackCommit({
       }
 
       if (voicingDiff) {
-        audioEngine.updateVoicingDiff(pitches);
+        // Pass Retrigger Sounding Notes through so Tilt to Strum level changes
+        // full-retrigger when the setting is On (same as chord-tap retrigger).
+        audioEngine.updateVoicingDiff(pitches, retrigger);
         return;
       }
 
@@ -160,9 +162,10 @@ export function usePlaybackCommit({
         return;
       }
 
-      // Callers set `retrigger` for same-button re-taps and for true chord-name
-      // changes when Retrigger Sounding Notes is on. Same-chord revoices leave
-      // it false so still-sounding notes can sustain.
+      // Callers set `retrigger` for same-button re-taps, for true chord-name
+      // changes when Retrigger Sounding Notes is on, and for Tilt to Strum
+      // level commits when that setting is on. Same-chord non-strum revoices
+      // leave it false so still-sounding notes can sustain.
       audioEngine.triggerAttack(pitches, retrigger);
     },
     [playStyleRef, activePitchesRef]
