@@ -421,6 +421,41 @@ describe('AudioEngine instrument presets', () => {
     expect(engine.activeNotes).toEqual(['C4', 'F4', 'G4']);
   });
 
+  it('updateVoicingDiff with retrigger re-attacks still-sounding common tones', async () => {
+    await audioEngine.applyPreset(getSynthPreset('grandPiano'));
+    const engine = audioEngine as unknown as {
+      voice: Tone.Sampler;
+      noteEndTimes: Map<string, number>;
+      activeNotes: string[];
+      isPointerDown: boolean;
+    };
+    const attackSpy = vi.spyOn(engine.voice, 'triggerAttack');
+    const releaseSpy = vi.spyOn(engine.voice, 'triggerRelease');
+
+    vi.mocked(Tone.now).mockReturnValue(1);
+    audioEngine.triggerAttack([60, 64, 67]);
+    engine.noteEndTimes.set('C4', 10);
+    engine.noteEndTimes.set('E4', 10);
+    engine.noteEndTimes.set('G4', 10);
+    engine.isPointerDown = false;
+    attackSpy.mockClear();
+    releaseSpy.mockClear();
+
+    vi.mocked(Tone.now).mockReturnValue(2);
+    audioEngine.updateVoicingDiff([60, 65, 67], true);
+
+    expect(releaseSpy).toHaveBeenCalledWith(
+      expect.arrayContaining(['C4', 'E4', 'G4']),
+      expect.anything(),
+    );
+    const attacked = attackSpy.mock.calls[0]?.[0] as string[];
+    expect(attacked).toEqual(expect.arrayContaining(['C4', 'F4', 'G4']));
+    expect(attacked).toHaveLength(3);
+    expect(engine.activeNotes).toEqual(['C4', 'F4', 'G4']);
+    // Continuous strum must not latch pointer-down state.
+    expect(engine.isPointerDown).toBe(false);
+  });
+
   it('updateVoicingDiff no-ops when the voicing set is unchanged and still sounding', async () => {
     await audioEngine.applyPreset(getSynthPreset('warmPad'));
     const engine = audioEngine as unknown as { voice: Tone.PolySynth };

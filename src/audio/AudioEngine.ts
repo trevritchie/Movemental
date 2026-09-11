@@ -796,14 +796,20 @@ export class AudioEngine {
   /**
    * Voicing update for Tilt to Strum.
    *
-   * Sustains notes that are still sounding and remain in the intended set.
-   * Re-attacks pitches whose sampler buffers have already ended, and attacks
-   * newly added pitches. Releases only notes that left the set and are still
-   * live. Independent of the Retrigger Sounding Notes setting (chord taps).
+   * - `retrigger` false (default): set-membership diff via `applyNoteSetDiff`
+   *   (sustain still-sounding overlaps; attack adds / expired; release drops).
+   * - `retrigger` true: full release + re-attack via `triggerAttackSync`,
+   *   matching chord-tap Retrigger Sounding Notes without setting
+   *   `isPointerDown` (continuous strum must not latch pointer state).
    */
-  public updateVoicingDiff(midiNotes: number[]) {
+  public updateVoicingDiff(midiNotes: number[], retrigger: boolean = false) {
     const voice = this.getVoice();
     if (!voice) return;
+
+    if (retrigger) {
+      this.triggerAttackSync(midiNotes, true);
+      return;
+    }
 
     const now = Tone.now();
     const clamped = midiNotes.map(

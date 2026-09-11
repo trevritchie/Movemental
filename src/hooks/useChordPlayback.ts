@@ -96,9 +96,11 @@ interface UseChordPlaybackOptions {
   initialTiltModeEnabled?: boolean;
   hasPersistedSettings?: boolean;
   /**
-   * Tap sustain: on true chord-name changes (any different button, including
-   * Branch to Sister/Twin/Brother Branch), fully retrigger still-sounding
-   * notes. Same-button re-taps always retrigger regardless of this flag.
+   * When On: chord-name changes (any different button, including Branch to
+   * Sister/Twin/Brother Branch) fully retrigger still-sounding notes, and
+   * Tilt to Strum level changes that commit a new voicing do the same.
+   * Same-button re-taps always retrigger regardless of this flag. When Off,
+   * Tilt to Strum keeps set-membership diffs (sustain still-sounding tones).
    */
   retriggerSoundingNotesRef: RefObject<boolean>;
   /**
@@ -797,7 +799,8 @@ export function useChordPlayback({
   /**
    * Continuous Tilt to Strum sample. Invoked after rawTiltRef updates, from a
    * pending rate-limit / background retry timer, and on foreground visibility.
-   * Plays only the set-membership diff when discrete tilt levels change.
+   * On accepted level changes: set-membership diff by default, or full
+   * retrigger when Retrigger Sounding Notes is On.
    */
   const handleTiltStrumSample = useCallback(() => {
     if (!tiltToStrumRef.current || !usesDeviceTilt(tiltModeRef.current)) {
@@ -906,21 +909,22 @@ export function useChordPlayback({
     lastStrumTimeRef.current = now;
     clearPendingStrum();
 
+    const retrigger = retriggerSoundingNotesRef.current === true;
+
+    // Empty voicing: silence first, then commit refs/UI (dispatchAudio no-ops).
     if (pitches.length === 0) {
       audioEngine.releaseActiveNotes();
-      commitPlayback(displayChord, [], playbackTilt, state, elemental, {
-        voicingDiff: true,
-      });
-      return;
     }
 
     commitPlayback(displayChord, pitches, playbackTilt, state, elemental, {
       voicingDiff: true,
+      retrigger,
     });
   }, [
     // lastControlTiltRef and lastCommittedPlaybackTiltRef are stable mutable
     // refs (never reassigned after initialization) — intentionally omitted.
     tiltToStrumRef,
+    retriggerSoundingNotesRef,
     shortestNoteRef,
     bpmRef,
     selectedChordNameRef,
