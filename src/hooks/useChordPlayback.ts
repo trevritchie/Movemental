@@ -736,7 +736,8 @@ export function useChordPlayback({
   /**
    * Continuous Tilt to Strum sample. Invoked after rawTiltRef updates, from a
    * pending rate-limit / background retry timer, and on foreground visibility.
-   * Plays only the set-membership diff when discrete tilt levels change.
+   * On accepted level changes: set-membership diff by default, or full
+   * retrigger when Retrigger Sounding Notes is On.
    */
   const handleTiltStrumSample = useCallback(() => {
     if (!tiltToStrumRef.current || !usesDeviceTilt(tiltModeRef.current)) {
@@ -847,13 +848,9 @@ export function useChordPlayback({
 
     const retrigger = retriggerSoundingNotesRef.current === true;
 
+    // Empty voicing: silence first, then commit refs/UI (dispatchAudio no-ops).
     if (pitches.length === 0) {
       audioEngine.releaseActiveNotes();
-      commitPlayback(displayChord, [], playbackTilt, state, elemental, {
-        voicingDiff: true,
-        retrigger,
-      });
-      return;
     }
 
     commitPlayback(displayChord, pitches, playbackTilt, state, elemental, {

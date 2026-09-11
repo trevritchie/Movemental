@@ -47,8 +47,9 @@ export interface DispatchAudioOptions {
   skipIfUnchanged?: boolean;
   fromPointer?: boolean;
   /**
-   * When true, apply a set-membership voicing diff (Tilt to Strum) instead of
-   * legato triggerAttack / timed playNotes.
+   * When true, route through `updateVoicingDiff` (Tilt to Strum) instead of
+   * legato triggerAttack / timed playNotes. Pair with `retrigger` when
+   * Retrigger Sounding Notes is On.
    */
   voicingDiff?: boolean;
 }
@@ -147,8 +148,6 @@ export function usePlaybackCommit({
       }
 
       if (voicingDiff) {
-        // Pass Retrigger Sounding Notes through so Tilt to Strum level changes
-        // full-retrigger when the setting is On (same as chord-tap retrigger).
         audioEngine.updateVoicingDiff(pitches, retrigger);
         return;
       }
@@ -162,10 +161,9 @@ export function usePlaybackCommit({
         return;
       }
 
-      // Callers set `retrigger` for same-button re-taps, for true chord-name
-      // changes when Retrigger Sounding Notes is on, and for Tilt to Strum
-      // level commits when that setting is on. Same-chord non-strum revoices
-      // leave it false so still-sounding notes can sustain.
+      // `retrigger` from callers: same-button re-taps; chord-name changes or
+      // Tilt to Strum level commits when Retrigger Sounding Notes is on.
+      // Otherwise still-sounding notes can sustain.
       audioEngine.triggerAttack(pitches, retrigger);
     },
     [playStyleRef, activePitchesRef]
