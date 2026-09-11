@@ -495,7 +495,56 @@ describe('useChordPlayback audio-first pointer path', () => {
     });
 
     expect(mocks.updateVoicingDiff).toHaveBeenCalled();
+    expect(mocks.updateVoicingDiff.mock.calls.at(-1)?.[1]).toBe(false);
     expect(mocks.triggerAttack).not.toHaveBeenCalled();
+  });
+
+  it('full-retriggers on tilt-strum level change when retriggerSoundingNotes is on', async () => {
+    baseOptions.tiltToStrumRef.current = true;
+    baseOptions.retriggerSoundingNotesRef.current = true;
+    const { result } = renderHook(() => useChordPlayback(baseOptions));
+
+    await act(async () => {
+      result.current.enterTiltSession();
+      result.current.handleChordPointerDown(branch);
+      await Promise.resolve();
+    });
+
+    mocks.triggerAttack.mockClear();
+    mocks.updateVoicingDiff.mockClear();
+    baseOptions.rawTiltRef.current = { x: -0.75, y: 0 };
+
+    await act(async () => {
+      vi.advanceTimersByTime(130);
+      result.current.handleTiltStrumSample();
+    });
+
+    expect(mocks.updateVoicingDiff).toHaveBeenCalled();
+    expect(mocks.updateVoicingDiff.mock.calls.at(-1)?.[1]).toBe(true);
+    expect(mocks.triggerAttack).not.toHaveBeenCalled();
+  });
+
+  it('keeps set-membership diff on tilt-strum when retriggerSoundingNotes is off', async () => {
+    baseOptions.tiltToStrumRef.current = true;
+    baseOptions.retriggerSoundingNotesRef.current = false;
+    const { result } = renderHook(() => useChordPlayback(baseOptions));
+
+    await act(async () => {
+      result.current.enterTiltSession();
+      result.current.handleChordPointerDown(branch);
+      await Promise.resolve();
+    });
+
+    mocks.updateVoicingDiff.mockClear();
+    baseOptions.rawTiltRef.current = { x: -0.5, y: -0.5 };
+
+    await act(async () => {
+      vi.advanceTimersByTime(130);
+      result.current.handleTiltStrumSample();
+    });
+
+    expect(mocks.updateVoicingDiff).toHaveBeenCalled();
+    expect(mocks.updateVoicingDiff.mock.calls.at(-1)?.[1]).toBe(false);
   });
 
   it('does not strum on unchanged tilt levels', async () => {

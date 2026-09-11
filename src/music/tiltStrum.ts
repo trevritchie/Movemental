@@ -2,7 +2,9 @@
  * Tilt to Strum: discrete tilt-level note diffs without retapping.
  *
  * Rate-limits using BPM + Shortest Note and compares set membership only
- * (see AudioEngine.updateVoicingDiff; finished notes may re-attack on tilt).
+ * (see AudioEngine.updateVoicingDiff). Default: still-sounding common tones
+ * sustain; finished notes may re-attack. When Retrigger Sounding Notes is On,
+ * accepted level changes full-retrigger the intended set instead.
  * Pitch-shifting slides are out of scope.
  */
 import type { ShortestNote } from '../settings/userSettingsSchema';

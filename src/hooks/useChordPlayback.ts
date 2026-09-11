@@ -91,9 +91,11 @@ interface UseChordPlaybackOptions {
   initialTiltModeEnabled?: boolean;
   hasPersistedSettings?: boolean;
   /**
-   * Tap sustain: on true chord-name changes (any different button, including
-   * Branch to Sister/Twin/Brother Branch), fully retrigger still-sounding
-   * notes. Same-button re-taps always retrigger regardless of this flag.
+   * When On: chord-name changes (any different button, including Branch to
+   * Sister/Twin/Brother Branch) fully retrigger still-sounding notes, and
+   * Tilt to Strum level changes that commit a new voicing do the same.
+   * Same-button re-taps always retrigger regardless of this flag. When Off,
+   * Tilt to Strum keeps set-membership diffs (sustain still-sounding tones).
    */
   retriggerSoundingNotesRef: RefObject<boolean>;
   /**
@@ -843,21 +845,26 @@ export function useChordPlayback({
     lastStrumTimeRef.current = now;
     clearPendingStrum();
 
+    const retrigger = retriggerSoundingNotesRef.current === true;
+
     if (pitches.length === 0) {
       audioEngine.releaseActiveNotes();
       commitPlayback(displayChord, [], playbackTilt, state, elemental, {
         voicingDiff: true,
+        retrigger,
       });
       return;
     }
 
     commitPlayback(displayChord, pitches, playbackTilt, state, elemental, {
       voicingDiff: true,
+      retrigger,
     });
   }, [
     // lastControlTiltRef and lastCommittedPlaybackTiltRef are stable mutable
     // refs (never reassigned after initialization) — intentionally omitted.
     tiltToStrumRef,
+    retriggerSoundingNotesRef,
     shortestNoteRef,
     bpmRef,
     selectedChordNameRef,
