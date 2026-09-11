@@ -18,6 +18,7 @@ export const DIAGRAM_LAYOUT_OPTIONS: readonly {
 }[] = [
   { value: 'complete_geometry', label: 'Complete Geometry' },
   { value: 'major', label: 'Major' },
+  { value: 'simple_major_triads', label: 'Simple Major Triads' },
   { value: 'natural_minor', label: 'Natural Minor' },
   { value: 'minor', label: 'Minor' },
   { value: 'blues', label: 'Blues' },
@@ -34,6 +35,18 @@ export const MAJOR_LAYOUT_CHORDS: ReadonlySet<string> = new Set([
   'Glass',
   'Magma',
   'Flame',
+  'Ember',
+]);
+
+/**
+ * Simple Major Triads play surface: same Major-layout 6th chords that host
+ * the seven diatonic triads. Flame (V7) is omitted. Parents stay enabled
+ * separately as triangle vertices. See `simpleMajorTriads.ts`.
+ */
+export const SIMPLE_MAJOR_TRIADS_LAYOUT_CHORDS: ReadonlySet<string> = new Set([
+  'Branch',
+  'Glass',
+  'Magma',
   'Ember',
 ]);
 
@@ -125,6 +138,7 @@ const LAYOUT_ALLOWLISTS: Record<
   ReadonlySet<string>
 > = {
   major: MAJOR_LAYOUT_CHORDS,
+  simple_major_triads: SIMPLE_MAJOR_TRIADS_LAYOUT_CHORDS,
   natural_minor: NATURAL_MINOR_LAYOUT_CHORDS,
   minor: MINOR_LAYOUT_CHORDS,
   blues: BLUES_LAYOUT_CHORDS,
@@ -140,6 +154,10 @@ export function isDiagramLayoutMode(
   value: unknown,
 ): value is DiagramLayoutMode {
   return typeof value === 'string' && DIAGRAM_LAYOUT_MODE_SET.has(value);
+}
+
+export function isSimpleMajorTriadsLayout(mode: DiagramLayoutMode): boolean {
+  return mode === 'simple_major_triads';
 }
 
 /**

@@ -133,6 +133,35 @@ describe('useChordPlayback audio-first pointer path', () => {
     );
   });
 
+  it('plays Simple Major Triad I through the pointer hot path as a triad', async () => {
+    chordManager.configureTonalSpace(0, 2);
+    baseOptions.tonalCenterRef.current = 0;
+    baseOptions.noTiltVoicingLevelRef.current = 5;
+    const callOrder: string[] = [];
+    mocks.triggerAttack.mockImplementation(() => {
+      callOrder.push('audio');
+    });
+    setBorrowingState.mockImplementation(() => {
+      callOrder.push('borrowing');
+    });
+
+    const { result } = renderHook(() => useChordPlayback(baseOptions));
+
+    await act(async () => {
+      result.current.enterNoTiltSession();
+      result.current.handleSimpleTriadPointerDown('I');
+      await Promise.resolve();
+    });
+
+    expect(callOrder[0]).toBe('audio');
+    expect(result.current.activeSimpleTriadId).toBe('I');
+    const sounded = (mocks.triggerAttack.mock.calls.at(-1)?.[0] ?? []) as number[];
+    const pcs = [...new Set(sounded.map((midi) => ((midi % 12) + 12) % 12))].sort(
+      (a, b) => a - b,
+    );
+    expect(pcs).toEqual([0, 4, 7]);
+  });
+
   it('does not call setNoTiltPositionLevel before audio on smoothest pointer path', async () => {
     const callOrder: string[] = [];
     mocks.triggerAttack.mockImplementation(() => {

@@ -22,8 +22,10 @@ const mockChordContext = {
     noteStates: { 1: 'off', 2: 'off', 3: 'off', 4: 'off' },
   },
   handleChordPointerDown: mockHandleChordPointerDown,
+  handleSimpleTriadPointerDown: vi.fn(),
   handleChordPointerUp: mockHandleChordPointerUp,
   handleChordPointerEnter: vi.fn(),
+  activeSimpleTriadId: null,
   playStyle: 'tap',
   noTiltVoicingLevel: 0,
   setNoTiltVoicingLevel: vi.fn(),
@@ -321,6 +323,25 @@ describe('ElementalDiagram ready gate', () => {
       '[aria-label="Brother Branch"]',
     );
     expect(brotherBranch).toHaveAttribute('aria-disabled', 'false');
+
+    mockChordContext.diagramLayoutMode = 'complete_geometry';
+  });
+
+  it('replaces the full diagram with Simple Major Triads and keeps parents', async () => {
+    mockUseLayoutTier.mockReturnValue('desktop');
+    mockChordContext.diagramLayoutMode = 'simple_major_triads';
+    const { container } = render(<ElementalDiagram />);
+    await flushAnimationFrames(2);
+
+    expect(
+      container.querySelector('[aria-label="Elemental chord diagram"]'),
+    ).toBeNull();
+    expect(container.querySelector('[data-simple-triads="true"]')).not.toBeNull();
+    expect(container.querySelector('[data-simple-parent="Earth"]')).not.toBeNull();
+    expect(container.querySelector('[data-simple-parent="Wind"]')).not.toBeNull();
+    expect(container.querySelector('[data-simple-parent="Fire"]')).not.toBeNull();
+    expect(container.querySelector('[data-simple-triad="I"]')).not.toBeNull();
+    expect(container.querySelector('[aria-label="Trunk"]')).toBeNull();
 
     mockChordContext.diagramLayoutMode = 'complete_geometry';
   });
