@@ -217,6 +217,11 @@ describe('userSettingsSchema', () => {
     ).toBe('major');
     expect(
       validateLoadedSettings({
+        diagramLayout: { diagramMode: 'simple_major_triads' },
+      }).diagramLayout.diagramMode,
+    ).toBe('simple_major_triads');
+    expect(
+      validateLoadedSettings({
         diagramLayout: { diagramMode: 'natural_minor' },
       }).diagramLayout.diagramMode,
     ).toBe('natural_minor');

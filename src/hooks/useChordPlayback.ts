@@ -49,6 +49,11 @@ import { unlockIosMediaChannel } from '../audio/iosMediaChannel';
 import { isPageInteractiveForAudio } from '../audio/pageInteraction';
 import type { PlayStyle, VoiceLeadingMode, VoicingElevatorFloorsMode } from '../music/sessionModes';
 import { usesDeviceTilt } from '../music/sessionModes';
+import {
+  applySimpleTriadMutes,
+  resolveSimpleMajorTriad,
+  type SimpleMajorTriadId,
+} from '../music/simpleMajorTriads';
 import { isElementalName, isOppositeElementNavigation, previousBassMidi, resolveElementalForNavigation, type ElementalName } from '../music/elementalRoot';
 import {
   type NoTiltChordLockMaps,
@@ -168,6 +173,9 @@ export function useChordPlayback({
   const [lastElementalPlayback, setLastElementalPlayback] = useState<
     ElementalPlaybackResolution | null
   >(null);
+  const [activeSimpleTriadId, setActiveSimpleTriadId] =
+    useState<SimpleMajorTriadId | null>(null);
+  const activeSimpleTriadIdRef = useRef<SimpleMajorTriadId | null>(null);
 
   const isPointerDownRef = useRef(false);
   const playStyleRef = useRef(initialPlayStyle);
@@ -383,7 +391,14 @@ export function useChordPlayback({
     neutralVoicingRef.current = [];
     invalidateVoicingCache();
     resetVoiceLeadingSession();
+    activeSimpleTriadIdRef.current = null;
+    setActiveSimpleTriadId(null);
   }, [resetVoiceLeadingSession, selectedChordNameRef, setSelectedChord]);
+
+  const clearActiveSimpleTriad = useCallback(() => {
+    activeSimpleTriadIdRef.current = null;
+    setActiveSimpleTriadId(null);
+  }, []);
 
   const changePlayStyle = useCallback((style: PlayStyle) => {
     if (playStyleRef.current === style) {
@@ -686,6 +701,10 @@ export function useChordPlayback({
 
   const applyChordWithBorrowing = useCallback(
     (chord: Chord) => {
+      if (activeSimpleTriadIdRef.current !== null) {
+        activeSimpleTriadIdRef.current = null;
+        setActiveSimpleTriadId(null);
+      }
       const newState = getBorrowingStateForChord(
         chord.name,
         borrowingStateRef.current
@@ -719,6 +738,50 @@ export function useChordPlayback({
     isPointerDownRef.current = true;
     applyChordWithBorrowing(chord);
   }, [applyChordWithBorrowing]);
+
+  const handleSimpleTriadPointerDown = useCallback((id: SimpleMajorTriadId) => {
+    unlockIosMediaChannel();
+    isPointerDownRef.current = true;
+
+    const resolved = resolveSimpleMajorTriad(id, tonalCenterRef.current);
+    const chord = resolved
+      ? chordManager.getChordByName(resolved.chordName)
+      : null;
+    if (!resolved || !chord) return;
+
+    // Read the last committed triad id before latching this tap. I and vi
+    // share a host chord, so same-button retap needs both name and triad id.
+    const previousTriadId = activeSimpleTriadId;
+    activeSimpleTriadIdRef.current = id;
+
+    const newState = applySimpleTriadMutes(
+      getBorrowingStateForChord(chord.name, borrowingStateRef.current),
+      chord,
+      resolved.triadPitchClasses,
+    );
+    const previousName = previousChordRef.current?.name;
+    const isSameButtonRetap =
+      previousName === chord.name && previousTriadId === id;
+    const isChordNameChange =
+      previousName != null && previousName !== chord.name;
+
+    voiceAndPlay(chord, newState, {
+      retrigger:
+        playStyleRef.current === 'tap' &&
+        (isSameButtonRetap ||
+          (retriggerSoundingNotesRef.current === true && isChordNameChange)),
+      fromPointer: true,
+      borrowingStateOverride: newState,
+    });
+    setActiveSimpleTriadId(id);
+  }, [
+    getBorrowingStateForChord,
+    borrowingStateRef,
+    voiceAndPlay,
+    retriggerSoundingNotesRef,
+    tonalCenterRef,
+    activeSimpleTriadId,
+  ]);
 
   const handleChordPointerUp = useCallback(() => {
     isPointerDownRef.current = false;
@@ -904,8 +967,12 @@ export function useChordPlayback({
     lastElementalPlayback,
     playAndDisplayChord,
     handleChordPointerDown,
+    handleSimpleTriadPointerDown,
     handleChordPointerUp,
     handleChordPointerEnter,
     handleTiltStrumSample,
+    activeSimpleTriadId,
+    activeSimpleTriadIdRef,
+    clearActiveSimpleTriad,
   };
 }

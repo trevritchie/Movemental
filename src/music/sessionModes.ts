@@ -16,6 +16,7 @@ export type VoicingElevatorFloorsMode = 'all' | 'every_other';
 export type DiagramLayoutMode =
   | 'complete_geometry'
   | 'major'
+  | 'simple_major_triads'
   | 'natural_minor'
   | 'minor'
   | 'blues'

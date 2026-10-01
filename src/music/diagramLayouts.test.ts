@@ -7,7 +7,9 @@ import {
   isChordEnabledInLayout,
   isDiagramLayoutMode,
   JAZZ_BLUES_LAYOUT_CHORDS,
+  isSimpleMajorTriadsLayout,
   MAJOR_LAYOUT_CHORDS,
+  SIMPLE_MAJOR_TRIADS_LAYOUT_CHORDS,
   MINOR_LAYOUT_CHORDS,
   NATURAL_MINOR_LAYOUT_CHORDS,
   RHYTHM_CHANGES_LAYOUT_CHORDS,
@@ -64,6 +66,7 @@ describe('diagramLayouts', () => {
     expect(DIAGRAM_LAYOUT_OPTIONS.map((o) => o.value)).toEqual([
       'complete_geometry',
       'major',
+      'simple_major_triads',
       'natural_minor',
       'minor',
       'blues',
@@ -73,12 +76,15 @@ describe('diagramLayouts', () => {
     expect(DIAGRAM_LAYOUT_OPTIONS.map((o) => o.label)).toEqual([
       'Complete Geometry',
       'Major',
+      'Simple Major Triads',
       'Natural Minor',
       'Minor',
       'Blues',
       'Jazz Blues',
       'Rhythm Changes',
     ]);
+    expect(isSimpleMajorTriadsLayout('simple_major_triads')).toBe(true);
+    expect(isSimpleMajorTriadsLayout('major')).toBe(false);
   });
 
   it('validates diagram layout mode strings', () => {
@@ -186,5 +192,23 @@ describe('diagramLayouts', () => {
     expect(isChordEnabledInLayout('Brother Charcoal', 'rhythm_changes')).toBe(
       false,
     );
+  });
+
+  it('keeps Simple Major Triads on 6th hosts and parents, not Flame', () => {
+    expect([...SIMPLE_MAJOR_TRIADS_LAYOUT_CHORDS].sort()).toEqual([
+      'Branch',
+      'Ember',
+      'Glass',
+      'Magma',
+    ]);
+    for (const name of SIMPLE_MAJOR_TRIADS_LAYOUT_CHORDS) {
+      expect(isChordEnabledInLayout(name, 'simple_major_triads')).toBe(true);
+    }
+    expect(isChordEnabledInLayout('Earth', 'simple_major_triads')).toBe(true);
+    expect(isChordEnabledInLayout('Wind', 'simple_major_triads')).toBe(true);
+    expect(isChordEnabledInLayout('Fire', 'simple_major_triads')).toBe(true);
+    expect(isChordEnabledInLayout('Flame', 'simple_major_triads')).toBe(false);
+    expect(isChordEnabledInLayout('Trunk', 'simple_major_triads')).toBe(false);
+    expect(isChordEnabledInLayout('Flame', 'major')).toBe(true);
   });
 });

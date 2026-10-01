@@ -31,7 +31,11 @@ import {
   computeSharedHarmonicFunctionLabelFontSize,
   type ParentElementName,
 } from '../diagram/harmonicFunctionLabelLayout';
-import { isChordEnabledInLayout } from '../music/diagramLayouts';
+import {
+  isChordEnabledInLayout,
+  isSimpleMajorTriadsLayout,
+} from '../music/diagramLayouts';
+import { SimpleTriadsSurface } from './SimpleTriadsSurface';
 import { parentElementStyle } from '../music/elementTokens';
 import { useChordContext } from '../context/ChordContext';
 import { BREAKPOINTS } from '../layout/breakpoints';
@@ -294,6 +298,9 @@ export const ElementalDiagram = React.memo(function ElementalDiagram({
       <DiagramBackgroundOrbs />
       <DiagramVoicingOverlay />
       {layoutTier !== 'phone' && <DiagramCornerActions />}
+      {isSimpleMajorTriadsLayout(diagramLayoutMode) ? (
+        <SimpleTriadsSurface />
+      ) : (
       <svg
         viewBox={viewBox}
         className="diagram-svg"
@@ -655,6 +662,7 @@ export const ElementalDiagram = React.memo(function ElementalDiagram({
           );
         })}
       </svg>
+      )}
       {children}
     </div>
   );
